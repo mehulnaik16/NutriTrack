@@ -30,17 +30,24 @@ export function WaterStreak({ userId, streak }: Props) {
     setWater(data?.amount_ml ?? 0);
   }, [userId, today]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const update = async (delta: number) => {
     const next = Math.max(0, Math.min(DAILY_GOAL_ML + 500, water + delta));
     setLoading(true);
-    const { error } = await supabase.from("water_logs").upsert(
-      { user_id: userId, date: today, amount_ml: next },
-      { onConflict: "user_id,date" }
-    );
+    const { error } = await supabase
+      .from("water_logs")
+      .upsert(
+        { user_id: userId, date: today, amount_ml: next },
+        { onConflict: "user_id,date" },
+      );
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setWater(next);
     if (delta > 0 && next >= DAILY_GOAL_ML && water < DAILY_GOAL_ML) {
       toast.success("💧 Daily water goal hit! Great work.");
@@ -50,14 +57,20 @@ export function WaterStreak({ userId, streak }: Props) {
   const pct = Math.min(100, Math.round((water / DAILY_GOAL_ML) * 100));
   const glasses = Math.round(water / 250);
 
-  const streakEmoji = streak >= 30 ? "🔥" : streak >= 14 ? "⚡" : streak >= 7 ? "✨" : "🌱";
+  const streakEmoji =
+    streak >= 30 ? "🔥" : streak >= 14 ? "⚡" : streak >= 7 ? "✨" : "🌱";
   const streakMsg =
-    streak === 0 ? "Start your streak today!"
-    : streak === 1 ? "Day 1 — keep going!"
-    : streak < 7 ? `${streak} days — building the habit`
-    : streak < 14 ? `${streak} days — one week strong!`
-    : streak < 30 ? `${streak} days — you're on fire!`
-    : `${streak} days — absolute legend`;
+    streak === 0
+      ? "Start your streak today!"
+      : streak === 1
+        ? "Day 1 — keep going!"
+        : streak < 7
+          ? `${streak} days — building the habit`
+          : streak < 14
+            ? `${streak} days — one week strong!`
+            : streak < 30
+              ? `${streak} days — you're on fire!`
+              : `${streak} days — absolute legend`;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -73,14 +86,19 @@ export function WaterStreak({ userId, streak }: Props) {
           <div className="flex items-end justify-between">
             <div>
               <span className="text-3xl font-bold">{water}</span>
-              <span className="ml-1 text-sm text-muted-foreground">/ {DAILY_GOAL_ML} ml</span>
+              <span className="ml-1 text-sm text-muted-foreground">
+                / {DAILY_GOAL_ML} ml
+              </span>
             </div>
-            <span className="text-sm text-muted-foreground">{glasses} glasses</span>
+            <span className="text-sm text-muted-foreground">
+              {glasses} glasses
+            </span>
           </div>
           <Progress value={pct} className="h-2.5" />
           <div className="flex items-center gap-2">
             <Button
-              variant="outline" size="icon"
+              variant="outline"
+              size="icon"
               onClick={() => update(-STEP_ML)}
               disabled={loading || water === 0}
               className="h-9 w-9"
@@ -105,7 +123,11 @@ export function WaterStreak({ userId, streak }: Props) {
       </Card>
 
       {/* Streak card */}
-      <Card className={streak >= 7 ? "border-[var(--energy)]/30 bg-[var(--energy)]/5" : ""}>
+      <Card
+        className={
+          streak >= 7 ? "border-[var(--energy)]/30 bg-[var(--energy)]/5" : ""
+        }
+      >
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Flame className="h-4 w-4 text-[var(--fat)]" />
@@ -115,7 +137,9 @@ export function WaterStreak({ userId, streak }: Props) {
         <CardContent className="space-y-2">
           <div className="flex items-end gap-2">
             <span className="text-3xl font-bold">{streak}</span>
-            <span className="mb-1 text-sm text-muted-foreground">days in a row</span>
+            <span className="mb-1 text-sm text-muted-foreground">
+              days in a row
+            </span>
             <span className="mb-1 text-xl">{streakEmoji}</span>
           </div>
           <p className="text-sm text-muted-foreground">{streakMsg}</p>

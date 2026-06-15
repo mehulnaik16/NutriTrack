@@ -1,5 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Activity, Dumbbell, LogOut, Moon, Scale, Sun, User as UserIcon } from "lucide-react";
+import {
+  Activity,
+  Dumbbell,
+  LogOut,
+  Moon,
+  Scale,
+  Sun,
+  Utensils,
+  User as UserIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -21,7 +30,9 @@ export function Header({ name }: { name?: string }) {
   };
 
   const today = new Date().toLocaleDateString(undefined, {
-    weekday: "long", month: "short", day: "numeric",
+    weekday: "long",
+    month: "short",
+    day: "numeric",
   });
 
   return (
@@ -36,16 +47,28 @@ export function Header({ name }: { name?: string }) {
           </Link>
           {user && (
             <nav className="hidden items-center gap-1 sm:flex">
-              <Link to="/dashboard"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors [&.active]:text-foreground [&.active]:bg-muted">
+              <Link
+                to="/dashboard"
+                className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors [&.active]:text-foreground [&.active]:bg-muted"
+              >
                 Dashboard
               </Link>
-              <Link to="/workout"
-                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors [&.active]:text-foreground [&.active]:bg-muted">
+              <Link
+                to="/food"
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors [&.active]:text-foreground [&.active]:bg-muted"
+              >
+                <Utensils className="h-3.5 w-3.5" /> Food
+              </Link>
+              <Link
+                to="/workout"
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors [&.active]:text-foreground [&.active]:bg-muted"
+              >
                 <Dumbbell className="h-3.5 w-3.5" /> Workout
               </Link>
-              <Link to="/weight"
-                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors [&.active]:text-foreground [&.active]:bg-muted">
+              <Link
+                to="/weight"
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors [&.active]:text-foreground [&.active]:bg-muted"
+              >
                 <Scale className="h-3.5 w-3.5" /> Weight
               </Link>
             </nav>
@@ -58,17 +81,33 @@ export function Header({ name }: { name?: string }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleDark} aria-label="Toggle theme">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleDark}
+            aria-label="Toggle theme"
+          >
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
           {user && (
             <>
-              <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/profile" })} aria-label="Profile">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate({ to: "/profile" })}
+                aria-label="Profile"
+              >
                 <UserIcon className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon"
-                onClick={async () => { await signOut(); navigate({ to: "/login" }); }}
-                aria-label="Logout">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={async () => {
+                  await signOut();
+                  navigate({ to: "/login" });
+                }}
+                aria-label="Logout"
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </>

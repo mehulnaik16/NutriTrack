@@ -25,18 +25,38 @@ interface WeekStats {
   weightChange: number | null;
 }
 
-async function buildWeekStats(userId: string, calorieTarget: number): Promise<WeekStats> {
+async function buildWeekStats(
+  userId: string,
+  calorieTarget: number,
+): Promise<WeekStats> {
   const today = new Date();
   const weekAgo = new Date(today);
   weekAgo.setDate(today.getDate() - 6);
   const from = weekAgo.toISOString().slice(0, 10);
   const to = today.toISOString().slice(0, 10);
 
-  const [{ data: foodLogs }, { data: workoutLogs }, { data: weightEntries }] = await Promise.all([
-    supabase.from("food_logs").select("date,calories").eq("user_id", userId).gte("date", from).lte("date", to),
-    supabase.from("workout_logs").select("date").eq("user_id", userId).gte("date", from).lte("date", to),
-    supabase.from("weight_entries").select("date,weight_kg").eq("user_id", userId).gte("date", from).lte("date", to).order("date"),
-  ]);
+  const [{ data: foodLogs }, { data: workoutLogs }, { data: weightEntries }] =
+    await Promise.all([
+      supabase
+        .from("food_logs")
+        .select("date,calories")
+        .eq("user_id", userId)
+        .gte("date", from)
+        .lte("date", to),
+      supabase
+        .from("workout_logs")
+        .select("date")
+        .eq("user_id", userId)
+        .gte("date", from)
+        .lte("date", to),
+      supabase
+        .from("weight_entries")
+        .select("date,weight_kg")
+        .eq("user_id", userId)
+        .gte("date", from)
+        .lte("date", to)
+        .order("date"),
+    ]);
 
   // Aggregate calories by day
   const dayMap: Record<string, number> = {};
@@ -46,7 +66,10 @@ async function buildWeekStats(userId: string, calorieTarget: number): Promise<We
 
   const days = Object.entries(dayMap);
   const daysLogged = days.length;
-  const avgCalories = daysLogged > 0 ? Math.round(days.reduce((s, [, c]) => s + c, 0) / daysLogged) : 0;
+  const avgCalories =
+    daysLogged > 0
+      ? Math.round(days.reduce((s, [, c]) => s + c, 0) / daysLogged)
+      : 0;
 
   const sorted = [...days].sort((a, b) => b[1] - a[1]);
   const bestDay = sorted[sorted.length - 1]?.[0] ?? "—";
@@ -61,10 +84,21 @@ async function buildWeekStats(userId: string, calorieTarget: number): Promise<We
     weightChange = +(last - first).toFixed(1);
   }
 
-  return { avgCalories, targetCalories: calorieTarget, daysLogged, bestDay, worstDay, workoutDays, weightChange };
+  return {
+    avgCalories,
+    targetCalories: calorieTarget,
+    daysLogged,
+    bestDay,
+    worstDay,
+    workoutDays,
+    weightChange,
+  };
 }
 
-async function getWeeklyReport(profile: Props["profile"], stats: WeekStats): Promise<string> {
+async function getWeeklyReport(
+  profile: Props["profile"],
+  stats: WeekStats,
+): Promise<string> {
   const prompt = `You are a friendly, data-driven fitness coach writing a weekly summary.
 User: ${profile.full_name?.split(" ")[0] ?? "there"}, goal: ${profile.goal}, current weight: ${profile.weight_kg}kg.
 This week's data:
@@ -95,7 +129,10 @@ export function WeeklyReport({ userId, profile }: Props) {
 
   const generate = useCallback(async () => {
     setLoading(true);
-    const s = await buildWeekStats(userId, profile.daily_calorie_target ?? 2000);
+    const s = await buildWeekStats(
+      userId,
+      profile.daily_calorie_target ?? 2000,
+    );
     setStats(s);
     const r = await getWeeklyReport(profile, s);
     setReport(r);
@@ -115,15 +152,38 @@ export function WeeklyReport({ userId, profile }: Props) {
           <CardTitle className="flex items-center gap-2 text-base">
             <Sparkles className="h-4 w-4 text-[var(--warn)]" />
             Weekly AI Report
-            {isSunday && <span className="rounded-full bg-[var(--warn)]/20 px-2 py-0.5 text-xs font-medium text-[var(--warn)]">Today</span>}
+            {isSunday && (
+              <span className="rounded-full bg-[var(--warn)]/20 px-2 py-0.5 text-xs font-medium text-[var(--warn)]">
+                Today
+              </span>
+            )}
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={generate} disabled={loading} className="gap-1 text-xs">
-              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Generate"}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={generate}
+              disabled={loading}
+              className="gap-1 text-xs"
+            >
+              {loading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                "Generate"
+              )}
             </Button>
             {report && (
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpanded((p) => !p)}>
-                {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setExpanded((p) => !p)}
+              >
+                {expanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
               </Button>
             )}
           </div>
@@ -138,16 +198,27 @@ export function WeeklyReport({ userId, profile }: Props) {
                 { label: "Days logged", value: `${stats.daysLogged}/7` },
                 { label: "Avg calories", value: `${stats.avgCalories} kcal` },
                 { label: "Workouts", value: `${stats.workoutDays} sessions` },
-                { label: "Weight Δ", value: stats.weightChange !== null ? `${stats.weightChange > 0 ? "+" : ""}${stats.weightChange} kg` : "—" },
+                {
+                  label: "Weight Δ",
+                  value:
+                    stats.weightChange !== null
+                      ? `${stats.weightChange > 0 ? "+" : ""}${stats.weightChange} kg`
+                      : "—",
+                },
               ].map((s) => (
-                <div key={s.label} className="rounded-lg border border-border bg-muted/30 p-3">
+                <div
+                  key={s.label}
+                  className="rounded-lg border border-border bg-muted/30 p-3"
+                >
                   <p className="text-xs text-muted-foreground">{s.label}</p>
                   <p className="font-semibold text-sm">{s.value}</p>
                 </div>
               ))}
             </div>
           )}
-          <p className="text-sm leading-relaxed text-muted-foreground">{report}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {report}
+          </p>
         </CardContent>
       )}
     </Card>

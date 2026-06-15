@@ -22,22 +22,34 @@ function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Welcome back!");
     navigate({ to: "/dashboard" });
   };
 
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) { toast.error("Enter your email first."); return; }
+    if (!email) {
+      toast.error("Enter your email first.");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setMode("forgot-sent");
   };
 
@@ -54,16 +66,23 @@ function Login() {
 
         <Card className="border-border/60 shadow-lg">
           <CardContent className="p-6 sm:p-8">
-
             {/* ── Login ── */}
             {mode === "login" && (
               <>
                 <h1 className="mb-1 text-2xl font-bold">Log in</h1>
-                <p className="mb-6 text-sm text-muted-foreground">Welcome back. Continue your journey.</p>
+                <p className="mb-6 text-sm text-muted-foreground">
+                  Welcome back. Continue your journey.
+                </p>
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label>Email</Label>
-                    <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+                    <Input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                    />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -76,15 +95,36 @@ function Login() {
                         Forgot password?
                       </button>
                     </div>
-                    <Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+                    <Input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                    />
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
-                    {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Logging in…</> : "Log in"}
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Logging in…
+                      </>
+                    ) : (
+                      "Log in"
+                    )}
                   </Button>
                 </form>
                 <p className="mt-6 text-center text-sm text-muted-foreground">
                   Don't have an account?{" "}
-                  <Link to="/quiz" className="font-medium text-accent underline-offset-2 hover:underline">Take the quiz</Link>
+                  <Link
+                    to="/quiz"
+                    className="font-medium text-accent underline-offset-2 hover:underline"
+                  >
+                    Take the quiz
+                  </Link>
                 </p>
               </>
             )}
@@ -106,14 +146,25 @@ function Login() {
                   <div className="space-y-2">
                     <Label>Email</Label>
                     <Input
-                      type="email" required
+                      type="email"
+                      required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
                     />
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
-                    {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</> : "Send reset link"}
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Sending…
+                      </>
+                    ) : (
+                      "Send reset link"
+                    )}
                   </Button>
                 </form>
               </>
@@ -127,19 +178,22 @@ function Login() {
                 </div>
                 <h1 className="text-xl font-bold">Check your email</h1>
                 <p className="text-sm text-muted-foreground">
-                  We sent a password reset link to <span className="font-medium text-foreground">{email}</span>.
+                  We sent a password reset link to{" "}
+                  <span className="font-medium text-foreground">{email}</span>.
                   Check your inbox and spam folder.
                 </p>
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => { setMode("login"); setEmail(""); }}
+                  onClick={() => {
+                    setMode("login");
+                    setEmail("");
+                  }}
                 >
                   Back to login
                 </Button>
               </div>
             )}
-
           </CardContent>
         </Card>
       </div>

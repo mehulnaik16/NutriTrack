@@ -20,7 +20,12 @@ export function bmiCategory(bmi: number) {
   return "Obese";
 }
 
-export function calcBMR(weightKg: number, heightCm: number, age: number, gender: string) {
+export function calcBMR(
+  weightKg: number,
+  heightCm: number,
+  age: number,
+  gender: string,
+) {
   if (!weightKg || !heightCm || !age) return 0;
   const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
   return Math.round(gender === "Female" ? base - 161 : base + 5);
