@@ -10,9 +10,11 @@ import {
   ScanLine,
   Mic,
   MicOff,
+  PenTool,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import Webcam from "react-webcam";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -67,8 +69,96 @@ interface VoiceFoodItem {
   fat_g: number;
 }
 
-const ITEMS = ifctData as IFCTItem[];
 const KJ_PER_KCAL = 4.184;
+
+const EXTRA_FOODS: IFCTItem[] = [
+  {
+    code: "E001",
+    name: "Obbattu / Puran Poli (1 piece = 80g)",
+    scie: "",
+    lang: "",
+    grup: "Indian Sweets",
+    enerc: 320 * KJ_PER_KCAL,
+    protcnt: 7.2,
+    fatce: 10.5,
+    choavldf: 49.3,
+    fibtg: 3.5,
+  },
+  {
+    code: "E002",
+    name: "Idli and Chutney",
+    scie: "",
+    lang: "",
+    grup: "Combo Meals",
+    enerc: 120 * KJ_PER_KCAL,
+    protcnt: 3.5,
+    fatce: 2.1,
+    choavldf: 21.0,
+    fibtg: 1.5,
+  },
+  {
+    code: "E003",
+    name: "Rice and Sambar",
+    scie: "",
+    lang: "",
+    grup: "Combo Meals",
+    enerc: 110 * KJ_PER_KCAL,
+    protcnt: 3.0,
+    fatce: 1.5,
+    choavldf: 20.0,
+    fibtg: 1.2,
+  },
+  {
+    code: "E004",
+    name: "Idli (1 medium = 50g)",
+    scie: "",
+    lang: "",
+    grup: "Breakfast",
+    enerc: 90 * KJ_PER_KCAL,
+    protcnt: 2.5,
+    fatce: 0.2,
+    choavldf: 19.5,
+    fibtg: 0.8,
+  },
+  {
+    code: "E005",
+    name: "Dosa (1 medium = 100g)",
+    scie: "",
+    lang: "",
+    grup: "Breakfast",
+    enerc: 160 * KJ_PER_KCAL,
+    protcnt: 3.2,
+    fatce: 3.5,
+    choavldf: 28.0,
+    fibtg: 1.2,
+  },
+  {
+    code: "E006",
+    name: "Parotta (1 piece = 100g)",
+    scie: "",
+    lang: "",
+    grup: "Breakfast",
+    enerc: 320 * KJ_PER_KCAL,
+    protcnt: 5.5,
+    fatce: 14.5,
+    choavldf: 42.0,
+    fibtg: 1.5,
+  },
+  {
+    code: "E007",
+    name: "Whole Egg (1 large = 50g)",
+    scie: "",
+    lang: "",
+    grup: "Protein",
+    enerc: 143 * KJ_PER_KCAL,
+    protcnt: 12.6,
+    fatce: 9.5,
+    choavldf: 0.7,
+    fibtg: 0,
+  }
+];
+
+const ITEMS = [...(ifctData as IFCTItem[]), ...EXTRA_FOODS];
 const kcal = (kj: number | null) => (kj == null ? 0 : kj / KJ_PER_KCAL);
 
 function rank(item: IFCTItem, q: string): number {
@@ -179,6 +269,15 @@ export function FoodSearch({
   const [meal, setMeal] = useState("Breakfast");
   const [saving, setSaving] = useState(false);
 
+  // Custom Food
+  const [customFoodOpen, setCustomFoodOpen] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customQty, setCustomQty] = useState("100");
+  const [customCal, setCustomCal] = useState("");
+  const [customP, setCustomP] = useState("");
+  const [customC, setCustomC] = useState("");
+  const [customF, setCustomF] = useState("");
+
   // Camera / AI vision
   const [cameraOpen, setCameraOpen] = useState(false);
   const [aiResult, setAiResult] = useState<AIFoodResult | null>(null);
@@ -268,7 +367,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   );
 
   // ── Log helpers ──────────────────────────────────────────────────────────────
-  const logFood = async (item: IFCTItem, grams: number, mealType: string) => {
+  const logFood = async (item: IFCTItem, grams: number, mealType: string, overrides?: { cal: number; p: number; c: number; f: number }) => {
     setSaving(true);
     const ratio = grams / 100;
     const { error } = await supabase.from("food_logs").insert({
@@ -277,10 +376,10 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       meal_type: mealType,
       food_name: item.name,
       quantity_g: grams,
-      calories: +(kcal(item.enerc) * ratio).toFixed(1),
-      protein_g: +((item.protcnt ?? 0) * ratio).toFixed(1),
-      carbs_g: +((item.choavldf ?? 0) * ratio).toFixed(1),
-      fat_g: +((item.fatce ?? 0) * ratio).toFixed(1),
+      calories: overrides ? overrides.cal : +(kcal(item.enerc) * ratio).toFixed(1),
+      protein_g: overrides ? overrides.p : +((item.protcnt ?? 0) * ratio).toFixed(1),
+      carbs_g: overrides ? overrides.c : +((item.choavldf ?? 0) * ratio).toFixed(1),
+      fat_g: overrides ? overrides.f : +((item.fatce ?? 0) * ratio).toFixed(1),
     });
     setSaving(false);
     if (error) {
@@ -347,19 +446,17 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   };
 
   // ── Camera ───────────────────────────────────────────────────────────────────
-  const handleCameraPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImagePreview(URL.createObjectURL(file));
+  const webcamRef = useRef<Webcam>(null);
+
+  const captureAiPhoto = async () => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (!imageSrc) return;
+    
+    setImagePreview(imageSrc);
     setAnalyzing(true);
     try {
-      const base64 = await new Promise<string>((res, rej) => {
-        const reader = new FileReader();
-        reader.onload = () => res((reader.result as string).split(",")[1]);
-        reader.onerror = rej;
-        reader.readAsDataURL(file);
-      });
-      const result = await recognizeFoodFromImage(base64, file.type);
+      const base64 = imageSrc.split(",")[1];
+      const result = await recognizeFoodFromImage(base64, "image/jpeg");
       setAiResult(result);
     } catch (e: any) {
       toast.error("Could not identify food: " + e.message);
@@ -369,27 +466,22 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   };
 
   // ── Barcode ──────────────────────────────────────────────────────────────────
-  const barcodeFileRef = useRef<HTMLInputElement>(null);
+  const barcodeWebcamRef = useRef<Webcam>(null);
   const [scanningBarcode, setScanningBarcode] = useState(false);
 
-  const handleBarcodePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const captureBarcodePhoto = async () => {
+    const imageSrc = barcodeWebcamRef.current?.getScreenshot();
+    if (!imageSrc) return;
 
     setScanningBarcode(true);
     try {
       const reader = new BrowserMultiFormatReader();
-      const imageUrl = URL.createObjectURL(file);
-
-      // Decode from image URL
-      const result = await reader.decodeFromImageUrl(imageUrl);
+      const result = await reader.decodeFromImageUrl(imageSrc);
 
       if (result && result.getText()) {
         const text = result.getText();
         setBarcodeVal(text);
         toast.success(`Scanned: ${text}`);
-        // Optionally auto-submit:
-        // handleBarcodeSubmit(text);
       } else {
         toast.error("Could not find a clear barcode in the image. Try again.");
       }
@@ -400,8 +492,6 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       );
     } finally {
       setScanningBarcode(false);
-      // Reset input
-      if (barcodeFileRef.current) barcodeFileRef.current.value = "";
     }
   };
 
@@ -425,14 +515,14 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blob = new Blob(chunksRef.current);
         setTranscribing(true);
         try {
           const text = await groqTranscribe(blob);
@@ -536,6 +626,14 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         <Button
           variant="outline"
           size="icon"
+          onClick={() => setCustomFoodOpen(true)}
+          title="Add Custom Food"
+        >
+          <PenTool className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => setCameraOpen(true)}
           title="Log food by photo"
         >
@@ -591,6 +689,98 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         </div>
       )}
 
+      {/* ── Custom Food dialog ── */}
+      <Dialog open={customFoodOpen} onOpenChange={setCustomFoodOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Custom Food</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label>Food Name</Label>
+              <Input
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                placeholder="e.g., Mom's Chicken Curry"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Quantity (g)</Label>
+                <Input
+                  type="number"
+                  value={customQty}
+                  onChange={(e) => setCustomQty(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Meal</Label>
+                <MealSelect />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Cal (kcal)</Label>
+                <Input type="number" value={customCal} onChange={(e) => setCustomCal(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Pro (g)</Label>
+                <Input type="number" value={customP} onChange={(e) => setCustomP(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Carbs (g)</Label>
+                <Input type="number" value={customC} onChange={(e) => setCustomC(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Fat (g)</Label>
+                <Input type="number" value={customF} onChange={(e) => setCustomF(e.target.value)} />
+              </div>
+            </div>
+            <Button
+              onClick={async () => {
+                if (!customName.trim() || !customCal) {
+                  toast.error("Name and Calories are required");
+                  return;
+                }
+                const customItem: IFCTItem = {
+                  code: "custom",
+                  name: customName,
+                  scie: "",
+                  lang: "",
+                  grup: "Custom",
+                  enerc: 0,
+                  protcnt: 0,
+                  fatce: 0,
+                  choavldf: 0,
+                  fibtg: 0,
+                };
+                const ok = await logFood(customItem, +customQty || 100, meal, {
+                  cal: +customCal,
+                  p: +customP || 0,
+                  c: +customC || 0,
+                  f: +customF || 0,
+                });
+                if (ok) {
+                  toast.success(`${customName} logged!`);
+                  setCustomFoodOpen(false);
+                  setCustomName("");
+                  setCustomCal("");
+                  setCustomP("");
+                  setCustomC("");
+                  setCustomF("");
+                  onLogged();
+                }
+              }}
+              disabled={saving}
+              className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Log Custom Food
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Text search log dialog ── */}
       <Dialog
         open={open}
@@ -607,14 +797,24 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           </DialogHeader>
           {selected && m && (
             <div className="space-y-4">
-              <MacroGrid
-                items={[
-                  { label: "Calories", val: `${m.cal} kcal` },
-                  { label: "Protein", val: `${m.p}g` },
-                  { label: "Carbs", val: `${m.c}g` },
-                  { label: "Fat", val: `${m.f}g` },
-                ]}
-              />
+              <div className="grid grid-cols-4 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Cal (kcal)</Label>
+                  <Input type="number" defaultValue={m.cal} id="overrideCal" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Pro (g)</Label>
+                  <Input type="number" defaultValue={m.p} id="overrideP" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Carbs (g)</Label>
+                  <Input type="number" defaultValue={m.c} id="overrideC" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Fat (g)</Label>
+                  <Input type="number" defaultValue={m.f} id="overrideF" />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Quantity (g)</Label>
@@ -631,7 +831,19 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               </div>
               <Button
                 onClick={async () => {
-                  const ok = await logFood(selected, +qty || 100, meal);
+                  const oCal = (document.getElementById("overrideCal") as HTMLInputElement).value;
+                  const oP = (document.getElementById("overrideP") as HTMLInputElement).value;
+                  const oC = (document.getElementById("overrideC") as HTMLInputElement).value;
+                  const oF = (document.getElementById("overrideF") as HTMLInputElement).value;
+                  
+                  const overrides = {
+                    cal: +oCal,
+                    p: +oP,
+                    c: +oC,
+                    f: +oF
+                  };
+                  
+                  const ok = await logFood(selected, +qty || 100, meal, overrides);
                   if (ok) {
                     toast.success(`${selected.name} logged!`);
                     setOpen(false);
@@ -678,24 +890,22 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               snap a photo.
             </p>
             {!imagePreview && (
-              <div
-                onClick={() => cameraRef.current?.click()}
-                className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border p-10 hover:border-accent transition-colors"
-              >
-                <Camera className="h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  Tap to take a photo
-                </p>
+              <div className="relative overflow-hidden rounded-lg border-2 border-border bg-black min-h-[300px] flex items-center justify-center">
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{ facingMode: "environment" }}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-4 inset-x-0 flex justify-center">
+                  <button
+                    onClick={captureAiPhoto}
+                    className="h-16 w-16 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg"
+                  />
+                </div>
               </div>
             )}
-            <input
-              ref={cameraRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handleCameraPhoto}
-            />
             {imagePreview && (
               <div className="relative">
                 <img
@@ -945,27 +1155,24 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid gap-2">
-              <Button
-                variant="outline"
-                className="w-full gap-2 border-dashed border-2 py-6 text-muted-foreground hover:border-accent hover:text-accent transition-colors"
-                onClick={() => barcodeFileRef.current?.click()}
-                disabled={scanningBarcode}
-              >
-                {scanningBarcode ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Camera className="h-5 w-5" />
-                )}
-                {scanningBarcode ? "Scanning..." : "Take Photo of Barcode"}
-              </Button>
-              <input
-                ref={barcodeFileRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleBarcodePhoto}
-              />
+              <div className="relative overflow-hidden rounded-lg border-2 border-border bg-black min-h-[250px] flex items-center justify-center">
+                <Webcam
+                  audio={false}
+                  ref={barcodeWebcamRef}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{ facingMode: "environment" }}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-4 inset-x-0 flex justify-center">
+                  <button
+                    onClick={captureBarcodePhoto}
+                    disabled={scanningBarcode}
+                    className="h-14 w-14 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg disabled:opacity-50"
+                  >
+                    {scanningBarcode && <Loader2 className="h-6 w-6 animate-spin text-accent" />}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="relative">

@@ -3,9 +3,7 @@ import {
   Activity,
   Dumbbell,
   LogOut,
-  Moon,
   Scale,
-  Sun,
   Utensils,
   User as UserIcon,
 } from "lucide-react";
@@ -16,18 +14,6 @@ import { useAuth } from "@/lib/auth";
 export function Header({ name }: { name?: string }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
-
-  const toggleDark = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
-  };
 
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -81,14 +67,6 @@ export function Header({ name }: { name?: string }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleDark}
-            aria-label="Toggle theme"
-          >
-            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
           {user && (
             <>
               <Button

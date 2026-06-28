@@ -196,11 +196,17 @@ function WeightPage() {
 
   const saveGoalWeight = async () => {
     if (!user || !goalWeight) return;
-    await supabase
+    const { error } = await supabase
       .from("user_profiles")
       .update({ goal_weight_kg: +goalWeight })
       .eq("id", user.id);
+      
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Goal weight saved!");
+    await load();
   };
 
   if (!user || !profile) {

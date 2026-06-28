@@ -1,22 +1,45 @@
 import { useCallback, useEffect, useState } from "react";
-import { Droplets, Flame, Plus, Minus } from "lucide-react";
+import { Droplets, Flame, Plus, Minus, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Props {
   userId: string;
   streak: number;
 }
 
-const DAILY_GOAL_ML = 2500;
-const STEP_ML = 250;
-
 export function WaterStreak({ userId, streak }: Props) {
   const [water, setWater] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  const [dailyGoalMl, setDailyGoalMl] = useState(() => {
+    const saved = localStorage.getItem("waterDailyGoal");
+    return saved ? parseInt(saved, 10) : 2500;
+  });
+  const [stepMl, setStepMl] = useState(() => {
+    const saved = localStorage.getItem("waterStep");
+    return saved ? parseInt(saved, 10) : 250;
+  });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleSaveSettings = () => {
+    localStorage.setItem("waterDailyGoal", dailyGoalMl.toString());
+    localStorage.setItem("waterStep", stepMl.toString());
+    setIsSettingsOpen(false);
+    toast.success("Water preferences saved");
+  };
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -35,7 +58,7 @@ export function WaterStreak({ userId, streak }: Props) {
   }, [load]);
 
   const update = async (delta: number) => {
-    const next = Math.max(0, Math.min(DAILY_GOAL_ML + 500, water + delta));
+    const next = Math.max(0, Math.min(dailyGoalMl + 500, water + delta));
     setLoading(true);
     const { error } = await supabase
       .from("water_logs")
@@ -49,13 +72,13 @@ export function WaterStreak({ userId, streak }: Props) {
       return;
     }
     setWater(next);
-    if (delta > 0 && next >= DAILY_GOAL_ML && water < DAILY_GOAL_ML) {
+    if (delta > 0 && next >= dailyGoalMl && water < dailyGoalMl) {
       toast.success("💧 Daily water goal hit! Great work.");
     }
   };
 
-  const pct = Math.min(100, Math.round((water / DAILY_GOAL_ML) * 100));
-  const glasses = Math.round(water / 250);
+  const pct = Math.min(100, Math.round((water / dailyGoalMl) * 100));
+  const glasses = Math.round(water / stepMl);
 
   const streakEmoji =
     streak >= 30 ? "🔥" : streak >= 14 ? "⚡" : streak >= 7 ? "✨" : "🌱";
@@ -77,9 +100,52 @@ export function WaterStreak({ userId, streak }: Props) {
       {/* Water card */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Droplets className="h-4 w-4 text-blue-500" />
-            Water intake
+          <CardTitle className="flex items-center justify-between text-base">
+            <div className="flex items-center gap-2">
+              <Droplets className="h-4 w-4 text-blue-500" />
+              Water intake
+            </div>
+            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Water Settings</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="dailyGoal" className="text-right">
+                      Daily Goal (ml)
+                    </Label>
+                    <Input
+                      id="dailyGoal"
+                      type="number"
+                      value={dailyGoalMl}
+                      onChange={(e) => setDailyGoalMl(Number(e.target.value))}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="stepMl" className="text-right">
+                      Cup Size (ml)
+                    </Label>
+                    <Input
+                      id="stepMl"
+                      type="number"
+                      value={stepMl}
+                      onChange={(e) => setStepMl(Number(e.target.value))}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSettings}>Save changes</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -87,7 +153,7 @@ export function WaterStreak({ userId, streak }: Props) {
             <div>
               <span className="text-3xl font-bold">{water}</span>
               <span className="ml-1 text-sm text-muted-foreground">
-                / {DAILY_GOAL_ML} ml
+                / {dailyGoalMl} ml
               </span>
             </div>
             <span className="text-sm text-muted-foreground">
@@ -99,20 +165,21 @@ export function WaterStreak({ userId, streak }: Props) {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => update(-STEP_ML)}
+              onClick={() => update(-stepMl)}
               disabled={loading || water === 0}
               className="h-9 w-9"
             >
               <Minus className="h-4 w-4" />
             </Button>
             <Button
-              onClick={() => update(STEP_ML)}
+              onClick={() => update(stepMl)}
               disabled={loading}
               className="flex-1 bg-blue-500 text-white hover:bg-blue-600 gap-2"
             >
               <Plus className="h-4 w-4" />
-              +250 ml
+              +{stepMl} ml
             </Button>
+
           </div>
           {pct >= 100 && (
             <p className="text-center text-xs font-medium text-blue-500">
