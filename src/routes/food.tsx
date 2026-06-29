@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Header } from "@/components/Header";
-import { FoodSearch } from "@/components/FoodSearch";
+import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import {
@@ -41,6 +41,7 @@ function FoodPage() {
   const [selectedDate, setSelectedDate] = useState<string>(today());
   const [todayLogs, setTodayLogs] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const searchRef = useRef<FoodSearchRef>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -125,7 +126,7 @@ function FoodPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-5">
-            <FoodSearch userId={user.id} date={selectedDate} onLogged={load} />
+            <FoodSearch ref={searchRef} userId={user.id} date={selectedDate} onLogged={load} />
 
             {todayLogs.length > 0 ? (
               <div className="mt-8 space-y-5">
@@ -165,14 +166,24 @@ function FoodPage() {
                                 · {Math.round(l.protein_g)}g protein
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => deleteLog(l.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-xs text-muted-foreground hover:text-accent hover:bg-accent/10 font-medium px-2"
+                                onClick={() => searchRef.current?.editLog(l)}
+                              >
+                                Modify
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => deleteLog(l.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>

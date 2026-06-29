@@ -1,5 +1,5 @@
 import { BrowserMultiFormatReader } from "@zxing/browser";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, forwardRef, useImperativeHandle, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -251,15 +251,18 @@ async function lookupBarcode(barcode: string): Promise<IFCTItem | null> {
   };
 }
 
-export function FoodSearch({
-  userId,
-  date,
-  onLogged,
-}: {
-  userId: string;
-  date: string;
-  onLogged: () => void;
-}) {
+export interface FoodSearchRef {
+  editLog: (log: any) => void;
+}
+
+export const FoodSearch = forwardRef<
+  FoodSearchRef,
+  {
+    userId: string;
+    date: string;
+    onLogged: () => void;
+  }
+>(({ userId, date, onLogged }, ref) => {
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
@@ -268,6 +271,38 @@ export function FoodSearch({
   const [qty, setQty] = useState("100");
   const [meal, setMeal] = useState("Breakfast");
   const [saving, setSaving] = useState(false);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editLogId, setEditLogId] = useState<string | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    editLog: (log: any) => {
+      setIsEditing(true);
+      setEditLogId(log.id);
+
+      const ratio = log.quantity_g / 100;
+      const baseCal = ratio > 0 ? log.calories / ratio : 0;
+      const baseP = ratio > 0 ? log.protein_g / ratio : 0;
+      const baseC = ratio > 0 ? log.carbs_g / ratio : 0;
+      const baseF = ratio > 0 ? log.fat_g / ratio : 0;
+
+      setSelected({
+        code: "edit",
+        name: log.food_name,
+        scie: "",
+        lang: "",
+        grup: "Edited",
+        enerc: baseCal * KJ_PER_KCAL,
+        protcnt: baseP,
+        choavldf: baseC,
+        fatce: baseF,
+        fibtg: 0,
+      });
+      setQty(log.quantity_g.toString());
+      setMeal(log.meal_type);
+      setOpen(true);
+    }
+  }));
 
   // Custom Food
   const [customFoodOpen, setCustomFoodOpen] = useState(false);
@@ -370,17 +405,38 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   const logFood = async (item: IFCTItem, grams: number, mealType: string, overrides?: { cal: number; p: number; c: number; f: number }) => {
     setSaving(true);
     const ratio = grams / 100;
-    const { error } = await supabase.from("food_logs").insert({
-      user_id: userId,
-      date,
-      meal_type: mealType,
-      food_name: item.name,
-      quantity_g: grams,
-      calories: overrides ? overrides.cal : +(kcal(item.enerc) * ratio).toFixed(1),
-      protein_g: overrides ? overrides.p : +((item.protcnt ?? 0) * ratio).toFixed(1),
-      carbs_g: overrides ? overrides.c : +((item.choavldf ?? 0) * ratio).toFixed(1),
-      fat_g: overrides ? overrides.f : +((item.fatce ?? 0) * ratio).toFixed(1),
-    });
+
+    const cal = overrides ? overrides.cal : +(kcal(item.enerc) * ratio).toFixed(1);
+    const p = overrides ? overrides.p : +((item.protcnt ?? 0) * ratio).toFixed(1);
+    const c = overrides ? overrides.c : +((item.choavldf ?? 0) * ratio).toFixed(1);
+    const f = overrides ? overrides.f : +((item.fatce ?? 0) * ratio).toFixed(1);
+
+    let error;
+    if (isEditing && editLogId) {
+      const { error: updateErr } = await supabase.from("food_logs").update({
+        meal_type: mealType,
+        quantity_g: grams,
+        calories: cal,
+        protein_g: p,
+        carbs_g: c,
+        fat_g: f,
+      }).eq("id", editLogId);
+      error = updateErr;
+    } else {
+      const { error: insertErr } = await supabase.from("food_logs").insert({
+        user_id: userId,
+        date,
+        meal_type: mealType,
+        food_name: item.name,
+        quantity_g: grams,
+        calories: cal,
+        protein_g: p,
+        carbs_g: c,
+        fat_g: f,
+      });
+      error = insertErr;
+    }
+
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -451,7 +507,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   const captureAiPhoto = async () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (!imageSrc) return;
-    
+
     setImagePreview(imageSrc);
     setAnalyzing(true);
     try {
@@ -559,6 +615,20 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
     f: +(((item.fatce ?? 0) * g) / 100).toFixed(1),
   });
   const m = selected ? macrosFor(selected, +qty || 100) : null;
+
+  const [overrideCal, setOverrideCal] = useState<string>("");
+  const [overrideP, setOverrideP] = useState<string>("");
+  const [overrideC, setOverrideC] = useState<string>("");
+  const [overrideF, setOverrideF] = useState<string>("");
+
+  useEffect(() => {
+    if (selected && m) {
+      setOverrideCal(m.cal.toString());
+      setOverrideP(m.p.toString());
+      setOverrideC(m.c.toString());
+      setOverrideF(m.f.toString());
+    }
+  }, [m?.cal, m?.p, m?.c, m?.f, selected]);
 
   const MacroGrid = ({
     items,
@@ -788,6 +858,8 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           if (!o) {
             setOpen(false);
             setSelected(null);
+            setIsEditing(false);
+            setEditLogId(null);
           }
         }}
       >
@@ -800,19 +872,19 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               <div className="grid grid-cols-4 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Cal (kcal)</Label>
-                  <Input type="number" defaultValue={m.cal} id="overrideCal" />
+                  <Input type="number" value={overrideCal} onChange={(e) => setOverrideCal(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Pro (g)</Label>
-                  <Input type="number" defaultValue={m.p} id="overrideP" />
+                  <Input type="number" value={overrideP} onChange={(e) => setOverrideP(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Carbs (g)</Label>
-                  <Input type="number" defaultValue={m.c} id="overrideC" />
+                  <Input type="number" value={overrideC} onChange={(e) => setOverrideC(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Fat (g)</Label>
-                  <Input type="number" defaultValue={m.f} id="overrideF" />
+                  <Input type="number" value={overrideF} onChange={(e) => setOverrideF(e.target.value)} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -831,24 +903,21 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               </div>
               <Button
                 onClick={async () => {
-                  const oCal = (document.getElementById("overrideCal") as HTMLInputElement).value;
-                  const oP = (document.getElementById("overrideP") as HTMLInputElement).value;
-                  const oC = (document.getElementById("overrideC") as HTMLInputElement).value;
-                  const oF = (document.getElementById("overrideF") as HTMLInputElement).value;
-                  
                   const overrides = {
-                    cal: +oCal,
-                    p: +oP,
-                    c: +oC,
-                    f: +oF
+                    cal: +overrideCal,
+                    p: +overrideP,
+                    c: +overrideC,
+                    f: +overrideF
                   };
-                  
+
                   const ok = await logFood(selected, +qty || 100, meal, overrides);
                   if (ok) {
-                    toast.success(`${selected.name} logged!`);
+                    toast.success(`${selected.name} ${isEditing ? "modified" : "logged"}!`);
                     setOpen(false);
                     setSelected(null);
                     setQ("");
+                    setIsEditing(false);
+                    setEditLogId(null);
                     onLogged();
                   }
                 }}
@@ -857,10 +926,12 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               >
                 {saving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isEditing ? (
+                  <span className="font-bold">✓</span>
                 ) : (
                   <Plus className="h-4 w-4" />
                 )}{" "}
-                Log food
+                {isEditing ? "Modify" : "Log food"}
               </Button>
             </div>
           )}
@@ -1042,11 +1113,10 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               <button
                 onClick={recording ? stopRecording : startRecording}
                 disabled={transcribing || parsingVoice}
-                className={`flex h-20 w-20 items-center justify-center rounded-full border-4 transition-all ${
-                  recording
+                className={`flex h-20 w-20 items-center justify-center rounded-full border-4 transition-all ${recording
                     ? "animate-pulse border-destructive bg-destructive/10"
                     : "border-accent bg-accent/10 hover:bg-accent/20"
-                }`}
+                  }`}
               >
                 {recording ? (
                   <MicOff className="h-8 w-8 text-destructive" />
@@ -1212,4 +1282,4 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       </Dialog>
     </div>
   );
-}
+});

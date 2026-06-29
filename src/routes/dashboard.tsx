@@ -41,7 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FoodSearch } from "@/components/FoodSearch";
+import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { useAuth } from "@/lib/auth";
@@ -143,6 +143,7 @@ function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<FoodSearchRef>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [todayLogs, setTodayLogs] = useState<FoodLog[]>([]);
@@ -464,6 +465,7 @@ function Dashboard() {
               </CardHeader>
               <CardContent className="pt-5">
                 <FoodSearch
+                  ref={searchRef}
                   userId={user.id}
                   date={selectedDate}
                   onLogged={load}
@@ -507,14 +509,24 @@ function Dashboard() {
                                     kcal · {Math.round(l.protein_g)}g protein
                                   </div>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => deleteLog(l.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 text-xs text-muted-foreground hover:text-accent hover:bg-accent/10 font-medium px-2"
+                                    onClick={() => searchRef.current?.editLog(l)}
+                                  >
+                                    Modify
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => deleteLog(l.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             ))}
                           </div>
