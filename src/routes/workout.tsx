@@ -766,7 +766,7 @@ function WorkoutPage() {
         : "bg-[var(--navy)]/10 text-[var(--navy)] border-[var(--navy)]/30";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24">
       <Header name={profile.full_name?.split(" ")[0]} />
 
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6">
