@@ -11,7 +11,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  ChevronDown,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -35,10 +42,32 @@ const shiftDate = (iso: string, days: number) => {
   return `${yy}-${mm}-${dd}`;
 };
 
+const parseLocalDate = (iso: string) => {
+  const [y, m, date] = iso.split("-").map(Number);
+  return new Date(y, m - 1, date);
+};
+
+const formatDateDisplay = (dateStr: string) => {
+  if (dateStr === today()) return "Today";
+  if (dateStr === shiftDate(today(), -1)) return "Yesterday";
+
+  const d = parseLocalDate(dateStr);
+  const now = new Date();
+  if (d.getFullYear() === now.getFullYear()) {
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  }
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 function FoodPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<string>(today());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [todayLogs, setTodayLogs] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const searchRef = useRef<FoodSearchRef>(null);
@@ -46,6 +75,21 @@ function FoodPage() {
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
+
+  const handleDateSelect = (d: Date | undefined) => {
+    if (d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const date = String(d.getDate()).padStart(2, "0");
+      setSelectedDate(`${y}-${m}-${date}`);
+      setIsCalendarOpen(false);
+    }
+  };
+
+  const handleQuickAction = (dateStr: string) => {
+    setSelectedDate(dateStr);
+    setIsCalendarOpen(false);
+  };
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -110,9 +154,53 @@ function FoodPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-xs font-bold min-w-[70px] text-center uppercase tracking-wider">
-                  {selectedDate === today() ? "Today" : selectedDate.slice(5)}
-                </span>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                    >
+                      {formatDateDisplay(selectedDate)}
+                      <ChevronDown className="h-3 w-3 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-3" align="center">
+                    <div className="flex gap-2 mb-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() => handleQuickAction(today())}
+                      >
+                        Today
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() =>
+                          handleQuickAction(shiftDate(today(), -1))
+                        }
+                      >
+                        Yesterday
+                      </Button>
+                    </div>
+                    <Calendar
+                      mode="single"
+                      selected={parseLocalDate(selectedDate)}
+                      onSelect={(d) => handleDateSelect(d)}
+                      disabled={(d) => {
+                        const todayStart = new Date();
+                        todayStart.setHours(0, 0, 0, 0);
+                        const dStart = new Date(d);
+                        dStart.setHours(0, 0, 0, 0);
+                        return dStart > todayStart;
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -126,7 +214,12 @@ function FoodPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-5">
-            <FoodSearch ref={searchRef} userId={user.id} date={selectedDate} onLogged={load} />
+            <FoodSearch
+              ref={searchRef}
+              userId={user.id}
+              date={selectedDate}
+              onLogged={load}
+            />
 
             {todayLogs.length > 0 ? (
               <div className="mt-8 space-y-5">
