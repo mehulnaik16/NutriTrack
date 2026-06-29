@@ -664,66 +664,68 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* ── Search bar ── */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search food…"
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              if (aiSuggestions.length > 0) setAiSuggestions([]);
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleAiFallback()}
-            className="pl-9"
-          />
-          {q.length >= 2 && suggestions.length === 0 && !searching && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleAiFallback}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-[10px] text-accent uppercase font-bold px-2 hover:bg-accent/10"
-            >
-              Search AI
-            </Button>
-          )}
-          {searching && (
-            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-          )}
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search food…"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            if (aiSuggestions.length > 0) setAiSuggestions([]);
+          }}
+          onKeyDown={(e) => e.key === "Enter" && handleAiFallback()}
+          className="pl-9"
+        />
+        {q.length >= 2 && suggestions.length === 0 && !searching && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAiFallback}
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-[10px] text-accent uppercase font-bold px-2 hover:bg-accent/10"
+          >
+            Search AI
+          </Button>
+        )}
+        {searching && (
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+        )}
+      </div>
+
+      {/* ── Action buttons ── */}
+      <div className="flex gap-3">
         <Button
           variant="outline"
-          size="icon"
           onClick={() => setCustomFoodOpen(true)}
           title="Add Custom Food"
+          className="flex flex-1 items-center justify-center h-[48px] p-0"
         >
-          <PenTool className="h-4 w-4" />
+          <PenTool style={{ width: 18, height: 18 }} />
         </Button>
         <Button
           variant="outline"
-          size="icon"
           onClick={() => setCameraOpen(true)}
           title="Log food by photo"
+          className="flex flex-1 items-center justify-center h-[48px] p-0"
         >
-          <Camera className="h-4 w-4" />
+          <Camera style={{ width: 18, height: 18 }} />
         </Button>
         <Button
           variant="outline"
-          size="icon"
           onClick={() => setVoiceOpen(true)}
           title="Log food by voice"
+          className="flex flex-1 items-center justify-center h-[48px] p-0"
         >
-          <Mic className="h-4 w-4" />
+          <Mic style={{ width: 18, height: 18 }} />
         </Button>
         <Button
           variant="outline"
-          size="icon"
           onClick={() => setBarcodeMode(true)}
           title="Barcode lookup"
+          className="flex flex-1 items-center justify-center h-[48px] p-0"
         >
-          <Barcode className="h-4 w-4" />
+          <Barcode style={{ width: 18, height: 18 }} />
         </Button>
       </div>
 

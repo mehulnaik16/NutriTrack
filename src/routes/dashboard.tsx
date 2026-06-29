@@ -532,7 +532,7 @@ function Dashboard() {
                 />
 
                 {todayLogs.length > 0 ? (
-                  <div className="mt-8 space-y-5">
+                  <div className="mt-5 space-y-5">
                     {meals.map((m) => {
                       const items = todayLogs.filter((l) => l.meal_type === m);
                       if (!items.length) return null;
