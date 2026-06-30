@@ -21,6 +21,9 @@ import {
   Facebook,
   Twitter,
   Clock,
+  Check,
+  Sparkles,
+  HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -33,6 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import {
@@ -44,6 +49,44 @@ import {
 } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/profile")({ component: Profile });
+
+const plans = [
+  {
+    id: "starter",
+    name: "Starter",
+    price: 299,
+    popular: false,
+    features: [
+      "Food logging (up to 3 meals/day)",
+      "Calorie tracking",
+      "Basic charts",
+    ],
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: 599,
+    popular: true,
+    features: [
+      "Unlimited food logging",
+      "Macro tracking (protein, carbs, fats)",
+      "Monthly progress graphs",
+      "Meal history",
+    ],
+  },
+  {
+    id: "elite",
+    name: "Elite",
+    price: 999,
+    popular: false,
+    features: [
+      "Everything in Pro",
+      "AI meal suggestions",
+      "Priority support",
+      "Export data as PDF",
+    ],
+  },
+];
 
 type Page =
   | "menu"
@@ -117,6 +160,26 @@ function Profile() {
     if (newTheme !== "light") {
       document.documentElement.classList.add(newTheme);
     }
+  };
+
+  const startPlan = async (planId: string) => {
+    if (!user) {
+      navigate({ to: "/login" });
+      return;
+    }
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({
+        selected_plan: planId,
+        trial_start_date: new Date().toISOString().slice(0, 10),
+      })
+      .eq("id", user.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Free trial started!");
+    setPage("menu");
   };
 
   useEffect(() => {
@@ -210,9 +273,86 @@ function Profile() {
   }
 
   /* ─── COMING SOON PAGE ─── */
-  if (page !== "menu" && page !== "details" && page !== "theme") {
+  if (page !== "menu" && page !== "details" && page !== "theme" && page !== "pricing") {
     const cs = COMING_SOON_PAGES[page]!;
     return <ComingSoonPage title={cs.title} icon={cs.icon} onBack={() => setPage("menu")} />;
+  }
+
+  /* ─── PRICING PAGE ─── */
+  if (page === "pricing") {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <SubHeader
+          title="Pricing"
+          onBack={() => setPage("menu")}
+          action={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => toast("Help center coming soon")}
+            >
+              <HelpCircle className="h-5 w-5" />
+            </Button>
+          }
+        />
+        <main className="mx-auto max-w-6xl px-4 py-8">
+          <div className="mb-8 rounded-2xl bg-accent text-accent-foreground p-5 text-center shadow-lg">
+            <div className="mb-1 flex items-center justify-center gap-2 text-base font-bold">
+              <Sparkles className="h-5 w-5" /> Try any plan FREE for 2 days
+            </div>
+            <p className="text-sm font-medium opacity-90">
+              No credit card required. After 2 days, choose a plan to continue.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {plans.map((p) => (
+              <Card
+                key={p.id}
+                className={`relative border-border/60 ${p.popular ? "border-accent shadow-xl md:scale-105" : ""}`}
+              >
+                {p.popular && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground">
+                    Most Popular
+                  </Badge>
+                )}
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold">{p.name}</h3>
+                  <div className="mt-3 flex items-baseline gap-1">
+                    <span className="text-4xl font-bold">₹{p.price}</span>
+                    <span className="text-sm text-muted-foreground">/month</span>
+                  </div>
+                  <ul className="mt-6 space-y-3 text-sm">
+                    {p.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />{" "}
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-6 flex flex-col gap-3">
+                    <Button
+                      onClick={() => startPlan(p.id)}
+                      className={`w-full ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                      variant={p.popular ? "default" : "outline"}
+                    >
+                      Start Free Trial
+                    </Button>
+                    <Button
+                      onClick={() => toast("Payment gateway coming soon")}
+                      className={`w-full ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                      variant={p.popular ? "default" : "outline"}
+                    >
+                      Pay
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </main>
+      </div>
+    );
   }
 
   /* ─── THEME PAGE ─── */
