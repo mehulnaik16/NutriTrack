@@ -693,43 +693,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         )}
       </div>
 
-      {/* ── Action buttons ── */}
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={() => setCustomFoodOpen(true)}
-          title="Add Custom Food"
-          className="flex flex-1 items-center justify-center h-[48px] p-0"
-        >
-          <PenTool style={{ width: 18, height: 18 }} />
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setCameraOpen(true)}
-          title="Log food by photo"
-          className="flex flex-1 items-center justify-center h-[48px] p-0"
-        >
-          <Camera style={{ width: 18, height: 18 }} />
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setVoiceOpen(true)}
-          title="Log food by voice"
-          className="flex flex-1 items-center justify-center h-[48px] p-0"
-        >
-          <Mic style={{ width: 18, height: 18 }} />
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setBarcodeMode(true)}
-          title="Barcode lookup"
-          className="flex flex-1 items-center justify-center h-[48px] p-0"
-        >
-          <Barcode style={{ width: 18, height: 18 }} />
-        </Button>
-      </div>
-
-      {/* ── Suggestions ── */}
+      {/* ── Suggestions (above icons) ── */}
       {allSuggestions.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
           {allSuggestions.map((it) => (
@@ -760,6 +724,46 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           ))}
         </div>
       )}
+
+      {/* ── Action buttons: Camera → Mic → Barcode → Custom Food ── */}
+      <div className="flex gap-[22px] justify-center">
+        <Button
+          variant="outline"
+          onClick={() => setCameraOpen(true)}
+          title="Log food by photo"
+          className="flex items-center justify-center p-0"
+          style={{ width: 52, height: 52, minWidth: 52, maxWidth: 52 }}
+        >
+          <Camera style={{ width: 20, height: 20 }} />
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setVoiceOpen(true)}
+          title="Log food by voice"
+          className="flex items-center justify-center p-0"
+          style={{ width: 52, height: 52, minWidth: 52, maxWidth: 52 }}
+        >
+          <Mic style={{ width: 20, height: 20 }} />
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setBarcodeMode(true)}
+          title="Barcode lookup"
+          className="flex items-center justify-center p-0"
+          style={{ width: 52, height: 52, minWidth: 52, maxWidth: 52 }}
+        >
+          <Barcode style={{ width: 20, height: 20 }} />
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setCustomFoodOpen(true)}
+          title="Add Custom Food"
+          className="flex items-center justify-center p-0"
+          style={{ width: 52, height: 52, minWidth: 52, maxWidth: 52 }}
+        >
+          <PenTool style={{ width: 20, height: 20 }} />
+        </Button>
+      </div>
 
       {/* ── Custom Food dialog ── */}
       <Dialog open={customFoodOpen} onOpenChange={setCustomFoodOpen}>

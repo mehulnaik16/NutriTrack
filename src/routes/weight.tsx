@@ -223,7 +223,7 @@ function WeightPage() {
     latest && first ? +(latest.weight_kg - first.weight_kg).toFixed(1) : 0;
   const toGoal =
     latest && profile.goal_weight_kg
-      ? +(latest.weight_kg - profile.goal_weight_kg).toFixed(1)
+      ? +Math.abs(profile.goal_weight_kg - latest.weight_kg).toFixed(1)
       : null;
 
   const chartData = entries.map((e) => ({
@@ -281,7 +281,7 @@ function WeightPage() {
                 <Target className="h-4 w-4" /> To goal
               </div>
               <p className="text-2xl font-bold">
-                {toGoal !== null ? `${toGoal > 0 ? "" : ""}${toGoal} kg` : "—"}
+                {toGoal !== null ? `+${toGoal} kg` : "—"}
               </p>
             </CardContent>
           </Card>
