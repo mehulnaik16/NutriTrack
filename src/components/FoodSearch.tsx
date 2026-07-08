@@ -1,9 +1,5 @@
 import { BrowserMultiFormatReader } from "@zxing/browser";
-<<<<<<< HEAD
 import { useMemo, useRef, useState, forwardRef, useImperativeHandle, useEffect } from "react";
-=======
-import { useMemo, useRef, useState, useEffect } from "react";
->>>>>>> 84fd0e1 (feat: complete quiz styling, add real-time leaderboard, and implement editable live streaming voice UI)
 import {
   Search,
   Plus,
@@ -430,12 +426,11 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   const logFood = async (item: IFCTItem, grams: number, mealType: string, overrides?: { cal: number; p: number; c: number; f: number; fib?: number }) => {
     setSaving(true);
     const ratio = grams / 100;
-<<<<<<< HEAD
-
     const cal = overrides ? overrides.cal : +(kcal(item.enerc) * ratio).toFixed(1);
     const p = overrides ? overrides.p : +((item.protcnt ?? 0) * ratio).toFixed(1);
     const c = overrides ? overrides.c : +((item.choavldf ?? 0) * ratio).toFixed(1);
     const f = overrides ? overrides.f : +((item.fatce ?? 0) * ratio).toFixed(1);
+    const fib = overrides && overrides.fib !== undefined ? overrides.fib : +((item.fibtg ?? 0) * ratio).toFixed(1);
 
     let error;
     if (isEditing && editLogId) {
@@ -446,6 +441,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         protein_g: p,
         carbs_g: c,
         fat_g: f,
+        fiber_g: fib,
       }).eq("id", editLogId);
       error = updateErr;
     } else {
@@ -459,24 +455,10 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         protein_g: p,
         carbs_g: c,
         fat_g: f,
+        fiber_g: fib,
       });
       error = insertErr;
     }
-
-=======
-    const { error } = await supabase.from("food_logs").insert({
-      user_id: userId,
-      date,
-      meal_type: mealType,
-      food_name: item.name,
-      quantity_g: grams,
-      calories: overrides ? overrides.cal : +(kcal(item.enerc) * ratio).toFixed(1),
-      protein_g: overrides ? overrides.p : +((item.protcnt ?? 0) * ratio).toFixed(1),
-      carbs_g: overrides ? overrides.c : +((item.choavldf ?? 0) * ratio).toFixed(1),
-      fat_g: overrides ? overrides.f : +((item.fatce ?? 0) * ratio).toFixed(1),
-      fiber_g: overrides && overrides.fib !== undefined ? overrides.fib : +((item.fibtg ?? 0) * ratio).toFixed(1),
-    });
->>>>>>> 84fd0e1 (feat: complete quiz styling, add real-time leaderboard, and implement editable live streaming voice UI)
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -760,9 +742,6 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         )}
       </div>
 
-<<<<<<< HEAD
-      {/* ── Suggestions (above icons) ── */}
-=======
       {/* ── Saved Meals ── */}
       {q.length === 0 && savedMeals.length > 0 && (
         <div className="mt-4">
@@ -802,7 +781,6 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       )}
 
       {/* ── Suggestions ── */}
->>>>>>> 84fd0e1 (feat: complete quiz styling, add real-time leaderboard, and implement editable live streaming voice UI)
       {allSuggestions.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
           {allSuggestions.map((it) => (
