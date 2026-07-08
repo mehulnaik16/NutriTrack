@@ -1,5 +1,9 @@
 import { BrowserMultiFormatReader } from "@zxing/browser";
+<<<<<<< HEAD
 import { useMemo, useRef, useState, forwardRef, useImperativeHandle, useEffect } from "react";
+=======
+import { useMemo, useRef, useState, useEffect } from "react";
+>>>>>>> 84fd0e1 (feat: complete quiz styling, add real-time leaderboard, and implement editable live streaming voice UI)
 import {
   Search,
   Plus,
@@ -11,9 +15,13 @@ import {
   Mic,
   MicOff,
   PenTool,
+  Flame,
+  ArrowRight,
+  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import Webcam from "react-webcam";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -55,6 +63,7 @@ interface AIFoodResult {
   protein_per_100g: number;
   carbs_per_100g: number;
   fat_per_100g: number;
+  fiber_per_100g?: number;
   confidence: "high" | "medium" | "low";
   notes: string;
 }
@@ -62,11 +71,14 @@ interface AIFoodResult {
 interface VoiceFoodItem {
   food_name: string;
   quantity_g: number;
+  unit?: string;
+  unit_quantity?: number;
   meal_type: string;
   calories: number;
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fiber_g: number;
 }
 
 const KJ_PER_KCAL = 4.184;
@@ -184,6 +196,7 @@ async function recognizeFoodFromImage(
   "protein_per_100g": number,
   "carbs_per_100g": number,
   "fat_per_100g": number,
+  "fiber_per_100g": number,
   "confidence": "high" or "medium" or "low",
   "notes": "portion sizing assumptions"
 }
@@ -205,21 +218,25 @@ Parse every food item mentioned and return ONLY a JSON array, no markdown:
   {
     "food_name": "string",
     "quantity_g": number,
+    "unit": "string (e.g. 'pieces', 'bowls', 'g')",
+    "unit_quantity": number,
     "meal_type": "${mealType}",
     "calories": number,
     "protein_g": number,
     "carbs_g": number,
-    "fat_g": number
+    "fat_g": number,
+    "fiber_g": number
   }
 ]
 Rules:
 - Use common portion sizes if not specified (1 roti = 40g, 1 bowl dal = 150g, 1 banana = 120g, 1 egg = 50g)
+- If user says "2 rotis", set unit="rotis", unit_quantity=2, quantity_g=80. If they just say grams, set unit="g", unit_quantity=100
 - Use accurate nutritional values for Indian foods
 - Each distinct food is a separate item in the array
 - Return empty array [] if no food is mentioned`;
 
   const raw = await groqChat({
-    model: "meta-llama/llama-4-scout-17b-16e-instruct",
+    model: "llama-3.3-70b-versatile",
     messages: [{ role: "user", content: prompt }],
     max_tokens: 600,
     temperature: 0.1,
@@ -312,6 +329,14 @@ export const FoodSearch = forwardRef<
   const [customP, setCustomP] = useState("");
   const [customC, setCustomC] = useState("");
   const [customF, setCustomF] = useState("");
+  const [customFib, setCustomFib] = useState("");
+  const [saveAsMeal, setSaveAsMeal] = useState(false);
+  const [savedMeals, setSavedMeals] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase.from("saved_meals" as any).select("*").eq("user_id", userId).order("created_at", { ascending: false })
+      .then(({ data }) => { if (data) setSavedMeals(data); });
+  }, [userId]);
 
   // Camera / AI vision
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -402,9 +427,10 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   );
 
   // ── Log helpers ──────────────────────────────────────────────────────────────
-  const logFood = async (item: IFCTItem, grams: number, mealType: string, overrides?: { cal: number; p: number; c: number; f: number }) => {
+  const logFood = async (item: IFCTItem, grams: number, mealType: string, overrides?: { cal: number; p: number; c: number; f: number; fib?: number }) => {
     setSaving(true);
     const ratio = grams / 100;
+<<<<<<< HEAD
 
     const cal = overrides ? overrides.cal : +(kcal(item.enerc) * ratio).toFixed(1);
     const p = overrides ? overrides.p : +((item.protcnt ?? 0) * ratio).toFixed(1);
@@ -437,6 +463,20 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       error = insertErr;
     }
 
+=======
+    const { error } = await supabase.from("food_logs").insert({
+      user_id: userId,
+      date,
+      meal_type: mealType,
+      food_name: item.name,
+      quantity_g: grams,
+      calories: overrides ? overrides.cal : +(kcal(item.enerc) * ratio).toFixed(1),
+      protein_g: overrides ? overrides.p : +((item.protcnt ?? 0) * ratio).toFixed(1),
+      carbs_g: overrides ? overrides.c : +((item.choavldf ?? 0) * ratio).toFixed(1),
+      fat_g: overrides ? overrides.f : +((item.fatce ?? 0) * ratio).toFixed(1),
+      fiber_g: overrides && overrides.fib !== undefined ? overrides.fib : +((item.fibtg ?? 0) * ratio).toFixed(1),
+    });
+>>>>>>> 84fd0e1 (feat: complete quiz styling, add real-time leaderboard, and implement editable live streaming voice UI)
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -458,7 +498,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         protcnt: aiResult.protein_per_100g,
         fatce: aiResult.fat_per_100g,
         choavldf: aiResult.carbs_per_100g,
-        fibtg: 0,
+        fibtg: aiResult.fiber_per_100g || 0,
       },
       aiResult.estimated_weight_g,
       meal,
@@ -485,6 +525,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       protein_g: item.protein_g,
       carbs_g: item.carbs_g,
       fat_g: item.fat_g,
+      fiber_g: item.fiber_g || 0,
     }));
     const { error } = await supabase.from("food_logs").insert(rows);
     setSaving(false);
@@ -569,43 +610,68 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
 
   // ── Voice recording ───────────────────────────────────────────────────────────
   const startRecording = async () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast.error("Live speech recognition is not supported in this browser.");
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setRecording(true);
+        setTranscript("");
       };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current);
-        setTranscribing(true);
-        try {
-          const text = await groqTranscribe(blob);
-          setTranscript(text);
-          setParsingVoice(true);
-          const items = await parseVoiceFoodLog(text, meal);
-          setVoiceItems(items);
-          if (items.length === 0)
-            toast.info("No food items detected. Try again.");
-        } catch (e: any) {
-          toast.error("Transcription failed: " + e.message);
-        } finally {
-          setTranscribing(false);
-          setParsingVoice(false);
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = "";
+        for (let i = 0; i < event.results.length; ++i) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        setTranscript(currentTranscript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        if (event.error !== "no-speech") {
+          toast.error("Speech recognition error: " + event.error);
+          setRecording(false);
         }
       };
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setRecording(true);
-    } catch {
-      toast.error("Microphone access denied.");
+
+      recognition.start();
+      mediaRecorderRef.current = recognition as any;
+    } catch (e: any) {
+      toast.error("Microphone access denied or error: " + e.message);
     }
   };
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
+  const stopRecording = async () => {
+    if (mediaRecorderRef.current) {
+      (mediaRecorderRef.current as any).stop();
+    }
     setRecording(false);
+
+    if (transcript.trim().length > 0) {
+      setParsingVoice(true);
+      try {
+        const items = await parseVoiceFoodLog(transcript, meal);
+        setVoiceItems(items);
+        if (items.length === 0) {
+          toast.info("No food items detected. Try again.");
+        }
+      } catch (e: any) {
+        toast.error("Parsing failed: " + e.message);
+      } finally {
+        setParsingVoice(false);
+      }
+    }
   };
 
   const macrosFor = (item: IFCTItem, g: number) => ({
@@ -613,6 +679,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
     p: +(((item.protcnt ?? 0) * g) / 100).toFixed(1),
     c: +(((item.choavldf ?? 0) * g) / 100).toFixed(1),
     f: +(((item.fatce ?? 0) * g) / 100).toFixed(1),
+    fib: +(((item.fibtg ?? 0) * g) / 100).toFixed(1),
   });
   const m = selected ? macrosFor(selected, +qty || 100) : null;
 
@@ -635,7 +702,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   }: {
     items: { label: string; val: string }[];
   }) => (
-    <div className="grid grid-cols-4 gap-2 text-center text-xs">
+    <div className="grid grid-cols-5 gap-2 text-center text-xs">
       {items.map((s) => (
         <div
           key={s.label}
@@ -693,7 +760,49 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         )}
       </div>
 
+<<<<<<< HEAD
       {/* ── Suggestions (above icons) ── */}
+=======
+      {/* ── Saved Meals ── */}
+      {q.length === 0 && savedMeals.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1"><Flame className="h-3 w-3 text-red-500 fill-current" /> Saved Meals & Favorites</h4>
+          <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+            {savedMeals.map((mealItem) => (
+              <button
+                key={mealItem.id}
+                onClick={async () => {
+                  const customItem: IFCTItem = {
+                    code: "saved", name: mealItem.name, scie: "", lang: "", grup: "Custom",
+                    enerc: 0, protcnt: 0, fatce: 0, choavldf: 0, fibtg: 0,
+                  };
+                  await logFood(customItem, 100, meal, {
+                    cal: mealItem.calories, p: mealItem.protein_g, c: mealItem.carbs_g, f: mealItem.fat_g, fib: mealItem.fiber_g || 0,
+                  });
+                  toast.success(`${mealItem.name} logged!`);
+                  onLogged();
+                }}
+                className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{mealItem.name}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                    {Math.round(mealItem.calories)} kcal
+                  </span>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white shadow-sm hover:bg-blue-600 transition-colors">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Suggestions ── */}
+>>>>>>> 84fd0e1 (feat: complete quiz styling, add real-time leaderboard, and implement editable live streaming voice UI)
       {allSuggestions.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
           {allSuggestions.map((it) => (
@@ -794,7 +903,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 <MealSelect />
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Cal (kcal)</Label>
                 <Input type="number" value={customCal} onChange={(e) => setCustomCal(e.target.value)} />
@@ -811,6 +920,14 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 <Label className="text-xs text-muted-foreground">Fat (g)</Label>
                 <Input type="number" value={customF} onChange={(e) => setCustomF(e.target.value)} />
               </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Fib (g)</Label>
+                <Input type="number" value={customFib} onChange={(e) => setCustomFib(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="saveMeal" checked={saveAsMeal} onChange={(e) => setSaveAsMeal(e.target.checked)} className="rounded border-gray-300" />
+              <Label htmlFor="saveMeal">Save to My Meals (Favorites)</Label>
             </div>
             <Button
               onClick={async () => {
@@ -835,7 +952,23 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   p: +customP || 0,
                   c: +customC || 0,
                   f: +customF || 0,
+                  fib: +customFib || 0,
                 });
+                
+                if (ok && saveAsMeal) {
+                  await supabase.from("saved_meals" as any).insert({
+                    user_id: userId,
+                    name: customName,
+                    calories: +customCal,
+                    protein_g: +customP || 0,
+                    carbs_g: +customC || 0,
+                    fat_g: +customF || 0,
+                    fiber_g: +customFib || 0,
+                  });
+                  supabase.from("saved_meals" as any).select("*").eq("user_id", userId).order("created_at", { ascending: false })
+                    .then(({ data }) => { if (data) setSavedMeals(data); });
+                }
+
                 if (ok) {
                   toast.success(`${customName} logged!`);
                   setCustomFoodOpen(false);
@@ -844,6 +977,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   setCustomP("");
                   setCustomC("");
                   setCustomF("");
+                  setCustomFib("");
                   onLogged();
                 }
               }}
@@ -875,7 +1009,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           </DialogHeader>
           {selected && m && (
             <div className="space-y-4">
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Cal (kcal)</Label>
                   <Input type="number" value={overrideCal} onChange={(e) => setOverrideCal(e.target.value)} />
@@ -891,6 +1025,10 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Fat (g)</Label>
                   <Input type="number" value={overrideF} onChange={(e) => setOverrideF(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Fib (g)</Label>
+                  <Input type="number" defaultValue={m.fib} id="overrideFib" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -909,11 +1047,13 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               </div>
               <Button
                 onClick={async () => {
+                  const oFib = (document.getElementById("overrideFib") as HTMLInputElement).value;
                   const overrides = {
                     cal: +overrideCal,
                     p: +overrideP,
                     c: +overrideC,
-                    f: +overrideF
+                    f: +overrideF,
+                    fib: +oFib
                   };
 
                   const ok = await logFood(selected, +qty || 100, meal, overrides);
@@ -1028,6 +1168,10 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     {
                       label: "Fat",
                       val: `${((aiResult.fat_per_100g * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
+                    },
+                    {
+                      label: "Fiber",
+                      val: `${(((aiResult.fiber_per_100g || 0) * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
                     },
                   ]}
                 />
@@ -1147,13 +1291,40 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               </div>
             )}
 
-            {/* Transcript */}
-            {transcript && !transcribing && (
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                  You said
-                </p>
-                <p className="text-sm italic">"{transcript}"</p>
+            {/* Transcript live/edit view */}
+            {transcript && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 mt-4 space-y-2">
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    You said (Tap to edit):
+                  </p>
+                  {!recording && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-6 text-xs px-2"
+                      onClick={() => {
+                        setParsingVoice(true);
+                        parseVoiceFoodLog(transcript, meal).then(items => {
+                          setVoiceItems(items);
+                          setParsingVoice(false);
+                        }).catch(e => {
+                          toast.error("Parsing failed: " + e.message);
+                          setParsingVoice(false);
+                        });
+                      }}
+                      disabled={parsingVoice}
+                    >
+                      Re-parse
+                    </Button>
+                  )}
+                </div>
+                <Textarea 
+                  value={transcript}
+                  onChange={(e: any) => setTranscript(e.target.value)}
+                  className="text-sm italic min-h-[60px] bg-background border-border resize-none"
+                  disabled={recording}
+                />
               </div>
             )}
 
@@ -1170,16 +1341,55 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                       key={i}
                       className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
                     >
-                      <div>
-                        <span className="font-medium">{item.food_name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {item.quantity_g}g
+                      <div className="flex-1 mr-4">
+                        <span className="font-medium block text-base mb-1">{item.food_name}</span>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number"
+                            value={item.unit_quantity ?? item.quantity_g}
+                            onChange={(e) => {
+                              const newQty = parseInt(e.target.value) || 0;
+                              if (newQty < 0) return;
+                              const oldQty = (item.unit_quantity ?? item.quantity_g) || 1;
+                              const ratio = newQty / oldQty;
+                              
+                              const newItems = [...voiceItems];
+                              newItems[i] = {
+                                ...item,
+                                ...(item.unit_quantity !== undefined ? { unit_quantity: newQty } : {}),
+                                quantity_g: item.quantity_g * ratio,
+                                calories: item.calories * ratio,
+                                protein_g: item.protein_g * ratio,
+                                fat_g: item.fat_g * ratio,
+                                carbs_g: item.carbs_g * ratio,
+                                fiber_g: item.fiber_g * ratio,
+                              };
+                              setVoiceItems(newItems);
+                            }}
+                            className="w-20 h-8 text-sm bg-background"
+                          />
+                          <span className="text-xs text-muted-foreground">{item.unit && item.unit !== "g" ? item.unit : "g"}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            const newItems = [...voiceItems];
+                            newItems.splice(i, 1);
+                            setVoiceItems(newItems);
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </Button>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
+                          {Math.round(item.calories)} kcal · P
+                          {item.protein_g.toFixed(0)} · F
+                          {(item.fiber_g || 0).toFixed(0)}
                         </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {Math.round(item.calories)} kcal · P
-                        {item.protein_g.toFixed(0)}
-                      </span>
                     </div>
                   ))}
                 </div>

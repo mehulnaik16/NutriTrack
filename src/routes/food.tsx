@@ -230,8 +230,9 @@ function FoodPage() {
                     (a, x) => ({
                       cal: a.cal + x.calories,
                       p: a.p + x.protein_g,
+                      fib: a.fib + (x.fiber_g || 0),
                     }),
-                    { cal: 0, p: 0 },
+                    { cal: 0, p: 0, fib: 0 },
                   );
 
                   return (
@@ -256,7 +257,7 @@ function FoodPage() {
                               </div>
                               <div className="text-[11px] text-muted-foreground mt-0.5">
                                 {l.quantity_g}g · {Math.round(l.calories)} kcal
-                                · {Math.round(l.protein_g)}g protein
+                                · {Math.round(l.protein_g)}g protein · {Math.round(l.fiber_g || 0)}g fiber
                               </div>
                             </div>
                             <div className="flex items-center gap-1">

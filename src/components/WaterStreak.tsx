@@ -197,7 +197,7 @@ export function WaterStreak({ userId, streak }: Props) {
               : `${streak} days — absolute legend`;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-1">
       {/* Water card */}
       <Card>
         <CardHeader className="pb-2">
@@ -331,41 +331,6 @@ export function WaterStreak({ userId, streak }: Props) {
             <p className="text-center text-xs font-medium text-blue-500">
               💧 Goal complete!
             </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Streak card */}
-      <Card
-        className={
-          streak >= 7 ? "border-[var(--energy)]/30 bg-[var(--energy)]/5" : ""
-        }
-      >
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Flame className="h-4 w-4 text-[var(--fat)]" />
-            Logging streak
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-bold">{streak}</span>
-            <span className="mb-1 text-sm text-muted-foreground">
-              days in a row
-            </span>
-            <span className="mb-1 text-xl">{streakEmoji}</span>
-          </div>
-          <p className="text-sm text-muted-foreground">{streakMsg}</p>
-          {streak > 0 && (
-            <div className="flex gap-1 pt-1">
-              {Array.from({ length: Math.min(streak, 14) }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-2 flex-1 rounded-full bg-[var(--energy)]"
-                  style={{ opacity: 0.4 + (i / Math.min(streak, 14)) * 0.6 }}
-                />
-              ))}
-            </div>
           )}
         </CardContent>
       </Card>

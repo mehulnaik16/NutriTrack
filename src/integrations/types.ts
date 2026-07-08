@@ -25,6 +25,7 @@ export type Database = {
           logged_at: string;
           meal_type: string;
           protein_g: number;
+          fiber_g: number;
           quantity_g: number;
           user_id: string;
         };
@@ -38,6 +39,7 @@ export type Database = {
           logged_at?: string;
           meal_type: string;
           protein_g?: number;
+          fiber_g?: number;
           quantity_g: number;
           user_id: string;
         };
@@ -51,6 +53,7 @@ export type Database = {
           logged_at?: string;
           meal_type?: string;
           protein_g?: number;
+          fiber_g?: number;
           quantity_g?: number;
           user_id?: string;
         };
@@ -72,6 +75,7 @@ export type Database = {
           height_cm: number | null;
           id: string;
           protein_target_g: number | null;
+          fiber_target_g: number | null;
           selected_plan: string | null;
           tdee: number | null;
           trial_start_date: string | null;
@@ -93,6 +97,7 @@ export type Database = {
           height_cm?: number | null;
           id: string;
           protein_target_g?: number | null;
+          fiber_target_g?: number | null;
           selected_plan?: string | null;
           tdee?: number | null;
           trial_start_date?: string | null;
@@ -114,6 +119,7 @@ export type Database = {
           height_cm?: number | null;
           id?: string;
           protein_target_g?: number | null;
+          fiber_target_g?: number | null;
           selected_plan?: string | null;
           tdee?: number | null;
           trial_start_date?: string | null;

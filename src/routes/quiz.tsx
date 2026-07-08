@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/client";
 import {
   activityMultipliers,
@@ -32,6 +33,7 @@ interface FormData {
   fullName: string;
   email: string;
   password: string;
+  repeatPassword: string;
   age: number;
   gender: string;
   heightCm: number;
@@ -48,13 +50,15 @@ function Quiz() {
     fullName: "",
     email: "",
     password: "",
+    repeatPassword: "",
     age: 0,
     gender: "Male",
-    heightCm: 0,
-    weightKg: 0,
+    heightCm: 170,
+    weightKg: 70,
     activity: "Sedentary",
     goal: "Maintain Weight",
   });
+  const [unit, setUnit] = useState<"kg" | "lb">("kg");
 
   const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setD((p) => ({ ...p, [k]: v }));
@@ -73,7 +77,7 @@ function Quiz() {
 
   const canNext = () => {
     if (step === 1)
-      return d.fullName && d.email && d.password.length >= 6 && d.age > 0;
+      return d.fullName && d.email && d.password.length >= 6 && d.password.length <= 72 && d.password === d.repeatPassword && d.age > 0;
     if (step === 2) return d.heightCm > 0 && d.weightKg > 0;
     if (step === 3) return !!d.activity;
     if (step === 4) return !!d.goal;
@@ -123,178 +127,214 @@ function Quiz() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/40 px-4 py-8">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <Activity className="h-5 w-5" />
-          </div>
-          <span className="text-2xl font-bold tracking-tight">NutriTrack</span>
+    <div className="min-h-screen bg-[#111317] text-white px-4 py-8 font-sans">
+      <div className="mx-auto max-w-md w-full">
+        {/* Top Navigation */}
+        <div className="mb-8 flex items-center justify-between text-sm font-medium">
+          <button className="text-[#E2FF00] p-2 -ml-2" onClick={() => step > 1 ? setStep(step - 1) : navigate({ to: "/login" })}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <span className="text-white font-bold tracking-wide">
+            {step === 1 ? "Create Account (1/5)" : step === 2 ? "Body Stats (2/5)" : step === 3 ? "Activity (3/5)" : step === 4 ? "Goal (4/5)" : "Review (5/5)"}
+          </span>
+          <button className="text-white/60 hover:text-white" onClick={() => step < 5 ? setStep(step + 1) : null}>
+            Skip
+          </button>
         </div>
 
-        <div className="mb-6">
-          <div className="mb-2 flex justify-between text-sm text-muted-foreground">
-            <span>Step {step} of 5</span>
-            <span>{Math.round((step / 5) * 100)}%</span>
-          </div>
-          <Progress value={(step / 5) * 100} className="h-2" />
-        </div>
-
-        <Card className="border-border/60 shadow-lg">
-          <CardContent className="p-6 sm:p-8">
+        <div className="animate-in fade-in slide-in-from-right-4 duration-500">
             {step === 1 && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Tell us about you</h2>
-                <p className="text-sm text-muted-foreground">
-                  Create your account to get started.
+              <div className="space-y-6">
+                <h2 className="text-3xl font-semibold mb-2">Tell us about you</h2>
+                <p className="text-[#a0a4ab] mb-8 text-sm">
+                  Create your account to get started on your journey.
                 </p>
-                <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input
-                    value={d.fullName}
-                    onChange={(e) => set("fullName", e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-5">
                   <div className="space-y-2">
-                    <Label>Email</Label>
+                    <Label className="text-white/80">Full Name</Label>
                     <Input
-                      type="email"
-                      value={d.email}
-                      onChange={(e) => set("email", e.target.value)}
+                      value={d.fullName}
+                      onChange={(e) => set("fullName", e.target.value)}
+                      className="bg-[#1c1f26] border-0 focus-visible:ring-[#E2FF00] text-white h-12 rounded-xl"
+                    />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-white/80">Email</Label>
+                      <Input
+                        type="email"
+                        value={d.email}
+                        onChange={(e) => set("email", e.target.value)}
+                        className="bg-[#1c1f26] border-0 focus-visible:ring-[#E2FF00] text-white h-12 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white/80">Password</Label>
+                      <Input
+                        type="password"
+                        value={d.password}
+                        onChange={(e) => set("password", e.target.value)}
+                        className={`bg-[#1c1f26] border-0 focus-visible:ring-[#E2FF00] text-white h-12 rounded-xl ${d.password.length > 72 ? 'ring-2 ring-red-500' : ''}`}
+                      />
+                      {d.password.length > 72 && (
+                        <p className="text-xs text-red-500">Password cannot be longer than 72 characters</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white/80">Repeat Password</Label>
+                      <Input
+                        type="password"
+                        value={d.repeatPassword}
+                        onChange={(e) => set("repeatPassword", e.target.value)}
+                        className="bg-[#1c1f26] border-0 focus-visible:ring-[#E2FF00] text-white h-12 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/80">Age</Label>
+                    <Input
+                      type="number"
+                      value={d.age || ""}
+                      onChange={(e) => set("age", +e.target.value)}
+                      className="bg-[#1c1f26] border-0 focus-visible:ring-[#E2FF00] text-white h-12 rounded-xl"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Password</Label>
-                    <Input
-                      type="password"
-                      value={d.password}
-                      onChange={(e) => set("password", e.target.value)}
-                    />
+                    <Label className="text-white/80">Gender</Label>
+                    <RadioGroup
+                      value={d.gender}
+                      onValueChange={(v) => set("gender", v)}
+                      className="flex gap-4 text-white"
+                    >
+                      {["Male", "Female", "Other"].map((g) => (
+                        <div key={g} className="flex items-center gap-2">
+                          <RadioGroupItem value={g} id={g} className="border-[#E2FF00] text-[#E2FF00]" />
+                          <Label htmlFor={g} className="text-white/80">{g}</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Age</Label>
-                  <Input
-                    type="number"
-                    value={d.age || ""}
-                    onChange={(e) => set("age", +e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Gender</Label>
-                  <RadioGroup
-                    value={d.gender}
-                    onValueChange={(v) => set("gender", v)}
-                    className="flex gap-4"
-                  >
-                    {["Male", "Female", "Other"].map((g) => (
-                      <div key={g} className="flex items-center gap-2">
-                        <RadioGroupItem value={g} id={g} />
-                        <Label htmlFor={g}>{g}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
                 </div>
               </div>
             )}
 
             {step === 2 && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Body metrics</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Height (cm)</Label>
-                    <Input
-                      type="number"
-                      value={d.heightCm || ""}
-                      onChange={(e) => set("heightCm", +e.target.value)}
-                    />
+              <div className="space-y-6 animate-in fade-in duration-300 flex flex-col items-center">
+                <h2 className="text-3xl font-semibold mb-2 self-start">What's your weight?</h2>
+                <p className="text-[#a0a4ab] mb-8 text-sm self-start">
+                  We use your weight to personalize workouts and training calculations.
+                </p>
+
+                {/* Toggle */}
+                <div className="flex bg-[#1c1f26] rounded-xl p-1 w-full max-w-sm mb-6 cursor-pointer">
+                  <div 
+                    onClick={() => setUnit("kg")}
+                    className={`flex-1 text-center py-2 rounded-lg font-bold text-sm transition-colors ${unit === 'kg' ? 'bg-[#E2FF00] text-black' : 'text-white/50'}`}
+                  >
+                    Kilograms (kg)
                   </div>
-                  <div className="space-y-2">
-                    <Label>Weight (kg)</Label>
-                    <Input
-                      type="number"
-                      value={d.weightKg || ""}
-                      onChange={(e) => set("weightKg", +e.target.value)}
-                    />
+                  <div 
+                    onClick={() => setUnit("lb")}
+                    className={`flex-1 text-center py-2 rounded-lg font-bold text-sm transition-colors ${unit === 'lb' ? 'bg-[#E2FF00] text-black' : 'text-white/50'}`}
+                  >
+                    Pounds (lb)
                   </div>
                 </div>
-                {bmi > 0 && (
-                  <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
-                    <div className="text-sm text-muted-foreground">
-                      Your BMI
+
+                {/* Big Number */}
+                <div className="text-7xl font-bold tracking-tight mb-8">
+                  {unit === 'kg' ? d.weightKg : Math.round(d.weightKg * 2.20462)} <span className="text-3xl text-white/50 font-normal">{unit}</span>
+                </div>
+
+                {/* Robust Native Slider for Weight */}
+                <div className="w-full max-w-sm mt-4 px-2">
+                   <Slider 
+                      value={[d.weightKg]} 
+                      onValueChange={(v) => set("weightKg", v[0])} 
+                      min={30} max={200} step={1} 
+                      className="py-4 cursor-grab active:cursor-grabbing [&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:bg-[#E2FF00] [&_[role=slider]]:border-[#E2FF00] [&_[role=slider]]:shadow-[0_0_20px_rgba(226,255,0,0.5)] [&_.relative]:bg-[#1c1f26] [&_.relative>div]:bg-[#E2FF00]"
+                    />
+                    <div className="flex justify-between text-xs text-white/30 mt-2 font-medium">
+                      <span>30 kg</span>
+                      <span>200 kg</span>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold">{bmi}</span>
-                      <span className="text-sm font-medium text-accent-foreground">
-                        {bmiCategory(bmi)}
-                      </span>
+                </div>
+
+                {/* Height Input */}
+                <div className="w-full max-w-sm mt-12 space-y-4">
+                  <Label className="text-white/80 text-lg">Height (cm)</Label>
+                   <Slider 
+                      value={[d.heightCm]} 
+                      onValueChange={(v) => set("heightCm", v[0])} 
+                      min={100} max={250} step={1} 
+                      className="py-4 cursor-grab active:cursor-grabbing [&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:bg-[#E2FF00] [&_[role=slider]]:border-[#E2FF00] [&_[role=slider]]:shadow-[0_0_20px_rgba(226,255,0,0.5)] [&_.relative]:bg-[#1c1f26] [&_.relative>div]:bg-[#E2FF00]"
+                    />
+                    <div className="flex justify-between text-xs text-white/30 mt-2 font-medium">
+                      <span>100 cm</span>
+                      <span className="text-lg text-white font-bold">{d.heightCm} cm</span>
+                      <span>250 cm</span>
                     </div>
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
             {step === 3 && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Activity level</h2>
-                <Select
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <h2 className="text-3xl font-semibold mb-2">Activity level</h2>
+                <p className="text-[#a0a4ab] mb-8 text-sm">
+                  How active are you on an average week?
+                </p>
+                <RadioGroup
                   value={d.activity}
                   onValueChange={(v) => set("activity", v)}
+                  className="grid gap-3"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Sedentary">
-                      Sedentary (little or no exercise)
-                    </SelectItem>
-                    <SelectItem value="Lightly Active">
-                      Lightly Active (1–3 days/week)
-                    </SelectItem>
-                    <SelectItem value="Moderately Active">
-                      Moderately Active (3–5 days/week)
-                    </SelectItem>
-                    <SelectItem value="Very Active">
-                      Very Active (6–7 days/week)
-                    </SelectItem>
-                    <SelectItem value="Super Active">
-                      Super Active (twice/day or physical job)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                  <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === 'Sedentary' ? 'border-[#E2FF00] bg-[#E2FF00]/10' : 'border-[#1c1f26] bg-[#1c1f26] hover:border-white/20'}`}>
+                    <RadioGroupItem value="Sedentary" className="border-[#E2FF00] text-[#E2FF00]" />
+                    <span className="font-medium">Sedentary (little or no exercise)</span>
+                  </label>
+                  <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === 'Lightly Active' ? 'border-[#E2FF00] bg-[#E2FF00]/10' : 'border-[#1c1f26] bg-[#1c1f26] hover:border-white/20'}`}>
+                    <RadioGroupItem value="Lightly Active" className="border-[#E2FF00] text-[#E2FF00]" />
+                    <span className="font-medium">Lightly Active (1–3 days/week)</span>
+                  </label>
+                  <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === 'Moderately Active' ? 'border-[#E2FF00] bg-[#E2FF00]/10' : 'border-[#1c1f26] bg-[#1c1f26] hover:border-white/20'}`}>
+                    <RadioGroupItem value="Moderately Active" className="border-[#E2FF00] text-[#E2FF00]" />
+                    <span className="font-medium">Moderately Active (3–5 days/week)</span>
+                  </label>
+                  <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === 'Very Active' ? 'border-[#E2FF00] bg-[#E2FF00]/10' : 'border-[#1c1f26] bg-[#1c1f26] hover:border-white/20'}`}>
+                    <RadioGroupItem value="Very Active" className="border-[#E2FF00] text-[#E2FF00]" />
+                    <span className="font-medium">Very Active (6–7 days/week)</span>
+                  </label>
+                  <label className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === 'Super Active' ? 'border-[#E2FF00] bg-[#E2FF00]/10' : 'border-[#1c1f26] bg-[#1c1f26] hover:border-white/20'}`}>
+                    <RadioGroupItem value="Super Active" className="border-[#E2FF00] text-[#E2FF00]" />
+                    <span className="font-medium">Super Active (twice/day or physical job)</span>
+                  </label>
+                </RadioGroup>
                 {bmr > 0 && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-border bg-muted/40 p-4">
-                      <div className="text-xs text-muted-foreground">BMR</div>
+                  <div className="grid gap-3 sm:grid-cols-2 mt-8 animate-in slide-in-from-bottom-2 duration-300">
+                    <div className="rounded-xl border border-white/10 bg-[#1c1f26] p-4 text-center">
+                      <div className="text-xs text-[#a0a4ab] uppercase tracking-wider font-bold mb-1">BMR (Baseline)</div>
                       <div className="text-2xl font-bold">
-                        {bmr}{" "}
-                        <span className="text-sm font-normal text-muted-foreground">
-                          kcal
-                        </span>
+                        {bmr} <span className="text-sm font-normal text-white/50">kcal</span>
                       </div>
                     </div>
-                    <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
-                      <div className="text-xs text-muted-foreground">TDEE</div>
-                      <div className="text-2xl font-bold">
-                        {tdee}{" "}
-                        <span className="text-sm font-normal text-muted-foreground">
-                          kcal
-                        </span>
+                    <div className="rounded-xl border border-[#E2FF00]/30 bg-[#E2FF00]/10 p-4 text-center">
+                      <div className="text-xs text-[#E2FF00] uppercase tracking-wider font-bold mb-1">TDEE (With Activity)</div>
+                      <div className="text-2xl font-bold text-[#E2FF00]">
+                        {tdee} <span className="text-sm font-normal text-[#E2FF00]/70">kcal</span>
                       </div>
                     </div>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  Multiplier: × {activityMultipliers[d.activity]}
-                </p>
               </div>
             )}
 
             {step === 4 && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Your goal</h2>
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <h2 className="text-3xl font-semibold mb-2">Your goal</h2>
+                <p className="text-[#a0a4ab] mb-8 text-sm">
+                  What are you trying to achieve?
+                </p>
                 <RadioGroup
                   value={d.goal}
                   onValueChange={(v) => set("goal", v)}
@@ -304,38 +344,32 @@ function Quiz() {
                     (g) => (
                       <label
                         key={g}
-                        className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-4 hover:border-accent"
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.goal === g ? 'border-[#E2FF00] bg-[#E2FF00]/10' : 'border-[#1c1f26] bg-[#1c1f26] hover:border-white/20'}`}
                       >
-                        <RadioGroupItem value={g} />
-                        <span className="font-medium">{g}</span>
+                        <RadioGroupItem value={g} className="border-[#E2FF00] text-[#E2FF00]" />
+                        <span className="font-medium text-white">{g}</span>
                       </label>
                     ),
                   )}
                 </RadioGroup>
                 {target > 0 && (
-                  <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
-                    <div className="text-xs text-muted-foreground">
+                  <div className="rounded-xl border border-[#E2FF00]/30 bg-[#E2FF00]/10 p-4 mt-8">
+                    <div className="text-xs text-[#E2FF00] font-bold uppercase tracking-wider text-center mb-1">
                       Daily Calorie Target
                     </div>
-                    <div className="text-3xl font-bold">{target} kcal</div>
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
+                    <div className="text-4xl font-bold text-center text-[#E2FF00]">{target} <span className="text-lg font-normal text-[#E2FF00]/70">kcal</span></div>
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm pt-4 border-t border-[#E2FF00]/20">
                       <div>
-                        <div className="font-semibold">{macros.protein}g</div>
-                        <div className="text-xs text-muted-foreground">
-                          Protein
-                        </div>
+                        <div className="font-semibold text-white">{macros.protein}g</div>
+                        <div className="text-xs text-[#a0a4ab]">Protein</div>
                       </div>
                       <div>
-                        <div className="font-semibold">{macros.carbs}g</div>
-                        <div className="text-xs text-muted-foreground">
-                          Carbs
-                        </div>
+                        <div className="font-semibold text-white">{macros.carbs}g</div>
+                        <div className="text-xs text-[#a0a4ab]">Carbs</div>
                       </div>
                       <div>
-                        <div className="font-semibold">{macros.fat}g</div>
-                        <div className="text-xs text-muted-foreground">
-                          Fats
-                        </div>
+                        <div className="font-semibold text-white">{macros.fat}g</div>
+                        <div className="text-xs text-[#a0a4ab]">Fats</div>
                       </div>
                     </div>
                   </div>
@@ -344,15 +378,18 @@ function Quiz() {
             )}
 
             {step === 5 && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Review & confirm</h2>
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <h2 className="text-3xl font-semibold mb-2">Review & confirm</h2>
+                <p className="text-[#a0a4ab] mb-8 text-sm">
+                  Let's make sure everything looks right.
+                </p>
                 <div className="grid gap-3 sm:grid-cols-2 text-sm">
                   <Row label="Name" value={d.fullName} />
                   <Row label="Email" value={d.email} />
                   <Row label="Age" value={String(d.age)} />
                   <Row label="Gender" value={d.gender} />
                   <Row label="Height" value={`${d.heightCm} cm`} />
-                  <Row label="Weight" value={`${d.weightKg} kg`} />
+                  <Row label="Weight" value={`${unit === 'kg' ? d.weightKg : Math.round(d.weightKg * 2.20462)} ${unit}`} />
                   <Row label="Activity" value={d.activity} />
                   <Row label="Goal" value={d.goal} />
                   <Row label="BMI" value={`${bmi} (${bmiCategory(bmi)})`} />
@@ -364,43 +401,34 @@ function Quiz() {
                     highlight
                   />
                 </div>
-                <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
-                  <div className="text-xs text-muted-foreground">
+                <div className="rounded-xl border border-[#E2FF00]/30 bg-[#E2FF00]/10 p-4 mt-8">
+                  <div className="text-xs text-[#E2FF00] font-bold uppercase tracking-wider text-center mb-1">
                     Daily macro split
                   </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-center text-sm">
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
                     <div>
-                      <div className="font-semibold">{macros.protein}g</div>
-                      <div className="text-xs text-muted-foreground">
-                        Protein
-                      </div>
+                      <div className="font-semibold text-white text-lg">{macros.protein}g</div>
+                      <div className="text-xs text-[#a0a4ab]">Protein</div>
                     </div>
                     <div>
-                      <div className="font-semibold">{macros.carbs}g</div>
-                      <div className="text-xs text-muted-foreground">Carbs</div>
+                      <div className="font-semibold text-white text-lg">{macros.carbs}g</div>
+                      <div className="text-xs text-[#a0a4ab]">Carbs</div>
                     </div>
                     <div>
-                      <div className="font-semibold">{macros.fat}g</div>
-                      <div className="text-xs text-muted-foreground">Fats</div>
+                      <div className="font-semibold text-white text-lg">{macros.fat}g</div>
+                      <div className="text-xs text-[#a0a4ab]">Fats</div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="mt-8 flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={() => setStep((s) => Math.max(1, s - 1))}
-                disabled={step === 1}
-              >
-                Back
-              </Button>
+            <div className="mt-12 flex items-center justify-center">
               {step < 5 ? (
                 <Button
                   onClick={() => setStep((s) => s + 1)}
                   disabled={!canNext()}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
+                  className="w-full max-w-sm rounded-full h-14 bg-[#E2FF00] hover:bg-[#cde600] text-black font-bold text-lg disabled:opacity-50 disabled:bg-gray-700 disabled:text-gray-400"
                 >
                   Continue
                 </Button>
@@ -408,15 +436,14 @@ function Quiz() {
                 <Button
                   onClick={submit}
                   disabled={submitting}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
+                  className="w-full max-w-sm rounded-full h-14 bg-[#E2FF00] hover:bg-[#cde600] text-black font-bold text-lg disabled:opacity-50 disabled:bg-gray-700 disabled:text-gray-400"
                 >
                   {submitting ? "Creating…" : "Create My Account"}
                 </Button>
               )}
             </div>
-          </CardContent>
-        </Card>
-
+            </div>
+          </div>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <a
@@ -427,7 +454,6 @@ function Quiz() {
           </a>
         </p>
       </div>
-    </div>
   );
 }
 
@@ -442,10 +468,10 @@ function Row({
 }) {
   return (
     <div
-      className={`flex items-center justify-between rounded-lg border border-border px-3 py-2 ${highlight ? "bg-accent/10 border-accent/30" : "bg-muted/30"}`}
+      className={`flex items-center justify-between rounded-lg px-3 py-2 ${highlight ? "bg-[#E2FF00]/10 border border-[#E2FF00]/30" : "bg-[#1c1f26] border-0"}`}
     >
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
+      <span className="text-[#a0a4ab]">{label}</span>
+      <span className={`font-medium ${highlight ? 'text-[#E2FF00]' : 'text-white'}`}>{value}</span>
     </div>
   );
 }

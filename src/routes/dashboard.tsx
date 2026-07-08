@@ -39,6 +39,9 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Header } from "@/components/Header";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -58,6 +61,7 @@ interface Profile {
   protein_target_g: number | null;
   carbs_target_g: number | null;
   fat_target_g: number | null;
+  fiber_target_g: number | null;
   goal: string | null;
   weight_kg: number | null;
   goal_weight_kg: number | null;
@@ -74,6 +78,7 @@ interface FoodLog {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fiber_g: number;
 }
 
 interface WeightEntry {
@@ -154,8 +159,14 @@ async function computeStreak(userId: string): Promise<number> {
     if (d === expected) {
       streak++;
       check.setDate(check.getDate() - 1);
-    } else break;
+    } else if (d === new Date().toISOString().slice(0, 10)) {
+      // Ignore if they just haven't logged *yet* today
+      continue;
+    } else {
+      break;
+    }
   }
+  await supabase.from("user_profiles").update({ current_streak: streak } as any).eq("id", userId);
   return streak;
 }
 
@@ -172,7 +183,7 @@ function Dashboard() {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
 
   const [chartMetric, setChartMetric] = useState<
-    "calories" | "protein_g" | "carbs_g" | "fat_g"
+    "calories" | "protein_g" | "carbs_g" | "fat_g" | "fiber_g"
   >("calories");
   const [selectedDate, setSelectedDate] = useState<string>(today());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -312,13 +323,15 @@ function Dashboard() {
           protein: a.protein + l.protein_g,
           carbs: a.carbs + l.carbs_g,
           fat: a.fat + l.fat_g,
+          fiber: a.fiber + (l.fiber_g || 0),
         }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0 },
+        { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
       ),
     [todayLogs],
   );
 
   const target = profile?.daily_calorie_target ?? 0;
+  const fiberTarget = (profile?.fiber_target_g ?? Math.round((target / 1000) * 14)) || 28;
   const remaining = target - totals.calories;
   const pct = target
     ? Math.min(100, Math.round((totals.calories / target) * 100))
@@ -332,6 +345,39 @@ function Dashboard() {
     }
     toast.success("Removed");
     load();
+  };
+
+  const saveMealAsFavorite = async (mealName: string, items: any[]) => {
+    if (!user) return;
+    const customName = prompt(`Enter a name to save this ${mealName} as a Favorite:`, `My ${mealName}`);
+    if (!customName) return;
+    
+    const sub = items.reduce(
+      (a, x) => ({
+        cal: a.cal + x.calories,
+        p: a.p + x.protein_g,
+        c: a.c + x.carbs_g,
+        f: a.f + x.fat_g,
+        fib: a.fib + (x.fiber_g || 0),
+      }),
+      { cal: 0, p: 0, c: 0, f: 0, fib: 0 },
+    );
+
+    const { error } = await supabase.from("saved_meals" as any).insert({
+      user_id: user.id,
+      name: customName,
+      calories: sub.cal,
+      protein_g: sub.p,
+      carbs_g: sub.c,
+      fat_g: sub.f,
+      fiber_g: sub.fib,
+    });
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`${customName} saved to Favorites!`);
+    }
   };
 
   if (!user || !profile) {
@@ -371,7 +417,9 @@ function Dashboard() {
         ? (profile.protein_target_g ?? 0)
         : chartMetric === "carbs_g"
           ? (profile.carbs_target_g ?? 0)
-          : (profile.fat_target_g ?? 0);
+          : chartMetric === "fat_g"
+            ? (profile.fat_target_g ?? 0)
+            : fiberTarget;
   const monthData = days.map((d) => ({
     date: d.slice(5),
     Consumed: Math.round(monthMap[d] ?? 0),
@@ -386,6 +434,7 @@ function Dashboard() {
   const lastWeight = weightEntries[weightEntries.length - 1]?.weight_kg;
   const prevWeight = weightEntries[weightEntries.length - 2]?.weight_kg;
   const weightDiff = lastWeight && prevWeight ? lastWeight - prevWeight : null;
+  const loggedDates = [...new Set(monthLogs.map(l => new Date(l.date)))];
 
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
@@ -438,6 +487,12 @@ function Dashboard() {
                         const dStart = new Date(d);
                         dStart.setHours(0, 0, 0, 0);
                         return dStart > todayStart;
+                      }}
+                      modifiers={{
+                        logged: loggedDates,
+                      }}
+                      modifiersStyles={{
+                        logged: { fontWeight: "bold", backgroundColor: "var(--energy)", color: "white", borderRadius: "100%" }
                       }}
                       initialFocus
                     />
@@ -507,6 +562,12 @@ function Dashboard() {
                   target={profile.fat_target_g ?? 0}
                   color="bg-[var(--fat)]"
                 />
+                <MacroProgress
+                  label="Fiber"
+                  current={totals.fiber}
+                  target={fiberTarget}
+                  color="bg-[var(--accent)]"
+                />
               </div>
             </div>
           </CardContent>
@@ -540,16 +601,22 @@ function Dashboard() {
                         (a, x) => ({
                           cal: a.cal + x.calories,
                           p: a.p + x.protein_g,
+                          fib: a.fib + (x.fiber_g || 0),
                         }),
-                        { cal: 0, p: 0 },
+                        { cal: 0, p: 0, fib: 0 },
                       );
 
                       return (
                         <div key={m} className="space-y-2.5">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              {m}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                {m}
+                              </h3>
+                              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20" onClick={() => saveMealAsFavorite(m, items)}>
+                                <Flame className="h-3 w-3 mr-1" /> Save as Favorite
+                              </Button>
+                            </div>
                             <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                               {Math.round(sub.cal)} kcal
                             </span>
@@ -565,8 +632,7 @@ function Dashboard() {
                                     {l.food_name}
                                   </div>
                                   <div className="text-[11px] text-muted-foreground mt-0.5">
-                                    {l.quantity_g}g · {Math.round(l.calories)}{" "}
-                                    kcal · {Math.round(l.protein_g)}g protein
+                                    {Math.round(l.quantity_g)}g · {Math.round(l.calories)} kcal · {Math.round(l.protein_g)}g protein · {Math.round(l.fiber_g || 0)}g fiber
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -836,6 +902,9 @@ function Dashboard() {
                       <TabsTrigger value="fat_g" className="text-[10px] px-3">
                         Fat
                       </TabsTrigger>
+                      <TabsTrigger value="fiber_g" className="text-[10px] px-3">
+                        Fib
+                      </TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
@@ -965,6 +1034,22 @@ function Dashboard() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+                {weightEntries.filter(e => e.photo_url).length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Progress Photos</h4>
+                    <div className="flex gap-4 overflow-x-auto pb-2">
+                      {weightEntries.filter(e => e.photo_url).reverse().map(e => (
+                        <div key={e.id} className="relative shrink-0 group cursor-pointer">
+                          <img src={e.photo_url!} alt={`Weight on ${e.date}`} className="h-24 w-24 object-cover rounded-md border border-border" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex flex-col items-center justify-center text-white text-xs">
+                            <span className="font-bold">{e.weight_kg} kg</span>
+                            <span>{e.date.slice(5)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
