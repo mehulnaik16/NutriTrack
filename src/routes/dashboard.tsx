@@ -21,6 +21,7 @@ import {
   Droplets,
   ChevronDown,
   RotateCcw,
+  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -371,9 +372,6 @@ function Dashboard() {
 
   const saveMealAsFavorite = async (mealName: string, items: any[]) => {
     if (!user) return;
-    const customName = prompt(`Enter a name to save this ${mealName} as a Favorite:`, `My ${mealName}`);
-    if (!customName) return;
-    
     const sub = items.reduce(
       (a, x) => ({
         cal: a.cal + x.calories,
@@ -387,7 +385,7 @@ function Dashboard() {
 
     const { error } = await supabase.from("saved_meals" as any).insert({
       user_id: user.id,
-      name: customName,
+      name: `My ${mealName}`,
       calories: sub.cal,
       protein_g: sub.p,
       carbs_g: sub.c,
@@ -398,7 +396,25 @@ function Dashboard() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success(`${customName} saved to Favorites!`);
+      toast.success(`${mealName} saved to Favorites!`);
+    }
+  };
+
+  const saveFoodAsFavorite = async (l: FoodLog) => {
+    if (!user) return;
+    const { error } = await supabase.from("saved_meals" as any).insert({
+      user_id: user.id,
+      name: l.food_name,
+      calories: l.calories,
+      protein_g: l.protein_g,
+      carbs_g: l.carbs_g,
+      fat_g: l.fat_g,
+      fiber_g: l.fiber_g || 0,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`${l.food_name} saved to Favorites!`);
     }
   };
 
@@ -657,7 +673,16 @@ function Dashboard() {
                                     {Math.round(l.quantity_g)}g · {Math.round(l.calories)} kcal · {Math.round(l.protein_g)}g protein · {Math.round(l.fiber_g || 0)}g fiber
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-0.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                    title="Save to Favorites"
+                                    onClick={() => saveFoodAsFavorite(l)}
+                                  >
+                                    <Heart className="h-3.5 w-3.5" />
+                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"
