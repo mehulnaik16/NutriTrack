@@ -14,6 +14,9 @@ import {
   Flame,
   ArrowRight,
   Heart,
+  Clock,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -355,6 +358,46 @@ export const FoodSearch = forwardRef<
   const [parsingVoice, setParsingVoice] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  // Recent foods (for quick re-logging)
+  interface RecentFood {
+    food_name: string;
+    quantity_g: number;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+    meal_type: string;
+  }
+  const [recentFoods, setRecentFoods] = useState<RecentFood[]>([]);
+
+  useEffect(() => {
+    // Fetch unique foods from last 7 days for quick re-logging
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const dateStr = sevenDaysAgo.toISOString().slice(0, 10);
+
+    supabase
+      .from("food_logs")
+      .select("food_name, quantity_g, calories, protein_g, carbs_g, fat_g, fiber_g, meal_type")
+      .eq("user_id", userId)
+      .gte("date", dateStr)
+      .order("logged_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (!data) return;
+        // Deduplicate by food_name, keep most recent entry for each
+        const seen = new Map<string, RecentFood>();
+        for (const row of data) {
+          const key = row.food_name.toLowerCase();
+          if (!seen.has(key)) {
+            seen.set(key, row as RecentFood);
+          }
+        }
+        setRecentFoods(Array.from(seen.values()).slice(0, 10));
+      });
+  }, [userId, date]);
 
   const suggestions = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -742,41 +785,113 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         )}
       </div>
 
-      {/* ── Saved Meals ── */}
-      {q.length === 0 && savedMeals.length > 0 && (
-        <div className="mt-4">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1"><Flame className="h-3 w-3 text-red-500 fill-current" /> Saved Meals & Favorites</h4>
-          <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-            {savedMeals.map((mealItem) => (
-              <button
-                key={mealItem.id}
-                onClick={async () => {
-                  const customItem: IFCTItem = {
-                    code: "saved", name: mealItem.name, scie: "", lang: "", grup: "Custom",
-                    enerc: 0, protcnt: 0, fatce: 0, choavldf: 0, fibtg: 0,
-                  };
-                  await logFood(customItem, 100, meal, {
-                    cal: mealItem.calories, p: mealItem.protein_g, c: mealItem.carbs_g, f: mealItem.fat_g, fib: mealItem.fiber_g || 0,
-                  });
-                  toast.success(`${mealItem.name} logged!`);
-                  onLogged();
-                }}
-                className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mealItem.name}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                    {Math.round(mealItem.calories)} kcal
-                  </span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white shadow-sm hover:bg-blue-600 transition-colors">
-                    <Plus className="h-4 w-4" />
+      {/* ── Quick Log: Recent Foods + Saved Meals ── */}
+      {q.length === 0 && (recentFoods.length > 0 || savedMeals.length > 0) && (
+        <div className="space-y-4 mt-3">
+
+          {/* Recent Foods — horizontal scrolling chips */}
+          {recentFoods.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Clock className="h-3 w-3" /> Recent · Tap to log
+              </h4>
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+                {recentFoods.map((rf, i) => (
+                  <button
+                    key={`${rf.food_name}-${i}`}
+                    onClick={async () => {
+                      const customItem: IFCTItem = {
+                        code: "recent", name: rf.food_name, scie: "", lang: "", grup: "Recent",
+                        enerc: 0, protcnt: 0, fatce: 0, choavldf: 0, fibtg: 0,
+                      };
+                      const ok = await logFood(customItem, rf.quantity_g, meal, {
+                        cal: rf.calories, p: rf.protein_g, c: rf.carbs_g, f: rf.fat_g, fib: rf.fiber_g || 0,
+                      });
+                      if (ok) {
+                        toast.success(`${rf.food_name} logged!`);
+                        onLogged();
+                      }
+                    }}
+                    className="flex-shrink-0 group relative flex items-center gap-2 pl-3 pr-2.5 py-2 rounded-full border border-border bg-card hover:bg-accent/10 hover:border-accent/40 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium whitespace-nowrap">{rf.food_name}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                        {Math.round(rf.calories)}
+                      </span>
+                    </div>
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/20 text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                      <Plus className="h-3 w-3" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Saved Meals / Favorites */}
+          {savedMeals.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Flame className="h-3 w-3 text-red-500 fill-current" /> Favorites · Tap to log
+              </h4>
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                {savedMeals.map((mealItem) => (
+                  <div
+                    key={mealItem.id}
+                    className="flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors border-b border-border last:border-b-0 group"
+                  >
+                    <button
+                      onClick={async () => {
+                        const customItem: IFCTItem = {
+                          code: "saved", name: mealItem.name, scie: "", lang: "", grup: "Custom",
+                          enerc: 0, protcnt: 0, fatce: 0, choavldf: 0, fibtg: 0,
+                        };
+                        const ok = await logFood(customItem, 100, meal, {
+                          cal: mealItem.calories, p: mealItem.protein_g, c: mealItem.carbs_g, f: mealItem.fat_g, fib: mealItem.fiber_g || 0,
+                        });
+                        if (ok) {
+                          toast.success(`${mealItem.name} logged!`);
+                          onLogged();
+                        }
+                      }}
+                      className="flex items-center gap-2 text-left flex-1 min-w-0"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20">
+                        <Heart className="h-3.5 w-3.5 text-red-500 fill-current" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium truncate block">{mealItem.name}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {Math.round(mealItem.calories)} kcal · P{Math.round(mealItem.protein_g)} · C{Math.round(mealItem.carbs_g)} · F{Math.round(mealItem.fat_g)}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const { error } = await supabase.from("saved_meals" as any).delete().eq("id", mealItem.id);
+                          if (!error) {
+                            setSavedMeals(savedMeals.filter((m: any) => m.id !== mealItem.id));
+                            toast.success("Removed from favorites");
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20 text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                        <Plus className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

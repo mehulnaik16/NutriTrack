@@ -20,6 +20,7 @@ import {
   X,
   Droplets,
   ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -346,6 +347,28 @@ function Dashboard() {
     load();
   };
 
+  const relogFood = async (l: FoodLog) => {
+    if (!user) return;
+    const { error } = await supabase.from("food_logs").insert({
+      user_id: user.id,
+      date: selectedDate,
+      meal_type: l.meal_type,
+      food_name: l.food_name,
+      quantity_g: l.quantity_g,
+      calories: l.calories,
+      protein_g: l.protein_g,
+      carbs_g: l.carbs_g,
+      fat_g: l.fat_g,
+      fiber_g: l.fiber_g || 0,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`${l.food_name} logged again!`);
+    load();
+  };
+
   const saveMealAsFavorite = async (mealName: string, items: any[]) => {
     if (!user) return;
     const customName = prompt(`Enter a name to save this ${mealName} as a Favorite:`, `My ${mealName}`);
@@ -635,6 +658,15 @@ function Dashboard() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                    title="Log again"
+                                    onClick={() => relogFood(l)}
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
