@@ -375,6 +375,14 @@ export const FoodSearch = forwardRef<
   const [mealBuilderItems, setMealBuilderItems] = useState<MealBuilderItem[]>([]);
   const [mealBuilderSearch, setMealBuilderSearch] = useState("");
   const [mealBuilderSaving, setMealBuilderSaving] = useState(false);
+  const [mealBuilderCustomOpen, setMealBuilderCustomOpen] = useState(false);
+  const [mbCustomName, setMbCustomName] = useState("");
+  const [mbCustomQty, setMbCustomQty] = useState("100");
+  const [mbCustomCal, setMbCustomCal] = useState("");
+  const [mbCustomP, setMbCustomP] = useState("");
+  const [mbCustomC, setMbCustomC] = useState("");
+  const [mbCustomFat, setMbCustomFat] = useState("");
+  const [mbCustomFib, setMbCustomFib] = useState("");
 
   const mealBuilderSearchResults = useMemo(() => {
     const term = mealBuilderSearch.trim().toLowerCase();
@@ -1114,6 +1122,74 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                       </div>
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* Or add custom item inline */}
+              <button
+                onClick={() => setMealBuilderCustomOpen(!mealBuilderCustomOpen)}
+                className="flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80 transition-colors mt-1"
+              >
+                <PenTool className="h-3 w-3" />
+                {mealBuilderCustomOpen ? "Hide custom entry" : "Can\u2019t find it? Add custom food"}
+              </button>
+
+              {mealBuilderCustomOpen && (
+                <div className="rounded-xl border border-border bg-muted/10 p-3 space-y-2.5">
+                  <Input
+                    placeholder="Food name (e.g., Protein Powder)"
+                    value={mbCustomName}
+                    onChange={(e) => setMbCustomName(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Qty (g)</Label>
+                      <Input type="number" value={mbCustomQty} onChange={(e) => setMbCustomQty(e.target.value)} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Cal</Label>
+                      <Input type="number" value={mbCustomCal} onChange={(e) => setMbCustomCal(e.target.value)} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Protein</Label>
+                      <Input type="number" value={mbCustomP} onChange={(e) => setMbCustomP(e.target.value)} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Carbs</Label>
+                      <Input type="number" value={mbCustomC} onChange={(e) => setMbCustomC(e.target.value)} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Fat</Label>
+                      <Input type="number" value={mbCustomFat} onChange={(e) => setMbCustomFat(e.target.value)} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Fiber</Label>
+                      <Input type="number" value={mbCustomFib} onChange={(e) => setMbCustomFib(e.target.value)} className="h-7 text-xs" />
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-8 text-xs gap-1 border-accent/30 text-accent hover:bg-accent/10"
+                    disabled={!mbCustomName.trim() || !mbCustomCal}
+                    onClick={() => {
+                      setMealBuilderItems([...mealBuilderItems, {
+                        name: mbCustomName,
+                        quantity_g: +mbCustomQty || 100,
+                        calories: +mbCustomCal || 0,
+                        protein_g: +mbCustomP || 0,
+                        carbs_g: +mbCustomC || 0,
+                        fat_g: +mbCustomFat || 0,
+                        fiber_g: +mbCustomFib || 0,
+                      }]);
+                      setMbCustomName(""); setMbCustomQty("100"); setMbCustomCal("");
+                      setMbCustomP(""); setMbCustomC(""); setMbCustomFat(""); setMbCustomFib("");
+                      toast.success(`${mbCustomName} added!`);
+                    }}
+                  >
+                    <Plus className="h-3 w-3" /> Add to Meal
+                  </Button>
                 </div>
               )}
             </div>
