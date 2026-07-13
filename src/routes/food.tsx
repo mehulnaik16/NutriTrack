@@ -12,6 +12,9 @@ import {
   ChevronRight,
   Loader2,
   ChevronDown,
+  Heart,
+  RotateCcw,
+  Flame,
 } from "lucide-react";
 import {
   Popover,
@@ -71,6 +74,7 @@ function FoodPage() {
   const [todayLogs, setTodayLogs] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const searchRef = useRef<FoodSearchRef>(null);
+  const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -93,7 +97,7 @@ function FoodPage() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [{ data: p }, { data: t }] = await Promise.all([
+    const [{ data: p }, { data: t }, { data: fav }] = await Promise.all([
       supabase
         .from("user_profiles")
         .select("*")
@@ -105,9 +109,14 @@ function FoodPage() {
         .eq("user_id", user.id)
         .eq("date", selectedDate)
         .order("logged_at"),
+      supabase
+        .from("saved_meals" as any)
+        .select("name")
+        .eq("user_id", user.id),
     ]);
     setProfile(p);
     setTodayLogs(t ?? []);
+    if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
   }, [user, selectedDate]);
 
   useEffect(() => {
@@ -122,6 +131,65 @@ function FoodPage() {
     }
     toast.success("Removed");
     load();
+  };
+
+  const relogFood = async (l: any) => {
+    if (!user) return;
+    const { error } = await supabase.from("food_logs").insert({
+      user_id: user.id,
+      date: selectedDate,
+      meal_type: l.meal_type,
+      food_name: l.food_name,
+      quantity_g: l.quantity_g,
+      calories: l.calories,
+      protein_g: l.protein_g,
+      carbs_g: l.carbs_g,
+      fat_g: l.fat_g,
+      fiber_g: l.fiber_g || 0,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`${l.food_name} logged again!`);
+    load();
+  };
+
+  const saveFoodAsFavorite = async (l: any) => {
+    if (!user) return;
+    const isFav = favoriteNames.has(l.food_name);
+
+    if (isFav) {
+      // Remove from favorites
+      const { error } = await supabase
+        .from("saved_meals" as any)
+        .delete()
+        .eq("user_id", user.id)
+        .eq("name", l.food_name);
+      if (!error) {
+        setFavoriteNames((prev) => { const s = new Set(prev); s.delete(l.food_name); return s; });
+        toast.success(`Removed from Favorites`);
+        searchRef.current?.refreshFavorites();
+      }
+    } else {
+      // Add to favorites
+      const { error } = await supabase.from("saved_meals" as any).insert({
+        user_id: user.id,
+        name: l.food_name,
+        calories: l.calories,
+        protein_g: l.protein_g,
+        carbs_g: l.carbs_g,
+        fat_g: l.fat_g,
+        fiber_g: l.fiber_g || 0,
+      });
+      if (!error) {
+        setFavoriteNames((prev) => new Set(prev).add(l.food_name));
+        toast.success(`${l.food_name} saved to Favorites!`);
+        searchRef.current?.refreshFavorites();
+      } else {
+        toast.error(error.message);
+      }
+    }
   };
 
   if (!user || !profile) {
@@ -238,29 +306,66 @@ function FoodPage() {
                   return (
                     <div key={m} className="space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          {m}
-                        </h3>
-                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                          {Math.round(sub.cal)} kcal
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/15">
+                            <Utensils className="h-3 w-3 text-accent" />
+                          </div>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            {m}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                            {Math.round(sub.cal)} kcal
+                          </span>
+                          <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            P{Math.round(sub.p)}g
+                          </span>
+                        </div>
                       </div>
-                      <div className="divide-y rounded-xl border bg-card overflow-hidden">
-                        {items.map((l) => (
+                      <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
+                        {items.map((l) => {
+                          const isFav = favoriteNames.has(l.food_name);
+                          return (
                           <div
                             key={l.id}
-                            className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-colors"
+                            className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors group"
                           >
-                            <div>
-                              <div className="text-sm font-semibold">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold truncate">
                                 {l.food_name}
                               </div>
-                              <div className="text-[11px] text-muted-foreground mt-0.5">
-                                {l.quantity_g}g · {Math.round(l.calories)} kcal
-                                · {Math.round(l.protein_g)}g protein · {Math.round(l.fiber_g || 0)}g fiber
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">{Math.round(l.quantity_g)}g</span>
+                                <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">{Math.round(l.calories)} kcal</span>
+                                <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">P{Math.round(l.protein_g)}</span>
+                                <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">C{Math.round(l.carbs_g)}</span>
+                                <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">F{Math.round(l.fat_g)}</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5 shrink-0 ml-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-8 w-8 transition-all ${
+                                  isFav
+                                    ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                    : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                }`}
+                                title={isFav ? "Remove from Favorites" : "Save to Favorites"}
+                                onClick={() => saveFoodAsFavorite(l)}
+                              >
+                                <Heart className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                title="Log again"
+                                onClick={() => relogFood(l)}
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -279,7 +384,8 @@ function FoodPage() {
                               </Button>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );

@@ -402,6 +402,17 @@ function Dashboard() {
 
   const saveFoodAsFavorite = async (l: FoodLog) => {
     if (!user) return;
+    // Check if already saved
+    const { data: existing } = await supabase
+      .from("saved_meals" as any)
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("name", l.food_name)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      toast.info(`${l.food_name} is already in Favorites!`);
+      return;
+    }
     const { error } = await supabase.from("saved_meals" as any).insert({
       user_id: user.id,
       name: l.food_name,

@@ -270,6 +270,7 @@ async function lookupBarcode(barcode: string): Promise<IFCTItem | null> {
 
 export interface FoodSearchRef {
   editLog: (log: any) => void;
+  refreshFavorites: () => void;
 }
 
 export const FoodSearch = forwardRef<
@@ -291,6 +292,11 @@ export const FoodSearch = forwardRef<
 
   const [isEditing, setIsEditing] = useState(false);
   const [editLogId, setEditLogId] = useState<string | null>(null);
+
+  const loadSavedMeals = () => {
+    supabase.from("saved_meals" as any).select("*").eq("user_id", userId).order("created_at", { ascending: false })
+      .then(({ data }) => { if (data) setSavedMeals(data); });
+  };
 
   useImperativeHandle(ref, () => ({
     editLog: (log: any) => {
@@ -318,7 +324,8 @@ export const FoodSearch = forwardRef<
       setQty(log.quantity_g.toString());
       setMeal(log.meal_type);
       setOpen(true);
-    }
+    },
+    refreshFavorites: loadSavedMeals,
   }));
 
   // Custom Food
@@ -334,8 +341,7 @@ export const FoodSearch = forwardRef<
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from("saved_meals" as any).select("*").eq("user_id", userId).order("created_at", { ascending: false })
-      .then(({ data }) => { if (data) setSavedMeals(data); });
+    loadSavedMeals();
   }, [userId]);
 
   // Camera / AI vision
