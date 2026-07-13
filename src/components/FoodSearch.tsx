@@ -1651,6 +1651,27 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         }}
       >
         <DialogContent className="max-w-md">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setSaveAsMeal((prev) => !prev)}
+            aria-label={
+              saveAsMeal ? "Remove from favorites save" : "Save to favorites"
+            }
+            title={
+              saveAsMeal
+                ? "Will not save to favorites"
+                : "Also save to favorites"
+            }
+            className={`absolute right-12 top-4 z-10 h-8 w-8 ${
+              saveAsMeal
+                ? "text-red-500 hover:bg-red-500/10"
+                : "text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${saveAsMeal ? "fill-current" : ""}`} />
+          </Button>
           <DialogHeader>
             <DialogTitle>{selected?.name}</DialogTitle>
           </DialogHeader>
@@ -1717,22 +1738,6 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   <Label>Meal</Label>
                   <MealSelect />
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="logDialogSaveFav"
-                  checked={saveAsMeal}
-                  onChange={(e) => setSaveAsMeal(e.target.checked)}
-                  className="rounded border-gray-300 accent-red-500"
-                />
-                <Label
-                  htmlFor="logDialogSaveFav"
-                  className="text-sm flex items-center gap-1 cursor-pointer"
-                >
-                  <Heart className="h-3.5 w-3.5 text-red-500" /> Save to
-                  Favorites
-                </Label>
               </div>
               <Button
                 onClick={async () => {
