@@ -733,67 +733,69 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   };
 
   // ── Voice recording ───────────────────────────────────────────────────────────
-  const audioChunksRef = useRef<Blob[]>([]);
-
   const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      audioChunksRef.current = [];
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
+    if (!SpeechRecognition) {
+      toast.error("Live speech recognition is not supported in this browser.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setRecording(true);
+        setTranscript("");
+      };
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = "";
+        for (let i = 0; i < event.results.length; ++i) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        setTranscript(currentTranscript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        if (event.error !== "no-speech") {
+          toast.error("Speech recognition error: " + event.error);
+          setRecording(false);
         }
       };
 
-      mediaRecorderRef.current = mediaRecorder as any;
-      mediaRecorder.start();
-      setRecording(true);
-      setTranscript("");
+      recognition.start();
+      mediaRecorderRef.current = recognition as any;
     } catch (e: any) {
       toast.error("Microphone access denied or error: " + e.message);
     }
   };
 
   const stopRecording = async () => {
-    if (!mediaRecorderRef.current) return;
-    const mediaRecorder = mediaRecorderRef.current as unknown as MediaRecorder;
-    
-    mediaRecorder.onstop = async () => {
-      setRecording(false);
-      const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-      
-      // Stop all tracks to release microphone
-      mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+    if (mediaRecorderRef.current) {
+      (mediaRecorderRef.current as any).stop();
+    }
+    setRecording(false);
 
-      setTranscribing(true);
+    if (transcript.trim().length > 0) {
+      setParsingVoice(true);
       try {
-        const text = await groqTranscribe(audioBlob);
-        setTranscript(text);
-        
-        if (text.trim().length > 0) {
-          setParsingVoice(true);
-          try {
-            const items = await parseVoiceFoodLog(text, meal);
-            setVoiceItems(items);
-            if (items.length === 0) {
-              toast.info("No food items detected. Try again.");
-            }
-          } catch (e: any) {
-            toast.error("Parsing failed: " + e.message);
-          } finally {
-            setParsingVoice(false);
-          }
+        const items = await parseVoiceFoodLog(transcript, meal);
+        setVoiceItems(items);
+        if (items.length === 0) {
+          toast.info("No food items detected. Try again.");
         }
       } catch (e: any) {
-        toast.error("Transcription failed: " + e.message);
+        toast.error("Parsing failed: " + e.message);
       } finally {
-        setTranscribing(false);
+        setParsingVoice(false);
       }
-    };
-
-    mediaRecorder.stop();
+    }
   };
 
   const macrosFor = (item: IFCTItem, g: number) => ({

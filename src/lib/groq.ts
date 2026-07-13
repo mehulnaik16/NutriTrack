@@ -184,7 +184,7 @@ export async function groqVision(opts: {
   max_tokens?: number;
 }): Promise<string> {
   return groqChat({
-    model: "meta-llama/llama-4-scout-17b-16e-instruct",
+    model: "qwen/qwen3.6-27b",
     max_tokens: opts.max_tokens ?? 500,
     temperature: 0.2,
     messages: [
