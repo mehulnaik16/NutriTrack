@@ -294,7 +294,13 @@ export const FoodSearch = forwardRef<
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<IFCTItem | null>(null);
   const [qty, setQty] = useState("100");
-  const [meal, setMeal] = useState("Breakfast");
+  const [meal, setMeal] = useState(() => {
+    const h = new Date().getHours();
+    if (h < 11) return "Breakfast";
+    if (h < 16) return "Lunch";
+    if (h < 20) return "Snack";
+    return "Dinner";
+  });
   const [saving, setSaving] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -309,6 +315,29 @@ export const FoodSearch = forwardRef<
       .then(({ data }) => {
         if (data) setSavedMeals(data);
       });
+  };
+
+  const saveFavoriteMeal = async (mealData: {
+    name: string;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+  }) => {
+    const { error } = await supabase.from("saved_meals" as any).upsert(
+      {
+        user_id: userId,
+        ...mealData,
+      },
+      { onConflict: "user_id,name" },
+    );
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
+    loadSavedMeals();
+    return true;
   };
 
   useImperativeHandle(ref, () => ({
@@ -453,8 +482,7 @@ export const FoodSearch = forwardRef<
       return;
     }
     setMealBuilderSaving(true);
-    const { error } = await supabase.from("saved_meals" as any).insert({
-      user_id: userId,
+    const ok = await saveFavoriteMeal({
       name: mealBuilderName,
       calories: mealBuilderTotals.calories,
       protein_g: mealBuilderTotals.protein_g,
@@ -463,20 +491,10 @@ export const FoodSearch = forwardRef<
       fiber_g: mealBuilderTotals.fiber_g,
     });
     setMealBuilderSaving(false);
-    if (error) {
-      toast.error(error.message);
+    if (!ok) {
       return;
     }
     toast.success(`"${mealBuilderName}" saved to Favorites!`);
-    // Refresh saved meals
-    supabase
-      .from("saved_meals" as any)
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) setSavedMeals(data);
-      });
     setMealBuilderOpen(false);
     setMealBuilderName("");
     setMealBuilderItems([]);
@@ -931,6 +949,12 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       {/* ── Quick Log: Recent Foods + Saved Meals ── */}
       {q.length === 0 && (recentFoods.length > 0 || savedMeals.length > 0) && (
         <div className="space-y-4 mt-3">
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+              Quick log meal
+            </Label>
+            <MealSelect />
+          </div>
           {/* Recent Foods — horizontal scrolling chips */}
           {recentFoods.length > 0 && (
             <div>
@@ -957,7 +981,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                       const ok = await logFood(
                         customItem,
                         rf.quantity_g,
-                        meal,
+                        rf.meal_type || meal,
                         {
                           cal: rf.calories,
                           p: rf.protein_g,
@@ -998,83 +1022,90 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 Favorites · Tap to log
               </h4>
               <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                {savedMeals.map((mealItem) => (
-                  <div
-                    key={mealItem.id}
-                    className="group flex items-center justify-between border-b border-border px-3 py-2.5 transition-colors last:border-b-0 hover:bg-muted/30"
-                  >
-                    <button
-                      onClick={async () => {
-                        const customItem: IFCTItem = {
-                          code: "saved",
-                          name: mealItem.name,
-                          scie: "",
-                          lang: "",
-                          grup: "Custom",
-                          enerc: 0,
-                          protcnt: 0,
-                          fatce: 0,
-                          choavldf: 0,
-                          fibtg: 0,
-                        };
-                        const ok = await logFood(customItem, 100, meal, {
-                          cal: mealItem.calories,
-                          p: mealItem.protein_g,
-                          c: mealItem.carbs_g,
-                          f: mealItem.fat_g,
-                          fib: mealItem.fiber_g || 0,
-                        });
-                        if (ok) {
-                          toast.success(`${mealItem.name} logged!`);
-                          onLogged();
-                        }
-                      }}
-                      className="flex items-center gap-2 text-left flex-1 min-w-0"
+                {savedMeals.map((mealItem) => {
+                  const handleLogFavorite = async () => {
+                    const customItem: IFCTItem = {
+                      code: "saved",
+                      name: mealItem.name,
+                      scie: "",
+                      lang: "",
+                      grup: "Custom",
+                      enerc: 0,
+                      protcnt: 0,
+                      fatce: 0,
+                      choavldf: 0,
+                      fibtg: 0,
+                    };
+                    const ok = await logFood(customItem, 100, meal, {
+                      cal: mealItem.calories,
+                      p: mealItem.protein_g,
+                      c: mealItem.carbs_g,
+                      f: mealItem.fat_g,
+                      fib: mealItem.fiber_g || 0,
+                    });
+                    if (ok) {
+                      toast.success(`${mealItem.name} logged!`);
+                      onLogged();
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={mealItem.id}
+                      className="group flex items-center justify-between border-b border-border px-3 py-2.5 transition-colors last:border-b-0 hover:bg-muted/30"
                     >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20">
-                        <Heart className="h-3.5 w-3.5 text-red-500 fill-current" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-sm font-medium truncate block">
-                          {mealItem.name}
-                        </span>
-                        <span className="block truncate text-[10px] text-muted-foreground">
-                          {Math.round(mealItem.calories)} kcal · P
-                          {Math.round(mealItem.protein_g)} · C
-                          {Math.round(mealItem.carbs_g)} · F
-                          {Math.round(mealItem.fat_g)}
-                        </span>
-                      </div>
-                    </button>
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const { error } = await supabase
-                            .from("saved_meals" as any)
-                            .delete()
-                            .eq("id", mealItem.id);
-                          if (!error) {
-                            setSavedMeals(
-                              savedMeals.filter(
-                                (m: any) => m.id !== mealItem.id,
-                              ),
-                            );
-                            toast.success("Removed from favorites");
-                          }
-                        }}
+                      <button
+                        onClick={handleLogFavorite}
+                        className="flex items-center gap-2 text-left flex-1 min-w-0"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20 text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
-                        <Plus className="h-3.5 w-3.5" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20">
+                          <Heart className="h-3.5 w-3.5 text-red-500 fill-current" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium truncate block">
+                            {mealItem.name}
+                          </span>
+                          <span className="block truncate text-[10px] text-muted-foreground">
+                            {Math.round(mealItem.calories)} kcal · P
+                            {Math.round(mealItem.protein_g)} · C
+                            {Math.round(mealItem.carbs_g)} · F
+                            {Math.round(mealItem.fat_g)}
+                          </span>
+                        </div>
+                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const { error } = await supabase
+                              .from("saved_meals" as any)
+                              .delete()
+                              .eq("id", mealItem.id);
+                            if (!error) {
+                              setSavedMeals(
+                                savedMeals.filter(
+                                  (m: any) => m.id !== mealItem.id,
+                                ),
+                              );
+                              toast.success("Removed from favorites");
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <button
+                          onClick={handleLogFavorite}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20 text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1593,8 +1624,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 });
 
                 if (ok && saveAsMeal) {
-                  await supabase.from("saved_meals" as any).insert({
-                    user_id: userId,
+                  await saveFavoriteMeal({
                     name: customName,
                     calories: +customCal,
                     protein_g: +customP || 0,
@@ -1602,14 +1632,6 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     fat_g: +customF || 0,
                     fiber_g: +customFib || 0,
                   });
-                  supabase
-                    .from("saved_meals" as any)
-                    .select("*")
-                    .eq("user_id", userId)
-                    .order("created_at", { ascending: false })
-                    .then(({ data }) => {
-                      if (data) setSavedMeals(data);
-                    });
                 }
 
                 if (ok) {
@@ -1760,9 +1782,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   );
                   if (ok) {
                     if (saveAsMeal) {
-                      const ratio = (+qty || 100) / 100;
-                      await supabase.from("saved_meals" as any).insert({
-                        user_id: userId,
+                      const favOk = await saveFavoriteMeal({
                         name: selected.name,
                         calories: overrides.cal,
                         protein_g: overrides.p,
@@ -1770,8 +1790,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                         fat_g: overrides.f,
                         fiber_g: overrides.fib,
                       });
-                      loadSavedMeals();
-                      setSaveAsMeal(false);
+                      if (favOk) {
+                        setSaveAsMeal(false);
+                      }
                     }
                     toast.success(
                       `${selected.name} ${isEditing ? "modified" : "logged"}!`,
