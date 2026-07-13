@@ -1460,6 +1460,18 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   <MealSelect />
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="logDialogSaveFav"
+                  checked={saveAsMeal}
+                  onChange={(e) => setSaveAsMeal(e.target.checked)}
+                  className="rounded border-gray-300 accent-red-500"
+                />
+                <Label htmlFor="logDialogSaveFav" className="text-sm flex items-center gap-1 cursor-pointer">
+                  <Heart className="h-3.5 w-3.5 text-red-500" /> Save to Favorites
+                </Label>
+              </div>
               <Button
                 onClick={async () => {
                   const oFib = (document.getElementById("overrideFib") as HTMLInputElement).value;
@@ -1473,6 +1485,20 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
 
                   const ok = await logFood(selected, +qty || 100, meal, overrides);
                   if (ok) {
+                    if (saveAsMeal) {
+                      const ratio = (+qty || 100) / 100;
+                      await supabase.from("saved_meals" as any).insert({
+                        user_id: userId,
+                        name: selected.name,
+                        calories: overrides.cal,
+                        protein_g: overrides.p,
+                        carbs_g: overrides.c,
+                        fat_g: overrides.f,
+                        fiber_g: overrides.fib,
+                      });
+                      loadSavedMeals();
+                      setSaveAsMeal(false);
+                    }
                     toast.success(`${selected.name} ${isEditing ? "modified" : "logged"}!`);
                     setOpen(false);
                     setSelected(null);

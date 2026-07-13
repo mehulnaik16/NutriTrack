@@ -15,6 +15,7 @@ import {
   Heart,
   RotateCcw,
   Flame,
+  PenTool,
 } from "lucide-react";
 import {
   Popover,
@@ -329,59 +330,63 @@ function FoodPage() {
                           return (
                           <div
                             key={l.id}
-                            className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors group"
+                            className="p-3 hover:bg-muted/20 transition-colors group"
                           >
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-semibold truncate">
-                                {l.food_name}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold truncate">
+                                  {l.food_name}
+                                </div>
+                                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                  <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">{Math.round(l.quantity_g)}g</span>
+                                  <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">{Math.round(l.calories)} kcal</span>
+                                  <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">P{Math.round(l.protein_g)}</span>
+                                  <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">C{Math.round(l.carbs_g)}</span>
+                                  <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">F{Math.round(l.fat_g)}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">{Math.round(l.quantity_g)}g</span>
-                                <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">{Math.round(l.calories)} kcal</span>
-                                <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">P{Math.round(l.protein_g)}</span>
-                                <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">C{Math.round(l.carbs_g)}</span>
-                                <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">F{Math.round(l.fat_g)}</span>
+                              <div className="flex items-center gap-0 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={`h-7 w-7 transition-all ${
+                                    isFav
+                                      ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                      : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                  }`}
+                                  title={isFav ? "Remove from Favorites" : "Save to Favorites"}
+                                  onClick={() => saveFoodAsFavorite(l)}
+                                >
+                                  <Heart className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                  title="Log again"
+                                  onClick={() => relogFood(l)}
+                                >
+                                  <RotateCcw className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                  title="Modify"
+                                  onClick={() => searchRef.current?.editLog(l)}
+                                >
+                                  <PenTool className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  title="Delete"
+                                  onClick={() => deleteLog(l.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-0.5 shrink-0 ml-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={`h-8 w-8 transition-all ${
-                                  isFav
-                                    ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                                    : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                }`}
-                                title={isFav ? "Remove from Favorites" : "Save to Favorites"}
-                                onClick={() => saveFoodAsFavorite(l)}
-                              >
-                                <Heart className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
-                                title="Log again"
-                                onClick={() => relogFood(l)}
-                              >
-                                <RotateCcw className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 text-xs text-muted-foreground hover:text-accent hover:bg-accent/10 font-medium px-2"
-                                onClick={() => searchRef.current?.editLog(l)}
-                              >
-                                Modify
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => deleteLog(l.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
                             </div>
                           </div>
                           );

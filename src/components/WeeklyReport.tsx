@@ -216,7 +216,7 @@ export function WeeklyReport({ userId, profile }: Props) {
               ))}
             </div>
           )}
-          <p className="text-sm leading-relaxed text-muted-foreground">
+          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap break-words">
             {report}
           </p>
         </CardContent>
