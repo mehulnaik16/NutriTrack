@@ -1,28 +1,27 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { groqChat } from "@/lib/groq";
 import { useCallback, useEffect, useState } from "react";
 import {
-  Dumbbell,
-  Play,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Flame,
-  Clock,
-  RefreshCw,
-  X,
-  Zap,
-  ExternalLink,
-  Timer,
+  Dumbbell,
   Activity,
-  Loader2,
+  User,
+  Heart,
+  Play,
+  ChevronLeft,
+  Calendar as CalendarIcon,
+  X,
+  Target,
+  Plus,
+  RotateCcw,
+  LineChart,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -30,1254 +29,571 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/client";
+import { Slider } from "@/components/ui/slider";
 
 export const Route = createFileRoute("/workout")({ component: WorkoutPage });
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+const MUSCLES = [
+  { id: "shoulder", name: "Shoulder", color: "from-blue-500/20 to-cyan-500/20" },
+  { id: "chest", name: "Chest", color: "from-red-500/20 to-orange-500/20" },
+  { id: "triceps", name: "Triceps", color: "from-purple-500/20 to-pink-500/20" },
+  { id: "abs", name: "Abs + Core", color: "from-green-500/20 to-emerald-500/20" },
+  { id: "quads", name: "Quads", color: "from-yellow-500/20 to-amber-500/20" },
+  { id: "back", name: "Back", color: "from-indigo-500/20 to-blue-500/20" },
+  { id: "fullbody", name: "Full Body (Compound)", color: "from-fuchsia-500/20 to-purple-500/20" },
+  { id: "calf", name: "Calf + Forearm", color: "from-teal-500/20 to-cyan-500/20" },
+  { id: "biceps", name: "Biceps", color: "from-rose-500/20 to-red-500/20" },
+];
 
-interface Exercise {
-  name: string;
-  sets: number;
-  reps: string; // e.g. "8-12" or "30 sec"
-  rest: string; // e.g. "60s"
-  muscle: string;
-  calories_per_set: number;
-  tips: string;
-  instructions: string[]; // Detailed steps
-  alternative: {
-    name: string;
-    instructions: string[];
-    youtube_id: string;
-  } | null;
-  youtube_id: string; // curated video ID
-}
-
-interface WorkoutDay {
-  day: string; // "Day 1", "Day 2" …
-  name: string; // "Upper Body Strength"
-  focus: string; // "Chest · Shoulders · Triceps"
-  exercises: Exercise[];
-}
-
-interface WorkoutPlan {
-  goal: string;
-  days_per_week: number;
-  days: WorkoutDay[];
-}
-
-interface Profile {
-  full_name: string | null;
-  goal: string | null;
-  weight_kg: number | null;
-  activity_level: string | null;
-}
-
-// ─── Curated YouTube video IDs per exercise name (fallback map) ───────────────
-// These are well-known form tutorial videos – no API key needed for embedding.
-const VIDEO_MAP: Record<string, string> = {
-  "Barbell Bench Press": "hWbUlkb5Ms4",
-  "Push-Up": "A7sQ3IzDKvU",
-  "Incline Dumbbell Press": "8fXfwG4ftaQ",
-  "Overhead Press": "KP1sYz2VICk",
-  "Lateral Raise": "Kl3LEzQ5Zqs",
-  "Tricep Dip": "9llvBAV4RHI",
-  "Skull Crusher": "S0fmDR60X-o",
-  "Pull-Up": "OEXosPwzFdc",
-  "Barbell Row": "Nqh7q3zDCoQ",
-  "Seated Cable Row": "sP_4vybjVJs",
-  "Lat Pulldown": "bNmvKpJSWKM",
-  "Bicep Curl": "XE_pHwbst04",
-  "Hammer Curl": "lmIo_gVE8T4",
-  "Barbell Squat": "MLoZuAkIyZI",
-  "Romanian Deadlift": "5rIqP63yWFg",
-  "Leg Press": "nDh_BlnLCGc",
-  "Leg Curl": "_lgE0gPvbik",
-  "Leg Extension": "uM86QE59Tgc",
-  "Calf Raise": "fOfPwmb5FXU",
-  "Hip Thrust": "_i6qpcI1Nw4",
-  Deadlift: "ZaTM37cfiDs",
-  Plank: "v25dawSzRTM",
-  Crunch: "eeJ_CYqSoT4",
-  "Russian Twist": "-BzNffL_6YE",
-  "Mountain Climber": "Gmzk1WH6DfY",
-  Burpee: "G2hv_NYhM-A",
-  "Jump Rope": "IFgQfVQT_68",
-  "Treadmill Walk": "jkJkmy8IHXU",
-  "Dumbbell Lunge": "qQyCK_rxzN0",
-  "Face Pull": "IeOqdw9WI90",
+const EXERCISES_DB: Record<string, string[]> = {
+  chest: ["Bench Press", "Incline Dumbbell Press", "Cable Crossover", "Push-Ups"],
+  back: ["Pull-Ups", "Barbell Row", "Lat Pulldown", "Deadlift"],
+  shoulder: ["Overhead Press", "Lateral Raises", "Front Raises", "Face Pulls"],
+  biceps: ["Dumbbell Curl", "Barbell Curl", "Hammer Curl", "Cable Curl"],
+  triceps: ["Tricep Pushdown", "Skull Crushers", "Overhead Extension", "Dips"],
+  quads: ["Squats", "Leg Press", "Leg Extension", "Lunges"],
+  abs: ["Crunches", "Plank", "Leg Raises", "Russian Twists"],
+  fullbody: ["Burpees", "Clean and Jerk", "Kettlebell Swings", "Snatch"],
+  calf: ["Standing Calf Raise", "Seated Calf Raise", "Wrist Curls", "Reverse Curls"],
 };
 
-// ─── Groq plan generation (client-side, key from env) ────────────────────────
-// NOTE: In production move this to your AI proxy backend (Railway).
-// For now we call Groq directly so you can test without a server.
+const CARDIO_ACTIVITIES = [
+  "Treadmill running",
+  "Outdoor walk",
+  "Cycling",
+  "Swimming",
+  "Jump rope",
+  "HIIT",
+  "Yoga & Pilates",
+];
 
-async function generatePlanFromGroq(
-  goal: string,
-  weightKg: number,
-  activityLevel: string,
-): Promise<WorkoutPlan> {
-  const systemPrompt = `You are an expert certified personal trainer. 
-Return ONLY valid JSON matching this exact TypeScript type — no markdown, no explanation:
-{
-  goal: string,
-  days_per_week: number,
-  days: Array<{
-    day: string,
-    name: string,
-    focus: string,
-    exercises: Array<{
-      name: string,
-      sets: number,
-      reps: string,
-      rest: string,
-      muscle: string,
-      calories_per_set: number,
-      tips: string,
-      instructions: string[],
-      alternative: {
-        name: string,
-        instructions: string[],
-        youtube_id: string
-      },
-      youtube_id: string
-    }>
-  }>
-}
-Rules:
-1. youtube_id: Use real YouTube video IDs for form tutorials.
-2. instructions: Provide 3-5 clear, full-fledged steps on how to perform the exercise.
-3. alternative: Provide 1 similar or easier alternative exercise with its own name and instructions.
-4. calories_per_set: Realistic number (5-25 kcal) based on intensity.`;
-
-  const userPrompt = `Create a ${goal === "Gain Muscle" ? "muscle gain hypertrophy" : goal === "Lose Weight" ? "fat loss with cardio" : "maintenance balanced"} workout plan.
-User: ${weightKg}kg body weight, activity level: ${activityLevel}.
-Goal: ${goal}.
-Requirements:
-- ${goal === "Lose Weight" ? "4-5 days/week, mix of resistance + cardio, higher reps 12-20, shorter rest 45s" : goal === "Gain Muscle" ? "4-5 days/week, push/pull/legs split, reps 6-12, rest 60-90s" : "3-4 days/week, full body or upper/lower, balanced reps 10-15"}
-- 4-6 exercises per day
-- Include coaching tips like "Squeeze chest at top" or "Drive through heels"
-- For every exercise, include a logical alternative in case equipment is missing.`;
-
-  const raw = await groqChat({
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    model: "llama-3.3-70b-versatile",
-    max_tokens: 4000,
-    response_format: { type: "json_object" },
-  });
-
-  const clean = raw.replace(/```json|```/g, "").trim();
-  const plan: WorkoutPlan = JSON.parse(clean);
-
-  // Patch missing youtube_ids with our curated map
-  for (const day of plan.days) {
-    for (const ex of day.exercises) {
-      if (!ex.youtube_id || ex.youtube_id.length < 5) {
-        ex.youtube_id = VIDEO_MAP[ex.name] ?? "dQw4w9WgXcQ";
-      }
-    }
-  }
-
-  return plan;
-}
-
-// ─── Sample plan (no API key fallback) ───────────────────────────────────────
-function getSamplePlan(goal: string, weightKg: number): WorkoutPlan {
-  const isLoss = goal === "Lose Weight";
-  const isMuscle = goal === "Gain Muscle";
-
-  const decorate = (ex: any): Exercise => ({
-    ...ex,
-    instructions: ex.instructions || [
-      "Perform the exercise with proper form.",
-      "Maintain steady breathing.",
-      "Complete all sets.",
-    ],
-    alternative: ex.alternative || null,
-  });
-
-  return {
-    goal,
-    days_per_week: isLoss ? 5 : isMuscle ? 5 : 4,
-    days: [
-      {
-        day: "Day 1",
-        name: isLoss
-          ? "Full Body Burn"
-          : isMuscle
-            ? "Push — Chest & Shoulders"
-            : "Upper Body",
-        focus: isLoss
-          ? "Compound · Cardio"
-          : isMuscle
-            ? "Chest · Shoulders · Triceps"
-            : "Chest · Back · Shoulders",
-        exercises: [
-          {
-            name: "Barbell Bench Press",
-            sets: isMuscle ? 4 : 3,
-            reps: isMuscle ? "6-10" : "12-15",
-            rest: isMuscle ? "90s" : "60s",
-            muscle: "Chest",
-            calories_per_set: Math.round(weightKg * 0.12),
-            tips: "Keep shoulder blades pinched and drive through your heels.",
-            youtube_id: VIDEO_MAP["Barbell Bench Press"],
-          },
-          {
-            name: "Overhead Press",
-            sets: 3,
-            reps: isMuscle ? "8-10" : "12-15",
-            rest: "60s",
-            muscle: "Shoulders",
-            calories_per_set: Math.round(weightKg * 0.1),
-            tips: "Brace your core — don't hyperextend your lower back.",
-            youtube_id: VIDEO_MAP["Overhead Press"],
-          },
-          {
-            name: "Incline Dumbbell Press",
-            sets: 3,
-            reps: "10-12",
-            rest: "60s",
-            muscle: "Upper Chest",
-            calories_per_set: Math.round(weightKg * 0.1),
-            tips: "Control the eccentric — 3 seconds down.",
-            youtube_id: VIDEO_MAP["Incline Dumbbell Press"],
-          },
-          {
-            name: "Lateral Raise",
-            sets: 3,
-            reps: "15-20",
-            rest: "45s",
-            muscle: "Side Delts",
-            calories_per_set: 6,
-            tips: "Lead with your elbows, not your hands.",
-            youtube_id: VIDEO_MAP["Lateral Raise"],
-          },
-          {
-            name: "Tricep Dip",
-            sets: 3,
-            reps: "10-12",
-            rest: "60s",
-            muscle: "Triceps",
-            calories_per_set: 8,
-            tips: "Keep torso upright to hit triceps not chest.",
-            youtube_id: VIDEO_MAP["Tricep Dip"],
-          },
-        ].map(decorate),
-      },
-      {
-        day: "Day 2",
-        name: isLoss
-          ? "Cardio + Core"
-          : isMuscle
-            ? "Pull — Back & Biceps"
-            : "Lower Body",
-        focus: isLoss
-          ? "Cardio · Abs"
-          : isMuscle
-            ? "Back · Biceps · Rear Delts"
-            : "Quads · Hamstrings · Glutes",
-        exercises: [
-          {
-            name: isLoss
-              ? "Mountain Climber"
-              : isMuscle
-                ? "Pull-Up"
-                : "Barbell Squat",
-            sets: 4,
-            reps: isLoss ? "30 sec" : isMuscle ? "6-10" : "6-10",
-            rest: isLoss ? "30s" : "90s",
-            muscle: isLoss ? "Full Body" : isMuscle ? "Back" : "Quads",
-            calories_per_set: isLoss ? 15 : Math.round(weightKg * 0.14),
-            tips: isLoss
-              ? "Keep hips level, drive knees to chest."
-              : isMuscle
-                ? "Full dead hang at the bottom, chin over bar."
-                : "Break at hips and knees simultaneously.",
-            youtube_id:
-              VIDEO_MAP[
-                isLoss
-                  ? "Mountain Climber"
-                  : isMuscle
-                    ? "Pull-Up"
-                    : "Barbell Squat"
-              ],
-          },
-          {
-            name: isLoss
-              ? "Burpee"
-              : isMuscle
-                ? "Barbell Row"
-                : "Romanian Deadlift",
-            sets: 4,
-            reps: isLoss ? "12" : "8-10",
-            rest: "60s",
-            muscle: isLoss ? "Full Body" : isMuscle ? "Back" : "Hamstrings",
-            calories_per_set: isLoss ? 18 : Math.round(weightKg * 0.13),
-            tips: isLoss
-              ? "Jump explosively, land softly."
-              : isMuscle
-                ? "Pull bar to belly button, not chest."
-                : "Push hips back, keep bar close to legs.",
-            youtube_id:
-              VIDEO_MAP[
-                isLoss
-                  ? "Burpee"
-                  : isMuscle
-                    ? "Barbell Row"
-                    : "Romanian Deadlift"
-              ],
-          },
-          {
-            name: isLoss
-              ? "Jump Rope"
-              : isMuscle
-                ? "Lat Pulldown"
-                : "Leg Press",
-            sets: 3,
-            reps: isLoss ? "60 sec" : "10-12",
-            rest: "45s",
-            muscle: isLoss ? "Cardio" : isMuscle ? "Lats" : "Quads",
-            calories_per_set: isLoss ? 20 : Math.round(weightKg * 0.1),
-            tips: isLoss
-              ? "Stay on balls of feet, quick wrist rotations."
-              : isMuscle
-                ? "Depress scapula before pulling."
-                : "Don't let knees cave inward.",
-            youtube_id:
-              VIDEO_MAP[
-                isLoss ? "Jump Rope" : isMuscle ? "Lat Pulldown" : "Leg Press"
-              ],
-          },
-          {
-            name: isMuscle ? "Bicep Curl" : "Leg Curl",
-            sets: 3,
-            reps: "10-15",
-            rest: "45s",
-            muscle: isMuscle ? "Biceps" : "Hamstrings",
-            calories_per_set: 7,
-            tips: isMuscle
-              ? "Don't swing — isolate at the elbow."
-              : "Curl fully, pause at peak contraction.",
-            youtube_id: VIDEO_MAP[isMuscle ? "Bicep Curl" : "Leg Curl"],
-          },
-          {
-            name: "Plank",
-            sets: 3,
-            reps: "45 sec",
-            rest: "30s",
-            muscle: "Core",
-            calories_per_set: 5,
-            tips: "Squeeze glutes and abs — don't let hips sag.",
-            youtube_id: VIDEO_MAP["Plank"],
-          },
-        ].map(decorate),
-      },
-      {
-        day: "Day 3",
-        name: isLoss
-          ? "Lower Body Burn"
-          : isMuscle
-            ? "Legs — Quads & Glutes"
-            : "Push",
-        focus: isLoss
-          ? "Legs · Glutes · Core"
-          : isMuscle
-            ? "Quads · Glutes · Calves"
-            : "Chest · Shoulders · Triceps",
-        exercises: [
-          {
-            name: "Barbell Squat",
-            sets: 4,
-            reps: isMuscle ? "6-10" : "12-15",
-            rest: isMuscle ? "90s" : "60s",
-            muscle: "Quads",
-            calories_per_set: Math.round(weightKg * 0.14),
-            tips: "Hit parallel or below — depth is king.",
-            youtube_id: VIDEO_MAP["Barbell Squat"],
-          },
-          {
-            name: "Romanian Deadlift",
-            sets: 3,
-            reps: "10-12",
-            rest: "60s",
-            muscle: "Hamstrings",
-            calories_per_set: Math.round(weightKg * 0.12),
-            tips: "Feel the hamstring stretch at the bottom.",
-            youtube_id: VIDEO_MAP["Romanian Deadlift"],
-          },
-          {
-            name: "Hip Thrust",
-            sets: 3,
-            reps: "12-15",
-            rest: "60s",
-            muscle: "Glutes",
-            calories_per_set: Math.round(weightKg * 0.11),
-            tips: "Drive hips up explosively, squeeze at top.",
-            youtube_id: VIDEO_MAP["Hip Thrust"],
-          },
-          {
-            name: "Leg Extension",
-            sets: 3,
-            reps: "15",
-            rest: "45s",
-            muscle: "Quads",
-            calories_per_set: 7,
-            tips: "Full extension, hold 1 second at top.",
-            youtube_id: VIDEO_MAP["Leg Extension"],
-          },
-          {
-            name: "Calf Raise",
-            sets: 4,
-            reps: "20",
-            rest: "30s",
-            muscle: "Calves",
-            calories_per_set: 5,
-            tips: "Full range — all the way up and down.",
-            youtube_id: VIDEO_MAP["Calf Raise"],
-          },
-        ].map(decorate),
-      },
-      {
-        day: "Day 4",
-        name: isLoss
-          ? "HIIT & Core"
-          : isMuscle
-            ? "Pull — Deadlift Focus"
-            : "Lower Body",
-        focus: isLoss
-          ? "HIIT · Abs"
-          : isMuscle
-            ? "Hamstrings · Back · Biceps"
-            : "Quads · Hamstrings",
-        exercises: [
-          {
-            name: isLoss ? "Burpee" : "Deadlift",
-            sets: 4,
-            reps: isLoss ? "15" : "5",
-            rest: isLoss ? "30s" : "120s",
-            muscle: isLoss ? "Full Body" : "Posterior Chain",
-            calories_per_set: isLoss ? 18 : Math.round(weightKg * 0.18),
-            tips: isLoss
-              ? "Move with intent — quality over speed."
-              : "Chest up, bar over mid-foot, drive floor away.",
-            youtube_id: VIDEO_MAP[isLoss ? "Burpee" : "Deadlift"],
-          },
-          {
-            name: "Seated Cable Row",
-            sets: 3,
-            reps: "10-12",
-            rest: "60s",
-            muscle: "Mid Back",
-            calories_per_set: Math.round(weightKg * 0.09),
-            tips: "Squeeze shoulder blades at the end of the pull.",
-            youtube_id: VIDEO_MAP["Seated Cable Row"],
-          },
-          {
-            name: "Face Pull",
-            sets: 3,
-            reps: "15-20",
-            rest: "45s",
-            muscle: "Rear Delts",
-            calories_per_set: 6,
-            tips: "Pull to eye level, external rotate at end.",
-            youtube_id: VIDEO_MAP["Face Pull"],
-          },
-          {
-            name: "Hammer Curl",
-            sets: 3,
-            reps: "12",
-            rest: "45s",
-            muscle: "Brachialis",
-            calories_per_set: 7,
-            tips: "Neutral grip throughout — don't pronate.",
-            youtube_id: VIDEO_MAP["Hammer Curl"],
-          },
-          {
-            name: "Russian Twist",
-            sets: 3,
-            reps: "20",
-            rest: "30s",
-            muscle: "Core",
-            calories_per_set: 6,
-            tips: "Lean back 45°, keep feet off floor for more challenge.",
-            youtube_id: VIDEO_MAP["Russian Twist"],
-          },
-        ].map(decorate),
-      },
-      {
-        day: "Day 5",
-        name: isLoss
-          ? "Active Recovery"
-          : isMuscle
-            ? "Shoulders & Arms"
-            : "Full Body",
-        focus: isLoss
-          ? "Walk · Stretch"
-          : isMuscle
-            ? "Shoulders · Biceps · Triceps"
-            : "Compound",
-        exercises: [
-          {
-            name: isLoss ? "Treadmill Walk" : "Overhead Press",
-            sets: isLoss ? 1 : 4,
-            reps: isLoss ? "30 min" : "8-10",
-            rest: isLoss ? "—" : "90s",
-            muscle: isLoss ? "Cardio" : "Shoulders",
-            calories_per_set: isLoss ? 120 : Math.round(weightKg * 0.1),
-            tips: isLoss
-              ? "Zone 2 cardio — you should be able to hold a conversation."
-              : "Full lockout at top, don't rush.",
-            youtube_id: VIDEO_MAP[isLoss ? "Treadmill Walk" : "Overhead Press"],
-          },
-          {
-            name: "Lateral Raise",
-            sets: 3,
-            reps: "15-20",
-            rest: "45s",
-            muscle: "Side Delts",
-            calories_per_set: 6,
-            tips: "Lead with pinky, don't shrug.",
-            youtube_id: VIDEO_MAP["Lateral Raise"],
-          },
-          {
-            name: "Skull Crusher",
-            sets: 3,
-            reps: "10-12",
-            rest: "60s",
-            muscle: "Triceps",
-            calories_per_set: 8,
-            tips: "Elbows point forward, lower to forehead slowly.",
-            youtube_id: VIDEO_MAP["Skull Crusher"],
-          },
-          {
-            name: "Bicep Curl",
-            sets: 3,
-            reps: "10-12",
-            rest: "45s",
-            muscle: "Biceps",
-            calories_per_set: 7,
-            tips: "Supinate at the top for peak contraction.",
-            youtube_id: VIDEO_MAP["Bicep Curl"],
-          },
-          {
-            name: "Plank",
-            sets: 3,
-            reps: "60 sec",
-            rest: "30s",
-            muscle: "Core",
-            calories_per_set: 5,
-            tips: "Breathe steadily — don't hold your breath.",
-            youtube_id: VIDEO_MAP["Plank"],
-          },
-        ].map(decorate),
-      },
-    ],
-  };
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
 function WorkoutPage() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [plan, setPlan] = useState<WorkoutPlan | null>(null);
-  const [planId, setPlanId] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [activeDay, setActiveDay] = useState(0);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [done, setDone] = useState<Record<string, boolean>>({});
-  const [swapped, setSwapped] = useState<Record<string, boolean>>({});
-  const [logging, setLogging] = useState(false);
-  const [todayLog, setTodayLog] = useState<any>(null);
-  const [videoEx, setVideoEx] = useState<Exercise | null>(null);
-  const [viewMode, setViewMode] = useState<"plan" | "quick">("plan");
-  const [quickWorkout, setQuickWorkout] = useState<{
-    name: string;
-    calPerMin: number;
-  } | null>(null);
-  const [quickDuration, setQuickDuration] = useState("30");
+  const [activeTab, setActiveTab] = useState<"GYM" | "HOME" | "CARDIO">("GYM");
+
+  // State for sub-views
+  const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
+  const [selectedCardio, setSelectedCardio] = useState<string | null>(null);
+
+  // Questionnaire Wizard state
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // DB States
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [loggedToday, setLoggedToday] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
-  }, [loading, user, navigate]);
-
-  const loadData = useCallback(async () => {
-    if (!user) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const [{ data: p }, { data: wp }, { data: wl }] = await Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("workout_plans")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("workout_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", today)
-        .maybeSingle(),
-    ]);
-    setProfile(p as Profile);
-    if (wp) {
-      setPlanId(wp.id);
-      if (wp.plan_json) setPlan(wp.plan_json as unknown as WorkoutPlan);
+    if (!user) {
+      navigate({ to: "/login" });
+      return;
     }
-    if (wl) setTodayLog(wl);
+    loadUserData();
   }, [user]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const loadUserData = async () => {
+    if (!user) return;
+    // Load favorites from a custom table or preferences?
+    // For now we simulate with localStorage for demo purposes
+    const favs = JSON.parse(localStorage.getItem("workout_favorites") || "[]");
+    setFavorites(favs);
 
-  const generatePlan = async () => {
-    if (!profile) return;
-    setGenerating(true);
-    try {
-      const newPlan = await generatePlanFromGroq(
-        profile.goal || "Lose Weight",
-        profile.weight_kg || 70,
-        profile.activity_level || "Sedentary",
-      );
-      setPlan(newPlan);
-      setDone({});
-      setExpanded({});
-      setSwapped({});
-
-      // Save to Supabase
-      const { data: saved } = await supabase
-        .from("workout_plans")
-        .insert({
-          user_id: user!.id,
-          goal: profile.goal || "Lose Weight",
-          plan_json: newPlan as any,
-        })
-        .select()
-        .single();
-
-      if (saved) setPlanId(saved.id);
-      toast.success("Workout plan generated!");
-    } catch (e: any) {
-      toast.error("Could not generate plan: " + e.message);
-    } finally {
-      setGenerating(false);
+    // Load today's logs to show what was logged
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await supabase
+      .from("workout_logs")
+      .select("workout_name")
+      .eq("user_id", user.id)
+      .eq("date", today);
+    if (data) {
+      setLoggedToday(data.map((d) => d.workout_name));
     }
   };
 
-  const toggleExpand = (key: string) =>
-    setExpanded((p) => ({ ...p, [key]: !p[key] }));
-  const toggleDone = (key: string) =>
-    setDone((p) => ({ ...p, [key]: !p[key] }));
-  const toggleSwap = (key: string) =>
-    setSwapped((p) => ({ ...p, [key]: !p[key] }));
+  const toggleFavorite = (exercise: string) => {
+    const isFav = favorites.includes(exercise);
+    let newFavs;
+    if (isFav) {
+      newFavs = favorites.filter((f) => f !== exercise);
+    } else {
+      newFavs = [...favorites, exercise];
+    }
+    setFavorites(newFavs);
+    localStorage.setItem("workout_favorites", JSON.stringify(newFavs));
+  };
 
-  const currentDay = plan?.days[activeDay];
-  const doneCount = currentDay
-    ? currentDay.exercises.filter((_, i) => done[`${activeDay}-${i}`]).length
-    : 0;
-  const totalExercises = currentDay?.exercises.length ?? 0;
-  const pct = totalExercises
-    ? Math.round((doneCount / totalExercises) * 100)
-    : 0;
+  // --- UI Components ---
 
-  const totalCalsBurned = currentDay
-    ? currentDay.exercises.reduce((sum, ex, i) => {
-        if (!done[`${activeDay}-${i}`]) return sum;
-        return sum + ex.sets * ex.calories_per_set;
-      }, 0)
-    : 0;
+  const renderMuscleGrid = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-3">
+        {MUSCLES.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => setSelectedMuscle(m.id)}
+            className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md`}
+          >
+            <Dumbbell className="h-6 w-6 text-foreground/70 mb-2" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-center">
+              {m.name}
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="mt-8 p-5 bg-card border border-border/50 rounded-2xl shadow-sm text-center">
+        <h3 className="font-bold mb-2">Need a structured plan?</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Fill a short form to get an AI generated plan or pick a ready-made one.
+        </p>
+        <Button onClick={() => setWizardOpen(true)} className="w-full font-bold">
+          Get Workout Plan
+        </Button>
+      </div>
+    </div>
+  );
 
-  const logWorkout = async () => {
-    if (!user || !currentDay || doneCount === 0) return;
-    setLogging(true);
-    const exercisesDone = currentDay.exercises
-      .filter((_, i) => done[`${activeDay}-${i}`])
-      .map((ex) => ({ name: ex.name, sets: ex.sets, reps: ex.reps }));
+  const renderCardioList = () => (
+    <div className="space-y-3">
+      {CARDIO_ACTIVITIES.map((act) => (
+        <button
+          key={act}
+          onClick={() => setSelectedCardio(act)}
+          className="w-full flex items-center justify-between p-4 rounded-xl bg-card border border-border shadow-sm hover:border-accent/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Activity className="h-5 w-5 text-accent" />
+            <span className="font-semibold">{act}</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+      ))}
+      <div className="p-4 mt-6 rounded-xl bg-muted/20 border border-dashed border-border/50 flex flex-col items-center text-center">
+        <p className="text-sm font-medium mb-1">Other Activity?</p>
+        <p className="text-xs text-muted-foreground">
+          Log custom cardio duration to track your burned calories.
+        </p>
+      </div>
+    </div>
+  );
 
-    const { error } = await supabase.from("workout_logs").insert({
-      user_id: user.id,
-      date: new Date().toISOString().slice(0, 10),
-      workout_name: currentDay.name,
-      exercises_done: exercisesDone,
-      duration_min: Math.round(doneCount * 4.5),
-      calories_burned: Math.round(totalCalsBurned),
+  const renderMuscleDetail = () => {
+    if (!selectedMuscle) return null;
+    const muscleInfo = MUSCLES.find((m) => m.id === selectedMuscle);
+    const exercises = EXERCISES_DB[selectedMuscle] || [];
+
+    // Sort: logged today first, then favorites, then others
+    const sorted = [...exercises].sort((a, b) => {
+      const aLogged = loggedToday.includes(a);
+      const bLogged = loggedToday.includes(b);
+      if (aLogged && !bLogged) return -1;
+      if (!aLogged && bLogged) return 1;
+
+      const aFav = favorites.includes(a);
+      const bFav = favorites.includes(b);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+
+      return 0;
     });
-    setLogging(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success(
-      `Workout logged! ~${Math.round(totalCalsBurned)} kcal burned`,
-    );
-    loadData();
-  };
 
-  const logQuick = async () => {
-    if (!user || !quickWorkout) return;
-    const duration = +quickDuration;
-    if (!duration || duration <= 0) {
-      toast.error("Enter a valid duration");
-      return;
-    }
-    const cals = Math.round(duration * quickWorkout.calPerMin);
-
-    setLogging(true);
-    const { error } = await supabase.from("workout_logs").insert({
-      user_id: user.id,
-      date: new Date().toISOString().slice(0, 10),
-      workout_name: quickWorkout.name,
-      exercises_done: [{ name: quickWorkout.name, duration_min: duration }],
-      duration_min: duration,
-      calories_burned: cals,
-    });
-    setLogging(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success(`${quickWorkout.name} logged! ~${cals} kcal burned`);
-    setQuickWorkout(null);
-    loadData();
-  };
-
-  if (!user || !profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+      <div className="space-y-4 animate-in slide-in-from-right-4">
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedMuscle(null)}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-lg font-black uppercase tracking-widest text-accent flex items-center gap-2">
+            <Dumbbell className="h-5 w-5" />
+            {muscleInfo?.name}
+          </h2>
+          <div className="w-9" /> {/* Spacer */}
+        </div>
+
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50">
+          {sorted.map((ex, i) => {
+            const isFav = favorites.includes(ex);
+            const isLogged = loggedToday.includes(ex);
+            return (
+              <div
+                key={ex}
+                className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10 cursor-pointer group"
+                onClick={() => setSelectedExercise(ex)}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-muted-foreground/50 w-4">
+                    {i + 1}.
+                  </span>
+                  <span className="font-semibold text-sm group-hover:text-accent transition-colors">{ex}</span>
+                  {isLogged && (
+                    <span className="text-[9px] uppercase font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded">
+                      Logged
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(ex);
+                  }}
+                  className="p-2 -mr-2 transition-transform hover:scale-110 active:scale-90"
+                >
+                  <Heart
+                    className={`h-4 w-4 ${isFav ? "fill-red-500 text-red-500" : "text-muted-foreground hover:text-red-400"}`}
+                  />
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
-  }
+  };
 
-  const goalColor =
-    profile.goal === "Gain Muscle"
-      ? "bg-[var(--energy)]/10 text-[var(--energy)] border-[var(--energy)]/30"
-      : profile.goal === "Lose Weight"
-        ? "bg-[var(--fat)]/10 text-[var(--fat)] border-[var(--fat)]/30"
-        : "bg-[var(--navy)]/10 text-[var(--navy)] border-[var(--navy)]/30";
+  // --- Render Modals ---
 
-  return (
-    <div className="min-h-screen bg-background pb-24">
-      <Header name={profile.full_name?.split(" ")[0]} />
+  const CardioModal = () => {
+    const [duration, setDuration] = useState("30");
+    const [kcal, setKcal] = useState("200");
+    const [bpm, setBpm] = useState("");
 
-      <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6">
-        {/* ── Header row ── */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Workouts</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Based on your goal:{" "}
-              <span
-                className={`inline-block rounded-full border px-2 py-0.5 text-xs font-semibold ${goalColor}`}
-              >
-                {profile.goal}
-              </span>
-            </p>
-          </div>
-          <Button
-            onClick={generatePlan}
-            disabled={generating}
-            className="w-full gap-2 bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto"
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            {plan ? "Regenerate Plan" : "Generate My Plan"}
-          </Button>
-        </div>
+    const handleLog = async () => {
+      if (!user) return;
+      toast.loading("Logging cardio...");
+      const { error } = await supabase.from("workout_logs").insert({
+        user_id: user.id,
+        date: new Date().toISOString().split("T")[0],
+        workout_name: selectedCardio,
+        duration_min: parseInt(duration) || 30,
+        calories_burned: parseInt(kcal) || 0,
+        exercises_done: { bpm: parseInt(bpm) || null },
+      });
+      if (error) {
+        toast.error("Failed to log cardio");
+      } else {
+        toast.success("Cardio logged!");
+        loadUserData();
+        setSelectedCardio(null);
+      }
+    };
 
-        {/* ── Today's log banner ── */}
-        {todayLog && (
-          <Card className="border-[var(--energy)]/30 bg-[var(--energy)]/5">
-            <CardContent className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center">
-              <CheckCircle2 className="h-6 w-6 shrink-0 text-[var(--energy)]" />
-              <div className="flex-1">
-                <p className="font-semibold text-sm">
-                  Workout logged today — {todayLog.workout_name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {todayLog.duration_min} min ·{" "}
-                  {Math.round(todayLog.calories_burned)} kcal burned
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="flex gap-2 p-1 bg-muted/30 rounded-lg">
-          <Button
-            variant={viewMode === "plan" ? "default" : "ghost"}
-            className="flex-1"
-            onClick={() => setViewMode("plan")}
-          >
-            My Plan
-          </Button>
-          <Button
-            variant={viewMode === "quick" ? "default" : "ghost"}
-            className="flex-1"
-            onClick={() => setViewMode("quick")}
-          >
-            Quick Workouts
-          </Button>
-        </div>
-
-        {viewMode === "quick" && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                name: "Treadmill Running",
-                cal: 11.5,
-                icon: <Activity className="h-5 w-5" />,
-              },
-              {
-                name: "Outdoor Walk",
-                cal: 5,
-                icon: <Activity className="h-5 w-5" />,
-              },
-              {
-                name: "Cycling",
-                cal: 9,
-                icon: <Activity className="h-5 w-5" />,
-              },
-              {
-                name: "Swimming",
-                cal: 10,
-                icon: <Activity className="h-5 w-5" />,
-              },
-              {
-                name: "Jump Rope",
-                cal: 13,
-                icon: <Activity className="h-5 w-5" />,
-              },
-              {
-                name: "HIIT Session",
-                cal: 12,
-                icon: <Flame className="h-5 w-5 text-warn" />,
-              },
-              {
-                name: "Yoga",
-                cal: 4,
-                icon: <Zap className="h-5 w-5 text-accent" />,
-              },
-              {
-                name: "Pilates",
-                cal: 5,
-                icon: <Zap className="h-5 w-5 text-accent" />,
-              },
-            ].map((q) => (
-              <Card
-                key={q.name}
-                className="hover:border-accent cursor-pointer transition-colors"
-                onClick={() =>
-                  setQuickWorkout({ name: q.name, calPerMin: q.cal })
-                }
-              >
-                <CardContent className="flex items-center gap-4 p-5">
-                  <div className="p-3 bg-muted rounded-full">{q.icon}</div>
-                  <div>
-                    <h3 className="font-semibold">{q.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      ~{Math.round(q.cal * 30)} kcal / 30 min
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {viewMode === "plan" && !plan && !generating && (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <Dumbbell className="mb-4 h-12 w-12 text-muted-foreground" />
-              <h2 className="mb-2 text-lg font-semibold">No plan yet</h2>
-              <p className="mb-4 max-w-sm text-sm text-muted-foreground">
-                Click "Generate My Plan" and we'll build a personalized{" "}
-                {profile.goal === "Gain Muscle"
-                  ? "hypertrophy"
-                  : profile.goal === "Lose Weight"
-                    ? "fat loss"
-                    : "balanced"}{" "}
-                plan tailored to your body and goal.
-              </p>
-              <Button
-                onClick={generatePlan}
-                className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
-              >
-                <Zap className="h-4 w-4" /> Generate My Plan
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {generating && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
-              <Loader2 className="h-10 w-10 animate-spin text-accent" />
-              <p className="text-sm text-muted-foreground">
-                Building your personalised plan…
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {viewMode === "plan" && plan && !generating && (
-          <>
-            {/* ── Day selector tabs ── */}
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {plan.days.map((d, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setActiveDay(i);
-                    setDone({});
-                  }}
-                  className={`shrink-0 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                    activeDay === i
-                      ? "border-accent bg-accent/10 text-foreground"
-                      : "border-border bg-card text-muted-foreground hover:border-accent/40"
-                  }`}
-                >
-                  {d.day}
-                </button>
-              ))}
-            </div>
-
-            {currentDay && (
-              <>
-                {/* ── Day overview card ── */}
-                <Card>
-                  <CardContent className="p-5">
-                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h2 className="text-xl font-bold">{currentDay.name}</h2>
-                        <p className="text-sm text-muted-foreground">
-                          {currentDay.focus}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Dumbbell className="h-4 w-4" />
-                          {totalExercises} exercises
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Flame className="h-4 w-4 text-[var(--fat)]" />
-                          {Math.round(totalCalsBurned)} kcal
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />~
-                          {Math.round(totalExercises * 4.5)} min
-                        </span>
-                      </div>
-                    </div>
-                    <Progress value={pct} className="h-2" />
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      {doneCount}/{totalExercises} exercises done
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* ── Exercise list ── */}
-                <div className="space-y-3">
-                  {currentDay.exercises.map((rawEx, i) => {
-                    const key = `${activeDay}-${i}`;
-                    const isExpanded = expanded[key];
-                    const isDone = done[key];
-                    const isSwapped = swapped[key];
-
-                    const ex =
-                      isSwapped && rawEx.alternative
-                        ? {
-                            ...rawEx,
-                            name: rawEx.alternative.name,
-                            instructions: rawEx.alternative.instructions,
-                            youtube_id: rawEx.alternative.youtube_id,
-                            tips: "Alternative exercise selected.",
-                          }
-                        : rawEx;
-
-                    return (
-                      <Card
-                        key={i}
-                        className={`transition-colors ${isDone ? "border-[var(--energy)]/40 bg-[var(--energy)]/5" : ""}`}
-                      >
-                        <CardContent className="p-0">
-                          {/* Exercise header row */}
-                          <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-                            <button
-                              onClick={() => toggleDone(key)}
-                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                                isDone
-                                  ? "border-[var(--energy)] bg-[var(--energy)] text-white"
-                                  : "border-border hover:border-accent"
-                              }`}
-                            >
-                              {isDone && <CheckCircle2 className="h-4 w-4" />}
-                            </button>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="ml-auto flex w-full items-center justify-end gap-2 sm:ml-0 sm:w-auto">
-                                <span
-                                  className={`font-semibold ${isDone ? "line-through text-muted-foreground" : ""}`}
-                                >
-                                  {ex.name}
-                                </span>
-                                {isSwapped && (
-                                  <Badge className="bg-orange-500 text-[10px] h-4">
-                                    ALT
-                                  </Badge>
-                                )}
-                                <Badge variant="outline" className="text-xs">
-                                  {ex.muscle}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {ex.sets} sets × {ex.reps} · Rest {ex.rest}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {/* Watch form video */}
-                              <button
-                                onClick={() => setVideoEx(ex as any)}
-                                className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:border-accent hover:text-foreground transition-colors"
-                              >
-                                <Play className="h-3 w-3" /> Form
-                              </button>
-                              {/* Expand tips */}
-                              <button
-                                onClick={() => toggleExpand(key)}
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Expanded view */}
-                          {isExpanded && (
-                            <div className="border-t border-border bg-muted/10 px-4 py-4 space-y-4">
-                              <div className="grid gap-4 sm:grid-cols-2">
-                                <div>
-                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                                    Coaching Tip
-                                  </p>
-                                  <p className="text-sm font-medium text-accent">
-                                    "{ex.tips}"
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                                    Calories
-                                  </p>
-                                  <p className="text-sm font-bold flex items-center justify-end gap-1">
-                                    <Flame className="h-3 w-3 text-orange-500" />{" "}
-                                    ~{ex.sets * ex.calories_per_set} kcal
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="space-y-2">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                  How to perform
-                                </p>
-                                <ul className="space-y-1.5">
-                                  {(ex.instructions || []).map((step, idx) => (
-                                    <li
-                                      key={idx}
-                                      className="text-xs flex gap-2"
-                                    >
-                                      <span className="text-accent font-bold">
-                                        {idx + 1}.
-                                      </span>
-                                      <span className="text-muted-foreground leading-snug">
-                                        {step}
-                                      </span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-
-                              {rawEx.alternative && (
-                                <div className="pt-2 border-t flex items-center justify-between">
-                                  <div className="text-[10px] text-muted-foreground">
-                                    Can't do this?{" "}
-                                    <span className="font-bold text-foreground">
-                                      {isSwapped
-                                        ? rawEx.name
-                                        : rawEx.alternative.name}
-                                    </span>{" "}
-                                    available
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-[10px] gap-1"
-                                    onClick={() => toggleSwap(key)}
-                                  >
-                                    <RefreshCw className="h-3 w-3" />{" "}
-                                    {isSwapped
-                                      ? "Back to Original"
-                                      : "Swap to Alternative"}
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                {/* ── Log workout button ── */}
-                {doneCount > 0 && (
-                  <Card className="border-accent/30">
-                    <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="font-semibold">Ready to log?</p>
-                        <p className="text-sm text-muted-foreground">
-                          {doneCount}/{totalExercises} exercises · ~
-                          {Math.round(totalCalsBurned)} kcal burned · ~
-                          {Math.round(doneCount * 4.5)} min
-                        </p>
-                      </div>
-                      <Button
-                        onClick={logWorkout}
-                        disabled={logging || !!todayLog}
-                        className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
-                      >
-                        {logging ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="h-4 w-4" />
-                        )}
-                        {todayLog ? "Already logged today" : "Log Workout"}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </main>
-
-      {/* ── YouTube form video modal ── */}
-      <Dialog open={!!videoEx} onOpenChange={(o) => !o && setVideoEx(null)}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden">
-          <DialogHeader className="px-5 pt-5 pb-3">
-            <div className="flex items-center justify-between">
-              <DialogTitle>{videoEx?.name} — Form Tutorial</DialogTitle>
-              <button
-                onClick={() => setVideoEx(null)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            {videoEx && (
-              <p className="text-xs text-muted-foreground">
-                {videoEx.sets} sets × {videoEx.reps} · Rest {videoEx.rest} ·{" "}
-                {videoEx.muscle}
-              </p>
-            )}
-          </DialogHeader>
-          {videoEx && (
-            <div className="aspect-video w-full">
-              <iframe
-                src={`https://www.youtube.com/embed/${videoEx.youtube_id}?autoplay=1&rel=0&modestbranding=1`}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title={`${videoEx.name} form tutorial`}
-              />
-            </div>
-          )}
-          {videoEx && (
-            <div className="border-t border-border bg-muted/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Coaching tip
-                </p>
-                <p className="text-sm font-medium text-accent">
-                  "{videoEx.tips}"
-                </p>
-              </div>
-              <a
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(videoEx.name + " form tutorial")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
-              >
-                Video broken? Search YouTube{" "}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={!!quickWorkout}
-        onOpenChange={(o) => !o && setQuickWorkout(null)}
-      >
-        <DialogContent className="max-w-sm">
+    return (
+      <Dialog open={!!selectedCardio} onOpenChange={() => setSelectedCardio(null)}>
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
           <DialogHeader>
-            <DialogTitle>Log {quickWorkout?.name}</DialogTitle>
+            <DialogTitle className="flex items-center justify-between text-xl font-black uppercase tracking-wider">
+              <span className="text-accent">{selectedCardio}</span>
+              <Heart className="h-5 w-5 text-red-500 fill-current" />
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Duration (minutes)</Label>
-              <Input
-                type="number"
-                value={quickDuration}
-                onChange={(e) => setQuickDuration(e.target.value)}
-              />
+          <div className="space-y-6 pt-4">
+            <div className="flex gap-4 justify-center">
+              <Button variant="outline" className="gap-2 flex-1 rounded-xl h-12 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"><Play className="h-4 w-4" /> Video</Button>
+              <Button variant="outline" className="gap-2 flex-1 rounded-xl h-12 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"><LineChart className="h-4 w-4" /> Analytics</Button>
             </div>
-            <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <span className="text-sm text-muted-foreground">
-                Estimated Burn
-              </span>
-              <p className="text-xl font-bold text-accent">
-                {Math.round(
-                  (+quickDuration || 0) * (quickWorkout?.calPerMin || 0),
-                )}{" "}
-                kcal
-              </p>
+            <div className="space-y-4 bg-muted/20 p-5 rounded-2xl border border-border/50">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Duration (min)</Label>
+                <Input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className="text-xl font-bold h-14 bg-background/50 text-center"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Estimated Burn (kcal)</Label>
+                <Input
+                  type="number"
+                  value={kcal}
+                  onChange={(e) => setKcal(e.target.value)}
+                  className="text-xl font-bold h-14 bg-background/50 text-center"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
+                  <span>BPM (Heart Rate)</span>
+                  <span className="text-muted-foreground/50">Optional</span>
+                </Label>
+                <Input
+                  type="number"
+                  value={bpm}
+                  onChange={(e) => setBpm(e.target.value)}
+                  placeholder="e.g. 120"
+                  className="h-12 bg-background/50 text-center font-semibold"
+                />
+              </div>
             </div>
-            <Button
-              onClick={logQuick}
-              disabled={logging}
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-            >
-              {logging ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Log Workout"
-              )}
+            <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
+              <Plus className="mr-2 h-5 w-5" /> Log Workout
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+    );
+  };
+
+  const GymLogModal = () => {
+    const [sets, setSets] = useState([{ reps: "10", weight: "20" }]);
+
+    const handleLog = async () => {
+      if (!user) return;
+      toast.loading("Logging exercise...");
+      const { error } = await supabase.from("workout_logs").insert({
+        user_id: user.id,
+        date: new Date().toISOString().split("T")[0],
+        workout_name: selectedExercise,
+        duration_min: sets.length * 3, // rough estimate
+        calories_burned: sets.length * 15,
+        exercises_done: sets,
+      });
+      if (error) {
+        toast.error("Failed to log exercise");
+      } else {
+        toast.success("Exercise logged!");
+        loadUserData();
+        setSelectedExercise(null);
+      }
+    };
+
+    return (
+      <Dialog open={!!selectedExercise} onOpenChange={() => setSelectedExercise(null)}>
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent">
+              {selectedExercise}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 pt-4">
+            <div className="h-40 bg-gradient-to-br from-muted/50 to-muted rounded-2xl border border-border/50 flex items-center justify-center relative overflow-hidden shadow-inner">
+              <Play className="h-10 w-10 text-muted-foreground/30" />
+              <div className="absolute inset-0 flex items-end p-3 bg-gradient-to-t from-background/90 to-transparent">
+                <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Form Video</span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center bg-muted/20 p-2 rounded-xl border border-border/50">
+              <Button variant="ghost" size="sm" className="gap-2 flex-1 rounded-lg hover:bg-background"><Play className="h-4 w-4"/> Video</Button>
+              <Button variant="ghost" size="sm" className="gap-2 flex-1 rounded-lg hover:bg-background"><User className="h-4 w-4"/> Form</Button>
+              <Button variant="ghost" size="sm" className="gap-2 flex-1 rounded-lg hover:bg-background"><LineChart className="h-4 w-4"/> History</Button>
+            </div>
+
+            <div className="space-y-3 bg-background/50 p-4 rounded-2xl border border-border/50">
+              <div className="flex font-bold text-[10px] uppercase tracking-widest text-muted-foreground px-2">
+                <div className="w-12 text-center">Set</div>
+                <div className="flex-1 text-center">Reps</div>
+                <div className="flex-1 text-center">Weight</div>
+              </div>
+              <div className="space-y-2">
+                {sets.map((s, i) => (
+                  <div key={i} className="flex gap-3 items-center bg-card p-2 rounded-xl border border-border shadow-sm">
+                    <div className="w-10 text-center font-black text-muted-foreground">{i + 1}.</div>
+                    <Input
+                      type="number"
+                      className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                      value={s.reps}
+                      onChange={(e) => {
+                        const n = [...sets];
+                        n[i].reps = e.target.value;
+                        setSets(n);
+                      }}
+                    />
+                    <Input
+                      type="number"
+                      className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                      value={s.weight}
+                      onChange={(e) => {
+                        const n = [...sets];
+                        n[i].weight = e.target.value;
+                        setSets(n);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                className="w-full text-xs font-bold border-dashed border-border/50 rounded-xl h-10 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"
+                onClick={() => setSets([...sets, { reps: "10", weight: sets[sets.length - 1].weight }])}
+              >
+                <Plus className="mr-2 h-3 w-3" /> Add Set
+              </Button>
+            </div>
+
+            <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
+              <Plus className="mr-2 h-5 w-5" /> Log Workout
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  const PlanWizard = () => {
+    return (
+      <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader className="sticky top-0 bg-card/95 backdrop-blur-xl pt-4 pb-2 z-10 -mt-4 -mx-6 px-6 border-b border-border/50">
+            <DialogTitle className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
+              <Flame className="h-5 w-5 text-accent" /> Plan Wizard
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-8 pt-6 pb-8">
+            <div className="space-y-4">
+              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Fitness Level (Experience)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {["Beginner <1 yr", "Intermediate 1-2 yr", "Expert >3 yr", "Pro"].map(o => (
+                  <Button key={o} variant="outline" className="justify-start h-auto py-3 px-4 whitespace-normal text-left font-semibold rounded-xl hover:border-accent hover:bg-accent/5 transition-colors">{o}</Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Fitness Goals?</Label>
+              <div className="grid grid-cols-1 gap-3">
+                {["Build muscle + get toned", "Enhance general fitness", "Improve conditioning", "Get stronger (powerlifting)"].map(o => (
+                  <Button key={o} variant="outline" className="justify-start h-auto py-3 px-4 whitespace-normal text-left font-semibold rounded-xl hover:border-accent hover:bg-accent/5 transition-colors">{o}</Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex justify-between">
+                <span>Strongest Lifts</span>
+                <span className="text-muted-foreground/50">Optional</span>
+              </Label>
+              <div className="space-y-3 bg-muted/20 p-4 rounded-2xl border border-border/50">
+                <div className="flex gap-3 items-center">
+                  <span className="w-24 text-xs font-bold text-right">Bench Press</span>
+                  <Input placeholder="Reps" className="flex-1 bg-background/50 h-10" />
+                  <Input placeholder="Weight" className="flex-1 bg-background/50 h-10" />
+                </div>
+                <div className="flex gap-3 items-center">
+                  <span className="w-24 text-xs font-bold text-right">Back Squat</span>
+                  <Input placeholder="Reps" className="flex-1 bg-background/50 h-10" />
+                  <Input placeholder="Weight" className="flex-1 bg-background/50 h-10" />
+                </div>
+                <div className="flex gap-3 items-center">
+                  <span className="w-24 text-xs font-bold text-right">Deadlift</span>
+                  <Input placeholder="Reps" className="flex-1 bg-background/50 h-10" />
+                  <Input placeholder="Weight" className="flex-1 bg-background/50 h-10" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">How often do you want to train?</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {["1 day/week", "2 days/week", "3 days/week", "4 days/week", "5 days/week", "Everyday"].map(o => (
+                  <Button key={o} variant="outline" className="justify-start font-semibold rounded-xl hover:border-accent hover:bg-accent/5 transition-colors">{o}</Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Workout time in gym?</Label>
+              <div className="px-4 py-6 bg-muted/20 rounded-2xl border border-border/50">
+                <Slider defaultValue={[60]} max={120} min={30} step={15} className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:bg-accent [&_[role=slider]]:border-none" />
+                <div className="flex justify-between text-xs text-muted-foreground mt-4 font-bold tracking-widest">
+                  <span>30m</span>
+                  <span>1h</span>
+                  <span>1.5h</span>
+                  <span>2h+</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Preferred Training Plan?</Label>
+              <div className="grid grid-cols-1 gap-3">
+                <Button variant="default" className="justify-start h-auto py-4 px-5 whitespace-normal text-left font-bold rounded-xl bg-accent text-accent-foreground shadow-lg shadow-accent/20 transition-all hover:-translate-y-1 text-md">
+                  Let us pick for you (AI Generated)
+                </Button>
+                <Button variant="outline" className="justify-start h-auto py-4 px-5 whitespace-normal text-left font-bold rounded-xl hover:border-accent hover:bg-accent/5 transition-all text-md">
+                  Pick from our library
+                </Button>
+                <Button variant="outline" className="justify-start h-auto py-4 px-5 whitespace-normal text-left font-bold rounded-xl hover:border-accent hover:bg-accent/5 transition-all text-md">
+                  Build your own custom plan
+                </Button>
+              </div>
+            </div>
+            
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-24 selection:bg-accent/20">
+      <Header />
+      <main className="mx-auto max-w-md p-5 pt-8 space-y-8">
+        
+        {/* Top Bar */}
+        <div className="flex items-center justify-between bg-card p-4 rounded-2xl border border-border/50 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-accent/10 p-2.5 rounded-xl text-accent">
+              <Target className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-lg font-black tracking-tight leading-none uppercase">Workout Plan</h1>
+              <p className="text-[10px] font-bold text-muted-foreground tracking-widest mt-1">LOG PROGRESS</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end">
+              <div className="flex items-center gap-1 text-orange-500">
+                <Flame className="h-5 w-5 fill-current animate-pulse" />
+                <span className="font-black text-lg leading-none">4</span>
+              </div>
+              <span className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mt-0.5">Streak</span>
+            </div>
+            <div className="h-11 w-11 rounded-full bg-muted border-2 border-border/50 overflow-hidden ring-2 ring-background shadow-sm">
+              <User className="h-full w-full p-2.5 text-muted-foreground/40" />
+            </div>
+          </div>
+        </div>
+
+        {/* Custom Tabs */}
+        {!selectedMuscle && (
+          <div className="flex gap-2 p-1.5 bg-muted/40 rounded-2xl border border-border/50 backdrop-blur-sm">
+            {(["GYM", "HOME", "CARDIO"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${
+                  activeTab === tab
+                    ? "bg-background text-foreground shadow-sm scale-100 ring-1 ring-border/50"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50 scale-95"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Content Area */}
+        <div className="pt-2">
+          {selectedMuscle ? (
+            renderMuscleDetail()
+          ) : activeTab === "CARDIO" ? (
+            renderCardioList()
+          ) : (
+            renderMuscleGrid()
+          )}
+        </div>
+
+      </main>
+
+      <CardioModal />
+      <GymLogModal />
+      <PlanWizard />
+
     </div>
   );
 }
