@@ -29,25 +29,36 @@ export function Header({ name }: { name?: string }) {
 
   useEffect(() => {
     if (user) {
-      supabase.from("user_profiles").select("current_streak").eq("id", user.id).single()
+      supabase
+        .from("user_profiles")
+        .select("current_streak")
+        .eq("id", user.id)
+        .single()
         .then(({ data }) => setStreak((data as any)?.current_streak || 0));
     }
   }, [user]);
 
-  const neonGlow = streak > 7 ? 'border-orange-500 text-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)] hover:bg-orange-500/10 hover:shadow-[0_0_15px_rgba(249,115,22,0.8)]' : streak > 0 ? 'border-orange-400 text-orange-500' : 'text-muted-foreground';
+  const neonGlow =
+    streak > 7
+      ? "border-orange-500 text-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)] hover:bg-orange-500/10 hover:shadow-[0_0_15px_rgba(249,115,22,0.8)]"
+      : streak > 0
+        ? "border-orange-400 text-orange-500"
+        : "text-muted-foreground";
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-4">
           <Link to="/dashboard" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
               <Activity className="h-5 w-5" />
             </div>
-            <span className="text-lg font-bold tracking-tight">FitTrack</span>
+            <span className="text-base font-bold tracking-tight sm:text-lg">
+              FitTrack
+            </span>
           </Link>
           {user && (
-            <nav className="hidden items-center gap-1 sm:flex">
+            <nav className="hidden items-center gap-1 md:flex">
               <Link
                 to="/dashboard"
                 className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors [&.active]:text-foreground [&.active]:bg-muted"
@@ -82,22 +93,24 @@ export function Header({ name }: { name?: string }) {
           )}
         </div>
 
-        <div className="hidden flex-row items-center gap-4 sm:flex">
+        <div className="hidden flex-row items-center gap-4 md:flex">
           {user && (
             <Dialog>
               <DialogTrigger asChild>
-                <Button 
-                   variant="outline" 
-                   className={`h-9 px-3 gap-1.5 font-bold transition-all ${neonGlow}`}
+                <Button
+                  variant="outline"
+                  className={`h-9 px-3 gap-1.5 font-bold transition-all ${neonGlow}`}
                 >
-                  <Flame className={`h-4 w-4 ${streak > 0 ? 'fill-current' : ''}`} />
+                  <Flame
+                    className={`h-4 w-4 ${streak > 0 ? "fill-current" : ""}`}
+                  />
                   {streak}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[380px] p-0 border-0 bg-transparent shadow-none">
                 <div className="bg-card rounded-xl border-accent/20 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center p-6">
                   <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-red-500/5 to-transparent pointer-events-none" />
-                  
+
                   <div className="relative mb-4">
                     <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full" />
                     <div className="relative flex items-center justify-center h-28 w-28 bg-gradient-to-tr from-red-600 to-orange-400 rounded-full text-white shadow-xl shadow-red-500/20 animate-in zoom-in duration-500">
@@ -106,20 +119,42 @@ export function Header({ name }: { name?: string }) {
                     </div>
                   </div>
 
-                  <h3 className="text-2xl font-black tracking-tight mb-1">Day Streak</h3>
+                  <h3 className="text-2xl font-black tracking-tight mb-1">
+                    Day Streak
+                  </h3>
                   <div className="flex items-center gap-2 text-muted-foreground font-medium mb-6">
                     <span className="opacity-50">🌿</span>
-                    <span>Best: <span className="text-blue-500 font-bold">{Math.max(streak, parseInt(localStorage.getItem('longest_streak') || '0'))} days</span></span>
+                    <span>
+                      Best:{" "}
+                      <span className="text-blue-500 font-bold">
+                        {Math.max(
+                          streak,
+                          parseInt(
+                            localStorage.getItem("longest_streak") || "0",
+                          ),
+                        )}{" "}
+                        days
+                      </span>
+                    </span>
                     <span className="opacity-50">🌿</span>
                   </div>
 
                   <div className="flex w-full justify-between items-center bg-muted/30 rounded-2xl p-4">
                     {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => {
-                      const isToday = i === new Date().getDay() - 1 || (new Date().getDay() === 0 && i === 6);
+                      const isToday =
+                        i === new Date().getDay() - 1 ||
+                        (new Date().getDay() === 0 && i === 6);
                       return (
-                        <div key={i} className="flex flex-col items-center gap-2">
-                          <span className="text-xs font-bold text-muted-foreground">{day}</span>
-                          <div className={`flex items-center justify-center h-8 w-8 rounded-full text-xs font-bold ${isToday ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20' : 'bg-muted text-muted-foreground/50'}`}>
+                        <div
+                          key={i}
+                          className="flex flex-col items-center gap-2"
+                        >
+                          <span className="text-xs font-bold text-muted-foreground">
+                            {day}
+                          </span>
+                          <div
+                            className={`flex items-center justify-center h-8 w-8 rounded-full text-xs font-bold ${isToday ? "bg-blue-500 text-white shadow-md shadow-blue-500/20" : "bg-muted text-muted-foreground/50"}`}
+                          >
                             {isToday ? "✓" : i + 1}
                           </div>
                         </div>
@@ -132,7 +167,9 @@ export function Header({ name }: { name?: string }) {
           )}
 
           <div className="flex flex-col items-end text-right">
-            {name && <span className="text-sm font-medium">Hey, {name} 👋</span>}
+            {name && (
+              <span className="text-sm font-medium">Hey, {name} 👋</span>
+            )}
             <span className="text-xs text-muted-foreground">{today}</span>
           </div>
         </div>
@@ -143,6 +180,7 @@ export function Header({ name }: { name?: string }) {
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-10 w-10"
                 onClick={() => navigate({ to: "/profile" })}
                 aria-label="Profile"
               >
@@ -151,6 +189,7 @@ export function Header({ name }: { name?: string }) {
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-10 w-10"
                 onClick={async () => {
                   await signOut();
                   navigate({ to: "/login" });
@@ -163,6 +202,14 @@ export function Header({ name }: { name?: string }) {
           )}
         </div>
       </div>
+      {user && (
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-3 pb-2 text-xs text-muted-foreground md:hidden">
+          <span className="truncate">
+            {name ? `Hey, ${name} 👋` : "Welcome back"}
+          </span>
+          <span className="shrink-0">{today}</span>
+        </div>
+      )}
     </header>
   );
 }

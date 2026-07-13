@@ -27,7 +27,11 @@ import {
   PenTool,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
   PieChart,
@@ -44,7 +48,13 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Header } from "@/components/Header";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -139,13 +149,17 @@ const parseLocalDate = (iso: string) => {
 const formatDateDisplay = (dateStr: string) => {
   if (dateStr === today()) return "Today";
   if (dateStr === shiftDate(today(), -1)) return "Yesterday";
-  
+
   const d = parseLocalDate(dateStr);
   const now = new Date();
   if (d.getFullYear() === now.getFullYear()) {
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   }
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 async function computeStreak(userId: string): Promise<number> {
@@ -170,7 +184,10 @@ async function computeStreak(userId: string): Promise<number> {
       break;
     }
   }
-  await supabase.from("user_profiles").update({ current_streak: streak } as any).eq("id", userId);
+  await supabase
+    .from("user_profiles")
+    .update({ current_streak: streak } as any)
+    .eq("id", userId);
   return streak;
 }
 
@@ -341,7 +358,8 @@ function Dashboard() {
   );
 
   const target = profile?.daily_calorie_target ?? 0;
-  const fiberTarget = (profile?.fiber_target_g ?? Math.round((target / 1000) * 14)) || 28;
+  const fiberTarget =
+    (profile?.fiber_target_g ?? Math.round((target / 1000) * 14)) || 28;
   const remaining = target - totals.calories;
   const pct = target
     ? Math.min(100, Math.round((totals.calories / target) * 100))
@@ -401,7 +419,7 @@ function Dashboard() {
       fat_g: sub.f,
       fiber_g: sub.fib,
     });
-    
+
     if (error) {
       toast.error(error.message);
     } else {
@@ -421,7 +439,11 @@ function Dashboard() {
         .eq("user_id", user.id)
         .eq("name", l.food_name);
       if (!error) {
-        setFavoriteNames((prev) => { const s = new Set(prev); s.delete(l.food_name); return s; });
+        setFavoriteNames((prev) => {
+          const s = new Set(prev);
+          s.delete(l.food_name);
+          return s;
+        });
         toast.success(`Removed from Favorites`);
         searchRef.current?.refreshFavorites();
       }
@@ -500,7 +522,7 @@ function Dashboard() {
   const lastWeight = weightEntries[weightEntries.length - 1]?.weight_kg;
   const prevWeight = weightEntries[weightEntries.length - 2]?.weight_kg;
   const weightDiff = lastWeight && prevWeight ? lastWeight - prevWeight : null;
-  const loggedDates = [...new Set(monthLogs.map(l => new Date(l.date)))];
+  const loggedDates = [...new Set(monthLogs.map((l) => new Date(l.date)))];
 
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
@@ -513,7 +535,7 @@ function Dashboard() {
             <Target className="h-32 w-32" />
           </div>
           <CardContent className="p-6 sm:p-8">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">
                   Today's Overview
@@ -522,7 +544,7 @@ function Dashboard() {
                   Stay on track, {firstName}.
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-md relative z-10">
+              <div className="relative z-10 flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -533,15 +555,35 @@ function Dashboard() {
                 </Button>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                    >
                       {formatDateDisplay(selectedDate)}
                       <ChevronDown className="h-3 w-3 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-3" align="center">
                     <div className="flex gap-2 mb-3">
-                      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => handleQuickAction(today())}>Today</Button>
-                      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => handleQuickAction(shiftDate(today(), -1))}>Yesterday</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() => handleQuickAction(today())}
+                      >
+                        Today
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() =>
+                          handleQuickAction(shiftDate(today(), -1))
+                        }
+                      >
+                        Yesterday
+                      </Button>
                     </div>
                     <Calendar
                       mode="single"
@@ -558,7 +600,12 @@ function Dashboard() {
                         logged: loggedDates,
                       }}
                       modifiersStyles={{
-                        logged: { fontWeight: "bold", backgroundColor: "var(--energy)", color: "white", borderRadius: "100%" }
+                        logged: {
+                          fontWeight: "bold",
+                          backgroundColor: "var(--energy)",
+                          color: "white",
+                          borderRadius: "100%",
+                        },
                       }}
                       initialFocus
                     />
@@ -576,7 +623,7 @@ function Dashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 relative z-10">
+            <div className="relative z-10 flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-12">
               {/* Calories Ring */}
               <div className="relative h-48 w-48 shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -674,13 +721,19 @@ function Dashboard() {
 
                       return (
                         <div key={m} className="space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-wrap items-center gap-2">
                               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                 {m}
                               </h3>
-                              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20" onClick={() => saveMealAsFavorite(m, items)}>
-                                <Flame className="h-3 w-3 mr-1" /> Save as Favorite
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20"
+                                onClick={() => saveMealAsFavorite(m, items)}
+                              >
+                                <Flame className="h-3 w-3 mr-1" /> Save as
+                                Favorite
                               </Button>
                             </div>
                             <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
@@ -701,14 +754,24 @@ function Dashboard() {
                                         {l.food_name}
                                       </div>
                                       <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                        <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">{Math.round(l.quantity_g)}g</span>
-                                        <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">{Math.round(l.calories)} kcal</span>
-                                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">P{Math.round(l.protein_g)}</span>
-                                        <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">C{Math.round(l.carbs_g)}</span>
-                                        <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">F{Math.round(l.fat_g)}</span>
+                                        <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
+                                          {Math.round(l.quantity_g)}g
+                                        </span>
+                                        <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                          {Math.round(l.calories)} kcal
+                                        </span>
+                                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                          P{Math.round(l.protein_g)}
+                                        </span>
+                                        <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                          C{Math.round(l.carbs_g)}
+                                        </span>
+                                        <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                          F{Math.round(l.fat_g)}
+                                        </span>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-0 shrink-0">
+                                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-0">
                                       <Button
                                         variant="ghost"
                                         size="icon"
@@ -717,10 +780,16 @@ function Dashboard() {
                                             ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
                                             : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
                                         }`}
-                                        title={isFav ? "Remove from Favorites" : "Save to Favorites"}
+                                        title={
+                                          isFav
+                                            ? "Remove from Favorites"
+                                            : "Save to Favorites"
+                                        }
                                         onClick={() => saveFoodAsFavorite(l)}
                                       >
-                                        <Heart className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`} />
+                                        <Heart
+                                          className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
+                                        />
                                       </Button>
                                       <Button
                                         variant="ghost"
@@ -736,7 +805,9 @@ function Dashboard() {
                                         size="icon"
                                         className="h-7 w-7 text-muted-foreground hover:text-accent hover:bg-accent/10"
                                         title="Modify"
-                                        onClick={() => searchRef.current?.editLog(l)}
+                                        onClick={() =>
+                                          searchRef.current?.editLog(l)
+                                        }
                                       >
                                         <PenTool className="h-3 w-3" />
                                       </Button>
@@ -892,7 +963,7 @@ function Dashboard() {
                   )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <div className="relative flex-1">
                     <Input
                       type="number"
@@ -979,8 +1050,9 @@ function Dashboard() {
                   <Tabs
                     value={chartMetric}
                     onValueChange={(v) => setChartMetric(v as any)}
+                    className="w-full sm:w-auto"
                   >
-                    <TabsList className="h-8">
+                    <TabsList className="h-8 w-full justify-start overflow-x-auto sm:w-auto">
                       <TabsTrigger
                         value="calories"
                         className="text-[10px] px-3"
@@ -1131,19 +1203,33 @@ function Dashboard() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                {weightEntries.filter(e => e.photo_url).length > 0 && (
+                {weightEntries.filter((e) => e.photo_url).length > 0 && (
                   <div className="mt-6">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Progress Photos</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                      Progress Photos
+                    </h4>
                     <div className="flex gap-4 overflow-x-auto pb-2">
-                      {weightEntries.filter(e => e.photo_url).reverse().map(e => (
-                        <div key={e.id} className="relative shrink-0 group cursor-pointer">
-                          <img src={e.photo_url!} alt={`Weight on ${e.date}`} className="h-24 w-24 object-cover rounded-md border border-border" />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex flex-col items-center justify-center text-white text-xs">
-                            <span className="font-bold">{e.weight_kg} kg</span>
-                            <span>{e.date.slice(5)}</span>
+                      {weightEntries
+                        .filter((e) => e.photo_url)
+                        .reverse()
+                        .map((e) => (
+                          <div
+                            key={e.id}
+                            className="relative shrink-0 group cursor-pointer"
+                          >
+                            <img
+                              src={e.photo_url!}
+                              alt={`Weight on ${e.date}`}
+                              className="h-24 w-24 object-cover rounded-md border border-border"
+                            />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex flex-col items-center justify-center text-white text-xs">
+                              <span className="font-bold">
+                                {e.weight_kg} kg
+                              </span>
+                              <span>{e.date.slice(5)}</span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </div>
                 )}

@@ -597,7 +597,10 @@ function WorkoutPage() {
   const [todayLog, setTodayLog] = useState<any>(null);
   const [videoEx, setVideoEx] = useState<Exercise | null>(null);
   const [viewMode, setViewMode] = useState<"plan" | "quick">("plan");
-  const [quickWorkout, setQuickWorkout] = useState<{name: string, calPerMin: number} | null>(null);
+  const [quickWorkout, setQuickWorkout] = useState<{
+    name: string;
+    calPerMin: number;
+  } | null>(null);
   const [quickDuration, setQuickDuration] = useState("30");
 
   useEffect(() => {
@@ -730,7 +733,7 @@ function WorkoutPage() {
       return;
     }
     const cals = Math.round(duration * quickWorkout.calPerMin);
-    
+
     setLogging(true);
     const { error } = await supabase.from("workout_logs").insert({
       user_id: user.id,
@@ -786,7 +789,7 @@ function WorkoutPage() {
           <Button
             onClick={generatePlan}
             disabled={generating}
-            className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
+            className="w-full gap-2 bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto"
           >
             {generating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -800,7 +803,7 @@ function WorkoutPage() {
         {/* ── Today's log banner ── */}
         {todayLog && (
           <Card className="border-[var(--energy)]/30 bg-[var(--energy)]/5">
-            <CardContent className="flex items-center gap-4 p-4">
+            <CardContent className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center">
               <CheckCircle2 className="h-6 w-6 shrink-0 text-[var(--energy)]" />
               <div className="flex-1">
                 <p className="font-semibold text-sm">
@@ -835,21 +838,61 @@ function WorkoutPage() {
         {viewMode === "quick" && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { name: "Treadmill Running", cal: 11.5, icon: <Activity className="h-5 w-5" /> },
-              { name: "Outdoor Walk", cal: 5, icon: <Activity className="h-5 w-5" /> },
-              { name: "Cycling", cal: 9, icon: <Activity className="h-5 w-5" /> },
-              { name: "Swimming", cal: 10, icon: <Activity className="h-5 w-5" /> },
-              { name: "Jump Rope", cal: 13, icon: <Activity className="h-5 w-5" /> },
-              { name: "HIIT Session", cal: 12, icon: <Flame className="h-5 w-5 text-warn" /> },
-              { name: "Yoga", cal: 4, icon: <Zap className="h-5 w-5 text-accent" /> },
-              { name: "Pilates", cal: 5, icon: <Zap className="h-5 w-5 text-accent" /> },
+              {
+                name: "Treadmill Running",
+                cal: 11.5,
+                icon: <Activity className="h-5 w-5" />,
+              },
+              {
+                name: "Outdoor Walk",
+                cal: 5,
+                icon: <Activity className="h-5 w-5" />,
+              },
+              {
+                name: "Cycling",
+                cal: 9,
+                icon: <Activity className="h-5 w-5" />,
+              },
+              {
+                name: "Swimming",
+                cal: 10,
+                icon: <Activity className="h-5 w-5" />,
+              },
+              {
+                name: "Jump Rope",
+                cal: 13,
+                icon: <Activity className="h-5 w-5" />,
+              },
+              {
+                name: "HIIT Session",
+                cal: 12,
+                icon: <Flame className="h-5 w-5 text-warn" />,
+              },
+              {
+                name: "Yoga",
+                cal: 4,
+                icon: <Zap className="h-5 w-5 text-accent" />,
+              },
+              {
+                name: "Pilates",
+                cal: 5,
+                icon: <Zap className="h-5 w-5 text-accent" />,
+              },
             ].map((q) => (
-              <Card key={q.name} className="hover:border-accent cursor-pointer transition-colors" onClick={() => setQuickWorkout({ name: q.name, calPerMin: q.cal })}>
+              <Card
+                key={q.name}
+                className="hover:border-accent cursor-pointer transition-colors"
+                onClick={() =>
+                  setQuickWorkout({ name: q.name, calPerMin: q.cal })
+                }
+              >
                 <CardContent className="flex items-center gap-4 p-5">
                   <div className="p-3 bg-muted rounded-full">{q.icon}</div>
                   <div>
                     <h3 className="font-semibold">{q.name}</h3>
-                    <p className="text-xs text-muted-foreground">~{Math.round(q.cal * 30)} kcal / 30 min</p>
+                    <p className="text-xs text-muted-foreground">
+                      ~{Math.round(q.cal * 30)} kcal / 30 min
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -919,14 +962,14 @@ function WorkoutPage() {
                 {/* ── Day overview card ── */}
                 <Card>
                   <CardContent className="p-5">
-                    <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <h2 className="text-xl font-bold">{currentDay.name}</h2>
                         <p className="text-sm text-muted-foreground">
                           {currentDay.focus}
                         </p>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Dumbbell className="h-4 w-4" />
                           {totalExercises} exercises
@@ -974,7 +1017,7 @@ function WorkoutPage() {
                       >
                         <CardContent className="p-0">
                           {/* Exercise header row */}
-                          <div className="flex items-center gap-3 px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-3 px-4 py-3">
                             <button
                               onClick={() => toggleDone(key)}
                               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
@@ -987,7 +1030,7 @@ function WorkoutPage() {
                             </button>
 
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
+                              <div className="ml-auto flex w-full items-center justify-end gap-2 sm:ml-0 sm:w-auto">
                                 <span
                                   className={`font-semibold ${isDone ? "line-through text-muted-foreground" : ""}`}
                                 >
@@ -1193,7 +1236,10 @@ function WorkoutPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!quickWorkout} onOpenChange={(o) => !o && setQuickWorkout(null)}>
+      <Dialog
+        open={!!quickWorkout}
+        onOpenChange={(o) => !o && setQuickWorkout(null)}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Log {quickWorkout?.name}</DialogTitle>
@@ -1208,9 +1254,14 @@ function WorkoutPage() {
               />
             </div>
             <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <span className="text-sm text-muted-foreground">Estimated Burn</span>
+              <span className="text-sm text-muted-foreground">
+                Estimated Burn
+              </span>
               <p className="text-xl font-bold text-accent">
-                {Math.round((+quickDuration || 0) * (quickWorkout?.calPerMin || 0))} kcal
+                {Math.round(
+                  (+quickDuration || 0) * (quickWorkout?.calPerMin || 0),
+                )}{" "}
+                kcal
               </p>
             </div>
             <Button
@@ -1218,7 +1269,11 @@ function WorkoutPage() {
               disabled={logging}
               className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
             >
-              {logging ? <Loader2 className="h-4 w-4 animate-spin" /> : "Log Workout"}
+              {logging ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Log Workout"
+              )}
             </Button>
           </div>
         </DialogContent>
