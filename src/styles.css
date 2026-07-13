@@ -152,6 +152,7 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    overflow-x: hidden;
     font-family:
       ui-sans-serif,
       system-ui,

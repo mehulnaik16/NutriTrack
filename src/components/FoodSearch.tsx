@@ -1,5 +1,12 @@
 import { BrowserMultiFormatReader } from "@zxing/browser";
-import { useMemo, useRef, useState, forwardRef, useImperativeHandle, useEffect } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  useEffect,
+} from "react";
 import {
   Search,
   Plus,
@@ -167,7 +174,7 @@ const EXTRA_FOODS: IFCTItem[] = [
     fatce: 9.5,
     choavldf: 0.7,
     fibtg: 0,
-  }
+  },
 ];
 
 const ITEMS = [...(ifctData as IFCTItem[]), ...EXTRA_FOODS];
@@ -294,8 +301,14 @@ export const FoodSearch = forwardRef<
   const [editLogId, setEditLogId] = useState<string | null>(null);
 
   const loadSavedMeals = () => {
-    supabase.from("saved_meals" as any).select("*").eq("user_id", userId).order("created_at", { ascending: false })
-      .then(({ data }) => { if (data) setSavedMeals(data); });
+    supabase
+      .from("saved_meals" as any)
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setSavedMeals(data);
+      });
   };
 
   useImperativeHandle(ref, () => ({
@@ -378,7 +391,9 @@ export const FoodSearch = forwardRef<
   }
   const [mealBuilderOpen, setMealBuilderOpen] = useState(false);
   const [mealBuilderName, setMealBuilderName] = useState("");
-  const [mealBuilderItems, setMealBuilderItems] = useState<MealBuilderItem[]>([]);
+  const [mealBuilderItems, setMealBuilderItems] = useState<MealBuilderItem[]>(
+    [],
+  );
   const [mealBuilderSearch, setMealBuilderSearch] = useState("");
   const [mealBuilderSaving, setMealBuilderSaving] = useState(false);
   const [mealBuilderCustomOpen, setMealBuilderCustomOpen] = useState(false);
@@ -411,21 +426,24 @@ export const FoodSearch = forwardRef<
         fat_g: a.fat_g + it.fat_g,
         fiber_g: a.fiber_g + it.fiber_g,
       }),
-      { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 }
+      { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 },
     );
   }, [mealBuilderItems]);
 
   const addItemToMealBuilder = (item: IFCTItem, grams: number = 100) => {
     const ratio = grams / 100;
-    setMealBuilderItems([...mealBuilderItems, {
-      name: item.name,
-      quantity_g: grams,
-      calories: +(kcal(item.enerc) * ratio).toFixed(1),
-      protein_g: +((item.protcnt ?? 0) * ratio).toFixed(1),
-      carbs_g: +((item.choavldf ?? 0) * ratio).toFixed(1),
-      fat_g: +((item.fatce ?? 0) * ratio).toFixed(1),
-      fiber_g: +((item.fibtg ?? 0) * ratio).toFixed(1),
-    }]);
+    setMealBuilderItems([
+      ...mealBuilderItems,
+      {
+        name: item.name,
+        quantity_g: grams,
+        calories: +(kcal(item.enerc) * ratio).toFixed(1),
+        protein_g: +((item.protcnt ?? 0) * ratio).toFixed(1),
+        carbs_g: +((item.choavldf ?? 0) * ratio).toFixed(1),
+        fat_g: +((item.fatce ?? 0) * ratio).toFixed(1),
+        fiber_g: +((item.fibtg ?? 0) * ratio).toFixed(1),
+      },
+    ]);
     setMealBuilderSearch("");
   };
 
@@ -451,8 +469,14 @@ export const FoodSearch = forwardRef<
     }
     toast.success(`"${mealBuilderName}" saved to Favorites!`);
     // Refresh saved meals
-    supabase.from("saved_meals" as any).select("*").eq("user_id", userId).order("created_at", { ascending: false })
-      .then(({ data }) => { if (data) setSavedMeals(data); });
+    supabase
+      .from("saved_meals" as any)
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setSavedMeals(data);
+      });
     setMealBuilderOpen(false);
     setMealBuilderName("");
     setMealBuilderItems([]);
@@ -479,7 +503,9 @@ export const FoodSearch = forwardRef<
 
     supabase
       .from("food_logs")
-      .select("food_name, quantity_g, calories, protein_g, carbs_g, fat_g, fiber_g, meal_type")
+      .select(
+        "food_name, quantity_g, calories, protein_g, carbs_g, fat_g, fiber_g, meal_type",
+      )
       .eq("user_id", userId)
       .gte("date", dateStr)
       .order("logged_at", { ascending: false })
@@ -565,26 +591,43 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   );
 
   // ── Log helpers ──────────────────────────────────────────────────────────────
-  const logFood = async (item: IFCTItem, grams: number, mealType: string, overrides?: { cal: number; p: number; c: number; f: number; fib?: number }) => {
+  const logFood = async (
+    item: IFCTItem,
+    grams: number,
+    mealType: string,
+    overrides?: { cal: number; p: number; c: number; f: number; fib?: number },
+  ) => {
     setSaving(true);
     const ratio = grams / 100;
-    const cal = overrides ? overrides.cal : +(kcal(item.enerc) * ratio).toFixed(1);
-    const p = overrides ? overrides.p : +((item.protcnt ?? 0) * ratio).toFixed(1);
-    const c = overrides ? overrides.c : +((item.choavldf ?? 0) * ratio).toFixed(1);
+    const cal = overrides
+      ? overrides.cal
+      : +(kcal(item.enerc) * ratio).toFixed(1);
+    const p = overrides
+      ? overrides.p
+      : +((item.protcnt ?? 0) * ratio).toFixed(1);
+    const c = overrides
+      ? overrides.c
+      : +((item.choavldf ?? 0) * ratio).toFixed(1);
     const f = overrides ? overrides.f : +((item.fatce ?? 0) * ratio).toFixed(1);
-    const fib = overrides && overrides.fib !== undefined ? overrides.fib : +((item.fibtg ?? 0) * ratio).toFixed(1);
+    const fib =
+      overrides && overrides.fib !== undefined
+        ? overrides.fib
+        : +((item.fibtg ?? 0) * ratio).toFixed(1);
 
     let error;
     if (isEditing && editLogId) {
-      const { error: updateErr } = await supabase.from("food_logs").update({
-        meal_type: mealType,
-        quantity_g: grams,
-        calories: cal,
-        protein_g: p,
-        carbs_g: c,
-        fat_g: f,
-        fiber_g: fib,
-      }).eq("id", editLogId);
+      const { error: updateErr } = await supabase
+        .from("food_logs")
+        .update({
+          meal_type: mealType,
+          quantity_g: grams,
+          calories: cal,
+          protein_g: p,
+          carbs_g: c,
+          fat_g: f,
+          fiber_g: fib,
+        })
+        .eq("id", editLogId);
       error = updateErr;
     } else {
       const { error: insertErr } = await supabase.from("food_logs").insert({
@@ -735,7 +778,8 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
   // ── Voice recording ───────────────────────────────────────────────────────────
   const startRecording = async () => {
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       toast.error("Live speech recognition is not supported in this browser.");
@@ -887,25 +931,44 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       {/* ── Quick Log: Recent Foods + Saved Meals ── */}
       {q.length === 0 && (recentFoods.length > 0 || savedMeals.length > 0) && (
         <div className="space-y-4 mt-3">
-
           {/* Recent Foods — horizontal scrolling chips */}
           {recentFoods.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Clock className="h-3 w-3" /> Recent · Tap to log
               </h4>
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+              <div
+                className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide"
+                style={{ scrollbarWidth: "none" }}
+              >
                 {recentFoods.map((rf, i) => (
                   <button
                     key={`${rf.food_name}-${i}`}
                     onClick={async () => {
                       const customItem: IFCTItem = {
-                        code: "recent", name: rf.food_name, scie: "", lang: "", grup: "Recent",
-                        enerc: 0, protcnt: 0, fatce: 0, choavldf: 0, fibtg: 0,
+                        code: "recent",
+                        name: rf.food_name,
+                        scie: "",
+                        lang: "",
+                        grup: "Recent",
+                        enerc: 0,
+                        protcnt: 0,
+                        fatce: 0,
+                        choavldf: 0,
+                        fibtg: 0,
                       };
-                      const ok = await logFood(customItem, rf.quantity_g, meal, {
-                        cal: rf.calories, p: rf.protein_g, c: rf.carbs_g, f: rf.fat_g, fib: rf.fiber_g || 0,
-                      });
+                      const ok = await logFood(
+                        customItem,
+                        rf.quantity_g,
+                        meal,
+                        {
+                          cal: rf.calories,
+                          p: rf.protein_g,
+                          c: rf.carbs_g,
+                          f: rf.fat_g,
+                          fib: rf.fiber_g || 0,
+                        },
+                      );
                       if (ok) {
                         toast.success(`${rf.food_name} logged!`);
                         onLogged();
@@ -914,7 +977,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     className="flex-shrink-0 group relative flex items-center gap-2 pl-3 pr-2.5 py-2 rounded-full border border-border bg-card hover:bg-accent/10 hover:border-accent/40 transition-all duration-200 shadow-sm hover:shadow-md"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium whitespace-nowrap">{rf.food_name}</span>
+                      <span className="text-sm font-medium whitespace-nowrap">
+                        {rf.food_name}
+                      </span>
                       <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                         {Math.round(rf.calories)}
                       </span>
@@ -932,7 +997,8 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           {savedMeals.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                <Flame className="h-3 w-3 text-red-500 fill-current" /> Favorites · Tap to log
+                <Flame className="h-3 w-3 text-red-500 fill-current" />{" "}
+                Favorites · Tap to log
               </h4>
               <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                 {savedMeals.map((mealItem) => (
@@ -943,11 +1009,23 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     <button
                       onClick={async () => {
                         const customItem: IFCTItem = {
-                          code: "saved", name: mealItem.name, scie: "", lang: "", grup: "Custom",
-                          enerc: 0, protcnt: 0, fatce: 0, choavldf: 0, fibtg: 0,
+                          code: "saved",
+                          name: mealItem.name,
+                          scie: "",
+                          lang: "",
+                          grup: "Custom",
+                          enerc: 0,
+                          protcnt: 0,
+                          fatce: 0,
+                          choavldf: 0,
+                          fibtg: 0,
                         };
                         const ok = await logFood(customItem, 100, meal, {
-                          cal: mealItem.calories, p: mealItem.protein_g, c: mealItem.carbs_g, f: mealItem.fat_g, fib: mealItem.fiber_g || 0,
+                          cal: mealItem.calories,
+                          p: mealItem.protein_g,
+                          c: mealItem.carbs_g,
+                          f: mealItem.fat_g,
+                          fib: mealItem.fiber_g || 0,
                         });
                         if (ok) {
                           toast.success(`${mealItem.name} logged!`);
@@ -960,9 +1038,14 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                         <Heart className="h-3.5 w-3.5 text-red-500 fill-current" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-sm font-medium truncate block">{mealItem.name}</span>
+                        <span className="text-sm font-medium truncate block">
+                          {mealItem.name}
+                        </span>
                         <span className="text-[10px] text-muted-foreground">
-                          {Math.round(mealItem.calories)} kcal · P{Math.round(mealItem.protein_g)} · C{Math.round(mealItem.carbs_g)} · F{Math.round(mealItem.fat_g)}
+                          {Math.round(mealItem.calories)} kcal · P
+                          {Math.round(mealItem.protein_g)} · C
+                          {Math.round(mealItem.carbs_g)} · F
+                          {Math.round(mealItem.fat_g)}
                         </span>
                       </div>
                     </button>
@@ -973,9 +1056,16 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                         className="h-7 w-7 text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          const { error } = await supabase.from("saved_meals" as any).delete().eq("id", mealItem.id);
+                          const { error } = await supabase
+                            .from("saved_meals" as any)
+                            .delete()
+                            .eq("id", mealItem.id);
                           if (!error) {
-                            setSavedMeals(savedMeals.filter((m: any) => m.id !== mealItem.id));
+                            setSavedMeals(
+                              savedMeals.filter(
+                                (m: any) => m.id !== mealItem.id,
+                              ),
+                            );
                             toast.success("Removed from favorites");
                           }
                         }}
@@ -1036,7 +1126,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           style={{ width: 56, height: 56, minWidth: 56 }}
         >
           <Camera style={{ width: 18, height: 18 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">Photo</span>
+          <span className="text-[8px] font-medium text-muted-foreground">
+            Photo
+          </span>
         </Button>
         <Button
           variant="outline"
@@ -1046,7 +1138,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           style={{ width: 56, height: 56, minWidth: 56 }}
         >
           <Mic style={{ width: 18, height: 18 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">Voice</span>
+          <span className="text-[8px] font-medium text-muted-foreground">
+            Voice
+          </span>
         </Button>
         <Button
           variant="outline"
@@ -1056,7 +1150,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           style={{ width: 56, height: 56, minWidth: 56 }}
         >
           <Barcode style={{ width: 18, height: 18 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">Scan</span>
+          <span className="text-[8px] font-medium text-muted-foreground">
+            Scan
+          </span>
         </Button>
         <Button
           variant="outline"
@@ -1076,12 +1172,22 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           style={{ width: 56, height: 56, minWidth: 56 }}
         >
           <PenTool style={{ width: 18, height: 18 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">Custom</span>
+          <span className="text-[8px] font-medium text-muted-foreground">
+            Custom
+          </span>
         </Button>
       </div>
 
       {/* ── Meal Builder Dialog ── */}
-      <Dialog open={mealBuilderOpen} onOpenChange={(o) => { if (!o) { setMealBuilderOpen(false); setMealBuilderSearch(""); } }}>
+      <Dialog
+        open={mealBuilderOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setMealBuilderOpen(false);
+            setMealBuilderSearch("");
+          }
+        }}
+      >
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1121,7 +1227,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     >
                       <span className="font-medium truncate">{it.name}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{kcal(it.enerc).toFixed(0)} kcal</span>
+                        <span className="text-xs text-muted-foreground">
+                          {kcal(it.enerc).toFixed(0)} kcal
+                        </span>
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent">
                           <Plus className="h-3 w-3" />
                         </div>
@@ -1137,7 +1245,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 className="flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80 transition-colors mt-1"
               >
                 <PenTool className="h-3 w-3" />
-                {mealBuilderCustomOpen ? "Hide custom entry" : "Can\u2019t find it? Add custom food"}
+                {mealBuilderCustomOpen
+                  ? "Hide custom entry"
+                  : "Can\u2019t find it? Add custom food"}
               </button>
 
               {mealBuilderCustomOpen && (
@@ -1150,28 +1260,70 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   />
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">Qty (g)</Label>
-                      <Input type="number" value={mbCustomQty} onChange={(e) => setMbCustomQty(e.target.value)} className="h-7 text-xs" />
+                      <Label className="text-[10px] text-muted-foreground">
+                        Qty (g)
+                      </Label>
+                      <Input
+                        type="number"
+                        value={mbCustomQty}
+                        onChange={(e) => setMbCustomQty(e.target.value)}
+                        className="h-7 text-xs"
+                      />
                     </div>
                     <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">Cal</Label>
-                      <Input type="number" value={mbCustomCal} onChange={(e) => setMbCustomCal(e.target.value)} className="h-7 text-xs" />
+                      <Label className="text-[10px] text-muted-foreground">
+                        Cal
+                      </Label>
+                      <Input
+                        type="number"
+                        value={mbCustomCal}
+                        onChange={(e) => setMbCustomCal(e.target.value)}
+                        className="h-7 text-xs"
+                      />
                     </div>
                     <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">Protein</Label>
-                      <Input type="number" value={mbCustomP} onChange={(e) => setMbCustomP(e.target.value)} className="h-7 text-xs" />
+                      <Label className="text-[10px] text-muted-foreground">
+                        Protein
+                      </Label>
+                      <Input
+                        type="number"
+                        value={mbCustomP}
+                        onChange={(e) => setMbCustomP(e.target.value)}
+                        className="h-7 text-xs"
+                      />
                     </div>
                     <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">Carbs</Label>
-                      <Input type="number" value={mbCustomC} onChange={(e) => setMbCustomC(e.target.value)} className="h-7 text-xs" />
+                      <Label className="text-[10px] text-muted-foreground">
+                        Carbs
+                      </Label>
+                      <Input
+                        type="number"
+                        value={mbCustomC}
+                        onChange={(e) => setMbCustomC(e.target.value)}
+                        className="h-7 text-xs"
+                      />
                     </div>
                     <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">Fat</Label>
-                      <Input type="number" value={mbCustomFat} onChange={(e) => setMbCustomFat(e.target.value)} className="h-7 text-xs" />
+                      <Label className="text-[10px] text-muted-foreground">
+                        Fat
+                      </Label>
+                      <Input
+                        type="number"
+                        value={mbCustomFat}
+                        onChange={(e) => setMbCustomFat(e.target.value)}
+                        className="h-7 text-xs"
+                      />
                     </div>
                     <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">Fiber</Label>
-                      <Input type="number" value={mbCustomFib} onChange={(e) => setMbCustomFib(e.target.value)} className="h-7 text-xs" />
+                      <Label className="text-[10px] text-muted-foreground">
+                        Fiber
+                      </Label>
+                      <Input
+                        type="number"
+                        value={mbCustomFib}
+                        onChange={(e) => setMbCustomFib(e.target.value)}
+                        className="h-7 text-xs"
+                      />
                     </div>
                   </div>
                   <Button
@@ -1180,17 +1332,25 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     className="w-full h-8 text-xs gap-1 border-accent/30 text-accent hover:bg-accent/10"
                     disabled={!mbCustomName.trim() || !mbCustomCal}
                     onClick={() => {
-                      setMealBuilderItems([...mealBuilderItems, {
-                        name: mbCustomName,
-                        quantity_g: +mbCustomQty || 100,
-                        calories: +mbCustomCal || 0,
-                        protein_g: +mbCustomP || 0,
-                        carbs_g: +mbCustomC || 0,
-                        fat_g: +mbCustomFat || 0,
-                        fiber_g: +mbCustomFib || 0,
-                      }]);
-                      setMbCustomName(""); setMbCustomQty("100"); setMbCustomCal("");
-                      setMbCustomP(""); setMbCustomC(""); setMbCustomFat(""); setMbCustomFib("");
+                      setMealBuilderItems([
+                        ...mealBuilderItems,
+                        {
+                          name: mbCustomName,
+                          quantity_g: +mbCustomQty || 100,
+                          calories: +mbCustomCal || 0,
+                          protein_g: +mbCustomP || 0,
+                          carbs_g: +mbCustomC || 0,
+                          fat_g: +mbCustomFat || 0,
+                          fiber_g: +mbCustomFib || 0,
+                        },
+                      ]);
+                      setMbCustomName("");
+                      setMbCustomQty("100");
+                      setMbCustomCal("");
+                      setMbCustomP("");
+                      setMbCustomC("");
+                      setMbCustomFat("");
+                      setMbCustomFib("");
                       toast.success(`${mbCustomName} added!`);
                     }}
                   >
@@ -1203,12 +1363,19 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             {/* Added items list */}
             {mealBuilderItems.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Ingredients ({mealBuilderItems.length})</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Ingredients ({mealBuilderItems.length})
+                </Label>
                 <div className="rounded-xl border border-border overflow-hidden divide-y">
                   {mealBuilderItems.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between px-3 py-2 bg-card hover:bg-muted/20 transition-colors">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between px-3 py-2 bg-card hover:bg-muted/20 transition-colors"
+                    >
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.name}</p>
+                        <p className="text-sm font-medium truncate">
+                          {item.name}
+                        </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <Input
                             type="number"
@@ -1231,15 +1398,23 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                             }}
                             className="w-16 h-6 text-xs"
                           />
-                          <span className="text-[10px] text-muted-foreground">g</span>
-                          <span className="text-[10px] text-muted-foreground ml-1">{Math.round(item.calories)} kcal</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            g
+                          </span>
+                          <span className="text-[10px] text-muted-foreground ml-1">
+                            {Math.round(item.calories)} kcal
+                          </span>
                         </div>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setMealBuilderItems(mealBuilderItems.filter((_, j) => j !== i))}
+                        onClick={() =>
+                          setMealBuilderItems(
+                            mealBuilderItems.filter((_, j) => j !== i),
+                          )
+                        }
                       >
                         <X className="h-3.5 w-3.5" />
                       </Button>
@@ -1249,27 +1424,39 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
 
                 {/* Totals */}
                 <div className="rounded-xl border border-accent/20 bg-accent/5 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-2">Total Nutrition</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-2">
+                    Total Nutrition
+                  </p>
                   <div className="grid grid-cols-5 gap-2 text-center text-xs">
                     <div className="rounded-lg bg-background/50 p-1.5">
                       <p className="text-muted-foreground text-[9px]">Cal</p>
-                      <p className="font-bold">{Math.round(mealBuilderTotals.calories)}</p>
+                      <p className="font-bold">
+                        {Math.round(mealBuilderTotals.calories)}
+                      </p>
                     </div>
                     <div className="rounded-lg bg-background/50 p-1.5">
                       <p className="text-muted-foreground text-[9px]">Pro</p>
-                      <p className="font-bold">{Math.round(mealBuilderTotals.protein_g)}</p>
+                      <p className="font-bold">
+                        {Math.round(mealBuilderTotals.protein_g)}
+                      </p>
                     </div>
                     <div className="rounded-lg bg-background/50 p-1.5">
                       <p className="text-muted-foreground text-[9px]">Carb</p>
-                      <p className="font-bold">{Math.round(mealBuilderTotals.carbs_g)}</p>
+                      <p className="font-bold">
+                        {Math.round(mealBuilderTotals.carbs_g)}
+                      </p>
                     </div>
                     <div className="rounded-lg bg-background/50 p-1.5">
                       <p className="text-muted-foreground text-[9px]">Fat</p>
-                      <p className="font-bold">{Math.round(mealBuilderTotals.fat_g)}</p>
+                      <p className="font-bold">
+                        {Math.round(mealBuilderTotals.fat_g)}
+                      </p>
                     </div>
                     <div className="rounded-lg bg-background/50 p-1.5">
                       <p className="text-muted-foreground text-[9px]">Fib</p>
-                      <p className="font-bold">{Math.round(mealBuilderTotals.fiber_g)}</p>
+                      <p className="font-bold">
+                        {Math.round(mealBuilderTotals.fiber_g)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1279,10 +1466,18 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             {/* Save Button */}
             <Button
               onClick={saveMealBuilder}
-              disabled={mealBuilderSaving || !mealBuilderName.trim() || mealBuilderItems.length === 0}
+              disabled={
+                mealBuilderSaving ||
+                !mealBuilderName.trim() ||
+                mealBuilderItems.length === 0
+              }
               className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
             >
-              {mealBuilderSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className="h-4 w-4" />}
+              {mealBuilderSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Heart className="h-4 w-4" />
+              )}
               Save to Favorites
             </Button>
           </div>
@@ -1320,28 +1515,58 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             </div>
             <div className="grid grid-cols-5 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Cal (kcal)</Label>
-                <Input type="number" value={customCal} onChange={(e) => setCustomCal(e.target.value)} />
+                <Label className="text-xs text-muted-foreground">
+                  Cal (kcal)
+                </Label>
+                <Input
+                  type="number"
+                  value={customCal}
+                  onChange={(e) => setCustomCal(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Pro (g)</Label>
-                <Input type="number" value={customP} onChange={(e) => setCustomP(e.target.value)} />
+                <Input
+                  type="number"
+                  value={customP}
+                  onChange={(e) => setCustomP(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Carbs (g)</Label>
-                <Input type="number" value={customC} onChange={(e) => setCustomC(e.target.value)} />
+                <Label className="text-xs text-muted-foreground">
+                  Carbs (g)
+                </Label>
+                <Input
+                  type="number"
+                  value={customC}
+                  onChange={(e) => setCustomC(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Fat (g)</Label>
-                <Input type="number" value={customF} onChange={(e) => setCustomF(e.target.value)} />
+                <Input
+                  type="number"
+                  value={customF}
+                  onChange={(e) => setCustomF(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Fib (g)</Label>
-                <Input type="number" value={customFib} onChange={(e) => setCustomFib(e.target.value)} />
+                <Input
+                  type="number"
+                  value={customFib}
+                  onChange={(e) => setCustomFib(e.target.value)}
+                />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <input type="checkbox" id="saveMeal" checked={saveAsMeal} onChange={(e) => setSaveAsMeal(e.target.checked)} className="rounded border-gray-300" />
+              <input
+                type="checkbox"
+                id="saveMeal"
+                checked={saveAsMeal}
+                onChange={(e) => setSaveAsMeal(e.target.checked)}
+                className="rounded border-gray-300"
+              />
               <Label htmlFor="saveMeal">Save to My Meals (Favorites)</Label>
             </div>
             <Button
@@ -1369,7 +1594,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   f: +customF || 0,
                   fib: +customFib || 0,
                 });
-                
+
                 if (ok && saveAsMeal) {
                   await supabase.from("saved_meals" as any).insert({
                     user_id: userId,
@@ -1380,8 +1605,14 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     fat_g: +customF || 0,
                     fiber_g: +customFib || 0,
                   });
-                  supabase.from("saved_meals" as any).select("*").eq("user_id", userId).order("created_at", { ascending: false })
-                    .then(({ data }) => { if (data) setSavedMeals(data); });
+                  supabase
+                    .from("saved_meals" as any)
+                    .select("*")
+                    .eq("user_id", userId)
+                    .order("created_at", { ascending: false })
+                    .then(({ data }) => {
+                      if (data) setSavedMeals(data);
+                    });
                 }
 
                 if (ok) {
@@ -1399,7 +1630,11 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               disabled={saving}
               className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
               Log Custom Food
             </Button>
           </div>
@@ -1426,23 +1661,49 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             <div className="space-y-4">
               <div className="grid grid-cols-5 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Cal (kcal)</Label>
-                  <Input type="number" value={overrideCal} onChange={(e) => setOverrideCal(e.target.value)} />
+                  <Label className="text-xs text-muted-foreground">
+                    Cal (kcal)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={overrideCal}
+                    onChange={(e) => setOverrideCal(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Pro (g)</Label>
-                  <Input type="number" value={overrideP} onChange={(e) => setOverrideP(e.target.value)} />
+                  <Label className="text-xs text-muted-foreground">
+                    Pro (g)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={overrideP}
+                    onChange={(e) => setOverrideP(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Carbs (g)</Label>
-                  <Input type="number" value={overrideC} onChange={(e) => setOverrideC(e.target.value)} />
+                  <Label className="text-xs text-muted-foreground">
+                    Carbs (g)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={overrideC}
+                    onChange={(e) => setOverrideC(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Fat (g)</Label>
-                  <Input type="number" value={overrideF} onChange={(e) => setOverrideF(e.target.value)} />
+                  <Label className="text-xs text-muted-foreground">
+                    Fat (g)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={overrideF}
+                    onChange={(e) => setOverrideF(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Fib (g)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Fib (g)
+                  </Label>
                   <Input type="number" defaultValue={m.fib} id="overrideFib" />
                 </div>
               </div>
@@ -1468,22 +1729,33 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   onChange={(e) => setSaveAsMeal(e.target.checked)}
                   className="rounded border-gray-300 accent-red-500"
                 />
-                <Label htmlFor="logDialogSaveFav" className="text-sm flex items-center gap-1 cursor-pointer">
-                  <Heart className="h-3.5 w-3.5 text-red-500" /> Save to Favorites
+                <Label
+                  htmlFor="logDialogSaveFav"
+                  className="text-sm flex items-center gap-1 cursor-pointer"
+                >
+                  <Heart className="h-3.5 w-3.5 text-red-500" /> Save to
+                  Favorites
                 </Label>
               </div>
               <Button
                 onClick={async () => {
-                  const oFib = (document.getElementById("overrideFib") as HTMLInputElement).value;
+                  const oFib = (
+                    document.getElementById("overrideFib") as HTMLInputElement
+                  ).value;
                   const overrides = {
                     cal: +overrideCal,
                     p: +overrideP,
                     c: +overrideC,
                     f: +overrideF,
-                    fib: +oFib
+                    fib: +oFib,
                   };
 
-                  const ok = await logFood(selected, +qty || 100, meal, overrides);
+                  const ok = await logFood(
+                    selected,
+                    +qty || 100,
+                    meal,
+                    overrides,
+                  );
                   if (ok) {
                     if (saveAsMeal) {
                       const ratio = (+qty || 100) / 100;
@@ -1499,7 +1771,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                       loadSavedMeals();
                       setSaveAsMeal(false);
                     }
-                    toast.success(`${selected.name} ${isEditing ? "modified" : "logged"}!`);
+                    toast.success(
+                      `${selected.name} ${isEditing ? "modified" : "logged"}!`,
+                    );
                     setOpen(false);
                     setSelected(null);
                     setQ("");
@@ -1704,10 +1978,11 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               <button
                 onClick={recording ? stopRecording : startRecording}
                 disabled={transcribing || parsingVoice}
-                className={`flex h-20 w-20 items-center justify-center rounded-full border-4 transition-all ${recording
+                className={`flex h-20 w-20 items-center justify-center rounded-full border-4 transition-all ${
+                  recording
                     ? "animate-pulse border-destructive bg-destructive/10"
                     : "border-accent bg-accent/10 hover:bg-accent/20"
-                  }`}
+                }`}
               >
                 {recording ? (
                   <MicOff className="h-8 w-8 text-destructive" />
@@ -1740,19 +2015,21 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     You said (Tap to edit):
                   </p>
                   {!recording && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="h-6 text-xs px-2"
                       onClick={() => {
                         setParsingVoice(true);
-                        parseVoiceFoodLog(transcript, meal).then(items => {
-                          setVoiceItems(items);
-                          setParsingVoice(false);
-                        }).catch(e => {
-                          toast.error("Parsing failed: " + e.message);
-                          setParsingVoice(false);
-                        });
+                        parseVoiceFoodLog(transcript, meal)
+                          .then((items) => {
+                            setVoiceItems(items);
+                            setParsingVoice(false);
+                          })
+                          .catch((e) => {
+                            toast.error("Parsing failed: " + e.message);
+                            setParsingVoice(false);
+                          });
                       }}
                       disabled={parsingVoice}
                     >
@@ -1760,7 +2037,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     </Button>
                   )}
                 </div>
-                <Textarea 
+                <Textarea
                   value={transcript}
                   onChange={(e: any) => setTranscript(e.target.value)}
                   className="text-sm italic min-h-[60px] bg-background border-border resize-none"
@@ -1783,21 +2060,26 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                       className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
                     >
                       <div className="flex-1 mr-4">
-                        <span className="font-medium block text-base mb-1">{item.food_name}</span>
+                        <span className="font-medium block text-base mb-1">
+                          {item.food_name}
+                        </span>
                         <div className="flex items-center gap-2">
-                          <Input 
+                          <Input
                             type="number"
                             value={item.unit_quantity ?? item.quantity_g}
                             onChange={(e) => {
                               const newQty = parseInt(e.target.value) || 0;
                               if (newQty < 0) return;
-                              const oldQty = (item.unit_quantity ?? item.quantity_g) || 1;
+                              const oldQty =
+                                (item.unit_quantity ?? item.quantity_g) || 1;
                               const ratio = newQty / oldQty;
-                              
+
                               const newItems = [...voiceItems];
                               newItems[i] = {
                                 ...item,
-                                ...(item.unit_quantity !== undefined ? { unit_quantity: newQty } : {}),
+                                ...(item.unit_quantity !== undefined
+                                  ? { unit_quantity: newQty }
+                                  : {}),
                                 quantity_g: item.quantity_g * ratio,
                                 calories: item.calories * ratio,
                                 protein_g: item.protein_g * ratio,
@@ -1809,13 +2091,15 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                             }}
                             className="w-20 h-8 text-sm bg-background"
                           />
-                          <span className="text-xs text-muted-foreground">{item.unit && item.unit !== "g" ? item.unit : "g"}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {item.unit && item.unit !== "g" ? item.unit : "g"}
+                          </span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-6 w-6 text-destructive hover:bg-destructive/10"
                           onClick={() => {
                             const newItems = [...voiceItems];
@@ -1823,7 +2107,16 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                             setVoiceItems(newItems);
                           }}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          </svg>
                         </Button>
                         <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
                           {Math.round(item.calories)} kcal · P
@@ -1896,7 +2189,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     disabled={scanningBarcode}
                     className="h-14 w-14 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg disabled:opacity-50"
                   >
-                    {scanningBarcode && <Loader2 className="h-6 w-6 animate-spin text-accent" />}
+                    {scanningBarcode && (
+                      <Loader2 className="h-6 w-6 animate-spin text-accent" />
+                    )}
                   </button>
                 </div>
               </div>
