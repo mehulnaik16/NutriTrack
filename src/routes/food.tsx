@@ -168,7 +168,11 @@ function FoodPage() {
         .eq("user_id", user.id)
         .eq("name", l.food_name);
       if (!error) {
-        setFavoriteNames((prev) => { const s = new Set(prev); s.delete(l.food_name); return s; });
+        setFavoriteNames((prev) => {
+          const s = new Set(prev);
+          s.delete(l.food_name);
+          return s;
+        });
         toast.success(`Removed from Favorites`);
         searchRef.current?.refreshFavorites();
       }
@@ -207,14 +211,14 @@ function FoodPage() {
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
       <Header name={firstName} />
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-3xl space-y-6 px-3 py-5 sm:px-6 sm:py-6">
         <Card className="border-accent/10 shadow-sm">
           <CardHeader className="pb-3 border-b bg-muted/5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Utensils className="h-5 w-5 text-accent" /> Log Food
               </CardTitle>
-              <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-md">
+              <div className="flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -306,7 +310,7 @@ function FoodPage() {
 
                   return (
                     <div key={m} className="space-y-2.5">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">
                           <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/15">
                             <Utensils className="h-3 w-3 text-accent" />
@@ -328,67 +332,85 @@ function FoodPage() {
                         {items.map((l) => {
                           const isFav = favoriteNames.has(l.food_name);
                           return (
-                          <div
-                            key={l.id}
-                            className="p-3 hover:bg-muted/20 transition-colors group"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold truncate">
-                                  {l.food_name}
+                            <div
+                              key={l.id}
+                              className="p-3 hover:bg-muted/20 transition-colors group"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-semibold truncate">
+                                    {l.food_name}
+                                  </div>
+                                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                    <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
+                                      {Math.round(l.quantity_g)}g
+                                    </span>
+                                    <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                      {Math.round(l.calories)} kcal
+                                    </span>
+                                    <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                      P{Math.round(l.protein_g)}
+                                    </span>
+                                    <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                      C{Math.round(l.carbs_g)}
+                                    </span>
+                                    <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                      F{Math.round(l.fat_g)}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                  <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">{Math.round(l.quantity_g)}g</span>
-                                  <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">{Math.round(l.calories)} kcal</span>
-                                  <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">P{Math.round(l.protein_g)}</span>
-                                  <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">C{Math.round(l.carbs_g)}</span>
-                                  <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">F{Math.round(l.fat_g)}</span>
+                                <div className="flex shrink-0 flex-wrap items-center justify-end gap-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-8 w-8 transition-all ${
+                                      isFav
+                                        ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                        : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                    }`}
+                                    title={
+                                      isFav
+                                        ? "Remove from Favorites"
+                                        : "Save to Favorites"
+                                    }
+                                    onClick={() => saveFoodAsFavorite(l)}
+                                  >
+                                    <Heart
+                                      className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
+                                    />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                    title="Log again"
+                                    onClick={() => relogFood(l)}
+                                  >
+                                    <RotateCcw className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                    title="Modify"
+                                    onClick={() =>
+                                      searchRef.current?.editLog(l)
+                                    }
+                                  >
+                                    <PenTool className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    title="Delete"
+                                    onClick={() => deleteLog(l.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-0 shrink-0">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={`h-7 w-7 transition-all ${
-                                    isFav
-                                      ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                                      : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                  }`}
-                                  title={isFav ? "Remove from Favorites" : "Save to Favorites"}
-                                  onClick={() => saveFoodAsFavorite(l)}
-                                >
-                                  <Heart className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`} />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
-                                  title="Log again"
-                                  onClick={() => relogFood(l)}
-                                >
-                                  <RotateCcw className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                  title="Modify"
-                                  onClick={() => searchRef.current?.editLog(l)}
-                                >
-                                  <PenTool className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  title="Delete"
-                                  onClick={() => deleteLog(l.id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
                               </div>
                             </div>
-                          </div>
                           );
                         })}
                       </div>

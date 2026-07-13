@@ -200,7 +200,7 @@ function WeightPage() {
       .from("user_profiles")
       .update({ goal_weight_kg: +goalWeight })
       .eq("id", user.id);
-      
+
     if (error) {
       toast.error(error.message);
       return;
@@ -240,8 +240,10 @@ function WeightPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <Header name={profile.full_name?.split(" ")[0]} />
-      <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6">
-        <h1 className="text-3xl font-bold tracking-tight">Weight Tracker</h1>
+      <main className="mx-auto max-w-4xl space-y-6 px-3 py-5 sm:px-6 sm:py-6">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          Weight Tracker
+        </h1>
 
         {/* ── Summary cards ── */}
         <div className="grid gap-4 sm:grid-cols-3">
@@ -334,7 +336,7 @@ function WeightPage() {
               </div>
               <div className="space-y-2">
                 <Label>Goal weight (kg)</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
                     type="number"
                     step="0.1"
@@ -493,7 +495,7 @@ function WeightPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[compareA, compareB].map(
                   (entry, i) =>
                     entry && (
@@ -533,9 +535,9 @@ function WeightPage() {
                     return (
                       <div
                         key={e.id}
-                        className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
+                        className="flex flex-col gap-2 rounded-md border border-border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
                           {e.photo_url && (
                             <img
                               src={e.photo_url}
@@ -543,7 +545,7 @@ function WeightPage() {
                               className="h-8 w-8 rounded object-cover"
                             />
                           )}
-                          <div>
+                          <div className="min-w-0">
                             <span className="font-medium">
                               {e.weight_kg} kg
                             </span>
@@ -554,7 +556,7 @@ function WeightPage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground sm:justify-end">
                           {diff !== null && (
                             <span
                               className={
