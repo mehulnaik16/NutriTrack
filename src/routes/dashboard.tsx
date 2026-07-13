@@ -852,16 +852,16 @@ function Dashboard() {
           <div className="lg:col-span-5 space-y-6 flex flex-col">
             {/* Workout Plan */}
             <Card className="border-accent/10 shadow-sm overflow-hidden">
-              <div className="bg-accent/5 p-5 border-b border-accent/10 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3 border-b border-accent/10 bg-accent/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-2">
                   <div className="bg-accent/20 p-2 rounded-lg">
                     <Dumbbell className="h-5 w-5 text-accent" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-foreground leading-none">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-bold leading-none text-foreground">
                       Today's Workout
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1 tracking-wide uppercase">
+                    <p className="mt-1 truncate text-xs uppercase tracking-wide text-muted-foreground">
                       {workoutPlan?.goal || "No Plan"}
                     </p>
                   </div>
@@ -878,12 +878,12 @@ function Dashboard() {
               <CardContent className="p-5">
                 {workoutPlan ? (
                   <div className="space-y-4">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <div className="text-lg font-black">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="truncate text-lg font-black">
                           {workoutPlan.days[0]?.name}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="truncate text-sm text-muted-foreground">
                           {workoutPlan.days[0]?.focus}
                         </div>
                       </div>

@@ -937,10 +937,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Clock className="h-3 w-3" /> Recent · Tap to log
               </h4>
-              <div
-                className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide"
-                style={{ scrollbarWidth: "none" }}
-              >
+              <div className="flex flex-wrap gap-2 pb-1">
                 {recentFoods.map((rf, i) => (
                   <button
                     key={`${rf.food_name}-${i}`}
@@ -974,10 +971,10 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                         onLogged();
                       }
                     }}
-                    className="flex-shrink-0 group relative flex items-center gap-2 pl-3 pr-2.5 py-2 rounded-full border border-border bg-card hover:bg-accent/10 hover:border-accent/40 transition-all duration-200 shadow-sm hover:shadow-md"
+                    className="group relative flex max-w-full items-center gap-2 rounded-full border border-border bg-card py-2 pl-3 pr-2.5 shadow-sm transition-all duration-200 hover:border-accent/40 hover:bg-accent/10 hover:shadow-md"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium whitespace-nowrap">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="max-w-[8.5rem] truncate text-sm font-medium">
                         {rf.food_name}
                       </span>
                       <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
@@ -1004,7 +1001,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 {savedMeals.map((mealItem) => (
                   <div
                     key={mealItem.id}
-                    className="flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors border-b border-border last:border-b-0 group"
+                    className="group flex items-center justify-between border-b border-border px-3 py-2.5 transition-colors last:border-b-0 hover:bg-muted/30"
                   >
                     <button
                       onClick={async () => {
@@ -1041,7 +1038,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                         <span className="text-sm font-medium truncate block">
                           {mealItem.name}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="block truncate text-[10px] text-muted-foreground">
                           {Math.round(mealItem.calories)} kcal · P
                           {Math.round(mealItem.protein_g)} · C
                           {Math.round(mealItem.carbs_g)} · F
