@@ -25,6 +25,7 @@ import {
   Sparkles,
   Search,
   PenTool,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import {

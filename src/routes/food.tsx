@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Flame,
   PenTool,
+  Plus,
 } from "lucide-react";
 import {
   Popover,
