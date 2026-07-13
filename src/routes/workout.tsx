@@ -68,7 +68,7 @@ const CARDIO_ACTIVITIES = [
 ];
 
 function WorkoutPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"GYM" | "HOME" | "CARDIO">("GYM");
 
@@ -85,12 +85,13 @@ function WorkoutPage() {
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
 
   useEffect(() => {
+    if (loading) return;
     if (!user) {
       navigate({ to: "/login" });
       return;
     }
     loadUserData();
-  }, [user]);
+  }, [user, loading, navigate]);
 
   const loadUserData = async () => {
     if (!user) return;
