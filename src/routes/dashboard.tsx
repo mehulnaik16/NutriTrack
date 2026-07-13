@@ -705,27 +705,34 @@ function Dashboard() {
                   onLogged={load}
                 />
 
-                {todayLogs.length > 0 ? (
-                  <div className="mt-5 space-y-5">
-                    {meals.map((m) => {
-                      const items = todayLogs.filter((l) => l.meal_type === m);
-                      if (!items.length) return null;
-                      const sub = items.reduce(
-                        (a, x) => ({
-                          cal: a.cal + x.calories,
-                          p: a.p + x.protein_g,
-                          fib: a.fib + (x.fiber_g || 0),
-                        }),
-                        { cal: 0, p: 0, fib: 0 },
-                      );
+                <div className="mt-6 space-y-5">
+                  {meals.map((m) => {
+                    const items = todayLogs.filter((l) => l.meal_type === m);
+                    const sub = items.reduce(
+                      (a, x) => ({
+                        cal: a.cal + x.calories,
+                        p: a.p + x.protein_g,
+                        fib: a.fib + (x.fiber_g || 0),
+                      }),
+                      { cal: 0, p: 0, fib: 0 },
+                    );
 
-                      return (
-                        <div key={m} className="space-y-2.5">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                {m}
-                              </h3>
+                    return (
+                      <div key={m} className="space-y-2.5">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              {m}
+                            </h3>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
+                              onClick={() => searchRef.current?.openForMeal(m)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" /> Add
+                            </Button>
+                            {items.length > 0 && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -735,11 +742,16 @@ function Dashboard() {
                                 <Flame className="h-3 w-3 mr-1" /> Save as
                                 Favorite
                               </Button>
-                            </div>
+                            )}
+                          </div>
+                          {items.length > 0 && (
                             <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                               {Math.round(sub.cal)} kcal
                             </span>
-                          </div>
+                          )}
+                        </div>
+
+                        {items.length > 0 ? (
                           <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
                             {items.map((l) => {
                               const isFav = favoriteNames.has(l.food_name);
@@ -826,21 +838,17 @@ function Dashboard() {
                               );
                             })}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="mt-8 py-12 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-xl bg-muted/10">
-                    <UtensilsCrossed className="h-8 w-8 text-muted-foreground/50 mb-3" />
-                    <p className="text-sm font-medium text-muted-foreground">
-                      No meals logged yet.
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">
-                      Search or scan above to get started.
-                    </p>
-                  </div>
-                )}
+                        ) : (
+                          <div className="py-2 text-center border border-dashed border-border/50 rounded-xl bg-muted/5">
+                            <p className="text-xs text-muted-foreground">
+                              No food logged yet.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
 

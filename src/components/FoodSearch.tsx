@@ -278,6 +278,7 @@ async function lookupBarcode(barcode: string): Promise<IFCTItem | null> {
 export interface FoodSearchRef {
   editLog: (log: any) => void;
   refreshFavorites: () => void;
+  openForMeal: (meal: string) => void;
 }
 
 export const FoodSearch = forwardRef<
@@ -341,6 +342,10 @@ export const FoodSearch = forwardRef<
   };
 
   useImperativeHandle(ref, () => ({
+    openForMeal: (m: string) => {
+      setMeal(m);
+      setOpen(true);
+    },
     editLog: (log: any) => {
       setIsEditing(true);
       setEditLogId(log.id);
