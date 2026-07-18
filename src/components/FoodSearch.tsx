@@ -434,6 +434,11 @@ export const FoodSearch = forwardRef<
     carbs_g: number;
     fat_g: number;
     fiber_g: number;
+    base_calories: number;
+    base_protein_g: number;
+    base_carbs_g: number;
+    base_fat_g: number;
+    base_fiber_g: number;
   }
   const [mealBuilderOpen, setMealBuilderOpen] = useState(false);
   const [mealBuilderName, setMealBuilderName] = useState("");
@@ -488,6 +493,11 @@ export const FoodSearch = forwardRef<
         carbs_g: +((item.choavldf ?? 0) * ratio).toFixed(1),
         fat_g: +((item.fatce ?? 0) * ratio).toFixed(1),
         fiber_g: +((item.fibtg ?? 0) * ratio).toFixed(1),
+        base_calories: kcal(item.enerc),
+        base_protein_g: item.protcnt ?? 0,
+        base_carbs_g: item.choavldf ?? 0,
+        base_fat_g: item.fatce ?? 0,
+        base_fiber_g: item.fibtg ?? 0,
       },
     ]);
     setMealBuilderSearch("");
@@ -1321,6 +1331,11 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                           carbs_g: +mbCustomC || 0,
                           fat_g: +mbCustomFat || 0,
                           fiber_g: +mbCustomFib || 0,
+                          base_calories: (+mbCustomCal || 0) / ((+mbCustomQty || 100) / 100),
+                          base_protein_g: (+mbCustomP || 0) / ((+mbCustomQty || 100) / 100),
+                          base_carbs_g: (+mbCustomC || 0) / ((+mbCustomQty || 100) / 100),
+                          base_fat_g: (+mbCustomFat || 0) / ((+mbCustomQty || 100) / 100),
+                          base_fiber_g: (+mbCustomFib || 0) / ((+mbCustomQty || 100) / 100),
                         },
                       ]);
                       setMbCustomName("");
@@ -1360,18 +1375,18 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                             type="number"
                             value={item.quantity_g}
                             onChange={(e) => {
-                              const newQty = +e.target.value || 0;
-                              const oldQty = item.quantity_g || 1;
-                              const ratio = newQty / oldQty;
+                              const newQty = e.target.value === "" ? "" : +e.target.value;
+                              const calcQty = +newQty || 0;
+                              const ratio = calcQty / 100;
                               const updated = [...mealBuilderItems];
                               updated[i] = {
                                 ...item,
-                                quantity_g: newQty,
-                                calories: +(item.calories * ratio).toFixed(1),
-                                protein_g: +(item.protein_g * ratio).toFixed(1),
-                                carbs_g: +(item.carbs_g * ratio).toFixed(1),
-                                fat_g: +(item.fat_g * ratio).toFixed(1),
-                                fiber_g: +(item.fiber_g * ratio).toFixed(1),
+                                quantity_g: newQty as number,
+                                calories: +(item.base_calories * ratio).toFixed(1),
+                                protein_g: +(item.base_protein_g * ratio).toFixed(1),
+                                carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
+                                fat_g: +(item.base_fat_g * ratio).toFixed(1),
+                                fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
                               };
                               setMealBuilderItems(updated);
                             }}
