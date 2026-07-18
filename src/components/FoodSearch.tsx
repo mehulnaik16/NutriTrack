@@ -389,6 +389,7 @@ export const FoodSearch = forwardRef<
   const [customFib, setCustomFib] = useState("");
   const [saveAsMeal, setSaveAsMeal] = useState(false);
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
+  const [favoritesDialogOpen, setFavoritesDialogOpen] = useState(false);
 
   useEffect(() => {
     loadSavedMeals();
@@ -954,115 +955,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         )}
       </div>
 
-      {/* ── Quick Log: Saved Meals ── */}
-      {q.length === 0 && savedMeals.length > 0 && (
-        <div className="space-y-4 mt-3">
-          <div className="space-y-1">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              Quick log meal
-            </Label>
-            <MealSelect />
-          </div>
-          {/* Recent Foods — disabled for now */}
-          {/* recentFoods section hidden */}
-
-          {/* Saved Meals / Favorites */}
-          {savedMeals.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                <Flame className="h-3 w-3 text-red-500 fill-current" />{" "}
-                Favorites · Tap to log
-              </h4>
-              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                {savedMeals.map((mealItem) => {
-                  const handleLogFavorite = async () => {
-                    const customItem: IFCTItem = {
-                      code: "saved",
-                      name: mealItem.name,
-                      scie: "",
-                      lang: "",
-                      grup: "Custom",
-                      enerc: 0,
-                      protcnt: 0,
-                      fatce: 0,
-                      choavldf: 0,
-                      fibtg: 0,
-                    };
-                    const ok = await logFood(customItem, 100, meal, {
-                      cal: mealItem.calories,
-                      p: mealItem.protein_g,
-                      c: mealItem.carbs_g,
-                      f: mealItem.fat_g,
-                      fib: mealItem.fiber_g || 0,
-                    });
-                    if (ok) {
-                      toast.success(`${mealItem.name} logged!`);
-                      onLogged();
-                    }
-                  };
-
-                  return (
-                    <div
-                      key={mealItem.id}
-                      className="group flex items-center justify-between border-b border-border px-3 py-2.5 transition-colors last:border-b-0 hover:bg-muted/30"
-                    >
-                      <button
-                        onClick={handleLogFavorite}
-                        className="flex items-center gap-2 text-left flex-1 min-w-0"
-                      >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20">
-                          <Heart className="h-3.5 w-3.5 text-red-500 fill-current" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-sm font-medium truncate block">
-                            {mealItem.name}
-                          </span>
-                          <span className="block truncate text-[10px] text-muted-foreground">
-                            {Math.round(mealItem.calories)} kcal · P
-                            {Math.round(mealItem.protein_g)} · C
-                            {Math.round(mealItem.carbs_g)} · F
-                            {Math.round(mealItem.fat_g)}
-                          </span>
-                        </div>
-                      </button>
-                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const { error } = await supabase
-                              .from("saved_meals" as any)
-                              .delete()
-                              .eq("id", mealItem.id);
-                            if (!error) {
-                              setSavedMeals(
-                                savedMeals.filter(
-                                  (m: any) => m.id !== mealItem.id,
-                                ),
-                              );
-                              toast.success("Removed from favorites");
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <button
-                          onClick={handleLogFavorite}
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20 text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Inline favourites section removed — now accessible via Favourites button */}
 
       {/* ── Suggestions ── */}
       {allSuggestions.length > 0 && (
@@ -1096,7 +989,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         </div>
       )}
 
-      {/* ── Action buttons: Camera → Mic → Barcode → Create Meal → Custom Food ── */}
+      {/* ── Action buttons: Camera → Mic → Barcode → Favourites ── */}
       <div className="flex gap-3 justify-center flex-wrap">
         <Button
           variant="outline"
@@ -1136,27 +1029,124 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         </Button>
         <Button
           variant="outline"
-          onClick={() => setMealBuilderOpen(true)}
-          title="Create a Meal (combine foods)"
-          className="flex flex-col items-center justify-center gap-1 p-0 border-accent/30 hover:border-accent/60"
+          onClick={() => {
+            loadSavedMeals();
+            setFavoritesDialogOpen(true);
+          }}
+          title="View Favourites"
+          className="flex flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
           style={{ width: 56, height: 56, minWidth: 56 }}
         >
-          <Layers style={{ width: 18, height: 18 }} className="text-accent" />
-          <span className="text-[8px] font-medium text-accent">Meal</span>
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setCustomFoodOpen(true)}
-          title="Add Custom Food"
-          className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 56, height: 56, minWidth: 56 }}
-        >
-          <PenTool style={{ width: 18, height: 18 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">
-            Custom
-          </span>
+          <Heart style={{ width: 18, height: 18 }} className="text-red-500" />
+          <span className="text-[8px] font-medium text-red-500">Favourites</span>
         </Button>
       </div>
+
+      {/* ── Favourites Dialog ── */}
+      <Dialog open={favoritesDialogOpen} onOpenChange={setFavoritesDialogOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black uppercase tracking-wider flex items-center gap-2">
+              <Heart className="h-5 w-5 text-red-500 fill-current" /> Favourites
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Log to
+              </Label>
+              <MealSelect />
+            </div>
+            {savedMeals.length > 0 ? (
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                {savedMeals.map((mealItem) => {
+                  const handleLogFavorite = async () => {
+                    const customItem: IFCTItem = {
+                      code: "saved",
+                      name: mealItem.name,
+                      scie: "",
+                      lang: "",
+                      grup: "Custom",
+                      enerc: 0,
+                      protcnt: 0,
+                      fatce: 0,
+                      choavldf: 0,
+                      fibtg: 0,
+                    };
+                    const ok = await logFood(customItem, 100, meal, {
+                      cal: mealItem.calories,
+                      p: mealItem.protein_g,
+                      c: mealItem.carbs_g,
+                      f: mealItem.fat_g,
+                      fib: mealItem.fiber_g || 0,
+                    });
+                    if (ok) {
+                      toast.success(`${mealItem.name} logged!`);
+                      onLogged();
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={mealItem.id}
+                      className="group flex items-center justify-between border-b border-border px-3 py-3 transition-colors last:border-b-0 hover:bg-muted/30"
+                    >
+                      <button
+                        onClick={handleLogFavorite}
+                        className="flex items-center gap-3 text-left flex-1 min-w-0"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20">
+                          <Heart className="h-4 w-4 text-red-500 fill-current" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-sm font-semibold truncate block">
+                            {mealItem.name}
+                          </span>
+                          <span className="block truncate text-[10px] text-muted-foreground">
+                            {Math.round(mealItem.calories)} kcal · P{Math.round(mealItem.protein_g)} · C{Math.round(mealItem.carbs_g)} · F{Math.round(mealItem.fat_g)}
+                          </span>
+                        </div>
+                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const { error } = await supabase
+                              .from("saved_meals" as any)
+                              .delete()
+                              .eq("id", mealItem.id);
+                            if (!error) {
+                              setSavedMeals(savedMeals.filter((m: any) => m.id !== mealItem.id));
+                              toast.success("Removed from favorites");
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <button
+                          onClick={handleLogFavorite}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent hover:bg-accent hover:text-accent-foreground transition-colors"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-8 text-center border border-dashed border-border/50 rounded-xl bg-muted/5">
+                <Heart className="h-8 w-8 mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">No favourites yet</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Tap the heart icon on logged foods to save them here.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Meal Builder Dialog ── */}
       <Dialog
