@@ -331,16 +331,31 @@ export const FoodSearch = forwardRef<
     fat_g: number;
     fiber_g: number;
   }) => {
-    const { error } = await supabase.from("saved_meals" as any).upsert(
-      {
+    const { data: existing } = await supabase
+      .from("saved_meals" as any)
+      .select("id")
+      .eq("user_id", userId)
+      .eq("name", mealData.name)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabase
+        .from("saved_meals" as any)
+        .update(mealData)
+        .eq("id", existing.id);
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
+    } else {
+      const { error } = await supabase.from("saved_meals" as any).insert({
         user_id: userId,
         ...mealData,
-      },
-      { onConflict: "user_id,name" },
-    );
-    if (error) {
-      toast.error(error.message);
-      return false;
+      });
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
     }
     loadSavedMeals();
     return true;
@@ -990,17 +1005,17 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 setAiSuggestions([]);
                 setOpen(true);
               }}
-              className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0"
+              className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
             >
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{it.name}</span>
+              <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                <span className="font-medium truncate">{it.name}</span>
                 {it.code === "ai-fallback" && (
-                  <Badge className="text-[9px] h-4 px-1 bg-accent/20 text-accent border-none uppercase font-bold">
+                  <Badge className="text-[9px] h-4 px-1 bg-accent/20 text-accent border-none uppercase font-bold shrink-0">
                     AI
                   </Badge>
                 )}
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground shrink-0">
                 {kcal(it.enerc).toFixed(0)} kcal/100g
               </span>
             </button>
