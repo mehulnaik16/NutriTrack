@@ -1192,7 +1192,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           }
         }}
       >
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Layers className="h-5 w-5 text-accent" /> Create a Meal
