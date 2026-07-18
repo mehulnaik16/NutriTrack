@@ -1004,8 +1004,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 setQ("");
                 setAiSuggestions([]);
                 setOpen(true);
-              }}
-              className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
+              className="flex min-w-0 w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                 <span className="font-medium truncate">{it.name}</span>
@@ -1227,7 +1226,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     <button
                       key={it.code}
                       onClick={() => addItemToMealBuilder(it, 100)}
-                      className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
+                      className="flex min-w-0 w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
                     >
                       <span className="font-medium truncate flex-1 min-w-0 pr-2">{it.name}</span>
                       <div className="flex items-center gap-2 shrink-0">
