@@ -17,6 +17,8 @@ import {
   Flame,
   PenTool,
   Plus,
+  X,
+  ChefHat,
 } from "lucide-react";
 import {
   Popover,
@@ -26,6 +28,14 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/food")({ component: FoodPage });
@@ -68,6 +78,12 @@ const formatDateDisplay = (dateStr: string) => {
   });
 };
 
+const DEFAULT_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"];
+
+function getMealPrefsKey(userId: string) {
+  return `meal_prefs_${userId}`;
+}
+
 function FoodPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -77,6 +93,44 @@ function FoodPage() {
   const [profile, setProfile] = useState<any>(null);
   const searchRef = useRef<FoodSearchRef>(null);
   const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
+
+  // ── Meal Setup Questionnaire ──
+  const [showMealSetup, setShowMealSetup] = useState(false);
+  const [mealCount, setMealCount] = useState(4);
+  const [mealNames, setMealNames] = useState<string[]>([...DEFAULT_MEALS]);
+  const [userMeals, setUserMeals] = useState<string[]>([...DEFAULT_MEALS]);
+
+  // ── Custom Food Creator ──
+  const [showCustomFood, setShowCustomFood] = useState(false);
+  const [customFood, setCustomFood] = useState({
+    name: "",
+    calories: "",
+    protein: "",
+    carbs: "",
+    fat: "",
+    fiber: "",
+    quantity: "100",
+    mealType: "",
+  });
+
+  // Load meal preferences from localStorage on mount
+  useEffect(() => {
+    if (!user) return;
+    const saved = localStorage.getItem(getMealPrefsKey(user.id));
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setUserMeals(parsed);
+          setMealNames(parsed);
+          setMealCount(parsed.length);
+        }
+      } catch {}
+    } else {
+      // First time user — show the meal setup questionnaire
+      setShowMealSetup(true);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -206,8 +260,51 @@ function FoodPage() {
     );
   }
 
-  const meals = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
+  const meals = userMeals;
   const firstName = profile.full_name?.split(" ")[0] || "there";
+
+  const handleSaveMealSetup = () => {
+    if (!user) return;
+    const trimmed = mealNames.slice(0, mealCount).map((n) => n.trim()).filter(Boolean);
+    if (trimmed.length === 0) {
+      toast.error("Add at least one meal");
+      return;
+    }
+    localStorage.setItem(getMealPrefsKey(user.id), JSON.stringify(trimmed));
+    setUserMeals(trimmed);
+    setShowMealSetup(false);
+    toast.success("Meal categories saved!");
+  };
+
+  const handleLogCustomFood = async () => {
+    if (!user) return;
+    const { name, calories, protein, carbs, fat, fiber, quantity, mealType } = customFood;
+    if (!name.trim() || !calories) {
+      toast.error("Name and calories are required");
+      return;
+    }
+    const mt = mealType || userMeals[0] || "Breakfast";
+    const { error } = await supabase.from("food_logs").insert({
+      user_id: user.id,
+      date: selectedDate,
+      meal_type: mt,
+      food_name: name.trim(),
+      quantity_g: parseFloat(quantity) || 100,
+      calories: parseFloat(calories) || 0,
+      protein_g: parseFloat(protein) || 0,
+      carbs_g: parseFloat(carbs) || 0,
+      fat_g: parseFloat(fat) || 0,
+      fiber_g: parseFloat(fiber) || 0,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`${name} logged!`);
+    setCustomFood({ name: "", calories: "", protein: "", carbs: "", fat: "", fiber: "", quantity: "100", mealType: "" });
+    setShowCustomFood(false);
+    load();
+  };
 
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
@@ -434,9 +531,207 @@ function FoodPage() {
                 );
               })}
             </div>
+
+            {/* ── Create Your Own Food ── */}
+            <div className="mt-8 pt-6 border-t border-border/30">
+              <Button
+                variant="outline"
+                className="w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
+                onClick={() => setShowCustomFood(true)}
+              >
+                <ChefHat className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
+                <span className="font-bold text-sm">Create Your Own Food</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </main>
+
+      {/* ── Meal Setup Questionnaire Dialog ── */}
+      <Dialog open={showMealSetup} onOpenChange={setShowMealSetup}>
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
+              <Utensils className="h-5 w-5 text-accent" /> Set Up Your Meals
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 pt-4">
+            <p className="text-sm text-muted-foreground">
+              How many meals do you eat per day? Name them however you like.
+            </p>
+
+            <div className="space-y-3">
+              <Label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
+                Number of Meals
+              </Label>
+              <div className="flex gap-2">
+                {[2, 3, 4, 5, 6].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => {
+                      setMealCount(n);
+                      setMealNames((prev) => {
+                        const copy = [...prev];
+                        while (copy.length < n) copy.push(`Meal ${copy.length + 1}`);
+                        return copy;
+                      });
+                    }}
+                    className={`flex-1 h-12 rounded-xl font-black text-lg border-2 transition-all ${
+                      mealCount === n
+                        ? "border-accent bg-accent/10 text-accent shadow-lg shadow-accent/10"
+                        : "border-border bg-muted/20 text-muted-foreground hover:border-accent/30"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
+                Name Your Meals
+              </Label>
+              <div className="space-y-2">
+                {Array.from({ length: mealCount }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="w-6 text-center font-black text-muted-foreground/50 text-sm">
+                      {i + 1}.
+                    </span>
+                    <Input
+                      value={mealNames[i] || ""}
+                      onChange={(e) => {
+                        const copy = [...mealNames];
+                        copy[i] = e.target.value;
+                        setMealNames(copy);
+                      }}
+                      placeholder={`e.g. ${DEFAULT_MEALS[i] || "Snack"}`}
+                      className="bg-background/50 h-12 font-semibold"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              onClick={handleSaveMealSetup}
+              className="w-full h-14 font-bold text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5"
+            >
+              Save & Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Custom Food Creator Dialog ── */}
+      <Dialog open={showCustomFood} onOpenChange={setShowCustomFood}>
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
+              <ChefHat className="h-5 w-5 text-accent" /> Create Your Own Food
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 pt-4">
+            <div className="space-y-2">
+              <Label className="text-xs uppercase font-bold text-muted-foreground">Food Name *</Label>
+              <Input
+                value={customFood.name}
+                onChange={(e) => setCustomFood((p) => ({ ...p, name: e.target.value }))}
+                placeholder="e.g. Homemade Paneer Curry"
+                className="h-12 font-semibold bg-background/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs uppercase font-bold text-muted-foreground">Meal Category</Label>
+              <div className="flex flex-wrap gap-2">
+                {userMeals.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setCustomFood((p) => ({ ...p, mealType: m }))}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      customFood.mealType === m
+                        ? "border-accent bg-accent/10 text-accent"
+                        : "border-border bg-muted/20 text-muted-foreground hover:border-accent/30"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Quantity (g) *</Label>
+                <Input
+                  type="number"
+                  value={customFood.quantity}
+                  onChange={(e) => setCustomFood((p) => ({ ...p, quantity: e.target.value }))}
+                  className="h-11 font-bold text-center bg-background/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-accent">Calories (kcal) *</Label>
+                <Input
+                  type="number"
+                  value={customFood.calories}
+                  onChange={(e) => setCustomFood((p) => ({ ...p, calories: e.target.value }))}
+                  placeholder="0"
+                  className="h-11 font-bold text-center bg-background/50 border-accent/30"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-blue-400">Protein (g)</Label>
+                <Input
+                  type="number"
+                  value={customFood.protein}
+                  onChange={(e) => setCustomFood((p) => ({ ...p, protein: e.target.value }))}
+                  placeholder="0"
+                  className="h-11 font-bold text-center bg-background/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-orange-400">Carbs (g)</Label>
+                <Input
+                  type="number"
+                  value={customFood.carbs}
+                  onChange={(e) => setCustomFood((p) => ({ ...p, carbs: e.target.value }))}
+                  placeholder="0"
+                  className="h-11 font-bold text-center bg-background/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-yellow-400">Fat (g)</Label>
+                <Input
+                  type="number"
+                  value={customFood.fat}
+                  onChange={(e) => setCustomFood((p) => ({ ...p, fat: e.target.value }))}
+                  placeholder="0"
+                  className="h-11 font-bold text-center bg-background/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-green-400">Fiber (g)</Label>
+                <Input
+                  type="number"
+                  value={customFood.fiber}
+                  onChange={(e) => setCustomFood((p) => ({ ...p, fiber: e.target.value }))}
+                  placeholder="0"
+                  className="h-11 font-bold text-center bg-background/50"
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={handleLogCustomFood}
+              className="w-full h-14 font-bold text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5"
+            >
+              <Plus className="mr-2 h-5 w-5" /> Log Custom Food
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
