@@ -210,6 +210,19 @@ function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<string>(today());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [userMeals, setUserMeals] = useState<string[]>(["Breakfast", "Lunch", "Dinner", "Snack"]);
+
+  // Load meal preferences from localStorage
+  useEffect(() => {
+    if (!user) return;
+    const saved = localStorage.getItem(`meal_prefs_${user.id}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) setUserMeals(parsed);
+      } catch {}
+    }
+  }, [user]);
 
   // Weight logging state
   const [newWeight, setNewWeight] = useState("");
@@ -477,7 +490,7 @@ function Dashboard() {
   }
 
   const firstName = profile.full_name?.split(" ")[0] || "there";
-  const meals = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
+  const meals = userMeals;
 
   // Chart Data
   const donutData = [
@@ -703,6 +716,7 @@ function Dashboard() {
                   userId={user.id}
                   date={selectedDate}
                   onLogged={load}
+                  meals={userMeals}
                 />
 
                 <div className="mt-6 space-y-5">

@@ -287,8 +287,10 @@ export const FoodSearch = forwardRef<
     userId: string;
     date: string;
     onLogged: () => void;
+    meals?: string[];
   }
->(({ userId, date, onLogged }, ref) => {
+>(({ userId, date, onLogged, meals: mealsProp }, ref) => {
+  const mealCategories = mealsProp && mealsProp.length > 0 ? mealsProp : ["Breakfast", "Lunch", "Dinner", "Snack"];
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
@@ -296,11 +298,12 @@ export const FoodSearch = forwardRef<
   const [selected, setSelected] = useState<IFCTItem | null>(null);
   const [qty, setQty] = useState("100");
   const [meal, setMeal] = useState(() => {
+    const cats = mealsProp && mealsProp.length > 0 ? mealsProp : ["Breakfast", "Lunch", "Dinner", "Snack"];
     const h = new Date().getHours();
-    if (h < 11) return "Breakfast";
-    if (h < 16) return "Lunch";
-    if (h < 20) return "Snack";
-    return "Dinner";
+    const count = cats.length;
+    // Distribute meals evenly across waking hours (6am-10pm = 16 hours)
+    const idx = Math.min(Math.floor(((h < 6 ? 0 : h - 6) / 16) * count), count - 1);
+    return cats[idx];
   });
   const [saving, setSaving] = useState(false);
 
@@ -912,7 +915,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {["Breakfast", "Lunch", "Dinner", "Snack"].map((m) => (
+        {mealCategories.map((m) => (
           <SelectItem key={m} value={m}>
             {m}
           </SelectItem>

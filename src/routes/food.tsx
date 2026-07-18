@@ -400,6 +400,7 @@ function FoodPage() {
               userId={user.id}
               date={selectedDate}
               onLogged={load}
+              meals={userMeals}
             />
 
             <div className="mt-5 space-y-5">
