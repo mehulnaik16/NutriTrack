@@ -19,6 +19,7 @@ import {
   Plus,
   X,
   ChefHat,
+  Settings2,
 } from "lucide-react";
 import {
   Popover,
@@ -315,6 +316,15 @@ function FoodPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Utensils className="h-5 w-5 text-accent" /> Log Food
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-accent hover:bg-accent/10 ml-1"
+                  title="Edit meal categories"
+                  onClick={() => setShowMealSetup(true)}
+                >
+                  <Settings2 className="h-3.5 w-3.5" />
+                </Button>
               </CardTitle>
               <div className="flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start">
                 <Button
