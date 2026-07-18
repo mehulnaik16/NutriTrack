@@ -951,8 +951,8 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
         )}
       </div>
 
-      {/* ── Quick Log: Recent Foods + Saved Meals ── */}
-      {q.length === 0 && (recentFoods.length > 0 || savedMeals.length > 0) && (
+      {/* ── Quick Log: Saved Meals ── */}
+      {q.length === 0 && savedMeals.length > 0 && (
         <div className="space-y-4 mt-3">
           <div className="space-y-1">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -960,64 +960,8 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             </Label>
             <MealSelect />
           </div>
-          {/* Recent Foods — horizontal scrolling chips */}
-          {recentFoods.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                <Clock className="h-3 w-3" /> Recent · Tap to log
-              </h4>
-              <div className="flex flex-wrap gap-2 pb-1">
-                {recentFoods.map((rf, i) => (
-                  <button
-                    key={`${rf.food_name}-${i}`}
-                    onClick={async () => {
-                      const customItem: IFCTItem = {
-                        code: "recent",
-                        name: rf.food_name,
-                        scie: "",
-                        lang: "",
-                        grup: "Recent",
-                        enerc: 0,
-                        protcnt: 0,
-                        fatce: 0,
-                        choavldf: 0,
-                        fibtg: 0,
-                      };
-                      const ok = await logFood(
-                        customItem,
-                        rf.quantity_g,
-                        rf.meal_type || meal,
-                        {
-                          cal: rf.calories,
-                          p: rf.protein_g,
-                          c: rf.carbs_g,
-                          f: rf.fat_g,
-                          fib: rf.fiber_g || 0,
-                        },
-                      );
-                      if (ok) {
-                        toast.success(`${rf.food_name} logged!`);
-                        onLogged();
-                      }
-                    }}
-                    className="group relative flex max-w-full items-center gap-2 rounded-full border border-border bg-card py-2 pl-3 pr-2.5 shadow-sm transition-all duration-200 hover:border-accent/40 hover:bg-accent/10 hover:shadow-md"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="max-w-[8.5rem] truncate text-sm font-medium">
-                        {rf.food_name}
-                      </span>
-                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-                        {Math.round(rf.calories)}
-                      </span>
-                    </div>
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/20 text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
-                      <Plus className="h-3 w-3" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Recent Foods — disabled for now */}
+          {/* recentFoods section hidden */}
 
           {/* Saved Meals / Favorites */}
           {savedMeals.length > 0 && (
