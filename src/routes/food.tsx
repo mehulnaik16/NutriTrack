@@ -111,18 +111,7 @@ function FoodPage() {
   const [mealNames, setMealNames] = useState<string[]>([...DEFAULT_MEALS]);
   const [userMeals, setUserMeals] = useState<string[]>([...DEFAULT_MEALS]);
 
-  // ── Custom Food Creator ──
-  const [showCustomFood, setShowCustomFood] = useState(false);
-  const [customFood, setCustomFood] = useState({
-    name: "",
-    calories: "",
-    protein: "",
-    carbs: "",
-    fat: "",
-    fiber: "",
-    quantity: "100",
-    mealType: "",
-  });
+
 
   // Load meal preferences from localStorage on mount
   useEffect(() => {
@@ -294,35 +283,7 @@ function FoodPage() {
     toast.success("Meal categories saved!");
   };
 
-  const handleLogCustomFood = async () => {
-    if (!user) return;
-    const { name, calories, protein, carbs, fat, fiber, quantity, mealType } = customFood;
-    if (!name.trim() || !calories) {
-      toast.error("Name and calories are required");
-      return;
-    }
-    const mt = mealType || userMeals[0] || "Breakfast";
-    const { error } = await supabase.from("food_logs").insert({
-      user_id: user.id,
-      date: selectedDate,
-      meal_type: mt,
-      food_name: name.trim(),
-      quantity_g: parseFloat(quantity) || 100,
-      calories: parseFloat(calories) || 0,
-      protein_g: parseFloat(protein) || 0,
-      carbs_g: parseFloat(carbs) || 0,
-      fat_g: parseFloat(fat) || 0,
-      fiber_g: parseFloat(fiber) || 0,
-    });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success(`${name} logged!`);
-    setCustomFood({ name: "", calories: "", protein: "", carbs: "", fat: "", fiber: "", quantity: "100", mealType: "" });
-    setShowCustomFood(false);
-    load();
-  };
+
 
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
@@ -571,15 +532,15 @@ function FoodPage() {
               })}
             </div>
 
-            {/* ── Create Your Own Food ── */}
+            {/* ── Create Custom Meal ── */}
             <div className="mt-8 pt-6 border-t border-border/30">
               <Button
                 variant="outline"
                 className="w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
-                onClick={() => setShowCustomFood(true)}
+                onClick={() => searchRef.current?.openMealBuilder()}
               >
                 <ChefHat className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
-                <span className="font-bold text-sm">Create Your Own Food</span>
+                <span className="font-bold text-sm">Create Custom Meal</span>
               </Button>
             </div>
           </CardContent>
@@ -662,115 +623,7 @@ function FoodPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Custom Food Creator Dialog ── */}
-      <Dialog open={showCustomFood} onOpenChange={setShowCustomFood}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
-              <ChefHat className="h-5 w-5 text-accent" /> Create Your Own Food
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 pt-4">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase font-bold text-muted-foreground">Food Name *</Label>
-              <Input
-                value={customFood.name}
-                onChange={(e) => setCustomFood((p) => ({ ...p, name: e.target.value }))}
-                placeholder="e.g. Homemade Paneer Curry"
-                className="h-12 font-semibold bg-background/50"
-              />
-            </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs uppercase font-bold text-muted-foreground">Meal Category</Label>
-              <div className="flex flex-wrap gap-2">
-                {userMeals.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setCustomFood((p) => ({ ...p, mealType: m }))}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                      customFood.mealType === m
-                        ? "border-accent bg-accent/10 text-accent"
-                        : "border-border bg-muted/20 text-muted-foreground hover:border-accent/30"
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Quantity (g) *</Label>
-                <Input
-                  type="number"
-                  value={customFood.quantity}
-                  onChange={(e) => setCustomFood((p) => ({ ...p, quantity: e.target.value }))}
-                  className="h-11 font-bold text-center bg-background/50"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-accent">Calories (kcal) *</Label>
-                <Input
-                  type="number"
-                  value={customFood.calories}
-                  onChange={(e) => setCustomFood((p) => ({ ...p, calories: e.target.value }))}
-                  placeholder="0"
-                  className="h-11 font-bold text-center bg-background/50 border-accent/30"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-blue-400">Protein (g)</Label>
-                <Input
-                  type="number"
-                  value={customFood.protein}
-                  onChange={(e) => setCustomFood((p) => ({ ...p, protein: e.target.value }))}
-                  placeholder="0"
-                  className="h-11 font-bold text-center bg-background/50"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-orange-400">Carbs (g)</Label>
-                <Input
-                  type="number"
-                  value={customFood.carbs}
-                  onChange={(e) => setCustomFood((p) => ({ ...p, carbs: e.target.value }))}
-                  placeholder="0"
-                  className="h-11 font-bold text-center bg-background/50"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-yellow-400">Fat (g)</Label>
-                <Input
-                  type="number"
-                  value={customFood.fat}
-                  onChange={(e) => setCustomFood((p) => ({ ...p, fat: e.target.value }))}
-                  placeholder="0"
-                  className="h-11 font-bold text-center bg-background/50"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-green-400">Fiber (g)</Label>
-                <Input
-                  type="number"
-                  value={customFood.fiber}
-                  onChange={(e) => setCustomFood((p) => ({ ...p, fiber: e.target.value }))}
-                  placeholder="0"
-                  className="h-11 font-bold text-center bg-background/50"
-                />
-              </div>
-            </div>
-
-            <Button
-              onClick={handleLogCustomFood}
-              className="w-full h-14 font-bold text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5"
-            >
-              <Plus className="mr-2 h-5 w-5" /> Log Custom Food
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

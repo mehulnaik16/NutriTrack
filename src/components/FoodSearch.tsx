@@ -279,6 +279,7 @@ export interface FoodSearchRef {
   editLog: (log: any) => void;
   refreshFavorites: () => void;
   openForMeal: (meal: string) => void;
+  openMealBuilder: () => void;
 }
 
 export const FoodSearch = forwardRef<
@@ -348,6 +349,9 @@ export const FoodSearch = forwardRef<
     openForMeal: (m: string) => {
       setMeal(m);
       setOpen(true);
+    },
+    openMealBuilder: () => {
+      setMealBuilderOpen(true);
     },
     editLog: (log: any) => {
       setIsEditing(true);
