@@ -1044,7 +1044,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
 
       {/* ── Favourites Dialog ── */}
       <Dialog open={favoritesDialogOpen} onOpenChange={setFavoritesDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50">
+        <DialogContent className="w-[95vw] sm:w-full sm:max-w-md max-h-[80vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50 rounded-2xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-black uppercase tracking-wider flex items-center gap-2">
               <Heart className="h-5 w-5 text-red-500 fill-current" /> Favourites
@@ -1098,7 +1098,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20">
                           <Heart className="h-4 w-4 text-red-500 fill-current" />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1 overflow-hidden">
                           <span className="text-sm font-semibold truncate block">
                             {mealItem.name}
                           </span>
@@ -1614,30 +1614,36 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           }
         }}
       >
-        <DialogContent className="max-w-md">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => setSaveAsMeal((prev) => !prev)}
-            aria-label={
-              saveAsMeal ? "Remove from favorites save" : "Save to favorites"
-            }
-            title={
-              saveAsMeal
-                ? "Will not save to favorites"
-                : "Also save to favorites"
-            }
-            className={`absolute right-12 top-4 z-10 h-8 w-8 ${
-              saveAsMeal
-                ? "text-red-500 hover:bg-red-500/10"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <Heart className={`h-4 w-4 ${saveAsMeal ? "fill-current" : ""}`} />
-          </Button>
-          <DialogHeader>
-            <DialogTitle>{selected?.name}</DialogTitle>
+        <DialogContent className="w-[95vw] sm:w-full sm:max-w-md rounded-2xl p-4 sm:p-6">
+          <DialogHeader className="pr-6">
+            <DialogTitle className="flex items-center gap-2 text-left">
+              <span className="truncate">{selected?.name}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSaveAsMeal((prev) => !prev);
+                }}
+                aria-label={
+                  saveAsMeal ? "Remove from favorites save" : "Save to favorites"
+                }
+                title={
+                  saveAsMeal
+                    ? "Will not save to favorites"
+                    : "Also save to favorites"
+                }
+                className={`shrink-0 h-9 w-9 rounded-full ${
+                  saveAsMeal
+                    ? "text-red-500 hover:bg-red-500/10"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <Heart className={`h-5 w-5 ${saveAsMeal ? "fill-current" : ""}`} />
+              </Button>
+            </DialogTitle>
           </DialogHeader>
           {selected && m && (
             <div className="space-y-4">
