@@ -49,6 +49,15 @@ const today = () => {
   return `${y}-${m}-${date}`;
 };
 
+const thirtyDaysAgo = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 29);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const date = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${date}`;
+};
+
 const shiftDate = (iso: string, days: number) => {
   const [y, m, date] = iso.split("-").map(Number);
   const d = new Date(y, m - 1, date + days);
@@ -91,6 +100,7 @@ function FoodPage() {
   const [selectedDate, setSelectedDate] = useState<string>(today());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [todayLogs, setTodayLogs] = useState<any[]>([]);
+  const [monthLogs, setMonthLogs] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const searchRef = useRef<FoodSearchRef>(null);
   const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
@@ -154,7 +164,7 @@ function FoodPage() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [{ data: p }, { data: t }, { data: fav }] = await Promise.all([
+    const [{ data: p }, { data: t }, { data: m }, { data: fav }] = await Promise.all([
       supabase
         .from("user_profiles")
         .select("*")
@@ -167,12 +177,19 @@ function FoodPage() {
         .eq("date", selectedDate)
         .order("logged_at"),
       supabase
+        .from("food_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("date", thirtyDaysAgo())
+        .lte("date", today()),
+      supabase
         .from("saved_meals" as any)
         .select("name")
         .eq("user_id", user.id),
     ]);
     setProfile(p);
     setTodayLogs(t ?? []);
+    setMonthLogs(m ?? []);
     if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
   }, [user, selectedDate]);
 
@@ -377,6 +394,17 @@ function FoodPage() {
                         const dStart = new Date(d);
                         dStart.setHours(0, 0, 0, 0);
                         return dStart > todayStart;
+                      }}
+                      modifiers={{
+                        logged: [...new Set(monthLogs.map((l) => new Date(l.date)))],
+                      }}
+                      modifiersStyles={{
+                        logged: {
+                          fontWeight: "bold",
+                          backgroundColor: "var(--energy)",
+                          color: "white",
+                          borderRadius: "100%",
+                        },
                       }}
                       initialFocus
                     />
