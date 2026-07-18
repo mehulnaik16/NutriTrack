@@ -297,6 +297,7 @@ export const FoodSearch = forwardRef<
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<IFCTItem | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [qty, setQty] = useState("100");
   const [meal, setMeal] = useState(() => {
     const cats = mealsProp && mealsProp.length > 0 ? mealsProp : ["Breakfast", "Lunch", "Dinner", "Snack"];
@@ -348,7 +349,10 @@ export const FoodSearch = forwardRef<
   useImperativeHandle(ref, () => ({
     openForMeal: (m: string) => {
       setMeal(m);
-      setOpen(true);
+      if (inputRef.current) {
+        inputRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
     },
     openMealBuilder: () => {
       setMealBuilderOpen(true);
@@ -935,6 +939,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          ref={inputRef}
           placeholder="Search food…"
           value={q}
           onChange={(e) => {

@@ -395,6 +395,8 @@ function FoodPage() {
             <div className="mt-5 space-y-5">
               {meals.map((m) => {
                 const items = todayLogs.filter((l) => l.meal_type === m);
+                if (items.length === 0) return null;
+
                 const sub = items.reduce(
                   (a, x) => ({
                     cal: a.cal + x.calories,
@@ -423,20 +425,17 @@ function FoodPage() {
                           <Plus className="h-3 w-3 mr-1" /> Add
                         </Button>
                       </div>
-                      {items.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
-                            {Math.round(sub.cal)} kcal
-                          </span>
-                          <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            P{Math.round(sub.p)}g
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                          {Math.round(sub.cal)} kcal
+                        </span>
+                        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          P{Math.round(sub.p)}g
+                        </span>
+                      </div>
                     </div>
 
-                    {items.length > 0 ? (
-                      <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
+                    <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
                         {items.map((l) => {
                           const isFav = favoriteNames.has(l.food_name);
                           return (
@@ -522,15 +521,22 @@ function FoodPage() {
                           );
                         })}
                       </div>
-                    ) : (
-                      <div className="py-2 text-center border border-dashed border-border/50 rounded-xl bg-muted/5">
-                        <p className="text-xs text-muted-foreground">No food logged yet.</p>
-                      </div>
-                    )}
                   </div>
                 );
               })}
             </div>
+
+            {todayLogs.length === 0 && (
+              <div className="mt-8 py-10 text-center border-2 border-dashed border-border/50 rounded-2xl bg-muted/5">
+                <div className="mx-auto w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mb-3">
+                  <Utensils className="h-6 w-6 text-accent opacity-80" />
+                </div>
+                <h3 className="font-bold text-lg mb-1">No food logged yet</h3>
+                <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
+                  Use the search bar above to start tracking your meals.
+                </p>
+              </div>
+            )}
 
             {/* ── Create Custom Meal ── */}
             <div className="mt-8 pt-6 border-t border-border/30">
