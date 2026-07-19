@@ -7,7 +7,7 @@ export function BottomNav() {
   if (!user) return null;
 
   const navItems = [
-    { to: "/dashboard", icon: Activity, label: "Home" },
+    { to: "/dashboard", icon: Activity, label: "History" },
     { to: "/food", icon: Utensils, label: "Food" },
     { to: "/workout", icon: Dumbbell, label: "Workout" },
     { to: "/weight", icon: Scale, label: "Weight" },

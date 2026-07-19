@@ -462,14 +462,13 @@ export const FoodSearch = forwardRef<
   );
   const [mealBuilderSearch, setMealBuilderSearch] = useState("");
   const [mealBuilderSaving, setMealBuilderSaving] = useState(false);
-  const [mealBuilderCustomOpen, setMealBuilderCustomOpen] = useState(false);
-  const [mbCustomName, setMbCustomName] = useState("");
-  const [mbCustomQty, setMbCustomQty] = useState("100");
-  const [mbCustomCal, setMbCustomCal] = useState("");
-  const [mbCustomP, setMbCustomP] = useState("");
-  const [mbCustomC, setMbCustomC] = useState("");
-  const [mbCustomFat, setMbCustomFat] = useState("");
-  const [mbCustomFib, setMbCustomFib] = useState("");
+  const [mbOverrideTotals, setMbOverrideTotals] = useState({
+    cal: "0",
+    p: "0",
+    c: "0",
+    f: "0",
+    fib: "0",
+  });
 
   const mealBuilderSearchResults = useMemo(() => {
     const term = mealBuilderSearch.trim().toLowerCase();
@@ -496,6 +495,16 @@ export const FoodSearch = forwardRef<
     );
   }, [mealBuilderItems]);
 
+  useEffect(() => {
+    setMbOverrideTotals({
+      cal: String(Math.round(mealBuilderTotals.calories)),
+      p: String(Math.round(mealBuilderTotals.protein_g)),
+      c: String(Math.round(mealBuilderTotals.carbs_g)),
+      f: String(Math.round(mealBuilderTotals.fat_g)),
+      fib: String(Math.round(mealBuilderTotals.fiber_g)),
+    });
+  }, [mealBuilderTotals]);
+
   const addItemToMealBuilder = (item: IFCTItem, grams: number = 100) => {
     const ratio = grams / 100;
     setMealBuilderItems([
@@ -519,18 +528,18 @@ export const FoodSearch = forwardRef<
   };
 
   const saveMealBuilder = async () => {
-    if (!mealBuilderName.trim() || mealBuilderItems.length === 0) {
-      toast.error("Add a name and at least one food item");
+    if (!mealBuilderName.trim()) {
+      toast.error("Add a name for your meal");
       return;
     }
     setMealBuilderSaving(true);
     const ok = await saveFavoriteMeal({
       name: mealBuilderName,
-      calories: mealBuilderTotals.calories,
-      protein_g: mealBuilderTotals.protein_g,
-      carbs_g: mealBuilderTotals.carbs_g,
-      fat_g: mealBuilderTotals.fat_g,
-      fiber_g: mealBuilderTotals.fiber_g,
+      calories: Number(mbOverrideTotals.cal) || 0,
+      protein_g: Number(mbOverrideTotals.p) || 0,
+      carbs_g: Number(mbOverrideTotals.c) || 0,
+      fat_g: Number(mbOverrideTotals.f) || 0,
+      fiber_g: Number(mbOverrideTotals.fib) || 0,
     });
     setMealBuilderSaving(false);
     if (!ok) {
@@ -1004,6 +1013,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 setQ("");
                 setAiSuggestions([]);
                 setOpen(true);
+              }}
               className="flex min-w-0 w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
@@ -1214,7 +1224,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search banana, milk, protein..."
+                  placeholder="Search or use AI..."
                   value={mealBuilderSearch}
                   onChange={(e) => setMealBuilderSearch(e.target.value)}
                   className="pl-9"
@@ -1242,130 +1252,59 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 </div>
               )}
 
-              {/* Or add custom item inline */}
-              <button
-                onClick={() => setMealBuilderCustomOpen(!mealBuilderCustomOpen)}
-                className="flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80 transition-colors mt-1"
-              >
-                <PenTool className="h-3 w-3" />
-                {mealBuilderCustomOpen
-                  ? "Hide custom entry"
-                  : "Can\u2019t find it? Add custom food"}
-              </button>
-
-              {mealBuilderCustomOpen && (
-                <div className="rounded-xl border border-border bg-muted/10 p-3 space-y-2.5">
-                  <Input
-                    placeholder="Food name (e.g., Protein Powder)"
-                    value={mbCustomName}
-                    onChange={(e) => setMbCustomName(e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">
-                        Qty (g)
-                      </Label>
-                      <Input
-                        type="number"
-                        value={mbCustomQty}
-                        onChange={(e) => setMbCustomQty(e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">
-                        Cal
-                      </Label>
-                      <Input
-                        type="number"
-                        value={mbCustomCal}
-                        onChange={(e) => setMbCustomCal(e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">
-                        Protein
-                      </Label>
-                      <Input
-                        type="number"
-                        value={mbCustomP}
-                        onChange={(e) => setMbCustomP(e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">
-                        Carbs
-                      </Label>
-                      <Input
-                        type="number"
-                        value={mbCustomC}
-                        onChange={(e) => setMbCustomC(e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">
-                        Fat
-                      </Label>
-                      <Input
-                        type="number"
-                        value={mbCustomFat}
-                        onChange={(e) => setMbCustomFat(e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px] text-muted-foreground">
-                        Fiber
-                      </Label>
-                      <Input
-                        type="number"
-                        value={mbCustomFib}
-                        onChange={(e) => setMbCustomFib(e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                    </div>
+              {/* Editable Macros */}
+              <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-2">
+                  Total Nutrition (Editable)
+                </p>
+                <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Cal</p>
+                    <Input
+                      type="number"
+                      className="h-8 text-center text-xs px-1 font-bold"
+                      value={mbOverrideTotals.cal}
+                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, cal: e.target.value })}
+                    />
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full h-8 text-xs gap-1 border-accent/30 text-accent hover:bg-accent/10"
-                    disabled={!mbCustomName.trim() || !mbCustomCal}
-                    onClick={() => {
-                      setMealBuilderItems([
-                        ...mealBuilderItems,
-                        {
-                          name: mbCustomName,
-                          quantity_g: +mbCustomQty || 100,
-                          calories: +mbCustomCal || 0,
-                          protein_g: +mbCustomP || 0,
-                          carbs_g: +mbCustomC || 0,
-                          fat_g: +mbCustomFat || 0,
-                          fiber_g: +mbCustomFib || 0,
-                          base_calories: (+mbCustomCal || 0) / ((+mbCustomQty || 100) / 100),
-                          base_protein_g: (+mbCustomP || 0) / ((+mbCustomQty || 100) / 100),
-                          base_carbs_g: (+mbCustomC || 0) / ((+mbCustomQty || 100) / 100),
-                          base_fat_g: (+mbCustomFat || 0) / ((+mbCustomQty || 100) / 100),
-                          base_fiber_g: (+mbCustomFib || 0) / ((+mbCustomQty || 100) / 100),
-                        },
-                      ]);
-                      setMbCustomName("");
-                      setMbCustomQty("100");
-                      setMbCustomCal("");
-                      setMbCustomP("");
-                      setMbCustomC("");
-                      setMbCustomFat("");
-                      setMbCustomFib("");
-                      toast.success(`${mbCustomName} added!`);
-                    }}
-                  >
-                    <Plus className="h-3 w-3" /> Add to Meal
-                  </Button>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Pro</p>
+                    <Input
+                      type="number"
+                      className="h-8 text-center text-xs px-1 font-bold"
+                      value={mbOverrideTotals.p}
+                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, p: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Carb</p>
+                    <Input
+                      type="number"
+                      className="h-8 text-center text-xs px-1 font-bold"
+                      value={mbOverrideTotals.c}
+                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, c: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Fat</p>
+                    <Input
+                      type="number"
+                      className="h-8 text-center text-xs px-1 font-bold"
+                      value={mbOverrideTotals.f}
+                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, f: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Fib</p>
+                    <Input
+                      type="number"
+                      className="h-8 text-center text-xs px-1 font-bold"
+                      value={mbOverrideTotals.fib}
+                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, fib: e.target.value })}
+                    />
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Added items list */}
@@ -1428,45 +1367,6 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                       </Button>
                     </div>
                   ))}
-                </div>
-
-                {/* Totals */}
-                <div className="rounded-xl border border-accent/20 bg-accent/5 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-2">
-                    Total Nutrition
-                  </p>
-                  <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                    <div className="rounded-lg bg-background/50 p-1.5">
-                      <p className="text-muted-foreground text-[9px]">Cal</p>
-                      <p className="font-bold">
-                        {Math.round(mealBuilderTotals.calories)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg bg-background/50 p-1.5">
-                      <p className="text-muted-foreground text-[9px]">Pro</p>
-                      <p className="font-bold">
-                        {Math.round(mealBuilderTotals.protein_g)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg bg-background/50 p-1.5">
-                      <p className="text-muted-foreground text-[9px]">Carb</p>
-                      <p className="font-bold">
-                        {Math.round(mealBuilderTotals.carbs_g)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg bg-background/50 p-1.5">
-                      <p className="text-muted-foreground text-[9px]">Fat</p>
-                      <p className="font-bold">
-                        {Math.round(mealBuilderTotals.fat_g)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg bg-background/50 p-1.5">
-                      <p className="text-muted-foreground text-[9px]">Fib</p>
-                      <p className="font-bold">
-                        {Math.round(mealBuilderTotals.fiber_g)}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
