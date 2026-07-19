@@ -1502,37 +1502,43 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             </Button>
 
             {/* History (Recent Foods) Below Save Button */}
-            {recentFoods.filter(it => ITEMS.some(m => m.name === it.food_name)).length > 0 && (
-              <div className="mt-6">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
-                  History (Recent)
-                </Label>
-                <div className="rounded-xl border border-border bg-card overflow-hidden divide-y">
-                  {recentFoods.filter(it => ITEMS.some(m => m.name === it.food_name)).map((it, idx) => (
-                    <button
-                      key={`mb-recent-bottom-${idx}`}
-                      onClick={() => {
-                        const baseItem = ITEMS.find((m) => m.name === it.food_name);
-                        if (baseItem) {
-                          addItemToMealBuilder(baseItem, 100);
-                        }
-                      }}
-                      className="flex min-w-0 w-full items-center justify-between px-3 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
-                        <History className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="font-medium truncate">{it.food_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent">
-                          <Plus className="h-3 w-3" />
+            {(() => {
+              const uniqueNames = Array.from(new Set(
+                savedMeals.flatMap((m: any) => m.ingredients || []).map((ig: any) => ig.name)
+              ));
+              const mbHistoryItems = uniqueNames
+                .map((name) => ITEMS.find((m) => m.name === name))
+                .filter(Boolean) as IFCTItem[];
+
+              if (mbHistoryItems.length === 0) return null;
+
+              return (
+                <div className="mt-6">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
+                    History (From Your Meals)
+                  </Label>
+                  <div className="rounded-xl border border-border bg-card overflow-hidden divide-y">
+                    {mbHistoryItems.map((item, idx) => (
+                      <button
+                        key={`mb-recent-bottom-${idx}`}
+                        onClick={() => addItemToMealBuilder(item, 100)}
+                        className="flex min-w-0 w-full items-center justify-between px-3 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                          <History className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="font-medium truncate">{item.name}</span>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent">
+                            <Plus className="h-3 w-3" />
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
