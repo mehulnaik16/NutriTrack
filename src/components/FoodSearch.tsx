@@ -1314,7 +1314,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     className="flex min-w-0 w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
-                      <span className="font-medium truncate">{it.name}</span>
+                      <span className="font-medium truncate block">{it.name}</span>
                       {it.code === "ai-fallback" && (
                         <Badge className="text-[9px] h-4 px-1 bg-accent/20 text-accent border-none uppercase font-bold shrink-0">
                           AI
@@ -1376,10 +1376,10 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                     >
                       <div className="flex-1 min-w-0 pr-2">
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-bold truncate pr-2">
+                          <p className="text-sm font-bold truncate pr-2 flex-1 min-w-0">
                             {item.name}
                           </p>
-                          <div className="flex items-center gap-1 bg-accent/10 px-2 py-1 rounded-md border border-accent/20">
+                          <div className="flex items-center gap-1 bg-accent/10 px-2 py-1 rounded-md border border-accent/20 shrink-0">
                             <Input
                               type="number"
                               value={item.quantity_g}
