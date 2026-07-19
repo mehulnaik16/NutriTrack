@@ -1310,37 +1310,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 )}
               </div>
               
-              {/* History (Recent Foods) & Suggestions */}
               <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm max-h-40 overflow-y-auto">
-                {mealBuilderSearch.trim().length === 0 && recentFoods.length > 0 && (
-                  <>
-                    <div className="bg-muted/50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      History (Recent)
-                    </div>
-                    {recentFoods.map((it, idx) => (
-                      <button
-                        key={`mb-recent-${idx}`}
-                        onClick={() => {
-                          const baseItem = ITEMS.find((m) => m.name === it.food_name);
-                          if (baseItem) {
-                            addItemToMealBuilder(baseItem, 100);
-                          }
-                        }}
-                        className="flex min-w-0 w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
-                          <History className="h-3 w-3 text-muted-foreground shrink-0" />
-                          <span className="font-medium truncate">{it.food_name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent">
-                            <Plus className="h-3 w-3" />
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </>
-                )}
                 {allMbSuggestions.length > 0 && allMbSuggestions.map((it) => (
                   <button
                     key={it.code}
@@ -1489,20 +1459,49 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             {/* Save Button */}
             <Button
               onClick={saveMealBuilder}
-              disabled={
-                mealBuilderSaving ||
-                !mealBuilderName.trim() ||
-                mealBuilderItems.length === 0
-              }
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
+              disabled={mealBuilderSaving || !mealBuilderName.trim()}
+              className="w-full h-12 text-base font-bold bg-accent text-accent-foreground hover:bg-accent/90 gap-2 mt-4"
             >
               {mealBuilderSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin" />
               ) : (
-                <Heart className="h-4 w-4" />
+                <Heart className="h-6 w-6" />
               )}
               Save to Favorites
             </Button>
+
+            {/* History (Recent Foods) Below Save Button */}
+            {recentFoods.length > 0 && (
+              <div className="mt-6">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
+                  History (Recent)
+                </Label>
+                <div className="rounded-xl border border-border bg-card overflow-hidden divide-y">
+                  {recentFoods.map((it, idx) => (
+                    <button
+                      key={`mb-recent-bottom-${idx}`}
+                      onClick={() => {
+                        const baseItem = ITEMS.find((m) => m.name === it.food_name);
+                        if (baseItem) {
+                          addItemToMealBuilder(baseItem, 100);
+                        }
+                      }}
+                      className="flex min-w-0 w-full items-center justify-between px-3 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                        <History className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium truncate">{it.food_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent">
+                          <Plus className="h-3 w-3" />
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
