@@ -1427,9 +1427,12 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                             kcal
                           </span>
                         </div>
-                        <p className="text-[9px] text-muted-foreground mt-1.5 font-medium">
-                          P: {Math.round(item.protein_g)}g · C: {Math.round(item.carbs_g)}g · F: {Math.round(item.fat_g)}g · Fib: {Math.round(item.fiber_g)}g
-                        </p>
+                        <div className="flex items-center gap-1 mt-1.5 text-[9px] text-muted-foreground font-medium">
+                          P: <input type="number" value={Math.round(item.protein_g)} onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, protein_g: +(e.target.value || 0) }; setMealBuilderItems(u); }} className="w-7 bg-transparent border-b border-muted-foreground/30 text-center outline-none focus:border-accent m-0 p-0" />g · 
+                          C: <input type="number" value={Math.round(item.carbs_g)} onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, carbs_g: +(e.target.value || 0) }; setMealBuilderItems(u); }} className="w-7 bg-transparent border-b border-muted-foreground/30 text-center outline-none focus:border-accent m-0 p-0" />g · 
+                          F: <input type="number" value={Math.round(item.fat_g)} onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, fat_g: +(e.target.value || 0) }; setMealBuilderItems(u); }} className="w-7 bg-transparent border-b border-muted-foreground/30 text-center outline-none focus:border-accent m-0 p-0" />g · 
+                          Fib: <input type="number" value={Math.round(item.fiber_g)} onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, fiber_g: +(e.target.value || 0) }; setMealBuilderItems(u); }} className="w-7 bg-transparent border-b border-muted-foreground/30 text-center outline-none focus:border-accent m-0 p-0" />g
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
