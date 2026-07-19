@@ -1333,7 +1333,33 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 ))}
               </div>
 
-            {/* Editable Macros removed as per user request */}
+              <div className="mt-4 rounded-xl border border-border bg-card p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  Total Nutrition
+                </p>
+                <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Cal</p>
+                    <p className="font-bold">{Math.round(mealBuilderTotals.calories)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Pro</p>
+                    <p className="font-bold">{Math.round(mealBuilderTotals.protein_g)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Carb</p>
+                    <p className="font-bold">{Math.round(mealBuilderTotals.carbs_g)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Fat</p>
+                    <p className="font-bold">{Math.round(mealBuilderTotals.fat_g)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-[9px]">Fib</p>
+                    <p className="font-bold">{Math.round(mealBuilderTotals.fiber_g)}</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Added items list */}
@@ -1401,6 +1427,9 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                             kcal
                           </span>
                         </div>
+                        <p className="text-[9px] text-muted-foreground mt-1.5 font-medium">
+                          P: {Math.round(item.protein_g)}g · C: {Math.round(item.carbs_g)}g · F: {Math.round(item.fat_g)}g · Fib: {Math.round(item.fiber_g)}g
+                        </p>
                       </div>
                       <Button
                         variant="ghost"
