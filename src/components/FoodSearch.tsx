@@ -1372,79 +1372,114 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                   {mealBuilderItems.map((item, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between px-3 py-2 bg-card hover:bg-muted/20 transition-colors"
+                      className="flex items-start justify-between px-3 py-3 bg-card hover:bg-muted/20 transition-colors"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {item.name}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <Input
-                            type="number"
-                            value={item.quantity_g}
-                            onChange={(e) => {
-                              const newQty = e.target.value === "" ? "" : +e.target.value;
-                              const calcQty = +newQty || 0;
-                              const ratio = calcQty / 100;
-                              const updated = [...mealBuilderItems];
-                              updated[i] = {
-                                ...item,
-                                quantity_g: newQty as number,
-                                calories: +(item.base_calories * ratio).toFixed(1),
-                                protein_g: +(item.base_protein_g * ratio).toFixed(1),
-                                carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
-                                fat_g: +(item.base_fat_g * ratio).toFixed(1),
-                                fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
-                              };
-                              setMealBuilderItems(updated);
-                            }}
-                            className="w-16 h-6 text-xs"
-                          />
-                          <span className="text-[10px] text-muted-foreground">
-                            g
-                          </span>
-                          <Input
-                            type="number"
-                            value={item.calories.toFixed(0)}
-                            onChange={(e) => {
-                              const newCal = e.target.value === "" ? "" : +e.target.value;
-                              const calcCal = +newCal || 0;
-                              const ratio = item.base_calories > 0 ? calcCal / item.base_calories : 0;
-                              const updated = [...mealBuilderItems];
-                              updated[i] = {
-                                ...item,
-                                calories: newCal as number,
-                                protein_g: +(item.base_protein_g * ratio).toFixed(1),
-                                carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
-                                fat_g: +(item.base_fat_g * ratio).toFixed(1),
-                                fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
-                              };
-                              setMealBuilderItems(updated);
-                            }}
-                            className="w-16 h-6 text-xs ml-2"
-                          />
-                          <span className="text-[10px] text-muted-foreground">
-                            kcal
-                          </span>
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-sm font-bold truncate pr-2">
+                            {item.name}
+                          </p>
+                          <div className="flex items-center gap-1 bg-accent/10 px-2 py-1 rounded-md border border-accent/20">
+                            <Input
+                              type="number"
+                              value={item.quantity_g}
+                              onChange={(e) => {
+                                const newQty = e.target.value === "" ? "" : +e.target.value;
+                                const calcQty = +newQty || 0;
+                                const ratio = calcQty / 100;
+                                const updated = [...mealBuilderItems];
+                                updated[i] = {
+                                  ...item,
+                                  quantity_g: newQty as number,
+                                  calories: +(item.base_calories * ratio).toFixed(1),
+                                  protein_g: +(item.base_protein_g * ratio).toFixed(1),
+                                  carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
+                                  fat_g: +(item.base_fat_g * ratio).toFixed(1),
+                                  fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
+                                };
+                                setMealBuilderItems(updated);
+                              }}
+                              className="w-12 h-5 text-xs text-center px-0 py-0 font-bold bg-transparent border-none shadow-none focus-visible:ring-0"
+                            />
+                            <span className="text-[10px] text-accent font-bold uppercase">
+                              g
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 mt-1.5 text-[9px] text-muted-foreground font-medium">
-                          P: <input type="number" value={Math.round(item.protein_g)} onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, protein_g: +(e.target.value || 0) }; setMealBuilderItems(u); }} className="w-7 bg-transparent border-b border-muted-foreground/30 text-center outline-none focus:border-accent m-0 p-0" />g · 
-                          C: <input type="number" value={Math.round(item.carbs_g)} onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, carbs_g: +(e.target.value || 0) }; setMealBuilderItems(u); }} className="w-7 bg-transparent border-b border-muted-foreground/30 text-center outline-none focus:border-accent m-0 p-0" />g · 
-                          F: <input type="number" value={Math.round(item.fat_g)} onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, fat_g: +(e.target.value || 0) }; setMealBuilderItems(u); }} className="w-7 bg-transparent border-b border-muted-foreground/30 text-center outline-none focus:border-accent m-0 p-0" />g · 
-                          Fib: <input type="number" value={Math.round(item.fiber_g)} onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, fiber_g: +(e.target.value || 0) }; setMealBuilderItems(u); }} className="w-7 bg-transparent border-b border-muted-foreground/30 text-center outline-none focus:border-accent m-0 p-0" />g
+
+                        <div className="grid grid-cols-5 gap-1.5 text-center bg-muted/30 rounded-lg p-2 border border-border/50">
+                          <div className="flex flex-col items-center">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Cal</span>
+                            <Input
+                              type="number"
+                              value={item.calories.toFixed(0)}
+                              onChange={(e) => {
+                                const newCal = e.target.value === "" ? "" : +e.target.value;
+                                const calcCal = +newCal || 0;
+                                const ratio = item.base_calories > 0 ? calcCal / item.base_calories : 0;
+                                const updated = [...mealBuilderItems];
+                                updated[i] = {
+                                  ...item,
+                                  calories: newCal as number,
+                                  protein_g: +(item.base_protein_g * ratio).toFixed(1),
+                                  carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
+                                  fat_g: +(item.base_fat_g * ratio).toFixed(1),
+                                  fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
+                                };
+                                setMealBuilderItems(updated);
+                              }}
+                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
+                            />
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Pro</span>
+                            <Input
+                              type="number"
+                              value={Math.round(item.protein_g)}
+                              onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, protein_g: +(e.target.value || 0) }; setMealBuilderItems(u); }}
+                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
+                            />
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Carb</span>
+                            <Input
+                              type="number"
+                              value={Math.round(item.carbs_g)}
+                              onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, carbs_g: +(e.target.value || 0) }; setMealBuilderItems(u); }}
+                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
+                            />
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Fat</span>
+                            <Input
+                              type="number"
+                              value={Math.round(item.fat_g)}
+                              onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, fat_g: +(e.target.value || 0) }; setMealBuilderItems(u); }}
+                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
+                            />
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Fib</span>
+                            <Input
+                              type="number"
+                              value={Math.round(item.fiber_g)}
+                              onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, fiber_g: +(e.target.value || 0) }; setMealBuilderItems(u); }}
+                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
+                            />
+                          </div>
                         </div>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 mt-1"
                         onClick={() =>
                           setMealBuilderItems(
                             mealBuilderItems.filter((_, j) => j !== i),
                           )
                         }
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
