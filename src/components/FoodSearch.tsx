@@ -1459,7 +1459,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             {/* Save Button */}
             <Button
               onClick={saveMealBuilder}
-              disabled={mealBuilderSaving || !mealBuilderName.trim()}
+              disabled={mealBuilderSaving}
               className="w-full h-12 text-base font-bold bg-accent text-accent-foreground hover:bg-accent/90 gap-2 mt-4"
             >
               {mealBuilderSaving ? (
@@ -1471,13 +1471,13 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
             </Button>
 
             {/* History (Recent Foods) Below Save Button */}
-            {recentFoods.length > 0 && (
+            {recentFoods.filter(it => ITEMS.some(m => m.name === it.food_name)).length > 0 && (
               <div className="mt-6">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
                   History (Recent)
                 </Label>
                 <div className="rounded-xl border border-border bg-card overflow-hidden divide-y">
-                  {recentFoods.map((it, idx) => (
+                  {recentFoods.filter(it => ITEMS.some(m => m.name === it.food_name)).map((it, idx) => (
                     <button
                       key={`mb-recent-bottom-${idx}`}
                       onClick={() => {
