@@ -332,6 +332,7 @@ export const FoodSearch = forwardRef<
     carbs_g: number;
     fat_g: number;
     fiber_g: number;
+    ingredients?: any[];
   }) => {
     const { data: existing } = await supabase
       .from("saved_meals" as any)
@@ -464,13 +465,6 @@ export const FoodSearch = forwardRef<
   );
   const [mealBuilderSearch, setMealBuilderSearch] = useState("");
   const [mealBuilderSaving, setMealBuilderSaving] = useState(false);
-  const [mbOverrideTotals, setMbOverrideTotals] = useState({
-    cal: "0",
-    p: "0",
-    c: "0",
-    f: "0",
-    fib: "0",
-  });
   const [mbAiSuggestions, setMbAiSuggestions] = useState<IFCTItem[]>([]);
   const [mbSearching, setMbSearching] = useState(false);
 
@@ -552,15 +546,7 @@ Use accurate values for common foods.`;
     );
   }, [mealBuilderItems]);
 
-  useEffect(() => {
-    setMbOverrideTotals({
-      cal: String(Math.round(mealBuilderTotals.calories)),
-      p: String(Math.round(mealBuilderTotals.protein_g)),
-      c: String(Math.round(mealBuilderTotals.carbs_g)),
-      f: String(Math.round(mealBuilderTotals.fat_g)),
-      fib: String(Math.round(mealBuilderTotals.fiber_g)),
-    });
-  }, [mealBuilderTotals]);
+  // mbOverrideTotals removed, we use mealBuilderTotals directly
 
   const addItemToMealBuilder = (item: IFCTItem, grams: number = 100) => {
     const ratio = grams / 100;
@@ -593,11 +579,16 @@ Use accurate values for common foods.`;
     setMealBuilderSaving(true);
     const ok = await saveFavoriteMeal({
       name: mealBuilderName,
-      calories: Number(mbOverrideTotals.cal) || 0,
-      protein_g: Number(mbOverrideTotals.p) || 0,
-      carbs_g: Number(mbOverrideTotals.c) || 0,
-      fat_g: Number(mbOverrideTotals.f) || 0,
-      fiber_g: Number(mbOverrideTotals.fib) || 0,
+      calories: mealBuilderTotals.calories,
+      protein_g: mealBuilderTotals.protein_g,
+      carbs_g: mealBuilderTotals.carbs_g,
+      fat_g: mealBuilderTotals.fat_g,
+      fiber_g: mealBuilderTotals.fiber_g,
+      ingredients: mealBuilderItems.map(it => ({
+        name: it.name,
+        quantity_g: it.quantity_g,
+        calories: it.calories
+      }))
     });
     setMealBuilderSaving(false);
     if (!ok) {
@@ -1206,6 +1197,11 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                           <span className="block truncate text-[10px] text-muted-foreground">
                             {Math.round(mealItem.calories)} kcal · P{Math.round(mealItem.protein_g)} · C{Math.round(mealItem.carbs_g)} · F{Math.round(mealItem.fat_g)}
                           </span>
+                          {mealItem.ingredients && mealItem.ingredients.length > 0 && (
+                            <span className="block truncate text-[9px] text-muted-foreground/80 mt-0.5">
+                              {mealItem.ingredients.map((ig: any) => `${ig.name} (${ig.quantity_g}g - ${Math.round(ig.calories)}kcal)`).join(', ')}
+                            </span>
+                          )}
                         </div>
                       </button>
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -1337,59 +1333,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 ))}
               </div>
 
-              {/* Editable Macros */}
-              <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-2">
-                  Total Nutrition (Editable)
-                </p>
-                <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Cal</p>
-                    <Input
-                      type="number"
-                      className="h-8 text-center text-xs px-1 font-bold"
-                      value={mbOverrideTotals.cal}
-                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, cal: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Pro</p>
-                    <Input
-                      type="number"
-                      className="h-8 text-center text-xs px-1 font-bold"
-                      value={mbOverrideTotals.p}
-                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, p: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Carb</p>
-                    <Input
-                      type="number"
-                      className="h-8 text-center text-xs px-1 font-bold"
-                      value={mbOverrideTotals.c}
-                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, c: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Fat</p>
-                    <Input
-                      type="number"
-                      className="h-8 text-center text-xs px-1 font-bold"
-                      value={mbOverrideTotals.f}
-                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, f: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Fib</p>
-                    <Input
-                      type="number"
-                      className="h-8 text-center text-xs px-1 font-bold"
-                      value={mbOverrideTotals.fib}
-                      onChange={(e) => setMbOverrideTotals({ ...mbOverrideTotals, fib: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
+            {/* Editable Macros removed as per user request */}
             </div>
 
             {/* Added items list */}
@@ -1433,8 +1377,28 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                           <span className="text-[10px] text-muted-foreground">
                             g
                           </span>
-                          <span className="text-[10px] text-muted-foreground ml-1">
-                            {Math.round(item.calories)} kcal
+                          <Input
+                            type="number"
+                            value={item.calories.toFixed(0)}
+                            onChange={(e) => {
+                              const newCal = e.target.value === "" ? "" : +e.target.value;
+                              const calcCal = +newCal || 0;
+                              const ratio = item.base_calories > 0 ? calcCal / item.base_calories : 0;
+                              const updated = [...mealBuilderItems];
+                              updated[i] = {
+                                ...item,
+                                calories: newCal as number,
+                                protein_g: +(item.base_protein_g * ratio).toFixed(1),
+                                carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
+                                fat_g: +(item.base_fat_g * ratio).toFixed(1),
+                                fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
+                              };
+                              setMealBuilderItems(updated);
+                            }}
+                            className="w-16 h-6 text-xs ml-2"
+                          />
+                          <span className="text-[10px] text-muted-foreground">
+                            kcal
                           </span>
                         </div>
                       </div>
