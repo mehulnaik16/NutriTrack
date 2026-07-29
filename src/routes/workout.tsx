@@ -142,15 +142,6 @@ function WorkoutPage() {
           </button>
         ))}
       </div>
-      <div className="mt-8 p-5 bg-card border border-border/50 rounded-2xl shadow-sm text-center">
-        <h3 className="font-bold mb-2">Need a structured plan?</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Fill a short form to get an AI generated plan or pick a ready-made one.
-        </p>
-        <Button onClick={() => setWizardOpen(true)} className="w-full font-bold">
-          Get Workout Plan
-        </Button>
-      </div>
     </div>
   );
 
@@ -268,7 +259,7 @@ function WorkoutPage() {
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
         date: new Date().toISOString().split("T")[0],
-        workout_name: selectedCardio,
+        workout_name: selectedCardio || "",
         duration_min: parseInt(duration) || 30,
         calories_burned: parseInt(kcal) || 0,
         exercises_done: { bpm: parseInt(bpm) || null },
@@ -347,7 +338,7 @@ function WorkoutPage() {
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
         date: new Date().toISOString().split("T")[0],
-        workout_name: selectedExercise,
+        workout_name: selectedExercise || "",
         duration_min: sets.length * 3, // rough estimate
         calories_burned: sets.length * 15,
         exercises_done: sets,
@@ -546,13 +537,6 @@ function WorkoutPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-1 text-orange-500">
-                <Flame className="h-5 w-5 fill-current animate-pulse" />
-                <span className="font-black text-lg leading-none">4</span>
-              </div>
-              <span className="text-[9px] uppercase font-black text-muted-foreground tracking-widest mt-0.5">Streak</span>
-            </div>
             <div className="h-11 w-11 rounded-full bg-muted border-2 border-border/50 overflow-hidden ring-2 ring-background shadow-sm">
               <User className="h-full w-full p-2.5 text-muted-foreground/40" />
             </div>

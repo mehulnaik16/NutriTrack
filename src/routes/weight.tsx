@@ -12,6 +12,7 @@ import {
   Target,
   ChevronLeft,
   ChevronRight,
+  CalendarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
@@ -19,6 +20,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   LineChart,
   Line,
@@ -31,6 +38,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { uploadWeightPhoto, deleteWeightPhoto, replaceWeightPhoto } from "@/services/storage";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
 
@@ -81,6 +89,7 @@ function WeightPage() {
   const [note, setNote] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<WeightEntry | null>(null);
   const [saving, setSaving] = useState(false);
   const [motivation, setMotivation] = useState<string | null>(null);
   const [loadingMotivation, setLoadingMotivation] = useState(false);
@@ -146,28 +155,25 @@ function WeightPage() {
       let photo_url: string | null = null;
 
       if (photoFile) {
-        const ext = photoFile.name.split(".").pop();
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("weight-photos")
-          .upload(path, photoFile, { upsert: true });
-        if (!upErr) {
-          const { data: urlData } = supabase.storage
-            .from("weight-photos")
-            .getPublicUrl(path);
-          photo_url = urlData.publicUrl;
+        const result = await uploadWeightPhoto(photoFile, user.id);
+        if (result.error || !result.data) {
+          throw new Error(result.error ?? "Upload failed");
         }
+        photo_url = result.data.publicUrl;
       }
 
       const today = new Date().toISOString().slice(0, 10);
+      const payload: any = {
+        user_id: user.id,
+        date: today,
+        weight_kg: +weight,
+      };
+      
+      if (photo_url) payload.photo_url = photo_url;
+      if (note) payload.note = note;
+
       const { error } = await supabase.from("weight_entries").upsert(
-        {
-          user_id: user.id,
-          date: today,
-          weight_kg: +weight,
-          photo_url,
-          note: note || null,
-        },
+        payload,
         { onConflict: "user_id,date" },
       );
       if (error) throw error;
@@ -191,6 +197,80 @@ function WeightPage() {
       toast.error(e.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveModal = async (updated: WeightEntry, newPhoto: File | null) => {
+    if (!user) return;
+    try {
+      let finalPhotoUrl = updated.photo_url;
+      const originalEntry = entries.find(e => e.id === updated.id);
+      
+      if (newPhoto) {
+        const result = await replaceWeightPhoto(
+          originalEntry?.photo_url ?? null,
+          newPhoto,
+          user.id,
+        );
+        if (result.error || !result.data) {
+          throw new Error(result.error ?? "Upload failed");
+        }
+        finalPhotoUrl = result.data.publicUrl;
+      } else if (originalEntry?.photo_url && !updated.photo_url) {
+        // Photo was removed (not replaced)
+        await deleteWeightPhoto(originalEntry.photo_url);
+        finalPhotoUrl = null;
+      }
+
+      const { error } = await supabase
+        .from("weight_entries")
+        .update({
+          date: updated.date,
+          weight_kg: updated.weight_kg,
+          note: updated.note || null,
+          photo_url: finalPhotoUrl
+        })
+        .eq("id", updated.id);
+
+      if (error) throw error;
+
+      toast.success("Entry updated!");
+      
+      const finalEntry = { ...updated, photo_url: finalPhotoUrl };
+      setEntries(prev => prev.map(e => e.id === finalEntry.id ? finalEntry : e));
+      setSelectedEntry(finalEntry);
+      
+      load();
+    } catch (e: any) {
+      toast.error(e.message);
+      throw e;
+    }
+  };
+
+  const handleDeleteModal = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this entry?")) return;
+    try {
+      const entryToDelete = entries.find(e => e.id === id);
+      
+      // Delete photo first — if it fails, don't delete the DB row
+      if (entryToDelete?.photo_url) {
+        const result = await deleteWeightPhoto(entryToDelete.photo_url);
+        if (result.error) {
+          throw new Error(result.error);
+        }
+      }
+
+      const { error } = await supabase
+        .from("weight_entries")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+
+      toast.success("Entry deleted!");
+      setSelectedEntry(null);
+      load();
+    } catch (e: any) {
+      toast.error(e.message);
     }
   };
 
@@ -528,50 +608,38 @@ function WeightPage() {
                   .reverse()
                   .slice(0, 20)
                   .map((e, i) => {
-                    const prev = [...entries].reverse()[i + 1];
-                    const diff = prev
-                      ? +(e.weight_kg - prev.weight_kg).toFixed(1)
-                      : null;
+
                     return (
                       <div
                         key={e.id}
-                        className="flex flex-col gap-2 rounded-md border border-border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+                        className="group grid grid-cols-2 sm:grid-cols-[90px_1fr_auto_60px] gap-2 sm:gap-4 items-center rounded-md border border-border px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex min-w-0 items-center gap-3">
-                          {e.photo_url && (
-                            <img
-                              src={e.photo_url}
-                              alt=""
-                              className="h-8 w-8 rounded object-cover"
-                            />
-                          )}
-                          <div className="min-w-0">
-                            <span className="font-medium">
-                              {e.weight_kg} kg
-                            </span>
-                            {e.note && (
-                              <span className="ml-2 text-xs text-muted-foreground">
-                                {e.note}
-                              </span>
-                            )}
-                          </div>
+                        {/* 1. Date (Mobile: TL, Desktop: Col 1) */}
+                        <div className="text-muted-foreground">
+                          {e.date}
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground sm:justify-end">
-                          {diff !== null && (
-                            <span
-                              className={
-                                diff < 0
-                                  ? "text-[var(--energy)]"
-                                  : diff > 0
-                                    ? "text-destructive"
-                                    : ""
-                              }
-                            >
-                              {diff > 0 ? "+" : ""}
-                              {diff} kg
-                            </span>
-                          )}
-                          <span>{e.date}</span>
+                        
+                        {/* 2. Note (Mobile: BL, Desktop: Col 2) */}
+                        <div className="truncate text-muted-foreground col-start-1 row-start-2 sm:col-start-2 sm:row-start-1">
+                          {e.note || "—"}
+                        </div>
+                        
+                        {/* 3. Weight (Mobile: TR, Desktop: Col 3) */}
+                        <div className="font-bold text-right col-start-2 row-start-1 sm:col-start-3 sm:row-start-1">
+                          {e.weight_kg} kg
+                        </div>
+                        
+                        {/* 4. View Button (Mobile: BR, Desktop: Col 4) */}
+                        <div className="flex justify-end col-start-2 row-start-2 sm:col-start-4 sm:row-start-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => setSelectedEntry(e)}
+                            disabled={!e}
+                          >
+                            View
+                          </Button>
                         </div>
                       </div>
                     );
@@ -580,7 +648,265 @@ function WeightPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* ── View / Edit Entry Modal ── */}
+        <WeightEntryModal 
+          entry={selectedEntry} 
+          onClose={() => setSelectedEntry(null)} 
+          onSave={handleSaveModal}
+          onDelete={handleDeleteModal}
+        />
       </main>
     </div>
+  );
+}
+
+function WeightEntryModal({
+  entry,
+  onClose,
+  onSave,
+  onDelete
+}: {
+  entry: WeightEntry | null;
+  onClose: () => void;
+  onSave: (updated: WeightEntry, newPhoto: File | null) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editDate, setEditDate] = useState("");
+  const [editWeight, setEditWeight] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (entry) {
+      setEditDate(entry.date);
+      setEditWeight(entry.weight_kg.toString());
+      setEditNote(entry.note || "");
+      setEditPhotoPreview(entry.photo_url);
+      setEditPhotoFile(null);
+    }
+  }, [entry, isEditing]);
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditPhotoFile(null);
+  };
+
+  const hasChanged = entry && (
+    editDate !== entry.date ||
+    editWeight !== entry.weight_kg.toString() ||
+    editNote !== (entry.note || "") ||
+    editPhotoPreview !== entry.photo_url ||
+    editPhotoFile !== null
+  );
+
+  const handleSave = async () => {
+    if (!entry) return;
+    setIsSaving(true);
+    try {
+      await onSave({
+        ...entry,
+        date: editDate,
+        weight_kg: Number(editWeight),
+        note: editNote,
+        photo_url: editPhotoPreview
+      }, editPhotoFile);
+      setIsEditing(false);
+      setEditPhotoFile(null);
+    } catch (e) {
+      // Parent handles error toast
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isEditing) return;
+    if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA") {
+      e.preventDefault();
+      if (hasChanged) handleSave();
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCancel();
+    }
+  };
+
+  return (
+    <Dialog open={!!entry} onOpenChange={(open) => {
+      if (!open && !isEditing) {
+        onClose();
+      } else if (!open && isEditing) {
+        setIsEditing(false);
+        onClose();
+      }
+    }}>
+      <DialogContent 
+        className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 transition-all duration-200"
+        onKeyDown={handleKeyDown}
+      >
+        <DialogHeader>
+          <DialogTitle className="text-xl font-black uppercase tracking-wider text-center mb-2 flex items-center justify-center gap-2">
+            Weight Entry
+            {isEditing && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest animate-in fade-in zoom-in">Editing</span>}
+          </DialogTitle>
+        </DialogHeader>
+        {entry && (
+          <div className="space-y-6">
+            {/* PROGRESS PHOTO */}
+            {(isEditing || editPhotoPreview) && (
+              <div className="flex justify-center">
+                {editPhotoPreview ? (
+                  <div className="relative group rounded-lg overflow-hidden max-h-[50vh] w-full flex justify-center bg-black/5 transition-all">
+                    <img
+                      src={editPhotoPreview}
+                      alt={`Weight on ${editDate}`}
+                      className="w-full h-full object-contain"
+                    />
+                    {isEditing && (
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
+                          Change Photo
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => setEditPhotoPreview(null)}>
+                          Remove Photo
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  isEditing && (
+                    <div 
+                      onClick={() => fileRef.current?.click()}
+                      className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 hover:border-accent transition-colors w-full"
+                    >
+                      <Camera className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Tap to add a progress photo</p>
+                    </div>
+                  )
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setEditPhotoFile(file);
+                      setEditPhotoPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* DATE & WEIGHT */}
+            <div className="flex justify-between items-center text-sm transition-all">
+              <div className="text-muted-foreground flex items-center gap-2">
+                Date: 
+                {isEditing ? (
+                  <div className="relative flex items-center">
+                    <input
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                    />
+                    <div className="font-semibold text-foreground flex items-center gap-1 border-b border-dashed border-primary/50 pb-0.5">
+                      {new Date(editDate).toLocaleDateString("en-GB", {
+                        day: "numeric", month: "short", year: "numeric"
+                      })}
+                      <CalendarIcon className="w-3 h-3 text-primary ml-1" />
+                    </div>
+                  </div>
+                ) : (
+                  <span className="font-semibold text-foreground">
+                    {new Date(entry.date).toLocaleDateString("en-GB", {
+                      day: "numeric", month: "short", year: "numeric"
+                    })}
+                  </span>
+                )}
+              </div>
+              <div className="text-muted-foreground flex items-center gap-1">
+                Weight: 
+                {isEditing ? (
+                  <span className="font-semibold text-foreground flex items-center">
+                    [
+                    <input
+                      type="number"
+                      value={editWeight}
+                      onChange={(e) => setEditWeight(e.target.value)}
+                      className="w-[5ch] bg-transparent text-center font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary rounded px-0.5 mx-1 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    ] kg
+                  </span>
+                ) : (
+                  <span className="font-semibold text-foreground">{entry.weight_kg} kg</span>
+                )}
+              </div>
+            </div>
+
+            {/* NOTES */}
+            <div className="space-y-1 transition-all">
+              <div className="text-sm text-muted-foreground">Notes</div>
+              {isEditing ? (
+                <textarea
+                  value={editNote}
+                  onChange={(e) => {
+                    setEditNote(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                  placeholder="Add notes..."
+                  className="w-full bg-background border border-border rounded-md p-2 text-sm min-h-[80px] focus:outline-none focus:ring-1 focus:ring-primary resize-none overflow-hidden"
+                  onFocus={(e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">
+                  {entry.note ? entry.note : <span className="text-muted-foreground italic">No notes provided.</span>}
+                </p>
+              )}
+            </div>
+
+            {/* BUTTONS */}
+            <div className="flex justify-end gap-2 pt-2 transition-all">
+              {isEditing ? (
+                <>
+                  <Button variant="secondary" size="sm" onClick={handleCancel} disabled={isSaving}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={handleSave}
+                    disabled={!hasChanged || isSaving}
+                  >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                    Edit
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => onDelete(entry.id)}>
+                    Delete
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

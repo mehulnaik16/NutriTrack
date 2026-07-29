@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useLocation } from "@tanstack/react-router";
 import {
   Activity,
   Dumbbell,
@@ -18,6 +18,8 @@ import { supabase } from "@/integrations/client";
 export function Header({ name }: { name?: string }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const pathname = location.pathname;
 
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -28,15 +30,39 @@ export function Header({ name }: { name?: string }) {
   const [streak, setStreak] = useState(0);
 
   useEffect(() => {
-    if (user) {
-      supabase
-        .from("user_profiles")
-        .select("current_streak")
-        .eq("id", user.id)
-        .single()
-        .then(({ data }) => setStreak((data as any)?.current_streak || 0));
-    }
-  }, [user]);
+    if (!user) return;
+    const fetchStreak = async () => {
+      let data;
+      if (pathname.includes("/workout")) {
+        const { data: d } = await supabase.from("workout_logs").select("date").eq("user_id", user.id).order("date", { ascending: false });
+        data = d;
+      } else if (pathname.includes("/weight")) {
+        const { data: d } = await supabase.from("weight_entries").select("date").eq("user_id", user.id).order("date", { ascending: false });
+        data = d;
+      } else {
+        const { data: d } = await supabase.from("food_logs").select("date").eq("user_id", user.id).order("date", { ascending: false });
+        data = d;
+      }
+        
+      if (!data || data.length === 0) return setStreak(0);
+      const uniqueDates = [...new Set(data.map((d: any) => d.date))].sort().reverse();
+      let s = 0;
+      const check = new Date();
+      for (const d of uniqueDates) {
+        const expected = check.toISOString().slice(0, 10);
+        if (d === expected) {
+          s++;
+          check.setDate(check.getDate() - 1);
+        } else if (d === new Date().toISOString().slice(0, 10)) {
+          continue;
+        } else {
+          break;
+        }
+      }
+      setStreak(s);
+    };
+    fetchStreak();
+  }, [user, pathname]);
 
   const neonGlow =
     streak > 7

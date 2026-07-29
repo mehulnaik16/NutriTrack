@@ -46,6 +46,11 @@ import {
   calcCalorieTarget,
   calcMacros,
   calcTDEE,
+  PRIMARY_GOALS,
+  LOSE_RATE_OPTIONS,
+  GAIN_RATE_OPTIONS,
+  resolveGoalKey,
+  decomposeGoalKey,
 } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/profile")({ component: Profile });
@@ -141,6 +146,7 @@ function Profile() {
   const [gender, setGender] = useState("");
   const [goal, setGoal] = useState("");
   const [activity, setActivity] = useState("");
+  const [loseRate, setLoseRate] = useState("lose_0_25kg");
   const [saving, setSaving] = useState(false);
   const [theme, setTheme] = useState<string>("light");
 
@@ -200,7 +206,11 @@ function Profile() {
         if (data?.full_name) setName(data.full_name);
         if (data?.age) setAge(String(data.age));
         if (data?.gender) setGender(data.gender);
-        if (data?.goal) setGoal(data.goal);
+        if (data?.goal) {
+          const { primary, loseRate: rate } = decomposeGoalKey(data.goal);
+          setGoal(primary);
+          if (rate) setLoseRate(rate);
+        }
         if (data?.activity_level) setActivity(data.activity_level);
       });
   }, [user]);
@@ -211,8 +221,8 @@ function Profile() {
     const h = +height || 0;
     const a = +age || 0;
 
-    if (!w || w <= 0 || !h || h <= 0 || !a || a <= 0) {
-      toast.error("Height, weight, and age must be greater than 0");
+    if (!w || w <= 0 || !h || h <= 0 || !a || a < 16) {
+      toast.error("Age must be at least 16; height and weight must be greater than 0");
       return;
     }
 
@@ -220,8 +230,9 @@ function Profile() {
     const bmi = calcBMI(w, h);
     const bmr = calcBMR(w, h, a, gender || profile.gender);
     const tdee = calcTDEE(bmr, activity || profile.activity_level);
-    const target = calcCalorieTarget(tdee, goal || profile.goal);
-    const m = calcMacros(target);
+    const goalKey = resolveGoalKey(goal || decomposeGoalKey(profile.goal).primary, loseRate);
+    const target = calcCalorieTarget(tdee, goalKey, gender || profile.gender);
+    const m = calcMacros(target, goalKey, w);
     const { error } = await supabase
       .from("user_profiles")
       .update({
@@ -230,7 +241,7 @@ function Profile() {
         weight_kg: w,
         age: a,
         gender: gender || profile.gender,
-        goal: goal || profile.goal,
+        goal: goalKey,
         activity_level: activity || profile.activity_level,
         bmi,
         bmr,
@@ -239,6 +250,7 @@ function Profile() {
         protein_target_g: m.protein,
         carbs_target_g: m.carbs,
         fat_target_g: m.fat,
+        fiber_target_g: m.fiber,
       })
       .eq("id", user.id);
     setSaving(false);
@@ -251,7 +263,7 @@ function Profile() {
       weight_kg: w,
       age: a,
       gender: gender || profile.gender,
-      goal: goal || profile.goal,
+      goal: goalKey,
       activity_level: activity || profile.activity_level,
       bmi,
       bmr,
@@ -260,6 +272,7 @@ function Profile() {
       protein_target_g: m.protein,
       carbs_target_g: m.carbs,
       fat_target_g: m.fat,
+      fiber_target_g: m.fiber,
     });
     setIsEditing(false);
   };
@@ -495,14 +508,76 @@ function Profile() {
                     </div>
                     <div className="flex flex-col gap-1 col-span-2">
                       <Label className="text-xs text-muted-foreground">Goal</Label>
-                      <Select value={goal} onValueChange={setGoal}>
+                      <Select value={goal} onValueChange={(v) => { setGoal(v); setLoseRate(v === "gain" ? "gain_0_25kg" : "lose_0_25kg"); }}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Your goal" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Lose Weight">Lose Weight</SelectItem>
-                          <SelectItem value="Maintain Weight">Maintain Weight</SelectItem>
-                          <SelectItem value="Gain Muscle">Gain Muscle</SelectItem>
+                          {PRIMARY_GOALS.map(({ value, label, emoji }) => (
+                            <SelectItem key={value} value={value}>{emoji} {label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      {/* Rate sub-selector — shown when Lose Weight is selected */}
+                      {goal === "lose" && (
+                        <div className="mt-2 space-y-2">
+                          <Label className="text-xs text-muted-foreground">Weight loss rate</Label>
+                          {LOSE_RATE_OPTIONS.map(({ value, label, detail }) => (
+                            <label
+                              key={value}
+                              className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-colors ${
+                                loseRate === value
+                                  ? "border-accent bg-accent/10"
+                                  : "border-border bg-muted/30 hover:border-border/80"
+                              }`}
+                              onClick={() => setLoseRate(value)}
+                            >
+                              <div
+                                className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                                  loseRate === value ? "border-accent" : "border-muted-foreground/40"
+                                }`}
+                              >
+                                {loseRate === value && (
+                                  <div className="h-2 w-2 rounded-full bg-accent" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm">{label}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">{detail}</div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {/* Rate sub-selector — shown when Gain Muscle is selected */}
+                      {goal === "gain" && (
+                        <div className="mt-2 space-y-2">
+                          <Label className="text-xs text-muted-foreground">Weight gain rate</Label>
+                          {GAIN_RATE_OPTIONS.map(({ value, label, detail }) => (
+                            <label
+                              key={value}
+                              className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-colors ${
+                                loseRate === value
+                                  ? "border-accent bg-accent/10"
+                                  : "border-border bg-muted/30 hover:border-border/80"
+                              }`}
+                              onClick={() => setLoseRate(value)}
+                            >
+                              <div
+                                className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                                  loseRate === value ? "border-accent" : "border-muted-foreground/40"
+                                }`}
+                              >
+                                {loseRate === value && (
+                                  <div className="h-2 w-2 rounded-full bg-accent" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm">{label}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">{detail}</div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>
