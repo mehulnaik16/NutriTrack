@@ -31,3 +31,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# MCP Configs (contain DB credentials — never commit)
+mcp-config.json
+.gemini/

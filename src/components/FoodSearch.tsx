@@ -335,7 +335,7 @@ export const FoodSearch = forwardRef<
     ingredients?: any[];
   }) => {
     const { data: existing } = await supabase
-      .from("saved_meals" as any)
+      .from("saved_meals")
       .select("id")
       .eq("user_id", userId)
       .eq("name", mealData.name)
@@ -343,7 +343,7 @@ export const FoodSearch = forwardRef<
 
     if (existing) {
       const { error } = await supabase
-        .from("saved_meals" as any)
+        .from("saved_meals")
         .update(mealData)
         .eq("id", existing.id);
       if (error) {
@@ -351,7 +351,7 @@ export const FoodSearch = forwardRef<
         return false;
       }
     } else {
-      const { error } = await supabase.from("saved_meals" as any).insert({
+      const { error } = await supabase.from("saved_meals").insert({
         user_id: userId,
         ...mealData,
       });

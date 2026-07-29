@@ -27,6 +27,7 @@ import {
   calcTDEE,
   PRIMARY_GOALS,
   LOSE_RATE_OPTIONS,
+  GAIN_RATE_OPTIONS,
   resolveGoalKey,
 } from "@/lib/nutrition";
 
@@ -61,7 +62,7 @@ function Quiz() {
     activity: "Sedentary",
     goal: "maintain",
   });
-  const [loseRate, setLoseRate] = useState("lose_0_5kg");
+  const [loseRate, setLoseRate] = useState("lose_0_25kg");
   const [unit, setUnit] = useState<"kg" | "lb">("kg");
 
   const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
@@ -78,14 +79,27 @@ function Quiz() {
   const tdee    = useMemo(() => calcTDEE(bmr, d.activity), [bmr, d.activity]);
   const goalKey = useMemo(() => resolveGoalKey(d.goal, loseRate), [d.goal, loseRate]);
   const target  = useMemo(() => calcCalorieTarget(tdee, goalKey, d.gender), [tdee, goalKey, d.gender]);
-  const macros  = useMemo(() => calcMacros(target, goalKey), [target, goalKey]);
+  const macros  = useMemo(() => calcMacros(target, goalKey, d.weightKg), [target, goalKey, d.weightKg]);
 
   const canNext = () => {
     if (step === 1)
-      return d.fullName && d.email && d.password.length >= 6 && d.password.length <= 72 && d.password === d.repeatPassword && d.age > 0;
+      return (
+        d.fullName.trim() !== "" &&
+        d.email.trim() !== "" &&
+        d.password.length >= 6 &&
+        d.password.length <= 72 &&
+        d.password === d.repeatPassword &&
+        d.age >= 16
+      );
     if (step === 2) return d.heightCm > 0 && d.weightKg > 0;
     if (step === 3) return !!d.activity;
-    if (step === 4) return !!d.goal;
+    if (step === 4) {
+      if (!d.goal) return false;
+      // lose/gain goals need a rate chosen (loseRate must match the active goal)
+      if (d.goal === "lose") return loseRate.startsWith("lose_");
+      if (d.goal === "gain") return loseRate.startsWith("gain_");
+      return true; // maintain needs no sub-selection
+    }
     return true;
   };
 
@@ -143,9 +157,8 @@ function Quiz() {
           <span className="text-white font-bold tracking-wide">
             {step === 1 ? "Create Account (1/5)" : step === 2 ? "Body Stats (2/5)" : step === 3 ? "Activity (3/5)" : step === 4 ? "Goal (4/5)" : "Review (5/5)"}
           </span>
-          <button className="text-white/60 hover:text-white" onClick={() => step < 5 ? setStep(step + 1) : null}>
-            Skip
-          </button>
+          {/* no skip — all steps are required */}
+          <div className="w-10" />
         </div>
 
         <div className="animate-in fade-in slide-in-from-right-4 duration-500">
@@ -345,7 +358,7 @@ function Quiz() {
                 {/* Step 1: Primary goal cards */}
                 <RadioGroup
                   value={d.goal}
-                  onValueChange={(v) => set("goal", v)}
+                  onValueChange={(v) => { set("goal", v); setLoseRate(v === "gain" ? "gain_0_25kg" : "lose_0_25kg"); }}
                   className="grid gap-3"
                 >
                   {PRIMARY_GOALS.map(({ value, label, emoji }) => (
@@ -365,11 +378,43 @@ function Quiz() {
                   ))}
                 </RadioGroup>
 
-                {/* Step 2: Rate sub-selector — shown only when Lose Weight is chosen */}
+                {/* Rate sub-selector — shown only when Lose Weight is chosen */}
                 {d.goal === "lose" && (
                   <div className="mt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
                     <p className="text-sm text-white/60 font-medium">How fast do you want to lose weight?</p>
                     {LOSE_RATE_OPTIONS.map(({ value, label, detail }) => (
+                      <label
+                        key={value}
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${
+                          loseRate === value
+                            ? "border-[#E2FF00] bg-[#E2FF00]/10"
+                            : "border-[#1c1f26] bg-[#1c1f26] hover:border-white/20"
+                        }`}
+                        onClick={() => setLoseRate(value)}
+                      >
+                        <div
+                          className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                            loseRate === value ? "border-[#E2FF00]" : "border-white/40"
+                          }`}
+                        >
+                          {loseRate === value && (
+                            <div className="h-2 w-2 rounded-full bg-[#E2FF00]" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white">{label}</div>
+                          <div className="text-xs text-white/50 mt-0.5">{detail}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {/* Rate sub-selector — shown only when Gain Muscle is chosen */}
+                {d.goal === "gain" && (
+                  <div className="mt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <p className="text-sm text-white/60 font-medium">How fast do you want to gain?</p>
+                    {GAIN_RATE_OPTIONS.map(({ value, label, detail }) => (
                       <label
                         key={value}
                         className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${

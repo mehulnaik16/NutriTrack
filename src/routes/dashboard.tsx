@@ -66,6 +66,7 @@ import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { uploadWeightPhoto } from "@/services/storage";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -251,7 +252,7 @@ function Dashboard() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [{ data: p }, { data: t }, { data: m }, { data: w }, { data: wp }] =
+    const [{ data: p }, { data: t }, { data: m }, { data: w }, { data: wp }, { data: fav }] =
       await Promise.all([
         supabase
           .from("user_profiles")
@@ -283,7 +284,7 @@ function Dashboard() {
           .limit(1)
           .maybeSingle(),
         supabase
-          .from("saved_meals" as any)
+          .from("saved_meals")
           .select("name")
           .eq("user_id", user.id),
       ]);
@@ -307,27 +308,23 @@ function Dashboard() {
     if (!user || !newWeight) return;
     setSavingWeight(true);
     try {
-      let photo_url = null;
+      const payload: any = {
+        user_id: user.id,
+        date: today(),
+        weight_kg: +newWeight,
+      };
+
       if (photoFile) {
-        const ext = photoFile.name.split(".").pop();
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("weight-photos")
-          .upload(path, photoFile, { upsert: true });
-        if (!upErr) {
-          const { data: urlData } = supabase.storage
-            .from("weight-photos")
-            .getPublicUrl(path);
-          photo_url = urlData.publicUrl;
+        const result = await uploadWeightPhoto(photoFile, user.id);
+        if (result.error || !result.data) {
+          throw new Error(result.error ?? "Upload failed");
         }
+        payload.photo_url = result.data.publicUrl;
       }
 
       const { error } = await supabase
         .from("weight_entries")
-        .upsert(
-          { user_id: user.id, date: today(), weight_kg: +newWeight, photo_url },
-          { onConflict: "user_id,date" },
-        );
+        .upsert(payload, { onConflict: "user_id,date" });
       if (error) throw error;
 
       await supabase
@@ -423,7 +420,7 @@ function Dashboard() {
       { cal: 0, p: 0, c: 0, f: 0, fib: 0 },
     );
 
-    const { error } = await supabase.from("saved_meals" as any).insert({
+    const { error } = await supabase.from("saved_meals").insert({
       user_id: user.id,
       name: `My ${mealName}`,
       calories: sub.cal,
@@ -447,7 +444,7 @@ function Dashboard() {
     if (isFav) {
       // Remove from favorites
       const { error } = await supabase
-        .from("saved_meals" as any)
+        .from("saved_meals")
         .delete()
         .eq("user_id", user.id)
         .eq("name", l.food_name);
@@ -462,7 +459,7 @@ function Dashboard() {
       }
     } else {
       // Add to favorites
-      const { error } = await supabase.from("saved_meals" as any).insert({
+      const { error } = await supabase.from("saved_meals").insert({
         user_id: user.id,
         name: l.food_name,
         calories: l.calories,
