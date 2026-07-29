@@ -25,6 +25,9 @@ import {
   calcCalorieTarget,
   calcMacros,
   calcTDEE,
+  PRIMARY_GOALS,
+  LOSE_RATE_OPTIONS,
+  resolveGoalKey,
 } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/quiz")({ component: Quiz });
@@ -56,8 +59,9 @@ function Quiz() {
     heightCm: 170,
     weightKg: 70,
     activity: "Sedentary",
-    goal: "Maintain Weight",
+    goal: "maintain",
   });
+  const [loseRate, setLoseRate] = useState("lose_0_5kg");
   const [unit, setUnit] = useState<"kg" | "lb">("kg");
 
   const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
@@ -71,9 +75,10 @@ function Quiz() {
     () => calcBMR(d.weightKg, d.heightCm, d.age, d.gender),
     [d.weightKg, d.heightCm, d.age, d.gender],
   );
-  const tdee = useMemo(() => calcTDEE(bmr, d.activity), [bmr, d.activity]);
-  const target = useMemo(() => calcCalorieTarget(tdee, d.goal), [tdee, d.goal]);
-  const macros = useMemo(() => calcMacros(target), [target]);
+  const tdee    = useMemo(() => calcTDEE(bmr, d.activity), [bmr, d.activity]);
+  const goalKey = useMemo(() => resolveGoalKey(d.goal, loseRate), [d.goal, loseRate]);
+  const target  = useMemo(() => calcCalorieTarget(tdee, goalKey, d.gender), [tdee, goalKey, d.gender]);
+  const macros  = useMemo(() => calcMacros(target, goalKey), [target, goalKey]);
 
   const canNext = () => {
     if (step === 1)
@@ -107,7 +112,7 @@ function Quiz() {
         height_cm: d.heightCm,
         weight_kg: d.weightKg,
         activity_level: d.activity,
-        goal: d.goal,
+        goal: goalKey,
         bmi,
         bmr,
         tdee,
@@ -115,6 +120,7 @@ function Quiz() {
         protein_target_g: macros.protein,
         carbs_target_g: macros.carbs,
         fat_target_g: macros.fat,
+        fiber_target_g: macros.fiber,
       });
       if (pErr) throw pErr;
       toast.success("Account created!");
@@ -335,23 +341,62 @@ function Quiz() {
                 <p className="text-[#a0a4ab] mb-8 text-sm">
                   What are you trying to achieve?
                 </p>
+
+                {/* Step 1: Primary goal cards */}
                 <RadioGroup
                   value={d.goal}
                   onValueChange={(v) => set("goal", v)}
                   className="grid gap-3"
                 >
-                  {["Lose Weight", "Maintain Weight", "Gain Muscle"].map(
-                    (g) => (
-                      <label
-                        key={g}
-                        className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.goal === g ? 'border-[#E2FF00] bg-[#E2FF00]/10' : 'border-[#1c1f26] bg-[#1c1f26] hover:border-white/20'}`}
-                      >
-                        <RadioGroupItem value={g} className="border-[#E2FF00] text-[#E2FF00]" />
-                        <span className="font-medium text-white">{g}</span>
-                      </label>
-                    ),
-                  )}
+                  {PRIMARY_GOALS.map(({ value, label, emoji }) => (
+                    <label
+                      key={value}
+                      className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${
+                        d.goal === value
+                          ? "border-[#E2FF00] bg-[#E2FF00]/10"
+                          : "border-[#1c1f26] bg-[#1c1f26] hover:border-white/20"
+                      }`}
+                    >
+                      <RadioGroupItem value={value} className="border-[#E2FF00] text-[#E2FF00]" />
+                      <span className="font-medium text-white">
+                        {emoji} {label}
+                      </span>
+                    </label>
+                  ))}
                 </RadioGroup>
+
+                {/* Step 2: Rate sub-selector — shown only when Lose Weight is chosen */}
+                {d.goal === "lose" && (
+                  <div className="mt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <p className="text-sm text-white/60 font-medium">How fast do you want to lose weight?</p>
+                    {LOSE_RATE_OPTIONS.map(({ value, label, detail }) => (
+                      <label
+                        key={value}
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${
+                          loseRate === value
+                            ? "border-[#E2FF00] bg-[#E2FF00]/10"
+                            : "border-[#1c1f26] bg-[#1c1f26] hover:border-white/20"
+                        }`}
+                        onClick={() => setLoseRate(value)}
+                      >
+                        <div
+                          className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                            loseRate === value ? "border-[#E2FF00]" : "border-white/40"
+                          }`}
+                        >
+                          {loseRate === value && (
+                            <div className="h-2 w-2 rounded-full bg-[#E2FF00]" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white">{label}</div>
+                          <div className="text-xs text-white/50 mt-0.5">{detail}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
                 {target > 0 && (
                   <div className="rounded-xl border border-[#E2FF00]/30 bg-[#E2FF00]/10 p-4 mt-8">
                     <div className="text-xs text-[#E2FF00] font-bold uppercase tracking-wider text-center mb-1">
