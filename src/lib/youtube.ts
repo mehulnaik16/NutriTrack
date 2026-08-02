@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import ytSearch from "yt-search";
 
 export const searchYouTube = createServerFn({ method: "GET" })
-  .validator((d: string) => d)
+  .inputValidator((d: string) => d)
   .handler(async (ctx) => {
     try {
       const results = await ytSearch(ctx.data + " exercise form tutorial");
