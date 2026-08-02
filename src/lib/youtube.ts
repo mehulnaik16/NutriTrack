@@ -7,9 +7,10 @@ export const searchYouTube = createServerFn({ method: "GET" })
   .handler(async (ctx) => {
     try {
       const results = await ytSearch(ctx.data + " exercise form tutorial");
-      return results.videos.slice(0, 3).map((v: any) => ({
+      const videos = results.videos || results.all || [];
+      return videos.slice(0, 3).map((v: any) => ({
         title: v.title,
-        channel: v.author.name,
+        channel: v.author?.name || v.channel?.name || "YouTube",
         watch_url: v.url,
         embed_url: `https://www.youtube.com/embed/${v.videoId}`,
       }));

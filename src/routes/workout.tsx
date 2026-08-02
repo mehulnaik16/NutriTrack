@@ -241,17 +241,18 @@ function WorkoutPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 animate-in fade-in">
+          <div className="flex flex-col gap-3 animate-in fade-in">
             {MUSCLES.map((m) => (
               <button
                 key={m.id}
                 onClick={() => setSelectedMuscle(m.id)}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md`}
+                className={`flex items-center justify-between p-5 rounded-2xl bg-gradient-to-br ${m.color} border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md`}
               >
-                <Dumbbell className="h-6 w-6 text-foreground/70 mb-2" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-center">
-                  {m.name}
-                </span>
+                <div className="flex flex-col items-start gap-1">
+                  <span className="font-black text-lg text-white drop-shadow-md">{m.name}</span>
+                  <span className="text-xs font-bold text-white/80 uppercase tracking-widest">{m.count} Exercises</span>
+                </div>
+                <Dumbbell className="h-8 w-8 text-white/50 drop-shadow-sm" />
               </button>
             ))}
           </div>
