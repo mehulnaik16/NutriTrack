@@ -83,6 +83,13 @@ function WorkoutPage() {
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Collect all exercises flattened for searching
+  const allExercises = useMemo(() => {
+    const all: string[] = [];
+    Object.values(EXERCISES_DB).forEach(list => all.push(...list));
+    return Array.from(new Set(all));
+  }, []);
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -137,13 +144,6 @@ function WorkoutPage() {
   // --- UI Components ---
 
   const renderMuscleGrid = () => {
-    // Collect all exercises flattened for searching
-    const allExercises = useMemo(() => {
-      const all: string[] = [];
-      Object.values(EXERCISES_DB).forEach(list => all.push(...list));
-      return Array.from(new Set(all));
-    }, []);
-
     const searchResults = searchQuery
       ? allExercises.filter(ex => ex.toLowerCase().includes(searchQuery.toLowerCase()))
       : [];
