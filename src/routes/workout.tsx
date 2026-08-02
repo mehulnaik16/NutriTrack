@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Flame,
   Dumbbell,
@@ -14,6 +14,7 @@ import {
   RotateCcw,
   LineChart,
   ChevronRight,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
@@ -32,7 +33,9 @@ import { Slider } from "@/components/ui/slider";
 
 export const Route = createFileRoute("/workout")({ component: WorkoutPage });
 
+import { searchYouTube } from "@/lib/youtube";
 import { EXERCISES_DB } from "@/lib/exercises";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MUSCLES = [
   { id: "chest", name: "Chest", color: "from-red-500/20 to-orange-500/20" },
@@ -78,6 +81,7 @@ function WorkoutPage() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [recentExercises, setRecentExercises] = useState<string[]>([]);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (loading) return;
@@ -132,24 +136,128 @@ function WorkoutPage() {
 
   // --- UI Components ---
 
-  const renderMuscleGrid = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-3">
-        {MUSCLES.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => setSelectedMuscle(m.id)}
-            className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md`}
-          >
-            <Dumbbell className="h-6 w-6 text-foreground/70 mb-2" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-center">
-              {m.name}
-            </span>
-          </button>
-        ))}
+  const renderMuscleGrid = () => {
+    // Collect all exercises flattened for searching
+    const allExercises = useMemo(() => {
+      const all: string[] = [];
+      Object.values(EXERCISES_DB).forEach(list => all.push(...list));
+      return Array.from(new Set(all));
+    }, []);
+
+    const searchResults = searchQuery
+      ? allExercises.filter(ex => ex.toLowerCase().includes(searchQuery.toLowerCase()))
+      : [];
+
+    if (searchQuery) {
+      searchResults.sort((a, b) => {
+        // 1. Favorites
+        const aFav = favorites.includes(a);
+        const bFav = favorites.includes(b);
+        if (aFav && !bFav) return -1;
+        if (!aFav && bFav) return 1;
+
+        // 2. Logged Today
+        const aLogged = loggedToday.includes(a);
+        const bLogged = loggedToday.includes(b);
+        if (aLogged && !bLogged) return -1;
+        if (!aLogged && bLogged) return 1;
+
+        // 3. Recently used
+        const aRecentIdx = recentExercises.indexOf(a);
+        const bRecentIdx = recentExercises.indexOf(b);
+        const aRecent = aRecentIdx !== -1;
+        const bRecent = bRecentIdx !== -1;
+        
+        if (aRecent && !bRecent) return -1;
+        if (!aRecent && bRecent) return 1;
+        if (aRecent && bRecent) return aRecentIdx - bRecentIdx;
+
+        // 4. Alphabetical
+        return a.localeCompare(b);
+      });
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search all exercises..."
+            className="pl-10 h-14 text-md bg-card/50 backdrop-blur-sm border-border/50 shadow-sm rounded-2xl transition-all focus-visible:ring-accent"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground bg-muted/50 rounded-full transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {searchQuery ? (
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50 animate-in fade-in slide-in-from-bottom-2">
+            {searchResults.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground flex flex-col items-center">
+                <Dumbbell className="h-10 w-10 mb-3 opacity-20" />
+                <p className="font-medium text-sm">No exercises found.</p>
+                <p className="text-xs opacity-60">Try checking spelling or using a different term.</p>
+              </div>
+            ) : (
+              searchResults.map((ex, i) => {
+                const isFav = favorites.includes(ex);
+                const isLogged = loggedToday.includes(ex);
+                return (
+                  <div
+                    key={ex}
+                    className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10 cursor-pointer group"
+                    onClick={() => setSelectedExercise(ex)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-sm group-hover:text-accent transition-colors">{ex}</span>
+                      {isLogged && (
+                        <span className="text-[9px] uppercase font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded">
+                          Logged
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(ex);
+                      }}
+                      className="p-2 -mr-2 transition-transform hover:scale-110 active:scale-90"
+                    >
+                      <Heart
+                        className={`h-4 w-4 ${isFav ? "fill-red-500 text-red-500" : "text-muted-foreground hover:text-red-400"}`}
+                      />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-3 animate-in fade-in">
+            {MUSCLES.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setSelectedMuscle(m.id)}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md`}
+              >
+                <Dumbbell className="h-6 w-6 text-foreground/70 mb-2" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">
+                  {m.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderCardioList = () => (
     <div className="space-y-3">
@@ -350,6 +458,30 @@ function WorkoutPage() {
 
   const GymLogModal = () => {
     const [sets, setSets] = useState([{ reps: "10", weight: "20" }]);
+    const [history, setHistory] = useState<any[]>([]);
+    const [videos, setVideos] = useState<any[]>([]);
+    const [loadingMedia, setLoadingMedia] = useState(false);
+
+    useEffect(() => {
+      if (selectedExercise && user) {
+        supabase
+          .from("workout_logs")
+          .select("date, exercises_done")
+          .eq("user_id", user.id)
+          .eq("workout_name", selectedExercise)
+          .order("date", { ascending: false })
+          .limit(10)
+          .then(({ data }) => setHistory(data || []));
+
+        setLoadingMedia(true);
+        searchYouTube({ data: selectedExercise })
+          .then((res) => {
+            setVideos(res || []);
+            setLoadingMedia(false);
+          })
+          .catch(() => setLoadingMedia(false));
+      }
+    }, [selectedExercise, user]);
 
     const handleLog = async () => {
       if (!user) return;
@@ -373,72 +505,68 @@ function WorkoutPage() {
 
     return (
       <Dialog open={!!selectedExercise} onOpenChange={() => setSelectedExercise(null)}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent">
               {selectedExercise}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6 pt-4">
-            <div className="h-40 bg-gradient-to-br from-muted/50 to-muted rounded-2xl border border-border/50 flex items-center justify-center relative overflow-hidden shadow-inner">
-              <Play className="h-10 w-10 text-muted-foreground/30" />
-              <div className="absolute inset-0 flex items-end p-3 bg-gradient-to-t from-background/90 to-transparent">
-                <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Form Video</span>
-              </div>
-            </div>
 
-            <div className="flex justify-between items-center bg-muted/20 p-2 rounded-xl border border-border/50">
-              <Button variant="ghost" size="sm" className="gap-2 flex-1 rounded-lg hover:bg-background"><Play className="h-4 w-4"/> Video</Button>
-              <Button variant="ghost" size="sm" className="gap-2 flex-1 rounded-lg hover:bg-background"><User className="h-4 w-4"/> Form</Button>
-              <Button variant="ghost" size="sm" className="gap-2 flex-1 rounded-lg hover:bg-background"><LineChart className="h-4 w-4"/> History</Button>
-            </div>
+          <Tabs defaultValue="log" className="w-full mt-2">
+            <TabsList className="w-full flex">
+              <TabsTrigger value="log" className="flex-1 font-bold"><Plus className="w-4 h-4 mr-2"/> Log</TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 font-bold"><LineChart className="w-4 h-4 mr-2"/> History</TabsTrigger>
+              <TabsTrigger value="video" className="flex-1 font-bold"><Play className="w-4 h-4 mr-2"/> Tutorial</TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-3 bg-background/50 p-4 rounded-2xl border border-border/50">
-              <div className="flex font-bold text-[10px] uppercase tracking-widest text-muted-foreground px-2">
-                <div className="w-12 text-center">Set</div>
-                <div className="flex-1 text-center">Reps</div>
-                <div className="flex-1 text-center">Weight</div>
+            <TabsContent value="log" className="space-y-6 pt-4">
+              <div className="bg-muted/20 p-5 rounded-2xl border border-border/50">
+                <div className="flex justify-between items-center mb-4 px-2">
+                  <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Set</span>
+                  <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Reps</span>
+                  <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Lbs / Kg</span>
+                </div>
+                <div className="space-y-2">
+                  {sets.map((s, i) => (
+                    <div key={i} className="flex gap-3 items-center bg-card p-2 rounded-xl border border-border shadow-sm">
+                      <div className="w-10 text-center font-black text-muted-foreground">{i + 1}.</div>
+                      <Input
+                        type="number"
+                        className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                        value={s.reps}
+                        onChange={(e) => {
+                          const n = [...sets];
+                          n[i].reps = e.target.value;
+                          setSets(n);
+                        }}
+                      />
+                      <Input
+                        type="number"
+                        className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                        value={s.weight}
+                        onChange={(e) => {
+                          const n = [...sets];
+                          n[i].weight = e.target.value;
+                          setSets(n);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full mt-4 text-xs font-bold border-dashed border-border/50 rounded-xl h-10 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"
+                  onClick={() => setSets([...sets, { reps: "10", weight: sets[sets.length - 1].weight }])}
+                >
+                  <Plus className="mr-2 h-3 w-3" /> Add Set
+                </Button>
               </div>
-              <div className="space-y-2">
-                {sets.map((s, i) => (
-                  <div key={i} className="flex gap-3 items-center bg-card p-2 rounded-xl border border-border shadow-sm">
-                    <div className="w-10 text-center font-black text-muted-foreground">{i + 1}.</div>
-                    <Input
-                      type="number"
-                      className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
-                      value={s.reps}
-                      onChange={(e) => {
-                        const n = [...sets];
-                        n[i].reps = e.target.value;
-                        setSets(n);
-                      }}
-                    />
-                    <Input
-                      type="number"
-                      className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
-                      value={s.weight}
-                      onChange={(e) => {
-                        const n = [...sets];
-                        n[i].weight = e.target.value;
-                        setSets(n);
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                className="w-full text-xs font-bold border-dashed border-border/50 rounded-xl h-10 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"
-                onClick={() => setSets([...sets, { reps: "10", weight: sets[sets.length - 1].weight }])}
-              >
-                <Plus className="mr-2 h-3 w-3" /> Add Set
+
+              <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
+                <Plus className="mr-2 h-5 w-5" /> Log Workout
               </Button>
-            </div>
-
-            <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
-              <Plus className="mr-2 h-5 w-5" /> Log Workout
-            </Button>
-          </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     );
