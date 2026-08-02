@@ -12,8 +12,8 @@ import {
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
-
 export function Header({ name }: { name?: string }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
