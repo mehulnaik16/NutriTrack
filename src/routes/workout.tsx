@@ -180,13 +180,21 @@ function WorkoutPage() {
     const muscleInfo = MUSCLES.find((m) => m.id === selectedMuscle);
     const exercises = EXERCISES_DB[selectedMuscle] || [];
 
-    // Sort: favorites first, then recent, then alphabetical
+    // Sort: favorites first, then logged today, then recent, then alphabetical
     const sorted = [...exercises].sort((a, b) => {
+      // 1. Favorites
       const aFav = favorites.includes(a);
       const bFav = favorites.includes(b);
       if (aFav && !bFav) return -1;
       if (!aFav && bFav) return 1;
 
+      // 2. Logged Today
+      const aLogged = loggedToday.includes(a);
+      const bLogged = loggedToday.includes(b);
+      if (aLogged && !bLogged) return -1;
+      if (!aLogged && bLogged) return 1;
+
+      // 3. Recently used
       const aRecentIdx = recentExercises.indexOf(a);
       const bRecentIdx = recentExercises.indexOf(b);
       const aRecent = aRecentIdx !== -1;
@@ -196,6 +204,7 @@ function WorkoutPage() {
       if (!aRecent && bRecent) return 1;
       if (aRecent && bRecent) return aRecentIdx - bRecentIdx;
 
+      // 4. Alphabetical
       return a.localeCompare(b);
     });
 
