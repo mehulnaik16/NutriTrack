@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   Calendar as CalendarIcon,
   X,
-  Target,
   Plus,
   RotateCcw,
   LineChart,
@@ -83,6 +82,36 @@ function WorkoutPage() {
   // DB States
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
+  const [workoutStreak, setWorkoutStreak] = useState(0);
+  const [foodStreak, setFoodStreak] = useState(0);
+
+  // Compute consecutive-day streak from a set of date strings
+  const computeStreak = useCallback((dateStrings: string[]) => {
+    const dates = new Set(dateStrings);
+    if (dates.size === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let streak = 0;
+    const check = new Date(today);
+
+    // If today not logged yet, start counting from yesterday
+    const todayStr = check.toISOString().split("T")[0];
+    if (!dates.has(todayStr)) {
+      check.setDate(check.getDate() - 1);
+    }
+
+    while (true) {
+      const dateStr = check.toISOString().split("T")[0];
+      if (dates.has(dateStr)) {
+        streak++;
+        check.setDate(check.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -95,8 +124,6 @@ function WorkoutPage() {
 
   const loadUserData = async () => {
     if (!user) return;
-    // Load favorites from a custom table or preferences?
-    // For now we simulate with localStorage for demo purposes
     const favs = JSON.parse(localStorage.getItem("workout_favorites") || "[]");
     setFavorites(favs);
 
@@ -109,6 +136,31 @@ function WorkoutPage() {
       .eq("date", today);
     if (data) {
       setLoggedToday(data.map((d) => d.workout_name));
+    }
+
+    // Streak calc: last 90 days
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const cutoff = ninetyDaysAgo.toISOString().split("T")[0];
+
+    // Workout streak
+    const { data: wLogs } = await supabase
+      .from("workout_logs")
+      .select("date")
+      .eq("user_id", user.id)
+      .gte("date", cutoff);
+    if (wLogs) {
+      setWorkoutStreak(computeStreak(wLogs.map((r) => r.date)));
+    }
+
+    // Food streak
+    const { data: fLogs } = await supabase
+      .from("food_logs")
+      .select("date")
+      .eq("user_id", user.id)
+      .gte("date", cutoff);
+    if (fLogs) {
+      setFoodStreak(computeStreak(fLogs.map((r) => r.date)));
     }
   };
 
@@ -525,20 +577,24 @@ function WorkoutPage() {
       <Header />
       <main className="mx-auto max-w-md p-5 pt-8 space-y-8">
         
-        {/* Top Bar */}
-        <div className="flex items-center justify-between bg-card p-4 rounded-2xl border border-border/50 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="bg-accent/10 p-2.5 rounded-xl text-accent">
-              <Target className="h-6 w-6" />
+        {/* Streak Cards */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-3 bg-card p-4 rounded-2xl border border-border/50 shadow-sm">
+            <div className="bg-orange-500/10 p-2.5 rounded-xl">
+              <Flame className="h-6 w-6 text-orange-500" />
             </div>
             <div>
-              <h1 className="text-lg font-black tracking-tight leading-none uppercase">Workout Plan</h1>
-              <p className="text-[10px] font-bold text-muted-foreground tracking-widest mt-1">LOG PROGRESS</p>
+              <p className="text-2xl font-black leading-none">{workoutStreak}</p>
+              <p className="text-[9px] font-bold text-muted-foreground tracking-widest mt-1 uppercase">Workout Streak</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="h-11 w-11 rounded-full bg-muted border-2 border-border/50 overflow-hidden ring-2 ring-background shadow-sm">
-              <User className="h-full w-full p-2.5 text-muted-foreground/40" />
+          <div className="flex items-center gap-3 bg-card p-4 rounded-2xl border border-border/50 shadow-sm">
+            <div className="bg-green-500/10 p-2.5 rounded-xl">
+              <Activity className="h-6 w-6 text-green-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-black leading-none">{foodStreak}</p>
+              <p className="text-[9px] font-bold text-muted-foreground tracking-widest mt-1 uppercase">Food Streak</p>
             </div>
           </div>
         </div>
