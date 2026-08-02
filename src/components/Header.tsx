@@ -120,22 +120,26 @@ export function Header({ name }: { name?: string }) {
         <div className="hidden flex-row items-center gap-4 md:flex">
           {user && (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className={`h-9 px-3 gap-1.5 font-bold transition-all ${streakGlow(workoutStreak)}`}
-              >
-                <Dumbbell className={`h-4 w-4 ${workoutStreak > 0 ? "text-orange-500" : ""}`} />
-                {workoutStreak}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={`h-9 px-3 gap-1.5 font-bold transition-all ${foodGlow(foodStreak)}`}
-              >
-                <Utensils className={`h-4 w-4 ${foodStreak > 0 ? "text-green-500" : ""}`} />
-                {foodStreak}
-              </Button>
+              {(!pathname.includes("/food")) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-9 px-3 gap-1.5 font-bold transition-all ${streakGlow(workoutStreak)}`}
+                >
+                  <Dumbbell className={`h-4 w-4 ${workoutStreak > 0 ? "text-orange-500" : ""}`} />
+                  {workoutStreak}
+                </Button>
+              )}
+              {(!pathname.includes("/workout")) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-9 px-3 gap-1.5 font-bold transition-all ${foodGlow(foodStreak)}`}
+                >
+                  <Utensils className={`h-4 w-4 ${foodStreak > 0 ? "text-green-500" : ""}`} />
+                  {foodStreak}
+                </Button>
+              )}
             </div>
           )}
 
