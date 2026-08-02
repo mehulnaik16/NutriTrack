@@ -28,6 +28,7 @@ export function Header({ name }: { name?: string }) {
 
   const [workoutStreak, setWorkoutStreak] = useState(0);
   const [foodStreak, setFoodStreak] = useState(0);
+  const [overallStreak, setOverallStreak] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -48,13 +49,24 @@ export function Header({ name }: { name?: string }) {
 
     const fetchStreaks = async () => {
       const { data: wData } = await supabase.from("workout_logs").select("date").eq("user_id", user.id).order("date", { ascending: false });
-      if (wData) setWorkoutStreak(computeStreak(wData.map((d: any) => d.date)));
+      const wDates = wData ? wData.map((d: any) => d.date) : [];
+      setWorkoutStreak(computeStreak(wDates));
 
       const { data: fData } = await supabase.from("food_logs").select("date").eq("user_id", user.id).order("date", { ascending: false });
-      if (fData) setFoodStreak(computeStreak(fData.map((d: any) => d.date)));
+      const fDates = fData ? fData.map((d: any) => d.date) : [];
+      setFoodStreak(computeStreak(fDates));
+      
+      setOverallStreak(computeStreak([...wDates, ...fDates]));
     };
     fetchStreaks();
   }, [user, pathname]);
+
+  const overallGlow = (s: number) =>
+    s > 7
+      ? "border-blue-500 text-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+      : s > 0
+        ? "border-blue-400 text-blue-500"
+        : "text-muted-foreground";
 
   const streakGlow = (s: number) =>
     s > 7
@@ -118,9 +130,19 @@ export function Header({ name }: { name?: string }) {
           )}
         </div>
         <div className="hidden flex-row items-center gap-4 md:flex">
+
+          <div className="flex flex-col items-end text-right">
+            {name && (
+              <span className="text-sm font-medium">Hey, {name} 👋</span>
+            )}
+            <span className="text-xs text-muted-foreground">{today}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
           {user && (
-            <div className="flex items-center gap-2">
-              {(!pathname.includes("/food")) && (
+            <>
+              {pathname.includes("/workout") ? (
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button
@@ -159,8 +181,7 @@ export function Header({ name }: { name?: string }) {
                     </div>
                   </DialogContent>
                 </Dialog>
-              )}
-              {(!pathname.includes("/workout")) && (
+              ) : pathname.includes("/food") ? (
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button
@@ -199,21 +220,46 @@ export function Header({ name }: { name?: string }) {
                     </div>
                   </DialogContent>
                 </Dialog>
+              ) : (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={`h-9 px-3 gap-1.5 font-bold transition-all ${overallGlow(overallStreak)}`}
+                    >
+                      <Flame className={`h-4 w-4 ${overallStreak > 0 ? "text-blue-500" : ""}`} />
+                      {overallStreak}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[380px] p-0 border-0 bg-transparent shadow-none">
+                    <div className="bg-card rounded-xl border-accent/20 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center p-6">
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
+                      <div className="relative mb-4">
+                        <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full" />
+                        <div className="relative flex items-center justify-center h-28 w-28 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-full text-white shadow-xl shadow-blue-500/20 animate-in zoom-in duration-500">
+                          <Flame className="absolute h-32 w-32 opacity-20" />
+                          <span className="text-5xl font-black z-10">{overallStreak}</span>
+                        </div>
+                      </div>
+                      <h3 className="text-2xl font-black tracking-tight mb-1">Day Streak</h3>
+                      <div className="flex w-full justify-between items-center bg-muted/30 rounded-2xl p-4 mt-4">
+                        {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => {
+                          const isToday = i === new Date().getDay() - 1 || (new Date().getDay() === 0 && i === 6);
+                          return (
+                            <div key={i} className="flex flex-col items-center gap-2">
+                              <span className="text-xs font-bold text-muted-foreground">{day}</span>
+                              <div className={`flex items-center justify-center h-8 w-8 rounded-full text-xs font-bold ${isToday ? "bg-blue-500 text-white shadow-md shadow-blue-500/20" : "bg-muted text-muted-foreground/50"}`}>
+                                {isToday ? "✓" : i + 1}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               )}
-            </div>
-          )}
-
-          <div className="flex flex-col items-end text-right">
-            {name && (
-              <span className="text-sm font-medium">Hey, {name} 👋</span>
-            )}
-            <span className="text-xs text-muted-foreground">{today}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {user && (
-            <>
               <Button
                 variant="ghost"
                 size="icon"
