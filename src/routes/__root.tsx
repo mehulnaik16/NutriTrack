@@ -44,7 +44,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             "Track calories, macros, and progress toward your fitness goals.",
         },
       ],
-      links: [{ rel: "stylesheet", href: appCss }],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        { rel: "icon", type: "image/jpeg", href: "/favicon.jpg" }
+      ],
     }),
     shellComponent: RootShell,
     component: RootComponent,
