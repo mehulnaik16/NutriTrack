@@ -603,6 +603,61 @@ function WorkoutPage() {
                 <Plus className="mr-2 h-5 w-5" /> Log Workout
               </Button>
             </TabsContent>
+
+            <TabsContent value="history" className="space-y-4 pt-4">
+              {history.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground font-semibold">
+                  No history logged yet.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {history.map((log, idx) => (
+                    <div key={idx} className="bg-muted/20 p-4 rounded-xl border border-border/50">
+                      <div className="font-bold text-accent mb-2 border-b border-border/50 pb-2">
+                        {new Date(log.date).toLocaleDateString()}
+                      </div>
+                      <div className="space-y-1">
+                        {log.exercises_done?.map((set: any, sIdx: number) => (
+                          <div key={sIdx} className="flex justify-between text-sm">
+                            <span className="font-semibold text-muted-foreground">Set {sIdx + 1}</span>
+                            <span className="font-bold">{set.reps} reps @ {set.weight} kg</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="video" className="space-y-4 pt-4">
+              {loadingMedia ? (
+                <div className="text-center py-8 text-muted-foreground font-semibold animate-pulse">
+                  Loading tutorials...
+                </div>
+              ) : videos.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground font-semibold">
+                  No tutorials found.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {videos.map((vid, idx) => (
+                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm border border-border/50">
+                      <iframe
+                        src={vid.embed_url}
+                        title={vid.title}
+                        className="w-full aspect-video"
+                        allowFullScreen
+                      />
+                      <div className="bg-card p-3">
+                        <div className="text-sm font-bold line-clamp-1">{vid.title}</div>
+                        <div className="text-xs text-muted-foreground font-semibold mt-1">{vid.channel}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </DialogContent>
       </Dialog>
