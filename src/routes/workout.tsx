@@ -35,6 +35,7 @@ export const Route = createFileRoute("/workout")({ component: WorkoutPage });
 
 import { searchYouTube } from "@/lib/youtube";
 import { EXERCISES_DB } from "@/lib/exercises";
+import { HOME_WORKOUTS } from "@/lib/homeWorkouts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MUSCLES = [
@@ -255,6 +256,42 @@ function WorkoutPage() {
             ))}
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderHomeWorkouts = () => {
+    return (
+      <div className="space-y-6 pb-20">
+        <div className="flex justify-between items-center px-2">
+          <h2 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+            <Flame className="w-6 h-6 text-accent" />
+            Home Routines
+          </h2>
+        </div>
+
+        <div className="space-y-4">
+          {HOME_WORKOUTS.map((routine) => (
+            <div key={routine.name} className="bg-card rounded-2xl p-5 border border-border shadow-sm overflow-hidden relative">
+              <h3 className="text-lg font-bold mb-4 pr-10 text-card-foreground">{routine.name}</h3>
+              <div className="space-y-3 relative z-10">
+                {routine.exercises.map((ex, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                    <span className="font-semibold text-muted-foreground">{ex.name}</span>
+                    <span className="font-bold text-accent">{ex.sets}</span>
+                  </div>
+                ))}
+              </div>
+              <Button 
+                onClick={() => {
+                  setSelectedExercise(routine.name);
+                }}
+                className="w-full mt-4 font-bold h-12 rounded-xl bg-accent/10 text-accent hover:bg-accent hover:text-accent-foreground transition-all">
+                Log Routine
+              </Button>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
@@ -696,6 +733,8 @@ function WorkoutPage() {
         <div className="pt-2">
           {selectedMuscle ? (
             renderMuscleDetail()
+          ) : activeTab === "HOME" ? (
+            renderHomeWorkouts()
           ) : activeTab === "CARDIO" ? (
             renderCardioList()
           ) : (
