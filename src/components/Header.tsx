@@ -7,11 +7,10 @@ import {
   Utensils,
   User as UserIcon,
   Trophy,
-  Flame,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 
@@ -27,48 +26,48 @@ export function Header({ name }: { name?: string }) {
     day: "numeric",
   });
 
-  const [streak, setStreak] = useState(0);
+  const [workoutStreak, setWorkoutStreak] = useState(0);
+  const [foodStreak, setFoodStreak] = useState(0);
 
   useEffect(() => {
     if (!user) return;
-    const fetchStreak = async () => {
-      let data;
-      if (pathname.includes("/workout")) {
-        const { data: d } = await supabase.from("workout_logs").select("date").eq("user_id", user.id).order("date", { ascending: false });
-        data = d;
-      } else if (pathname.includes("/weight")) {
-        const { data: d } = await supabase.from("weight_entries").select("date").eq("user_id", user.id).order("date", { ascending: false });
-        data = d;
-      } else {
-        const { data: d } = await supabase.from("food_logs").select("date").eq("user_id", user.id).order("date", { ascending: false });
-        data = d;
-      }
-        
-      if (!data || data.length === 0) return setStreak(0);
-      const uniqueDates = [...new Set(data.map((d: any) => d.date))].sort().reverse();
+    const computeStreak = (dates: string[]) => {
+      const unique = new Set(dates);
+      if (unique.size === 0) return 0;
       let s = 0;
       const check = new Date();
-      for (const d of uniqueDates) {
-        const expected = check.toISOString().slice(0, 10);
-        if (d === expected) {
-          s++;
-          check.setDate(check.getDate() - 1);
-        } else if (d === new Date().toISOString().slice(0, 10)) {
-          continue;
-        } else {
-          break;
-        }
+      const todayStr = check.toISOString().slice(0, 10);
+      if (!unique.has(todayStr)) check.setDate(check.getDate() - 1);
+      while (true) {
+        const d = check.toISOString().slice(0, 10);
+        if (unique.has(d)) { s++; check.setDate(check.getDate() - 1); }
+        else break;
       }
-      setStreak(s);
+      return s;
     };
-    fetchStreak();
+
+    const fetchStreaks = async () => {
+      const { data: wData } = await supabase.from("workout_logs").select("date").eq("user_id", user.id).order("date", { ascending: false });
+      if (wData) setWorkoutStreak(computeStreak(wData.map((d: any) => d.date)));
+
+      const { data: fData } = await supabase.from("food_logs").select("date").eq("user_id", user.id).order("date", { ascending: false });
+      if (fData) setFoodStreak(computeStreak(fData.map((d: any) => d.date)));
+    };
+    fetchStreaks();
   }, [user, pathname]);
 
-  const neonGlow =
-    streak > 7
-      ? "border-orange-500 text-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)] hover:bg-orange-500/10 hover:shadow-[0_0_15px_rgba(249,115,22,0.8)]"
-      : streak > 0
+  const streakGlow = (s: number) =>
+    s > 7
+      ? "border-orange-500 text-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+      : s > 0
         ? "border-orange-400 text-orange-500"
+        : "text-muted-foreground";
+
+  const foodGlow = (s: number) =>
+    s > 7
+      ? "border-green-500 text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"
+      : s > 0
+        ? "border-green-400 text-green-500"
         : "text-muted-foreground";
 
   return (
@@ -118,78 +117,26 @@ export function Header({ name }: { name?: string }) {
             </nav>
           )}
         </div>
-
         <div className="hidden flex-row items-center gap-4 md:flex">
           {user && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={`h-9 px-3 gap-1.5 font-bold transition-all ${neonGlow}`}
-                >
-                  <Flame
-                    className={`h-4 w-4 ${streak > 0 ? "fill-current" : ""}`}
-                  />
-                  {streak}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[380px] p-0 border-0 bg-transparent shadow-none">
-                <div className="bg-card rounded-xl border-accent/20 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center p-6">
-                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-red-500/5 to-transparent pointer-events-none" />
-
-                  <div className="relative mb-4">
-                    <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full" />
-                    <div className="relative flex items-center justify-center h-28 w-28 bg-gradient-to-tr from-red-600 to-orange-400 rounded-full text-white shadow-xl shadow-red-500/20 animate-in zoom-in duration-500">
-                      <Flame className="absolute h-32 w-32 opacity-20" />
-                      <span className="text-5xl font-black z-10">{streak}</span>
-                    </div>
-                  </div>
-
-                  <h3 className="text-2xl font-black tracking-tight mb-1">
-                    Day Streak
-                  </h3>
-                  <div className="flex items-center gap-2 text-muted-foreground font-medium mb-6">
-                    <span className="opacity-50">🌿</span>
-                    <span>
-                      Best:{" "}
-                      <span className="text-blue-500 font-bold">
-                        {Math.max(
-                          streak,
-                          parseInt(
-                            localStorage.getItem("longest_streak") || "0",
-                          ),
-                        )}{" "}
-                        days
-                      </span>
-                    </span>
-                    <span className="opacity-50">🌿</span>
-                  </div>
-
-                  <div className="flex w-full justify-between items-center bg-muted/30 rounded-2xl p-4">
-                    {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => {
-                      const isToday =
-                        i === new Date().getDay() - 1 ||
-                        (new Date().getDay() === 0 && i === 6);
-                      return (
-                        <div
-                          key={i}
-                          className="flex flex-col items-center gap-2"
-                        >
-                          <span className="text-xs font-bold text-muted-foreground">
-                            {day}
-                          </span>
-                          <div
-                            className={`flex items-center justify-center h-8 w-8 rounded-full text-xs font-bold ${isToday ? "bg-blue-500 text-white shadow-md shadow-blue-500/20" : "bg-muted text-muted-foreground/50"}`}
-                          >
-                            {isToday ? "✓" : i + 1}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className={`h-9 px-3 gap-1.5 font-bold transition-all ${streakGlow(workoutStreak)}`}
+              >
+                <Dumbbell className={`h-4 w-4 ${workoutStreak > 0 ? "text-orange-500" : ""}`} />
+                {workoutStreak}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`h-9 px-3 gap-1.5 font-bold transition-all ${foodGlow(foodStreak)}`}
+              >
+                <Utensils className={`h-4 w-4 ${foodStreak > 0 ? "text-green-500" : ""}`} />
+                {foodStreak}
+              </Button>
+            </div>
           )}
 
           <div className="flex flex-col items-end text-right">
