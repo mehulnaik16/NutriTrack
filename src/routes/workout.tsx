@@ -73,6 +73,7 @@ function WorkoutPage() {
   // State for sub-views
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
+  const [selectedHomeRoutine, setSelectedHomeRoutine] = useState<string | null>(null);
   const [selectedCardio, setSelectedCardio] = useState<string | null>(null);
 
   // Questionnaire Wizard state
@@ -241,18 +242,16 @@ function WorkoutPage() {
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-3 animate-in fade-in">
+          <div className="grid grid-cols-3 gap-3 animate-in fade-in">
             {MUSCLES.map((m) => (
               <button
                 key={m.id}
                 onClick={() => setSelectedMuscle(m.id)}
-                className={`flex items-center justify-between p-5 rounded-2xl bg-gradient-to-br ${m.color} border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md`}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md`}
               >
-                <div className="flex flex-col items-start gap-1">
-                  <span className="font-black text-lg text-white drop-shadow-md">{m.name}</span>
-                  <span className="text-xs font-bold text-white/80 uppercase tracking-widest">{m.count} Exercises</span>
-                </div>
-                <Dumbbell className="h-8 w-8 text-white/50 drop-shadow-sm" />
+                <Dumbbell className="h-6 w-6 text-white/80 drop-shadow-sm mb-2" />
+                <span className="font-black text-[13px] text-white drop-shadow-md text-center leading-tight">{m.name}</span>
+                <span className="text-[10px] font-bold text-white/70 mt-1 uppercase">{m.count} Exercises</span>
               </button>
             ))}
           </div>
@@ -264,35 +263,67 @@ function WorkoutPage() {
   const renderHomeWorkouts = () => {
     return (
       <div className="space-y-6 pb-20">
-        <div className="flex justify-between items-center px-2">
-          <h2 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-            <Flame className="w-6 h-6 text-accent" />
-            Home Routines
-          </h2>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder="Search home routines..."
+            className="pl-10 h-14 text-md bg-card/50 backdrop-blur-sm border-border/50 shadow-sm rounded-2xl transition-all focus-visible:ring-accent"
+          />
         </div>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 animate-in fade-in">
           {HOME_WORKOUTS.map((routine) => (
-            <div key={routine.name} className="bg-card rounded-2xl p-5 border border-border shadow-sm overflow-hidden relative">
-              <h3 className="text-lg font-bold mb-4 pr-10 text-card-foreground">{routine.name}</h3>
-              <div className="space-y-3 relative z-10">
-                {routine.exercises.map((ex, i) => (
-                  <div key={i} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0 last:pb-0">
-                    <span className="font-semibold text-muted-foreground">{ex.name}</span>
-                    <span className="font-bold text-accent">{ex.sets}</span>
-                  </div>
-                ))}
-              </div>
-              <Button 
-                onClick={() => {
-                  setSelectedExercise(routine.name);
-                }}
-                className="w-full mt-4 font-bold h-12 rounded-xl bg-accent/10 text-accent hover:bg-accent hover:text-accent-foreground transition-all">
-                Log Routine
-              </Button>
+            <button
+              key={routine.name}
+              onClick={() => setSelectedHomeRoutine(routine.name)}
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md h-32"
+            >
+              <Flame className="h-8 w-8 text-white/80 drop-shadow-sm mb-2" />
+              <span className="font-black text-sm text-white drop-shadow-md text-center leading-tight">{routine.name}</span>
+              <span className="text-[11px] font-bold text-white/70 mt-2 uppercase tracking-widest">{routine.exercises.length} Exercises</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderHomeRoutineDetail = () => {
+    const routine = HOME_WORKOUTS.find(r => r.name === selectedHomeRoutine);
+    if (!routine) return null;
+
+    return (
+      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 pb-20">
+        <div className="flex items-center justify-between bg-card p-4 rounded-2xl border border-border shadow-sm sticky top-0 z-10 backdrop-blur-xl">
+          <button
+            onClick={() => setSelectedHomeRoutine(null)}
+            className="p-2 -ml-2 rounded-xl hover:bg-muted/50 transition-colors"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <span className="font-black text-lg tracking-widest uppercase">{routine.name}</span>
+          <div className="w-10"></div>
+        </div>
+
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50">
+          {routine.exercises.map((ex, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10"
+            >
+              <span className="font-semibold text-sm">{ex.name}</span>
+              <span className="text-xs font-bold bg-accent/10 text-accent px-2 py-1 rounded">
+                {ex.sets}
+              </span>
             </div>
           ))}
         </div>
+        
+        <Button 
+          onClick={() => setSelectedExercise(routine.name)}
+          className="w-full mt-4 font-bold h-14 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
+          <Play className="mr-2 h-5 w-5" /> Start Routine
+        </Button>
       </div>
     );
   };
@@ -548,6 +579,11 @@ function WorkoutPage() {
             <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent">
               {selectedExercise}
             </DialogTitle>
+            {history.length > 0 && (
+              <p className="text-xs text-center text-muted-foreground font-semibold mt-1">
+                Last performed: {new Date(history[0].date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+            )}
           </DialogHeader>
 
           <Tabs defaultValue="log" className="w-full mt-2">
@@ -790,7 +826,7 @@ function WorkoutPage() {
           {selectedMuscle ? (
             renderMuscleDetail()
           ) : activeTab === "HOME" ? (
-            renderHomeWorkouts()
+            selectedHomeRoutine ? renderHomeRoutineDetail() : renderHomeWorkouts()
           ) : activeTab === "CARDIO" ? (
             renderCardioList()
           ) : (

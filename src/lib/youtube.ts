@@ -1,22 +1,18 @@
-
 import { createServerFn } from "@tanstack/react-start";
-import ytSearch from "yt-search";
+import { VIDEO_MAP } from "./videoMap.js";
 
 export const searchYouTube = createServerFn({ method: "GET" })
   .inputValidator((d: string) => d)
   .handler(async (ctx) => {
     try {
-      const results = await ytSearch(ctx.data + " exercise form tutorial");
-      const videos = results.videos || results.all || [];
-      return videos.slice(0, 3).map((v: any) => ({
-        title: v.title,
-        channel: v.author?.name || v.channel?.name || "YouTube",
-        watch_url: v.url,
-        embed_url: `https://www.youtube.com/embed/${v.videoId}`,
-      }));
+      // The frontend sends just the exercise name
+      const query = ctx.data;
+      if (VIDEO_MAP[query]) {
+        return VIDEO_MAP[query];
+      }
+      return [];
     } catch (error) {
-      console.error("YouTube search error:", error);
+      console.error("YouTube map lookup error:", error);
       return [];
     }
   });
-
