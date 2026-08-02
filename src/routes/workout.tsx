@@ -32,29 +32,24 @@ import { Slider } from "@/components/ui/slider";
 
 export const Route = createFileRoute("/workout")({ component: WorkoutPage });
 
-const MUSCLES = [
-  { id: "shoulder", name: "Shoulder", color: "from-blue-500/20 to-cyan-500/20" },
-  { id: "chest", name: "Chest", color: "from-red-500/20 to-orange-500/20" },
-  { id: "triceps", name: "Triceps", color: "from-purple-500/20 to-pink-500/20" },
-  { id: "abs", name: "Abs + Core", color: "from-green-500/20 to-emerald-500/20" },
-  { id: "quads", name: "Quads", color: "from-yellow-500/20 to-amber-500/20" },
-  { id: "back", name: "Back", color: "from-indigo-500/20 to-blue-500/20" },
-  { id: "fullbody", name: "Full Body (Compound)", color: "from-fuchsia-500/20 to-purple-500/20" },
-  { id: "calf", name: "Calf + Forearm", color: "from-teal-500/20 to-cyan-500/20" },
-  { id: "biceps", name: "Biceps", color: "from-rose-500/20 to-red-500/20" },
-];
+import { EXERCISES_DB } from "@/lib/exercises";
 
-const EXERCISES_DB: Record<string, string[]> = {
-  chest: ["Bench Press", "Incline Dumbbell Press", "Cable Crossover", "Push-Ups"],
-  back: ["Pull-Ups", "Barbell Row", "Lat Pulldown", "Deadlift"],
-  shoulder: ["Overhead Press", "Lateral Raises", "Front Raises", "Face Pulls"],
-  biceps: ["Dumbbell Curl", "Barbell Curl", "Hammer Curl", "Cable Curl"],
-  triceps: ["Tricep Pushdown", "Skull Crushers", "Overhead Extension", "Dips"],
-  quads: ["Squats", "Leg Press", "Leg Extension", "Lunges"],
-  abs: ["Crunches", "Plank", "Leg Raises", "Russian Twists"],
-  fullbody: ["Burpees", "Clean and Jerk", "Kettlebell Swings", "Snatch"],
-  calf: ["Standing Calf Raise", "Seated Calf Raise", "Wrist Curls", "Reverse Curls"],
-};
+const MUSCLES = [
+  { id: "chest", name: "Chest", color: "from-red-500/20 to-orange-500/20" },
+  { id: "back", name: "Back", color: "from-indigo-500/20 to-blue-500/20" },
+  { id: "shoulders", name: "Shoulders", color: "from-blue-500/20 to-cyan-500/20" },
+  { id: "biceps", name: "Biceps", color: "from-rose-500/20 to-red-500/20" },
+  { id: "triceps", name: "Triceps", color: "from-purple-500/20 to-pink-500/20" },
+  { id: "abs", name: "Core & Abs", color: "from-green-500/20 to-emerald-500/20" },
+  { id: "quads", name: "Quads", color: "from-yellow-500/20 to-amber-500/20" },
+  { id: "hamstrings", name: "Hamstrings", color: "from-orange-500/20 to-amber-500/20" },
+  { id: "glutes", name: "Glutes", color: "from-pink-500/20 to-rose-500/20" },
+  { id: "calves", name: "Calves", color: "from-teal-500/20 to-cyan-500/20" },
+  { id: "lowerback", name: "Lower Back", color: "from-stone-500/20 to-neutral-500/20" },
+  { id: "forearms", name: "Forearms", color: "from-slate-500/20 to-gray-500/20" },
+  { id: "abductors", name: "Abductors", color: "from-violet-500/20 to-purple-500/20" },
+  { id: "adductors", name: "Adductors", color: "from-fuchsia-500/20 to-pink-500/20" },
+];
 
 const CARDIO_ACTIVITIES = [
   "Treadmill running",
@@ -81,6 +76,7 @@ function WorkoutPage() {
 
   // DB States
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [recentExercises, setRecentExercises] = useState<string[]>([]);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
 
   useEffect(() => {
@@ -106,6 +102,19 @@ function WorkoutPage() {
       .eq("date", today);
     if (data) {
       setLoggedToday(data.map((d) => d.workout_name));
+    }
+
+    // Load recent logs to order non-favorite exercises
+    const { data: recentLogs } = await supabase
+      .from("workout_logs")
+      .select("workout_name")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (recentLogs) {
+      const uniqueRecent = Array.from(new Set(recentLogs.map((d) => d.workout_name)));
+      setRecentExercises(uniqueRecent);
     }
   };
 
@@ -171,19 +180,23 @@ function WorkoutPage() {
     const muscleInfo = MUSCLES.find((m) => m.id === selectedMuscle);
     const exercises = EXERCISES_DB[selectedMuscle] || [];
 
-    // Sort: logged today first, then favorites, then others
+    // Sort: favorites first, then recent, then alphabetical
     const sorted = [...exercises].sort((a, b) => {
-      const aLogged = loggedToday.includes(a);
-      const bLogged = loggedToday.includes(b);
-      if (aLogged && !bLogged) return -1;
-      if (!aLogged && bLogged) return 1;
-
       const aFav = favorites.includes(a);
       const bFav = favorites.includes(b);
       if (aFav && !bFav) return -1;
       if (!aFav && bFav) return 1;
 
-      return 0;
+      const aRecentIdx = recentExercises.indexOf(a);
+      const bRecentIdx = recentExercises.indexOf(b);
+      const aRecent = aRecentIdx !== -1;
+      const bRecent = bRecentIdx !== -1;
+      
+      if (aRecent && !bRecent) return -1;
+      if (!aRecent && bRecent) return 1;
+      if (aRecent && bRecent) return aRecentIdx - bRecentIdx;
+
+      return a.localeCompare(b);
     });
 
     return (
