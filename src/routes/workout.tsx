@@ -265,7 +265,14 @@ function WorkoutPage() {
               >
                 <Dumbbell className="h-6 w-6 text-white/80 drop-shadow-sm mb-2" />
                 <span className="font-black text-[13px] text-white drop-shadow-md text-center leading-tight">{m.name}</span>
-                <span className="text-[10px] font-bold text-white/70 mt-1 uppercase">{m.count} Exercises</span>
+                <span className="text-[10px] font-bold text-white/70 mt-1 uppercase">
+                  {m.id === "legs"
+                    ? ["quads","hamstrings","glutes","calves","abductors","adductors"].reduce((n, k) => n + (EXERCISES_DB[k]?.length ?? 0), 0)
+                    : m.id === "back"
+                    ? ["back_lats","back_upper","lowerback"].reduce((n, k) => n + (EXERCISES_DB[k]?.length ?? 0), 0)
+                    : (EXERCISES_DB[m.id]?.length ?? 0)
+                  } Exercises
+                </span>
               </button>
             ))}
           </div>
