@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Flame,
   Dumbbell,
@@ -39,21 +39,32 @@ import { HOME_WORKOUTS } from "@/lib/homeWorkouts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MUSCLES = [
-  { id: "chest", name: "Chest", color: "from-red-500/20 to-orange-500/20" },
-  { id: "back", name: "Back", color: "from-indigo-500/20 to-blue-500/20" },
-  { id: "shoulders", name: "Shoulders", color: "from-blue-500/20 to-cyan-500/20" },
-  { id: "biceps", name: "Biceps", color: "from-rose-500/20 to-red-500/20" },
-  { id: "triceps", name: "Triceps", color: "from-purple-500/20 to-pink-500/20" },
-  { id: "abs", name: "Core & Abs", color: "from-green-500/20 to-emerald-500/20" },
-  { id: "quads", name: "Quads", color: "from-yellow-500/20 to-amber-500/20" },
-  { id: "hamstrings", name: "Hamstrings", color: "from-orange-500/20 to-amber-500/20" },
-  { id: "glutes", name: "Glutes", color: "from-pink-500/20 to-rose-500/20" },
-  { id: "calves", name: "Calves", color: "from-teal-500/20 to-cyan-500/20" },
-  { id: "lowerback", name: "Lower Back", color: "from-stone-500/20 to-neutral-500/20" },
-  { id: "forearms", name: "Forearms", color: "from-slate-500/20 to-gray-500/20" },
-  { id: "abductors", name: "Abductors", color: "from-violet-500/20 to-purple-500/20" },
-  { id: "adductors", name: "Adductors", color: "from-fuchsia-500/20 to-pink-500/20" },
+  { id: "chest",     name: "Chest",      color: "from-red-500/20 to-orange-500/20" },
+  { id: "back",      name: "Back",       color: "from-indigo-500/20 to-blue-500/20" },
+  { id: "shoulders", name: "Shoulders",  color: "from-blue-500/20 to-cyan-500/20" },
+  { id: "biceps",    name: "Biceps",     color: "from-rose-500/20 to-red-500/20" },
+  { id: "triceps",   name: "Triceps",    color: "from-purple-500/20 to-pink-500/20" },
+  { id: "abs",       name: "Core & Abs", color: "from-green-500/20 to-emerald-500/20" },
+  { id: "legs",      name: "Legs",       color: "from-lime-500/20 to-yellow-500/20" },
+  { id: "forearms",  name: "Forearms",   color: "from-slate-500/20 to-gray-500/20" },
 ];
+
+const LEGS_CATEGORIES = [
+  { id: "quads",      label: "Quads" },
+  { id: "hamstrings", label: "Hamstrings" },
+  { id: "glutes",     label: "Glutes" },
+  { id: "calves",     label: "Calves" },
+  { id: "abductors",  label: "Abductors" },
+  { id: "adductors",  label: "Adductors" },
+] as const;
+type LegsCategoryId = typeof LEGS_CATEGORIES[number]["id"];
+
+const BACK_CATEGORIES = [
+  { id: "back_lats",  label: "Lats" },
+  { id: "back_upper", label: "Upper Back" },
+  { id: "lowerback",  label: "Lower Back" },
+] as const;
+type BackCategoryId = typeof BACK_CATEGORIES[number]["id"];
 
 const CARDIO_ACTIVITIES = [
   "Treadmill running",
@@ -84,6 +95,9 @@ function WorkoutPage() {
   const [recentExercises, setRecentExercises] = useState<string[]>([]);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLegsCategory, setSelectedLegsCategory] = useState<LegsCategoryId>("quads");
+  const legsChipsRef = useRef<HTMLDivElement>(null);
+  const [selectedBackCategory, setSelectedBackCategory] = useState<BackCategoryId>("back_lats");
 
   // Collect all exercises flattened for searching
   const allExercises = useMemo(() => {
@@ -180,7 +194,7 @@ function WorkoutPage() {
     }
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
@@ -262,7 +276,7 @@ function WorkoutPage() {
 
   const renderHomeWorkouts = () => {
     return (
-      <div className="space-y-6 pb-20">
+      <div className="space-y-3 pb-20">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
@@ -437,6 +451,193 @@ function WorkoutPage() {
               </div>
             );
           })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderLegsPage = () => {
+    const exercises = EXERCISES_DB[selectedLegsCategory] || [];
+    const sorted = [...exercises].sort((a, b) => {
+      const aFav = favorites.includes(a), bFav = favorites.includes(b);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      const aLogged = loggedToday.includes(a), bLogged = loggedToday.includes(b);
+      if (aLogged && !bLogged) return -1;
+      if (!aLogged && bLogged) return 1;
+      const aIdx = recentExercises.indexOf(a), bIdx = recentExercises.indexOf(b);
+      if (aIdx !== -1 && bIdx === -1) return -1;
+      if (aIdx === -1 && bIdx !== -1) return 1;
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+      return a.localeCompare(b);
+    });
+
+    return (
+      <div className="space-y-4 animate-in slide-in-from-right-4">
+        {/* Header — identical structure to renderMuscleDetail */}
+        <div className="flex items-center justify-between mb-2">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedMuscle(null)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-lg font-black uppercase tracking-widest text-accent flex items-center gap-2">
+            <Dumbbell className="h-5 w-5" />
+            Legs
+          </h2>
+          <div className="w-9" />
+        </div>
+
+        {/* Category chips — arrow-navigable single row */}
+        <div className="relative flex items-center gap-1">
+          <button
+            onClick={() => legsChipsRef.current?.scrollBy({ left: -120, behavior: "smooth" })}
+            className="hidden md:flex flex-none p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div ref={legsChipsRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 flex-1">
+            {LEGS_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedLegsCategory(cat.id)}
+                className={`flex-none px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg transition-all duration-200 whitespace-nowrap ${
+                  selectedLegsCategory === cat.id
+                    ? "bg-accent text-accent-foreground shadow-sm"
+                    : "bg-muted/40 text-muted-foreground border border-border/50 hover:text-foreground hover:bg-muted/70"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => legsChipsRef.current?.scrollBy({ left: 120, behavior: "smooth" })}
+            className="hidden md:flex flex-none p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Exercise list */}
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50">
+          {sorted.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground flex flex-col items-center">
+              <Dumbbell className="h-10 w-10 mb-3 opacity-20" />
+              <p className="font-medium text-sm">No exercises yet.</p>
+            </div>
+          ) : (
+            sorted.map((ex, i) => {
+              const isFav = favorites.includes(ex);
+              const isLogged = loggedToday.includes(ex);
+              return (
+                <div
+                  key={ex}
+                  className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10 cursor-pointer group"
+                  onClick={() => setSelectedExercise(ex)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-muted-foreground/50 w-4">{i + 1}.</span>
+                    <span className="font-semibold text-sm group-hover:text-accent transition-colors">{ex}</span>
+                    {isLogged && (
+                      <span className="text-[9px] uppercase font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded">
+                        Logged
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(ex); }}
+                    className="p-2 -mr-2 transition-transform hover:scale-110 active:scale-90"
+                  >
+                    <Heart className={`h-4 w-4 ${isFav ? "fill-red-500 text-red-500" : "text-muted-foreground hover:text-red-400"}`} />
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderBackPage = () => {
+    const exercises = EXERCISES_DB[selectedBackCategory] || [];
+    const sorted = [...exercises].sort((a, b) => {
+      const aFav = favorites.includes(a), bFav = favorites.includes(b);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      const aLogged = loggedToday.includes(a), bLogged = loggedToday.includes(b);
+      if (aLogged && !bLogged) return -1;
+      if (!aLogged && bLogged) return 1;
+      const aIdx = recentExercises.indexOf(a), bIdx = recentExercises.indexOf(b);
+      if (aIdx !== -1 && bIdx === -1) return -1;
+      if (aIdx === -1 && bIdx !== -1) return 1;
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+      return a.localeCompare(b);
+    });
+
+    return (
+      <div className="space-y-4 animate-in slide-in-from-right-4">
+        <div className="flex items-center justify-between mb-2">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedMuscle(null)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-lg font-black uppercase tracking-widest text-accent flex items-center gap-2">
+            <Dumbbell className="h-5 w-5" />
+            Back
+          </h2>
+          <div className="w-9" />
+        </div>
+
+        <div className="flex gap-2 justify-center">
+          {BACK_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedBackCategory(cat.id)}
+              className={`flex-none px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg transition-all duration-200 whitespace-nowrap ${
+                selectedBackCategory === cat.id
+                  ? "bg-accent text-accent-foreground shadow-sm"
+                  : "bg-muted/40 text-muted-foreground border border-border/50 hover:text-foreground hover:bg-muted/70"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50">
+          {sorted.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground flex flex-col items-center">
+              <Dumbbell className="h-10 w-10 mb-3 opacity-20" />
+              <p className="font-medium text-sm">No exercises yet.</p>
+            </div>
+          ) : (
+            sorted.map((ex, i) => {
+              const isFav = favorites.includes(ex);
+              const isLogged = loggedToday.includes(ex);
+              return (
+                <div
+                  key={ex}
+                  className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10 cursor-pointer group"
+                  onClick={() => setSelectedExercise(ex)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-muted-foreground/50 w-4">{i + 1}.</span>
+                    <span className="font-semibold text-sm group-hover:text-accent transition-colors">{ex}</span>
+                    {isLogged && (
+                      <span className="text-[9px] uppercase font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded">
+                        Logged
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(ex); }}
+                    className="p-2 -mr-2 transition-transform hover:scale-110 active:scale-90"
+                  >
+                    <Heart className={`h-4 w-4 ${isFav ? "fill-red-500 text-red-500" : "text-muted-foreground hover:text-red-400"}`} />
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     );
@@ -799,7 +1000,7 @@ function WorkoutPage() {
   return (
     <div className="min-h-screen bg-background pb-24 selection:bg-accent/20">
       <Header />
-      <main className="mx-auto max-w-md p-5 pt-8 space-y-8">
+      <main className="mx-auto max-w-md p-5 pt-3 space-y-3">
 
 
         {/* Custom Tabs */}
@@ -822,8 +1023,12 @@ function WorkoutPage() {
         )}
 
         {/* Content Area */}
-        <div className="pt-2">
-          {selectedMuscle ? (
+        <div>
+          {selectedMuscle === "legs" ? (
+            renderLegsPage()
+          ) : selectedMuscle === "back" ? (
+            renderBackPage()
+          ) : selectedMuscle ? (
             renderMuscleDetail()
           ) : activeTab === "HOME" ? (
             selectedHomeRoutine ? renderHomeRoutineDetail() : renderHomeWorkouts()
