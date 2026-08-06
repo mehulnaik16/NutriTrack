@@ -4,6 +4,7 @@ import { Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/client";
+import { toLocalISO } from "@/lib/dates";
 
 interface Props {
   userId: string;
@@ -32,8 +33,8 @@ async function buildWeekStats(
   const today = new Date();
   const weekAgo = new Date(today);
   weekAgo.setDate(today.getDate() - 6);
-  const from = weekAgo.toISOString().slice(0, 10);
-  const to = today.toISOString().slice(0, 10);
+  const from = toLocalISO(weekAgo);
+  const to = toLocalISO(today);
 
   const [{ data: foodLogs }, { data: workoutLogs }, { data: weightEntries }] =
     await Promise.all([

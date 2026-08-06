@@ -15,6 +15,9 @@ import {
   LineChart,
   ChevronRight,
   Search,
+  Sparkles,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
@@ -37,6 +40,33 @@ import { searchYouTube } from "@/lib/youtube";
 import { EXERCISES_DB } from "@/lib/exercises";
 import { HOME_WORKOUTS } from "@/lib/homeWorkouts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { groqChat } from "@/lib/groq";
+import { todayLocal } from "@/lib/dates";
+
+// ── AI Workout Plan types ─────────────────────────────────────
+interface PlanExercise {
+  name: string;
+  sets: number;
+  reps: string;
+}
+interface PlanDay {
+  day: string;
+  name: string;
+  focus: string;
+  exercises: PlanExercise[];
+}
+interface WorkoutPlan {
+  goal: string;
+  days_per_week: number;
+  days: PlanDay[];
+}
+
+/** Which plan day is "today"? Rotate the split across the week. */
+function todaysPlanIndex(daysCount: number): number {
+  if (daysCount <= 0) return 0;
+  const weekday = (new Date().getDay() + 6) % 7; // Mon = 0
+  return weekday % daysCount;
+}
 
 const MUSCLES = [
   { id: "chest", name: "Chest", color: "from-red-500/20 to-orange-500/20" },
@@ -50,6 +80,7 @@ const MUSCLES = [
   { id: "glutes", name: "Glutes", color: "from-pink-500/20 to-rose-500/20" },
   { id: "calves", name: "Calves", color: "from-teal-500/20 to-cyan-500/20" },
   { id: "lowerback", name: "Lower Back", color: "from-stone-500/20 to-neutral-500/20" },
+  { id: "traps", name: "Traps", color: "from-lime-500/20 to-green-500/20" },
   { id: "forearms", name: "Forearms", color: "from-slate-500/20 to-gray-500/20" },
   { id: "abductors", name: "Abductors", color: "from-violet-500/20 to-purple-500/20" },
   { id: "adductors", name: "Adductors", color: "from-fuchsia-500/20 to-pink-500/20" },
@@ -63,7 +94,51 @@ const CARDIO_ACTIVITIES = [
   "Jump rope",
   "HIIT",
   "Yoga & Pilates",
+  "Stair climbing",
+  "Elliptical",
+  "Rowing machine",
+  "Dancing",
+  "Badminton",
+  "Cricket",
+  "Football",
 ];
+
+/**
+ * MET values from the Compendium of Physical Activities.
+ * kcal = MET × body weight (kg) × duration (hours)
+ */
+const CARDIO_METS: Record<string, number> = {
+  "Treadmill running": 8.3,
+  "Outdoor walk": 3.8,
+  Cycling: 7.5,
+  Swimming: 7.0,
+  "Jump rope": 11.8,
+  HIIT: 8.0,
+  "Yoga & Pilates": 3.0,
+  "Stair climbing": 8.0,
+  Elliptical: 5.0,
+  "Rowing machine": 7.0,
+  Dancing: 5.5,
+  Badminton: 5.5,
+  Cricket: 4.8,
+  Football: 7.0,
+};
+
+const estimateCardioKcal = (
+  activity: string | null,
+  minutes: number,
+  weightKg: number,
+): number => {
+  const met = (activity && CARDIO_METS[activity]) || 6.0;
+  return Math.round(met * weightKg * (minutes / 60));
+};
+
+/** Epley formula — estimated one-rep max. */
+const estimate1RM = (weight: number, reps: number): number => {
+  if (!weight || !reps) return 0;
+  if (reps === 1) return weight;
+  return Math.round(weight * (1 + reps / 30) * 10) / 10;
+};
 
 function WorkoutPage() {
   const { user, loading } = useAuth();
@@ -84,6 +159,15 @@ function WorkoutPage() {
   const [recentExercises, setRecentExercises] = useState<string[]>([]);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // AI Plan state
+  const [plan, setPlan] = useState<WorkoutPlan | null>(null);
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [planDayIdx, setPlanDayIdx] = useState(0);
+  const [planExpanded, setPlanExpanded] = useState(false);
+
+  // Body weight for MET-based calorie estimates
+  const [bodyWeight, setBodyWeight] = useState(70);
 
   // Collect all exercises flattened for searching
   const allExercises = useMemo(() => {
@@ -107,7 +191,7 @@ function WorkoutPage() {
     setFavorites(favs);
 
     // Load today's logs to show what was logged
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayLocal();
     const { data } = await supabase
       .from("workout_logs")
       .select("workout_name")
@@ -129,6 +213,47 @@ function WorkoutPage() {
       const uniqueRecent = Array.from(new Set(recentLogs.map((d) => d.workout_name)));
       setRecentExercises(uniqueRecent);
     }
+
+    // Body weight (for calorie estimates)
+    const { data: prof } = await supabase
+      .from("user_profiles")
+      .select("weight_kg")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (prof?.weight_kg) setBodyWeight(prof.weight_kg);
+
+    // Load latest AI plan
+    const { data: wp } = await supabase
+      .from("workout_plans")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (wp?.plan_json) {
+      const p = wp.plan_json as unknown as WorkoutPlan;
+      setPlan(p);
+      setPlanId(wp.id);
+      setPlanDayIdx(todaysPlanIndex(p.days?.length ?? 0));
+    } else {
+      setPlan(null);
+      setPlanId(null);
+    }
+  };
+
+  const deletePlan = async () => {
+    if (!planId) return;
+    const { error } = await supabase
+      .from("workout_plans")
+      .delete()
+      .eq("id", planId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setPlan(null);
+    setPlanId(null);
+    toast.success("Plan removed");
   };
 
   const toggleFavorite = (exercise: string) => {
@@ -144,6 +269,150 @@ function WorkoutPage() {
   };
 
   // --- UI Components ---
+
+  const renderPlanCard = () => {
+    if (!plan) {
+      return (
+        <button
+          onClick={() => setWizardOpen(true)}
+          className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
+        >
+          <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-display font-bold">Build my AI training plan</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Answer 4 quick questions — get a weekly split made for you.
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
+          </div>
+        </button>
+      );
+    }
+
+    const todayIdx = todaysPlanIndex(plan.days.length);
+    const day = plan.days[planDayIdx] ?? plan.days[0];
+
+    return (
+      <div className="overflow-hidden rounded-2xl border border-accent/25 bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border/60 bg-accent/5 px-5 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
+              <Flame className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate font-display text-sm font-bold uppercase tracking-wider">
+                My Plan
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {plan.goal} · {plan.days_per_week} days/week
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-accent"
+              title="Regenerate plan"
+              onClick={() => setWizardOpen(true)}
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              title="Delete plan"
+              onClick={deletePlan}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-5">
+          {/* Day selector */}
+          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+            {plan.days.map((d, i) => (
+              <button
+                key={i}
+                onClick={() => setPlanDayIdx(i)}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                  i === planDayIdx
+                    ? "bg-accent text-accent-foreground glow-accent-sm"
+                    : i === todayIdx
+                      ? "border border-accent/50 text-accent"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {d.day}
+                {i === todayIdx && " · Today"}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate font-display text-lg font-bold">{day?.name}</p>
+              <p className="truncate text-sm text-muted-foreground">{day?.focus}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
+              {day?.exercises?.length ?? 0} exercises
+            </span>
+          </div>
+
+          <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60">
+            {(planExpanded ? day?.exercises : day?.exercises?.slice(0, 4))?.map(
+              (ex, i) => {
+                const isLogged = loggedToday.includes(ex.name);
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedExercise(ex.name)}
+                    className="group flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/20"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                          isLogged
+                            ? "bg-accent text-accent-foreground"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {isLogged ? "✓" : i + 1}
+                      </span>
+                      <span className="truncate text-sm font-semibold transition-colors group-hover:text-accent">
+                        {ex.name}
+                      </span>
+                    </div>
+                    <span className="shrink-0 text-xs font-bold text-muted-foreground">
+                      {ex.sets} × {ex.reps}
+                    </span>
+                  </button>
+                );
+              },
+            )}
+          </div>
+
+          {(day?.exercises?.length ?? 0) > 4 && (
+            <button
+              onClick={() => setPlanExpanded((p) => !p)}
+              className="w-full text-center text-xs font-bold uppercase tracking-wider text-accent hover:underline"
+            >
+              {planExpanded
+                ? "Show less"
+                : `Show all ${day?.exercises.length} exercises`}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderMuscleGrid = () => {
     const searchResults = searchQuery
@@ -247,11 +516,13 @@ function WorkoutPage() {
               <button
                 key={m.id}
                 onClick={() => setSelectedMuscle(m.id)}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md`}
+                className={`card-lift flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border border-border/60 bg-card shadow-sm active:scale-95`}
               >
-                <Dumbbell className="h-6 w-6 text-white/80 drop-shadow-sm mb-2" />
-                <span className="font-black text-[13px] text-white drop-shadow-md text-center leading-tight">{m.name}</span>
-                <span className="text-[10px] font-bold text-white/70 mt-1 uppercase">{m.count} Exercises</span>
+                <Dumbbell className="h-6 w-6 text-accent mb-2" />
+                <span className="font-display font-bold text-[13px] text-foreground text-center leading-tight">{m.name}</span>
+                <span className="text-[10px] font-bold text-muted-foreground mt-1 uppercase">
+                  {EXERCISES_DB[m.id]?.length ?? 0} Exercises
+                </span>
               </button>
             ))}
           </div>
@@ -446,15 +717,29 @@ function WorkoutPage() {
 
   const CardioModal = () => {
     const [duration, setDuration] = useState("30");
-    const [kcal, setKcal] = useState("200");
+    const [kcal, setKcal] = useState(() =>
+      String(estimateCardioKcal(selectedCardio, 30, bodyWeight)),
+    );
+    const [kcalTouched, setKcalTouched] = useState(false);
     const [bpm, setBpm] = useState("");
+
+    const met = (selectedCardio && CARDIO_METS[selectedCardio]) || 6.0;
+
+    const handleDuration = (v: string) => {
+      setDuration(v);
+      if (!kcalTouched) {
+        setKcal(
+          String(estimateCardioKcal(selectedCardio, parseInt(v) || 0, bodyWeight)),
+        );
+      }
+    };
 
     const handleLog = async () => {
       if (!user) return;
       toast.loading("Logging cardio...");
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
-        date: new Date().toISOString().split("T")[0],
+        date: todayLocal(),
         workout_name: selectedCardio || "",
         duration_min: parseInt(duration) || 30,
         calories_burned: parseInt(kcal) || 0,
@@ -471,7 +756,7 @@ function WorkoutPage() {
 
     return (
       <Dialog open={!!selectedCardio} onOpenChange={() => setSelectedCardio(null)}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between text-xl font-black uppercase tracking-wider">
               <span className="text-accent">{selectedCardio}</span>
@@ -479,9 +764,13 @@ function WorkoutPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6 pt-4">
-            <div className="flex gap-4 justify-center">
-              <Button variant="outline" className="gap-2 flex-1 rounded-xl h-12 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"><Play className="h-4 w-4" /> Video</Button>
-              <Button variant="outline" className="gap-2 flex-1 rounded-xl h-12 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"><LineChart className="h-4 w-4" /> Analytics</Button>
+            <div className="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
+              <span className="rounded-full bg-accent/10 px-3 py-1 text-accent">
+                {met} METs
+              </span>
+              <span className="rounded-full bg-muted px-3 py-1">
+                ~{Math.round(met * bodyWeight * (1 / 60))} kcal / min at {bodyWeight} kg
+              </span>
             </div>
             <div className="space-y-4 bg-muted/20 p-5 rounded-2xl border border-border/50">
               <div className="space-y-2">
@@ -489,16 +778,39 @@ function WorkoutPage() {
                 <Input
                   type="number"
                   value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
+                  onChange={(e) => handleDuration(e.target.value)}
                   className="text-xl font-bold h-14 bg-background/50 text-center"
                 />
+                <div className="flex gap-2">
+                  {[15, 30, 45, 60].map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => handleDuration(String(m))}
+                      className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition-colors ${
+                        parseInt(duration) === m
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {m}m
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold text-muted-foreground">Estimated Burn (kcal)</Label>
+                <Label className="flex justify-between text-xs uppercase font-bold text-muted-foreground">
+                  <span>Calories burned</span>
+                  <span className="normal-case text-accent">
+                    {kcalTouched ? "manual" : "auto-estimated"}
+                  </span>
+                </Label>
                 <Input
                   type="number"
                   value={kcal}
-                  onChange={(e) => setKcal(e.target.value)}
+                  onChange={(e) => {
+                    setKcal(e.target.value);
+                    setKcalTouched(true);
+                  }}
                   className="text-xl font-bold h-14 bg-background/50 text-center"
                 />
               </div>
@@ -531,6 +843,62 @@ function WorkoutPage() {
     const [videos, setVideos] = useState<any[]>([]);
     const [loadingMedia, setLoadingMedia] = useState(false);
 
+    // Rest timer
+    const [restLeft, setRestLeft] = useState(0);
+    const [restTotal, setRestTotal] = useState(0);
+
+    useEffect(() => {
+      if (restLeft <= 0) return;
+      const id = setInterval(() => {
+        setRestLeft((s) => {
+          if (s <= 1) {
+            clearInterval(id);
+            // Beep when rest is over
+            try {
+              const Ctx =
+                window.AudioContext ||
+                (window as any).webkitAudioContext;
+              const ctx = new Ctx();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.value = 880;
+              gain.gain.setValueAtTime(0.25, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.6);
+            } catch {
+              /* audio unavailable */
+            }
+            toast.success("Rest over — next set! 💪");
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+      return () => clearInterval(id);
+    }, [restTotal]); // restart interval each time a new timer begins
+
+    const startRest = (seconds: number) => {
+      setRestLeft(seconds);
+      setRestTotal(seconds + Math.random()); // unique value re-triggers effect
+    };
+
+    // Best estimated 1RM from the sets currently entered
+    const currentBest1RM = sets.reduce((best, s) => {
+      const rm = estimate1RM(parseFloat(s.weight) || 0, parseInt(s.reps) || 0);
+      return rm > best ? rm : best;
+    }, 0);
+
+    const best1RMForLog = (log: any): number => {
+      const exSets = Array.isArray(log?.exercises_done) ? log.exercises_done : [];
+      return exSets.reduce((best: number, s: any) => {
+        const rm = estimate1RM(parseFloat(s.weight) || 0, parseInt(s.reps) || 0);
+        return rm > best ? rm : best;
+      }, 0);
+    };
+
     useEffect(() => {
       if (selectedExercise && user) {
         supabase
@@ -552,12 +920,25 @@ function WorkoutPage() {
       }
     }, [selectedExercise, user]);
 
+    // Pre-fill with what you did last time (like Strong/Hevy)
+    useEffect(() => {
+      const last = history[0]?.exercises_done;
+      if (Array.isArray(last) && last.length > 0 && last[0]?.reps) {
+        setSets(
+          last.map((s: any) => ({
+            reps: String(s.reps ?? "10"),
+            weight: String(s.weight ?? "20"),
+          })),
+        );
+      }
+    }, [history]);
+
     const handleLog = async () => {
       if (!user) return;
       toast.loading("Logging exercise...");
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
-        date: new Date().toISOString().split("T")[0],
+        date: todayLocal(),
         workout_name: selectedExercise || "",
         duration_min: sets.length * 3, // rough estimate
         calories_burned: sets.length * 15,
@@ -634,6 +1015,60 @@ function WorkoutPage() {
                 >
                   <Plus className="mr-2 h-3 w-3" /> Add Set
                 </Button>
+
+                {currentBest1RM > 0 && (
+                  <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-accent/10 px-3 py-2 text-xs font-bold text-accent">
+                    <LineChart className="h-3.5 w-3.5" />
+                    Est. 1RM from these sets: {currentBest1RM} kg
+                  </div>
+                )}
+              </div>
+
+              {/* ── Rest timer ── */}
+              <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Rest Timer
+                  </span>
+                  {restLeft > 0 && (
+                    <button
+                      onClick={() => {
+                        setRestLeft(0);
+                        setRestTotal(0); // cancels the interval without the beep
+                      }}
+                      className="p-2 -m-2 text-[10px] font-bold uppercase text-muted-foreground hover:text-destructive"
+                    >
+                      Skip
+                    </button>
+                  )}
+                </div>
+                {restLeft > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-center font-display text-4xl font-bold text-accent">
+                      {Math.floor(restLeft / 60)}:{String(restLeft % 60).padStart(2, "0")}
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-accent transition-all duration-1000 ease-linear"
+                        style={{
+                          width: `${(restLeft / Math.floor(restTotal)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    {[60, 90, 120, 180].map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => startRest(s)}
+                        className="flex-1 rounded-xl border border-border py-2.5 text-xs font-bold text-muted-foreground transition-colors hover:border-accent hover:bg-accent/10 hover:text-accent"
+                      >
+                        {s < 120 ? `${s}s` : `${s / 60}m`}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
@@ -648,21 +1083,32 @@ function WorkoutPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {history.map((log, idx) => (
-                    <div key={idx} className="bg-muted/20 p-4 rounded-xl border border-border/50">
-                      <div className="font-bold text-accent mb-2 border-b border-border/50 pb-2">
-                        {new Date(log.date).toLocaleDateString()}
+                  {history.map((log, idx) => {
+                    const rm = best1RMForLog(log);
+                    return (
+                      <div key={idx} className="bg-muted/20 p-4 rounded-xl border border-border/50">
+                        <div className="mb-2 flex items-center justify-between border-b border-border/50 pb-2">
+                          <span className="font-bold text-accent">
+                            {new Date(log.date).toLocaleDateString()}
+                          </span>
+                          {rm > 0 && (
+                            <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                              e1RM {rm} kg
+                            </span>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          {Array.isArray(log.exercises_done) &&
+                            log.exercises_done.map((set: any, sIdx: number) => (
+                              <div key={sIdx} className="flex justify-between text-sm">
+                                <span className="font-semibold text-muted-foreground">Set {sIdx + 1}</span>
+                                <span className="font-bold">{set.reps} reps @ {set.weight} kg</span>
+                              </div>
+                            ))}
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        {log.exercises_done?.map((set: any, sIdx: number) => (
-                          <div key={sIdx} className="flex justify-between text-sm">
-                            <span className="font-semibold text-muted-foreground">Set {sIdx + 1}</span>
-                            <span className="font-bold">{set.reps} reps @ {set.weight} kg</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>
@@ -702,94 +1148,190 @@ function WorkoutPage() {
   };
 
   const PlanWizard = () => {
+    const [level, setLevel] = useState("Intermediate");
+    const [goal, setGoal] = useState("Build muscle");
+    const [days, setDays] = useState(4);
+    const [time, setTime] = useState(60);
+    const [generating, setGenerating] = useState(false);
+
+    const generatePlan = async () => {
+      if (!user) return;
+      setGenerating(true);
+      try {
+        const prompt = `You are an expert strength & conditioning coach. Create a ${days}-day-per-week gym workout plan.
+User profile: experience level ${level}, primary goal: ${goal}, session length: about ${time} minutes.
+Return ONLY valid JSON, no markdown, in exactly this shape:
+{
+  "goal": "${goal}",
+  "days_per_week": ${days},
+  "days": [
+    {
+      "day": "Day 1",
+      "name": "Push Day",
+      "focus": "Chest, Shoulders & Triceps",
+      "exercises": [{ "name": "Barbell Bench Press", "sets": 4, "reps": "8-10" }]
+    }
+  ]
+}
+Rules:
+- Exactly ${days} entries in "days", labelled "Day 1" … "Day ${days}".
+- ${time <= 40 ? "4-5" : time <= 65 ? "5-7" : "6-8"} exercises per day, matched to the session length.
+- Use a sensible split for ${days} days/week (e.g. Push/Pull/Legs, Upper/Lower, or Full Body).
+- Use well-known gym exercise names only.
+- "reps" is a string like "8-12", "5", or "30 sec".
+- Scale intensity to a ${level.toLowerCase()} lifter.`;
+
+        const raw = await groqChat({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 2500,
+          temperature: 0.4,
+          response_format: { type: "json_object" },
+        });
+        const parsed = JSON.parse(
+          raw.replace(/```json|```/g, "").trim(),
+        ) as WorkoutPlan;
+
+        if (!parsed?.days || !Array.isArray(parsed.days) || parsed.days.length === 0) {
+          throw new Error("The AI returned an invalid plan. Please try again.");
+        }
+
+        // Replace any previous plan
+        if (planId) {
+          await supabase.from("workout_plans").delete().eq("id", planId);
+        }
+        const { error } = await supabase.from("workout_plans").insert({
+          user_id: user.id,
+          plan_json: parsed,
+        } as any);
+        if (error) throw error;
+
+        toast.success("Your AI plan is ready! 💪");
+        setWizardOpen(false);
+        loadUserData();
+      } catch (e: any) {
+        toast.error(e.message ?? "Plan generation failed");
+      } finally {
+        setGenerating(false);
+      }
+    };
+
+    const Chip = ({
+      active,
+      onClick,
+      children,
+    }: {
+      active: boolean;
+      onClick: () => void;
+      children: React.ReactNode;
+    }) => (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all ${
+          active
+            ? "border-accent bg-accent/10 text-accent"
+            : "border-border bg-muted/20 text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground"
+        }`}
+      >
+        {children}
+      </button>
+    );
+
     return (
-      <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50">
-          <DialogHeader className="sticky top-0 bg-card/95 backdrop-blur-xl pt-4 pb-2 z-10 -mt-4 -mx-6 px-6 border-b border-border/50">
-            <DialogTitle className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
-              <Flame className="h-5 w-5 text-accent" /> Plan Wizard
+      <Dialog open={wizardOpen} onOpenChange={(o) => !generating && setWizardOpen(o)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-border/50 bg-card/95 backdrop-blur-xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-display text-xl font-bold uppercase tracking-wider">
+              <Sparkles className="h-5 w-5 text-accent" /> AI Plan Builder
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-8 pt-6 pb-8">
-            <div className="space-y-4">
-              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Fitness Level (Experience)</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {["Beginner <1 yr", "Intermediate 1-2 yr", "Expert >3 yr", "Pro"].map(o => (
-                  <Button key={o} variant="outline" className="justify-start h-auto py-3 px-4 whitespace-normal text-left font-semibold rounded-xl hover:border-accent hover:bg-accent/5 transition-colors">{o}</Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Fitness Goals?</Label>
-              <div className="grid grid-cols-1 gap-3">
-                {["Build muscle + get toned", "Enhance general fitness", "Improve conditioning", "Get stronger (powerlifting)"].map(o => (
-                  <Button key={o} variant="outline" className="justify-start h-auto py-3 px-4 whitespace-normal text-left font-semibold rounded-xl hover:border-accent hover:bg-accent/5 transition-colors">{o}</Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex justify-between">
-                <span>Strongest Lifts</span>
-                <span className="text-muted-foreground/50">Optional</span>
+          <div className="space-y-7 pb-2 pt-2">
+            <div className="space-y-3">
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Experience level
               </Label>
-              <div className="space-y-3 bg-muted/20 p-4 rounded-2xl border border-border/50">
-                <div className="flex gap-3 items-center">
-                  <span className="w-24 text-xs font-bold text-right">Bench Press</span>
-                  <Input placeholder="Reps" className="flex-1 bg-background/50 h-10" />
-                  <Input placeholder="Weight" className="flex-1 bg-background/50 h-10" />
-                </div>
-                <div className="flex gap-3 items-center">
-                  <span className="w-24 text-xs font-bold text-right">Back Squat</span>
-                  <Input placeholder="Reps" className="flex-1 bg-background/50 h-10" />
-                  <Input placeholder="Weight" className="flex-1 bg-background/50 h-10" />
-                </div>
-                <div className="flex gap-3 items-center">
-                  <span className="w-24 text-xs font-bold text-right">Deadlift</span>
-                  <Input placeholder="Reps" className="flex-1 bg-background/50 h-10" />
-                  <Input placeholder="Weight" className="flex-1 bg-background/50 h-10" />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">How often do you want to train?</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {["1 day/week", "2 days/week", "3 days/week", "4 days/week", "5 days/week", "Everyday"].map(o => (
-                  <Button key={o} variant="outline" className="justify-start font-semibold rounded-xl hover:border-accent hover:bg-accent/5 transition-colors">{o}</Button>
+              <div className="grid grid-cols-3 gap-2">
+                {["Beginner", "Intermediate", "Advanced"].map((o) => (
+                  <Chip key={o} active={level === o} onClick={() => setLevel(o)}>
+                    {o}
+                  </Chip>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Workout time in gym?</Label>
-              <div className="px-4 py-6 bg-muted/20 rounded-2xl border border-border/50">
-                <Slider defaultValue={[60]} max={120} min={30} step={15} className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:bg-accent [&_[role=slider]]:border-none" />
-                <div className="flex justify-between text-xs text-muted-foreground mt-4 font-bold tracking-widest">
+            <div className="space-y-3">
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Primary goal
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {["Build muscle", "Lose fat", "Get stronger", "General fitness"].map(
+                  (o) => (
+                    <Chip key={o} active={goal === o} onClick={() => setGoal(o)}>
+                      {o}
+                    </Chip>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Training days / week
+              </Label>
+              <div className="grid grid-cols-5 gap-2">
+                {[2, 3, 4, 5, 6].map((n) => (
+                  <Chip key={n} active={days === n} onClick={() => setDays(n)}>
+                    {n}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <span>Session length</span>
+                <span className="text-accent">{time} min</span>
+              </Label>
+              <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-5">
+                <Slider
+                  value={[time]}
+                  onValueChange={(v) => setTime(v[0])}
+                  max={120}
+                  min={30}
+                  step={15}
+                  className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-none [&_[role=slider]]:bg-accent"
+                />
+                <div className="mt-3 flex justify-between text-[10px] font-bold tracking-widest text-muted-foreground">
                   <span>30m</span>
                   <span>1h</span>
                   <span>1.5h</span>
-                  <span>2h+</span>
+                  <span>2h</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Preferred Training Plan?</Label>
-              <div className="grid grid-cols-1 gap-3">
-                <Button variant="default" className="justify-start h-auto py-4 px-5 whitespace-normal text-left font-bold rounded-xl bg-accent text-accent-foreground shadow-lg shadow-accent/20 transition-all hover:-translate-y-1 text-md">
-                  Let us pick for you (AI Generated)
-                </Button>
-                <Button variant="outline" className="justify-start h-auto py-4 px-5 whitespace-normal text-left font-bold rounded-xl hover:border-accent hover:bg-accent/5 transition-all text-md">
-                  Pick from our library
-                </Button>
-                <Button variant="outline" className="justify-start h-auto py-4 px-5 whitespace-normal text-left font-bold rounded-xl hover:border-accent hover:bg-accent/5 transition-all text-md">
-                  Build your own custom plan
-                </Button>
-              </div>
-            </div>
-            
+            <Button
+              onClick={generatePlan}
+              disabled={generating}
+              className="h-14 w-full rounded-xl bg-accent text-base font-bold text-accent-foreground shadow-lg glow-accent-sm transition-all hover:-translate-y-0.5 hover:bg-accent/90"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Building your
+                  plan…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-5 w-5" /> Generate my plan
+                </>
+              )}
+            </Button>
+            {plan && (
+              <p className="text-center text-xs text-muted-foreground">
+                Generating a new plan replaces your current one.
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -822,7 +1364,7 @@ function WorkoutPage() {
         )}
 
         {/* Content Area */}
-        <div className="pt-2">
+        <div className="space-y-6 pt-2">
           {selectedMuscle ? (
             renderMuscleDetail()
           ) : activeTab === "HOME" ? (
@@ -830,7 +1372,10 @@ function WorkoutPage() {
           ) : activeTab === "CARDIO" ? (
             renderCardioList()
           ) : (
-            renderMuscleGrid()
+            <>
+              {renderPlanCard()}
+              {renderMuscleGrid()}
+            </>
           )}
         </div>
 

@@ -37,16 +37,40 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           name: "viewport",
           content: "width=device-width, initial-scale=1, viewport-fit=cover",
         },
-        { title: "FitTrack — Fitness & Nutrition" },
+        { title: "FitTrack — Train. Track. Transform." },
         {
           name: "description",
           content:
-            "Track calories, macros, and progress toward your fitness goals.",
+            "AI-powered fitness & nutrition tracking. Log food by photo, voice, or barcode. Train smarter with personalized plans.",
         },
+        { name: "theme-color", content: "#101014" },
+        { property: "og:title", content: "FitTrack — Train. Track. Transform." },
+        {
+          property: "og:description",
+          content:
+            "AI-powered fitness & nutrition tracking. Log food by photo, voice, or barcode.",
+        },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: "/favicon.jpg" },
+        { name: "twitter:card", content: "summary" },
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-title", content: "FitTrack" },
       ],
       links: [
         { rel: "stylesheet", href: appCss },
-        { rel: "icon", type: "image/jpeg", href: "/favicon.jpg" }
+        { rel: "icon", type: "image/jpeg", href: "/favicon.jpg" },
+        { rel: "manifest", href: "/manifest.webmanifest" },
+        { rel: "apple-touch-icon", href: "/favicon.jpg" },
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        {
+          rel: "preconnect",
+          href: "https://fonts.gstatic.com",
+          crossOrigin: "anonymous",
+        },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap",
+        },
       ],
     }),
     shellComponent: RootShell,
@@ -62,7 +86,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}else if(t&&t!=='light'){document.documentElement.classList.add(t)}}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('theme');if(t==='light'){}else if(t&&t!=='dark'){document.documentElement.classList.add(t)}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}`,
           }}
         />
       </head>

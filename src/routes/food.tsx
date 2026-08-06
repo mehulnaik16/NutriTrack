@@ -20,6 +20,7 @@ import {
   X,
   ChefHat,
   Settings2,
+  CopyPlus,
 } from "lucide-react";
 import {
   Popover,
@@ -196,6 +197,38 @@ function FoodPage() {
     load();
   };
 
+  /** Copy everything logged on the previous day onto the selected date. */
+  const copyPreviousDay = async () => {
+    if (!user) return;
+    const prevDate = shiftDate(selectedDate, -1);
+    const { data: prev, error: fetchErr } = await supabase
+      .from("food_logs")
+      .select("meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g")
+      .eq("user_id", user.id)
+      .eq("date", prevDate);
+    if (fetchErr) {
+      toast.error(fetchErr.message);
+      return;
+    }
+    if (!prev || prev.length === 0) {
+      toast.info(`Nothing was logged on ${formatDateDisplay(prevDate)}`);
+      return;
+    }
+    const rows = prev.map((r: any) => ({
+      ...r,
+      fiber_g: r.fiber_g || 0,
+      user_id: user.id,
+      date: selectedDate,
+    }));
+    const { error } = await supabase.from("food_logs").insert(rows);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Copied ${rows.length} item${rows.length > 1 ? "s" : ""} from ${formatDateDisplay(prevDate)}`);
+    load();
+  };
+
   const relogFood = async (l: any) => {
     if (!user) return;
     const { error } = await supabase.from("food_logs").insert({
@@ -302,6 +335,15 @@ function FoodPage() {
                   onClick={() => setShowMealSetup(true)}
                 >
                   <Settings2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 px-2 text-[10px] font-bold uppercase text-muted-foreground hover:text-accent hover:bg-accent/10"
+                  title="Copy previous day's log onto this date"
+                  onClick={copyPreviousDay}
+                >
+                  <CopyPlus className="h-3.5 w-3.5" /> Copy prev day
                 </Button>
               </CardTitle>
               <div className="flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start">
@@ -416,10 +458,10 @@ function FoodPage() {
                         <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           {m}
                         </h3>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
                           onClick={() => searchRef.current?.openForMeal(m)}
                         >
                           <Plus className="h-3 w-3 mr-1" /> Add
@@ -555,7 +597,7 @@ function FoodPage() {
 
       {/* ── Meal Setup Questionnaire Dialog ── */}
       <Dialog open={showMealSetup} onOpenChange={setShowMealSetup}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
               <Utensils className="h-5 w-5 text-accent" /> Set Up Your Meals

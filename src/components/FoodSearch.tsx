@@ -51,6 +51,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
 import { groqVision, groqTranscribe, groqChat } from "@/lib/groq";
 import ifctData from "@/data/ifct2017.json";
+import { EXTRA_FOODS } from "@/data/extraFoods";
+import { toLocalISO } from "@/lib/dates";
 
 interface IFCTItem {
   code: string;
@@ -92,94 +94,7 @@ interface VoiceFoodItem {
 
 const KJ_PER_KCAL = 4.184;
 
-const EXTRA_FOODS: IFCTItem[] = [
-  {
-    code: "E001",
-    name: "Obbattu / Puran Poli (1 piece = 80g)",
-    scie: "",
-    lang: "",
-    grup: "Indian Sweets",
-    enerc: 320 * KJ_PER_KCAL,
-    protcnt: 7.2,
-    fatce: 10.5,
-    choavldf: 49.3,
-    fibtg: 3.5,
-  },
-  {
-    code: "E002",
-    name: "Idli and Chutney",
-    scie: "",
-    lang: "",
-    grup: "Combo Meals",
-    enerc: 120 * KJ_PER_KCAL,
-    protcnt: 3.5,
-    fatce: 2.1,
-    choavldf: 21.0,
-    fibtg: 1.5,
-  },
-  {
-    code: "E003",
-    name: "Rice and Sambar",
-    scie: "",
-    lang: "",
-    grup: "Combo Meals",
-    enerc: 110 * KJ_PER_KCAL,
-    protcnt: 3.0,
-    fatce: 1.5,
-    choavldf: 20.0,
-    fibtg: 1.2,
-  },
-  {
-    code: "E004",
-    name: "Idli (1 medium = 50g)",
-    scie: "",
-    lang: "",
-    grup: "Breakfast",
-    enerc: 90 * KJ_PER_KCAL,
-    protcnt: 2.5,
-    fatce: 0.2,
-    choavldf: 19.5,
-    fibtg: 0.8,
-  },
-  {
-    code: "E005",
-    name: "Dosa (1 medium = 100g)",
-    scie: "",
-    lang: "",
-    grup: "Breakfast",
-    enerc: 160 * KJ_PER_KCAL,
-    protcnt: 3.2,
-    fatce: 3.5,
-    choavldf: 28.0,
-    fibtg: 1.2,
-  },
-  {
-    code: "E006",
-    name: "Parotta (1 piece = 100g)",
-    scie: "",
-    lang: "",
-    grup: "Breakfast",
-    enerc: 320 * KJ_PER_KCAL,
-    protcnt: 5.5,
-    fatce: 14.5,
-    choavldf: 42.0,
-    fibtg: 1.5,
-  },
-  {
-    code: "E007",
-    name: "Whole Egg (1 large = 50g)",
-    scie: "",
-    lang: "",
-    grup: "Protein",
-    enerc: 143 * KJ_PER_KCAL,
-    protcnt: 12.6,
-    fatce: 9.5,
-    choavldf: 0.7,
-    fibtg: 0,
-  },
-];
-
-const ITEMS = [...(ifctData as IFCTItem[]), ...EXTRA_FOODS];
+const ITEMS = [...(ifctData as IFCTItem[]), ...(EXTRA_FOODS as IFCTItem[])];
 const kcal = (kj: number | null) => (kj == null ? 0 : kj / KJ_PER_KCAL);
 
 function rank(item: IFCTItem, q: string): number {
@@ -617,7 +532,7 @@ Use accurate values for common foods.`;
     // Fetch unique foods from last 7 days for quick re-logging
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const dateStr = sevenDaysAgo.toISOString().slice(0, 10);
+    const dateStr = toLocalISO(sevenDaysAgo);
 
     supabase
       .from("food_logs")
@@ -1545,7 +1460,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
 
       {/* ── Custom Food dialog ── */}
       <Dialog open={customFoodOpen} onOpenChange={setCustomFoodOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Custom Food</DialogTitle>
           </DialogHeader>
@@ -1572,7 +1487,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 <MealSelect />
               </div>
             </div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">
                   Cal (kcal)
@@ -1703,7 +1618,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           }
         }}
       >
-        <DialogContent className="w-[95vw] sm:w-full sm:max-w-md rounded-2xl p-4 sm:p-6">
+        <DialogContent className="w-[95vw] sm:w-full sm:max-w-md rounded-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pr-6">
             <DialogTitle className="flex items-center gap-2 text-left">
               <span className="truncate">{selected?.name}</span>
@@ -1736,7 +1651,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           </DialogHeader>
           {selected && m && (
             <div className="space-y-4">
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">
                     Cal (kcal)
@@ -1870,7 +1785,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Camera className="h-4 w-4" /> AI Food Recognition
@@ -2017,7 +1932,7 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Mic className="h-4 w-4" /> Voice Food Log

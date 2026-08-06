@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/client";
+import { todayLocal } from "@/lib/dates";
 import {
   Dialog,
   DialogContent,
@@ -141,7 +142,7 @@ export function WaterStreak({ userId, streak }: Props) {
   };
 
   // ── Load today's water intake ──────────────────────────────────────────────
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
 
   const load = useCallback(async () => {
     const { data } = await supabase

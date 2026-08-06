@@ -1,0 +1,24 @@
+{
+  "name": "FitTrack — Train. Track. Transform.",
+  "short_name": "FitTrack",
+  "description": "AI-powered fitness & nutrition tracking. Log food by photo, voice, or barcode.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#101014",
+  "theme_color": "#101014",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}

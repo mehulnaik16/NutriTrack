@@ -108,5 +108,76 @@ export const HOME_WORKOUTS: HomeWorkoutRoutine[] = [
       { name: "Superman", sets: "3 sets" },
       { name: "High Knees", sets: "3 sets" },
     ]
+  },
+  {
+    name: "Beginner Full Body",
+    exercises: [
+      { name: "Warm Up", sets: "1 set" },
+      { name: "Squat (Bodyweight)", sets: "3 sets, 10-12 reps" },
+      { name: "Push Up on Knees", sets: "3 sets, 8-10 reps" },
+      { name: "Glute Bridge", sets: "3 sets, 12-15 reps" },
+      { name: "Wall Sit", sets: "3 sets, 30 sec" },
+      { name: "Plank", sets: "3 sets, 20-30 sec" },
+      { name: "Bird Dog", sets: "2 sets, 10 reps/side" },
+    ]
+  },
+  {
+    name: "Core Crusher",
+    exercises: [
+      { name: "Warm Up", sets: "1 set" },
+      { name: "Plank", sets: "3 sets, 45 sec" },
+      { name: "Bicycle Crunch", sets: "3 sets, 20 reps" },
+      { name: "Leg Raise", sets: "3 sets, 12-15 reps" },
+      { name: "Side Plank", sets: "3 sets, 30 sec/side" },
+      { name: "Reverse Crunch", sets: "3 sets, 15 reps" },
+      { name: "Dead Bug", sets: "3 sets, 10 reps/side" },
+      { name: "V Up", sets: "2 sets, 10-12 reps" },
+    ]
+  },
+  {
+    name: "Dumbbell Upper Body Pump",
+    exercises: [
+      { name: "Warm Up", sets: "1 set" },
+      { name: "Dumbbell Bench Press (Floor)", sets: "3 sets, 10-12 reps" },
+      { name: "Bent Over Row (Dumbbell)", sets: "3 sets, 10-12 reps" },
+      { name: "Shoulder Press (Dumbbell)", sets: "3 sets, 10-12 reps" },
+      { name: "Dumbbell Lateral Raise", sets: "3 sets, 12-15 reps" },
+      { name: "Bicep Curl (Dumbbell)", sets: "3 sets, 12-15 reps" },
+      { name: "Dumbbell Skullcrusher", sets: "3 sets, 10-12 reps" },
+    ]
+  },
+  {
+    name: "Dumbbell Leg Day",
+    exercises: [
+      { name: "Warm Up", sets: "1 set" },
+      { name: "Dumbbell Goblet Squat", sets: "4 sets, 10-12 reps" },
+      { name: "Dumbbell Romanian Deadlift", sets: "3 sets, 10-12 reps" },
+      { name: "Dumbbell Walking Lunge", sets: "3 sets, 10 steps/leg" },
+      { name: "Dumbbell Hip Thrust", sets: "3 sets, 12-15 reps" },
+      { name: "Dumbbell Calf Raise", sets: "4 sets, 15-20 reps" },
+    ]
+  },
+  {
+    name: "Tabata 20 (No Equipment)",
+    exercises: [
+      { name: "Warm Up", sets: "1 set" },
+      { name: "Jump Squat", sets: "8 rounds, 20s on / 10s off" },
+      { name: "Push Up", sets: "8 rounds, 20s on / 10s off" },
+      { name: "Mountain Climber", sets: "8 rounds, 20s on / 10s off" },
+      { name: "Burpee", sets: "8 rounds, 20s on / 10s off" },
+      { name: "Cool Down Stretch", sets: "1 set, 3 min" },
+    ]
+  },
+  {
+    name: "Morning Mobility (10 min)",
+    exercises: [
+      { name: "Cat-Cow Stretch", sets: "1 set, 60 sec" },
+      { name: "World's Greatest Stretch", sets: "1 set, 5 reps/side" },
+      { name: "Hip Circles", sets: "1 set, 10 reps/direction" },
+      { name: "Downward Dog to Cobra", sets: "1 set, 8 reps" },
+      { name: "Deep Squat Hold", sets: "2 sets, 30 sec" },
+      { name: "Shoulder Pass Through", sets: "1 set, 10 reps" },
+      { name: "Neck Rolls", sets: "1 set, 5 reps/direction" },
+    ]
   }
 ];

@@ -410,20 +410,64 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Calf Press on Leg Press",
     "Plate-Loaded Seated Calf Raise",
     "Seated Calf Extension",
-    "Jump Rope"
+    "Jump Rope",
+    "Donkey Calf Raise",
+    "Seated Dumbbell Calf Raise",
+    "Tibialis Raise",
+    "Farmer Walk on Toes",
+    "Deficit Calf Raise (Step)",
+    "Pogo Jumps"
   ],
   lowerback: [
     "Back Extension",
     "Superman",
     "Machine Back Extension",
     "Alternating Superman",
-    "Rack Pulls"
+    "Rack Pulls",
+    "45-Degree Back Extension",
+    "Reverse Hyperextension",
+    "Bird Dog",
+    "Stability Ball Back Extension",
+    "Jefferson Curl",
+    "Seated Good Morning",
+    "Weighted Back Extension"
+  ],
+  traps: [
+    "Barbell Shrug",
+    "Dumbbell Shrug",
+    "Smith Machine Shrug",
+    "Cable Shrug",
+    "Trap Bar Shrug",
+    "Behind the Back Barbell Shrug",
+    "Seated Dumbbell Shrug",
+    "Barbell Upright Row",
+    "Dumbbell Upright Row",
+    "Cable Upright Row",
+    "EZ Bar Upright Row",
+    "Farmer's Carry",
+    "Trap Bar Carry",
+    "Dumbbell Farmer's Walk",
+    "Power Shrug",
+    "Kirk Shrug",
+    "Overhead Shrug"
   ],
   forearms: [
     "Palms Down Barbell Wrist Curl",
     "Palms Up Barbell Wrist Curl",
     "Palms Up Dumbbell Wrist Curl",
-    "Palms Down Dumbbell Wrist Curl"
+    "Palms Down Dumbbell Wrist Curl",
+    "Behind the Back Wrist Curl",
+    "Cable Wrist Curl",
+    "Reverse Wrist Curl",
+    "Wrist Roller",
+    "Dead Hang",
+    "Towel Grip Dead Hang",
+    "Plate Pinch Hold",
+    "Farmer's Carry (Heavy)",
+    "Gripper Squeeze",
+    "Fat Grip Dumbbell Hold",
+    "Suitcase Carry",
+    "Finger Curls"
   ],
   abductors: [
     "Cable Hip Abduction",
@@ -431,11 +475,23 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Banded Seated Abduction",
     "Banded Side Lying Hip Abduction",
     "Clamshells",
-    "Multi Hip Abduction"
+    "Multi Hip Abduction",
+    "Lateral Band Walk",
+    "Fire Hydrant",
+    "Standing Side Leg Raise",
+    "Curtsy Lunge",
+    "Side Plank Hip Abduction",
+    "Cable Standing Hip Abduction"
   ],
   adductors: [
     "Machine Adduction",
     "Cable Hip Adduction",
-    "Multi Hip Adduction"
+    "Multi Hip Adduction",
+    "Copenhagen Plank",
+    "Side Lunge",
+    "Sumo Squat (Wide Stance)",
+    "Adductor Squeeze (Ball)",
+    "Lying Adduction Leg Raise",
+    "Banded Adduction"
   ],
 };

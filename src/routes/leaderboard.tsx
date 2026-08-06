@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/client";
 import { Header } from "@/components/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -13,13 +13,14 @@ import {
 import {
   Trophy,
   Flame,
-  Medal,
+  Crown,
   Dumbbell,
   Droplets,
   Activity,
   Utensils,
   Star,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/leaderboard")({
   component: Leaderboard,
@@ -37,6 +38,7 @@ interface LeaderboardUser {
 }
 
 function Leaderboard() {
+  const { user } = useAuth();
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState("monthly");
@@ -132,12 +134,12 @@ function Leaderboard() {
 
   const getCategoryIcon = () => {
     if (category === "streak")
-      return <Flame className="h-5 w-5 fill-current" />;
-    if (category === "workouts") return <Dumbbell className="h-5 w-5" />;
-    if (category === "calories") return <Utensils className="h-5 w-5" />;
-    if (category === "water") return <Droplets className="h-5 w-5" />;
-    if (category === "exercise") return <Activity className="h-5 w-5" />;
-    return <Star className="h-5 w-5 fill-current" />;
+      return <Flame className="h-4 w-4 fill-current" />;
+    if (category === "workouts") return <Dumbbell className="h-4 w-4" />;
+    if (category === "calories") return <Utensils className="h-4 w-4" />;
+    if (category === "water") return <Droplets className="h-4 w-4" />;
+    if (category === "exercise") return <Activity className="h-4 w-4" />;
+    return <Star className="h-4 w-4 fill-current" />;
   };
 
   const getCategoryValue = (u: LeaderboardUser) => {
@@ -150,100 +152,190 @@ function Leaderboard() {
     return Math.round(u.overall_score) + " pts";
   };
 
+  const initial = (n: string | null) => (n?.trim()?.[0] ?? "A").toUpperCase();
+  const podium = users.slice(0, 3);
+  const rest = users.slice(3);
+  const myRank = users.findIndex((u) => u.id === user?.id);
+
+  const PODIUM_STYLES = [
+    {
+      ring: "border-yellow-400/70 text-yellow-400",
+      badge: "bg-yellow-400 text-black",
+      order: "order-2",
+      size: "h-20 w-20 text-2xl",
+      lift: "-translate-y-3",
+    },
+    {
+      ring: "border-slate-300/60 text-slate-300",
+      badge: "bg-slate-300 text-black",
+      order: "order-1",
+      size: "h-16 w-16 text-xl",
+      lift: "",
+    },
+    {
+      ring: "border-amber-600/60 text-amber-500",
+      badge: "bg-amber-600 text-white",
+      order: "order-3",
+      size: "h-16 w-16 text-xl",
+      lift: "",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-muted/10 pb-24">
+    <div className="min-h-screen bg-background pb-24">
       <Header name="Champion" />
 
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-        <Card className="shadow-sm border-accent/20">
-          <CardHeader className="text-center pb-6">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--energy)]/10 text-[var(--energy)] mb-4">
-              <Trophy className="h-8 w-8" />
-            </div>
-            <CardTitle className="text-3xl font-black tracking-tight">
-              Leaderboard
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              See how you rank against the community!
-            </p>
+        {/* ── Page header ── */}
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent glow-accent-sm">
+            <Trophy className="h-8 w-8" />
+          </div>
+          <h1 className="font-display text-3xl font-bold tracking-tight">
+            Leaderboard
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            See how you rank against the community
+            {myRank >= 0 && (
+              <span className="ml-1 font-bold text-accent">
+                — you're #{myRank + 1}
+              </span>
+            )}
+          </p>
+        </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-4 text-left sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-muted-foreground ml-1">
-                  Time Period
-                </label>
-                <Select value={timeFilter} onValueChange={setTimeFilter}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-muted-foreground ml-1">
-                  Category
-                </label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="overall">Overall Score</SelectItem>
-                    <SelectItem value="streak">Daily Streak</SelectItem>
-                    <SelectItem value="workouts">Workouts Done</SelectItem>
-                    <SelectItem value="calories">
-                      Avg Calories Logged
-                    </SelectItem>
-                    <SelectItem value="water">Total Water Intake</SelectItem>
-                    <SelectItem value="exercise">Exercise Minutes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+        {/* ── Filters ── */}
+        <Card className="mb-6 border-border/60">
+          <CardHeader className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label className="ml-1 text-xs font-bold uppercase text-muted-foreground">
+                Time Period
+              </label>
+              <Select value={timeFilter} onValueChange={setTimeFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="ml-1 text-xs font-bold uppercase text-muted-foreground">
+                Category
+              </label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="overall">Overall Score</SelectItem>
+                  <SelectItem value="streak">Daily Streak</SelectItem>
+                  <SelectItem value="workouts">Workouts Done</SelectItem>
+                  <SelectItem value="calories">Avg Calories Logged</SelectItem>
+                  <SelectItem value="water">Total Water Intake</SelectItem>
+                  <SelectItem value="exercise">Exercise Minutes</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
-            {loading ? (
-              <div className="flex justify-center p-8">
-                <Trophy className="h-8 w-8 animate-pulse text-[var(--energy)] opacity-50" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {users.length === 0 && (
-                  <div className="text-center p-8 text-muted-foreground">
-                    No data found for this period.
-                  </div>
-                )}
-                {users.map((u, i) => (
-                  <div
-                    key={u.id}
-                    className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-accent/50 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-white ${i === 0 ? "bg-yellow-500 shadow-md shadow-yellow-500/20" : i === 1 ? "bg-gray-400" : i === 2 ? "bg-amber-700" : "bg-muted-foreground"}`}
-                      >
-                        {i === 0 ? <Medal className="h-5 w-5" /> : i + 1}
+        </Card>
+
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <Trophy className="h-8 w-8 animate-pulse text-accent opacity-60" />
+          </div>
+        ) : users.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
+            No data found for this period.
+          </div>
+        ) : (
+          <>
+            {/* ── Podium ── */}
+            {podium.length >= 2 && (
+              <div className="mb-8 flex items-end justify-center gap-4 sm:gap-8">
+                {podium.map((u, i) => {
+                  const s = PODIUM_STYLES[i];
+                  const isMe = u.id === user?.id;
+                  return (
+                    <div
+                      key={u.id}
+                      className={`flex flex-col items-center ${s.order} ${s.lift}`}
+                    >
+                      {i === 0 && (
+                        <Crown className="mb-1 h-5 w-5 text-yellow-400" />
+                      )}
+                      <div className="relative">
+                        <div
+                          className={`flex items-center justify-center rounded-full border-2 bg-card font-display font-bold ${s.ring} ${s.size} ${i === 0 ? "glow-accent-sm" : ""}`}
+                        >
+                          {initial(u.full_name)}
+                        </div>
+                        <span
+                          className={`absolute -bottom-2 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full text-xs font-bold ${s.badge}`}
+                        >
+                          {i + 1}
+                        </span>
                       </div>
-                      <span className="truncate text-base font-semibold sm:text-lg">
-                        {u.full_name || "Anonymous User"}
+                      <p
+                        className={`mt-4 max-w-[90px] truncate text-center text-xs font-semibold sm:max-w-[120px] sm:text-sm ${isMe ? "text-accent" : ""}`}
+                      >
+                        {isMe ? "You" : u.full_name || "Anonymous"}
+                      </p>
+                      <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
+                        {getCategoryIcon()}
+                        {getCategoryValue(u)}
                       </span>
                     </div>
-                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--energy)]/10 px-3 py-1.5 text-[var(--energy)]">
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── Everyone else ── */}
+            <div className="space-y-2">
+              {(podium.length >= 2 ? rest : users).map((u, i) => {
+                const rank = podium.length >= 2 ? i + 4 : i + 1;
+                const isMe = u.id === user?.id;
+                return (
+                  <div
+                    key={u.id}
+                    className={`flex items-center justify-between gap-3 rounded-2xl border p-3.5 transition-colors sm:p-4 ${
+                      isMe
+                        ? "border-accent/60 bg-accent/5 glow-accent-sm"
+                        : "border-border bg-card hover:border-accent/40"
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="w-7 shrink-0 text-center font-display text-sm font-bold text-muted-foreground">
+                        {rank}
+                      </span>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-display text-sm font-bold">
+                        {initial(u.full_name)}
+                      </div>
+                      <span className="truncate text-sm font-semibold sm:text-base">
+                        {isMe ? "You" : u.full_name || "Anonymous User"}
+                        {isMe && (
+                          <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">
+                            You
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-accent">
                       {getCategoryIcon()}
-                      <span className="text-base font-bold sm:text-lg">
+                      <span className="text-sm font-bold">
                         {getCategoryValue(u)}
                       </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                );
+              })}
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

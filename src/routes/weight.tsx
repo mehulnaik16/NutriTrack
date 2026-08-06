@@ -39,6 +39,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { uploadWeightPhoto, deleteWeightPhoto, replaceWeightPhoto } from "@/services/storage";
+import { todayLocal } from "@/lib/dates";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
 
@@ -55,6 +56,7 @@ interface Profile {
   goal: string;
   full_name: string | null;
   goal_weight_kg: number | null;
+  height_cm: number | null;
 }
 
 async function getGroqMotivation(
@@ -104,7 +106,7 @@ function WeightPage() {
     const [{ data: p }, { data: e }] = await Promise.all([
       supabase
         .from("user_profiles")
-        .select("weight_kg,goal,full_name,goal_weight_kg")
+        .select("weight_kg,goal,full_name,goal_weight_kg,height_cm")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -162,10 +164,9 @@ function WeightPage() {
         photo_url = result.data.publicUrl;
       }
 
-      const today = new Date().toISOString().slice(0, 10);
       const payload: any = {
         user_id: user.id,
-        date: today,
+        date: todayLocal(),
         weight_kg: +weight,
       };
       
@@ -306,6 +307,29 @@ function WeightPage() {
       ? +Math.abs(profile.goal_weight_kg - latest.weight_kg).toFixed(1)
       : null;
 
+  // ── BMI insights ──
+  const currentWeight = latest?.weight_kg ?? profile.weight_kg;
+  const heightM = profile.height_cm ? profile.height_cm / 100 : null;
+  const bmi =
+    heightM && currentWeight
+      ? +(currentWeight / (heightM * heightM)).toFixed(1)
+      : null;
+  const bmiCategory =
+    bmi === null
+      ? null
+      : bmi < 18.5
+        ? { label: "Underweight", color: "text-fat" }
+        : bmi < 25
+          ? { label: "Healthy", color: "text-[var(--energy)]" }
+          : bmi < 30
+            ? { label: "Overweight", color: "text-warn" }
+            : { label: "Obese", color: "text-destructive" };
+  const healthyMin = heightM ? +(18.5 * heightM * heightM).toFixed(1) : null;
+  const healthyMax = heightM ? +(24.9 * heightM * heightM).toFixed(1) : null;
+  // Position of current BMI on a 15–40 scale for the gauge bar
+  const bmiPct =
+    bmi === null ? 0 : Math.min(100, Math.max(0, ((bmi - 15) / 25) * 100));
+
   const chartData = entries.map((e) => ({
     date: e.date.slice(5),
     weight: e.weight_kg,
@@ -321,25 +345,25 @@ function WeightPage() {
     <div className="min-h-screen bg-background pb-24">
       <Header name={profile.full_name?.split(" ")[0]} />
       <main className="mx-auto max-w-4xl space-y-6 px-3 py-5 sm:px-6 sm:py-6">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
           Weight Tracker
         </h1>
 
         {/* ── Summary cards ── */}
         <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
+          <Card className="card-lift">
             <CardContent className="p-5">
-              <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                <Scale className="h-4 w-4" /> Current
+              <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <Scale className="h-4 w-4 text-accent" /> Current
               </div>
-              <p className="text-2xl font-bold">
+              <p className="font-display text-2xl font-bold">
                 {latest?.weight_kg ?? profile.weight_kg} kg
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="card-lift">
             <CardContent className="p-5">
-              <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+              <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 {totalChange < 0 ? (
                   <TrendingDown className="h-4 w-4 text-[var(--energy)]" />
                 ) : totalChange > 0 ? (
@@ -350,24 +374,70 @@ function WeightPage() {
                 Total change
               </div>
               <p
-                className={`text-2xl font-bold ${totalChange < 0 ? "text-[var(--energy)]" : totalChange > 0 ? "text-destructive" : ""}`}
+                className={`font-display text-2xl font-bold ${totalChange < 0 ? "text-[var(--energy)]" : totalChange > 0 ? "text-destructive" : ""}`}
               >
                 {totalChange > 0 ? "+" : ""}
                 {totalChange} kg
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="card-lift">
             <CardContent className="p-5">
-              <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                <Target className="h-4 w-4" /> To goal
+              <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <Target className="h-4 w-4 text-accent" /> To goal
               </div>
-              <p className="text-2xl font-bold">
-                {toGoal !== null ? `+${toGoal} kg` : "—"}
+              <p className="font-display text-2xl font-bold">
+                {toGoal !== null ? `${toGoal} kg` : "—"}
               </p>
             </CardContent>
           </Card>
         </div>
+
+        {/* ── BMI insights ── */}
+        {bmi !== null && bmiCategory && (
+          <Card className="card-lift">
+            <CardContent className="p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Body Mass Index
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display text-3xl font-bold">{bmi}</span>
+                    <span className={`text-sm font-bold ${bmiCategory.color}`}>
+                      {bmiCategory.label}
+                    </span>
+                  </div>
+                  {healthyMin && healthyMax && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Healthy range for your height: {healthyMin}–{healthyMax} kg
+                    </p>
+                  )}
+                </div>
+                <div className="w-full sm:w-64">
+                  {/* Gauge: 15 → 40 BMI */}
+                  <div className="relative h-2.5 overflow-hidden rounded-full"
+                    style={{
+                      background:
+                        "linear-gradient(90deg, var(--fat) 0%, var(--fat) 14%, var(--energy) 14%, var(--energy) 40%, var(--warn) 40%, var(--warn) 60%, var(--destructive) 60%)",
+                    }}
+                  />
+                  <div
+                    className="relative -mt-[13px] h-4 w-4 -translate-x-1/2 rounded-full border-2 border-background bg-foreground shadow"
+                    style={{ marginLeft: `${bmiPct}%` }}
+                  />
+                  <div className="mt-1 flex justify-between text-[9px] font-bold text-muted-foreground">
+                    <span>15</span>
+                    <span>18.5</span>
+                    <span>25</span>
+                    <span>30</span>
+                    <span>40</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── AI Motivation ── */}
         {entries.length > 0 && (
@@ -747,7 +817,7 @@ function WeightEntryModal({
       }
     }}>
       <DialogContent 
-        className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 transition-all duration-200"
+        className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 transition-all duration-200 max-h-[90vh] overflow-y-auto"
         onKeyDown={handleKeyDown}
       >
         <DialogHeader>
@@ -769,7 +839,7 @@ function WeightEntryModal({
                       className="w-full h-full object-contain"
                     />
                     {isEditing && (
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                      <div className="absolute inset-0 bg-black/50 opacity-100 md:bg-black/60 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
                           Change Photo
                         </Button>

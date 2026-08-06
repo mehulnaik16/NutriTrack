@@ -67,6 +67,7 @@ import { WeeklyReport } from "@/components/WeeklyReport";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { uploadWeightPhoto } from "@/services/storage";
+import { todayLocal, toLocalISO } from "@/lib/dates";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -174,11 +175,11 @@ async function computeStreak(userId: string): Promise<number> {
   let streak = 0;
   const check = new Date();
   for (const d of uniqueDates) {
-    const expected = check.toISOString().slice(0, 10);
+    const expected = toLocalISO(check);
     if (d === expected) {
       streak++;
       check.setDate(check.getDate() - 1);
-    } else if (d === new Date().toISOString().slice(0, 10)) {
+    } else if (d === todayLocal()) {
       // Ignore if they just haven't logged *yet* today
       continue;
     } else {
@@ -503,7 +504,7 @@ function Dashboard() {
   for (let i = 29; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    days.push(d.toISOString().slice(0, 10));
+    days.push(toLocalISO(d));
   }
   const monthMap: Record<string, number> = {};
   for (const l of monthLogs)
@@ -533,6 +534,12 @@ function Dashboard() {
   const prevWeight = weightEntries[weightEntries.length - 2]?.weight_kg;
   const weightDiff = lastWeight && prevWeight ? lastWeight - prevWeight : null;
   const loggedDates = [...new Set(monthLogs.map((l) => new Date(l.date)))];
+
+  // Which plan day is today? (Mon-indexed, rotates across the split)
+  const planDayIdx = workoutPlan?.days?.length
+    ? ((new Date().getDay() + 6) % 7) % workoutPlan.days.length
+    : 0;
+  const todaysDay = workoutPlan?.days?.[planDayIdx];
 
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
@@ -636,6 +643,7 @@ function Dashboard() {
             <div className="relative z-10 flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-12">
               {/* Calories Ring */}
               <div className="relative h-48 w-48 shrink-0">
+                <div className="pointer-events-none absolute inset-6 rounded-full bg-accent/15 blur-2xl" />
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -656,7 +664,7 @@ function Dashboard() {
                   <Flame
                     className={`h-6 w-6 mb-1 ${remaining < 0 ? "text-destructive" : "text-energy"}`}
                   />
-                  <span className="text-4xl font-black tracking-tighter leading-none">
+                  <span className="font-display text-4xl font-bold tracking-tighter leading-none">
                     {Math.round(totals.calories)}
                   </span>
                   <span className="text-[10px] uppercase font-bold text-muted-foreground mt-1">
@@ -740,7 +748,7 @@ function Dashboard() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
+                              className="h-8 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
                               onClick={() => searchRef.current?.openForMeal(m)}
                             >
                               <Plus className="h-3 w-3 mr-1" /> Add
@@ -749,7 +757,7 @@ function Dashboard() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20"
+                                className="h-8 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20"
                                 onClick={() => saveMealAsFavorite(m, items)}
                               >
                                 <Flame className="h-3 w-3 mr-1" /> Save as
@@ -793,11 +801,11 @@ function Dashboard() {
                                         </span>
                                       </div>
                                     </div>
-                                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-0">
+                                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-0.5">
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className={`h-7 w-7 transition-all ${
+                                        className={`h-9 w-9 transition-all ${
                                           isFav
                                             ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
                                             : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
@@ -816,7 +824,7 @@ function Dashboard() {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-7 w-7 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                        className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
                                         title="Log again"
                                         onClick={() => relogFood(l)}
                                       >
@@ -825,7 +833,7 @@ function Dashboard() {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-7 w-7 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                        className="h-9 w-9 text-muted-foreground hover:text-accent hover:bg-accent/10"
                                         title="Modify"
                                         onClick={() =>
                                           searchRef.current?.editLog(l)
@@ -836,7 +844,7 @@ function Dashboard() {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                        className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                         title="Delete"
                                         onClick={() => deleteLog(l.id)}
                                       >
@@ -903,16 +911,16 @@ function Dashboard() {
                   <div className="space-y-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                       <div className="min-w-0">
-                        <div className="truncate text-lg font-black">
-                          {workoutPlan.days[0]?.name}
+                        <div className="truncate font-display text-lg font-bold">
+                          {todaysDay?.name}
                         </div>
                         <div className="truncate text-sm text-muted-foreground">
-                          {workoutPlan.days[0]?.focus}
+                          {todaysDay?.focus}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-black text-accent">
-                          {workoutPlan.days[0]?.exercises.length}
+                        <div className="font-display text-2xl font-bold text-accent">
+                          {todaysDay?.exercises.length}
                         </div>
                         <div className="text-[10px] uppercase font-bold text-muted-foreground">
                           Exercises
@@ -920,10 +928,10 @@ function Dashboard() {
                       </div>
                     </div>
                     <div className="flex gap-1.5 pt-2">
-                      {workoutPlan.days.slice(0, 5).map((d, i) => (
+                      {workoutPlan.days.slice(0, 7).map((d, i) => (
                         <div
                           key={i}
-                          className={`flex-1 h-2 rounded-full ${i === 0 ? "bg-accent" : "bg-muted"}`}
+                          className={`flex-1 h-2 rounded-full ${i === planDayIdx ? "bg-accent glow-accent-sm" : "bg-muted"}`}
                           title={d.name}
                         />
                       ))}
@@ -1245,7 +1253,7 @@ function Dashboard() {
                               alt={`Weight on ${e.date}`}
                               className="h-24 w-24 object-cover rounded-md border border-border"
                             />
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex flex-col items-center justify-center text-white text-xs">
+                            <div className="absolute inset-0 bg-black/45 opacity-100 md:bg-black/60 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-md flex flex-col items-center justify-center text-white text-xs">
                               <span className="font-bold">
                                 {e.weight_kg} kg
                               </span>
