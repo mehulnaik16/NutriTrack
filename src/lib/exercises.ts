@@ -85,13 +85,11 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Single Arm Lat Pulldown",
     "Single Arm Low Cable Row",
     "Straight Arm Pulldown",
-    "Swimming",
     "Dumbbell Bent Over Row",
     "Loop Band Bent Over Row",
     "Loop Band Lat Pulldown",
     "Loop Band Standing Single Arm Row",
     "Renegade Row",
-    "SkiErg",
     "TRX Inverted Row"
   ],
   chest: [
@@ -131,6 +129,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Hand Release Push Up",
     "Incline Push Up",
     "Push Up",
+    "Wide Push Up",
     "Push Up on Knees",
     "Dumbbell Squeeze Press",
     "Incline Dumbbell Squeeze Press",
@@ -225,6 +224,8 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Smith Machine Close-Grip Bench Press",
     "Tate Press",
     "Tricep Dip",
+    "Ring Dip",
+    "Diamond Push Up",
     "Tricep Pushdown",
     "Tricep Pushdown V Bar",
     "TRX Tricep Extension",
@@ -493,5 +494,108 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Adductor Squeeze (Ball)",
     "Lying Adduction Leg Raise",
     "Banded Adduction"
+  ],
+};
+
+/* ════════════════════════════════════════════════════════════
+   Grouped muscle categories (Legs parent, Back sub-sections).
+
+   IMPORTANT: sub-categories REFERENCE the arrays above — they are
+   views over the same data source, never copies. Favorites, logs,
+   search, and history all keep working because exercise names
+   (the de-facto IDs) are untouched.
+════════════════════════════════════════════════════════════ */
+
+/** Lat-focused pulls — a named partition of EXERCISES_DB.back. */
+export const LATS_EXERCISES: string[] = [
+  "Chin Up",
+  "Pull Up",
+  "Assisted Pull up",
+  "Assisted Wide Grip Pull Up",
+  "Assisted Neutral Grip Pull Up",
+  "Neutral Grip Pull Ups",
+  "Lat Pulldown",
+  "Lat Pulldown Neutral Grip",
+  "Reverse Grip Pulldown",
+  "Close Grip Pulldown",
+  "V Bar Pulldown",
+  "Machine Lat Pulldown",
+  "Single Arm Lat Pulldown",
+  "Loop Band Lat Pulldown",
+  "Straight Arm Pulldown",
+  "Rope Straight Arm Pulldown",
+  "Cable Crossover Lat Pulldown",
+  "Cross-Body Lat Pull-Around",
+  "Plate-Loaded Pullover",
+  "Loop Band Chin Up",
+  "Loop Band Pull Up",
+];
+
+const LATS_SET = new Set(LATS_EXERCISES);
+
+/**
+ * Upper Back = everything in the back group that isn't a lat movement.
+ * Computed (not hand-copied) so nothing can ever be lost or duplicated.
+ */
+export const UPPER_BACK_EXERCISES: string[] = EXERCISES_DB.back.filter(
+  (n) => !LATS_SET.has(n),
+);
+
+export interface MuscleSubcategory {
+  label: string;
+  /** Reference to the shared exercise list (same array, no copy). */
+  names: string[];
+}
+
+/**
+ * Compound — a first-class category that is a *view* over exercises
+ * living in other groups (many-to-many by shared name/ID). Names must
+ * match their home-group spelling exactly so favorites, history, and
+ * logged badges stay shared.
+ *
+ * Spec-name → DB-name mappings (reuse, never duplicate):
+ *   "Neutral Grip Pull Up" → "Neutral Grip Pull Ups"
+ *   "Assisted Pull Up"     → "Assisted Pull up"
+ *   "Knee Push Up"         → "Push Up on Knees"
+ *   "Parallel Bar Dip"     → "Chest Dip" + "Tricep Dip" (existing records)
+ */
+export const COMPOUND_EXERCISES: string[] = [
+  "Pull Up",
+  "Chin Up",
+  "Neutral Grip Pull Ups",
+  "Assisted Pull up",
+  "Assisted Neutral Grip Pull Up",
+  "Assisted Wide Grip Pull Up",
+  "Push Up",
+  "Incline Push Up",
+  "Decline Push Up",
+  "Diamond Push Up",
+  "Wide Push Up",
+  "Push Up on Knees",
+  "Chest Dip",
+  "Tricep Dip",
+  "Bench Dip",
+  "Assisted Dip",
+  "Ring Dip",
+];
+
+/**
+ * Parent categories that render as pill rows on their muscle page.
+ * Keys match MUSCLES grid ids on the Workout page.
+ */
+export const MUSCLE_SUBCATEGORIES: Record<string, MuscleSubcategory[]> = {
+  legs: [
+    { label: "Quads", names: EXERCISES_DB.quads },
+    { label: "Hamstrings", names: EXERCISES_DB.hamstrings },
+    { label: "Glutes", names: EXERCISES_DB.glutes },
+    { label: "Calves", names: EXERCISES_DB.calves },
+    { label: "Abductors", names: EXERCISES_DB.abductors },
+    { label: "Adductors", names: EXERCISES_DB.adductors },
+  ],
+  back: [
+    { label: "Lats", names: LATS_EXERCISES },
+    { label: "Upper Back", names: UPPER_BACK_EXERCISES },
+    { label: "Traps", names: EXERCISES_DB.traps },
+    { label: "Lower Back", names: EXERCISES_DB.lowerback },
   ],
 };

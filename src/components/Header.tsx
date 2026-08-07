@@ -193,7 +193,7 @@ export function Header({ name }: { name?: string }) {
               <Activity className="h-5 w-5" />
             </div>
             <span className="font-display text-base font-bold tracking-tight sm:text-lg">
-              FitTrack
+              Dombelz
             </span>
           </Link>
           {user && (

@@ -37,7 +37,7 @@ function Terms() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
               <Activity className="h-4 w-4" />
             </div>
-            <span className="font-display text-sm font-bold">FitTrack</span>
+            <span className="font-display text-sm font-bold">Dombelz</span>
           </div>
         </div>
       </header>
@@ -57,7 +57,7 @@ function Terms() {
 
         <Section title="1. Agreement">
           <p>
-            By creating a FitTrack account or using the app, you agree to these
+            By creating a Dombelz account or using the app, you agree to these
             Terms and our{" "}
             <Link
               to="/privacy"
@@ -65,14 +65,14 @@ function Terms() {
             >
               Privacy Policy
             </Link>
-            . If you do not agree, please do not use FitTrack. You must be at
+            . If you do not agree, please do not use Dombelz. You must be at
             least 16 years old to use the service.
           </p>
         </Section>
 
         <Section title="2. Not medical advice">
           <p>
-            FitTrack provides general fitness and nutrition information —
+            Dombelz provides general fitness and nutrition information —
             calorie estimates, macro targets, workout suggestions, and
             AI-generated summaries. It is{" "}
             <strong className="text-foreground">
@@ -107,7 +107,7 @@ function Terms() {
 
         <Section title="5. Plans, trials & payments">
           <p>
-            FitTrack offers subscription plans with a 2-day free trial. No
+            Dombelz offers subscription plans with a 2-day free trial. No
             payment method is required for the trial. Online payments are not
             yet enabled; when they launch, pricing, billing cycles, and refund
             terms will be shown at checkout before you pay. Prices are listed
@@ -134,7 +134,7 @@ function Terms() {
 
         <Section title="8. Limitation of liability">
           <p>
-            To the maximum extent permitted by law, FitTrack is not liable for
+            To the maximum extent permitted by law, Dombelz is not liable for
             indirect or consequential damages, injuries arising from exercise
             you choose to perform, or decisions made based on nutrition
             estimates. Our total liability is limited to the amount you paid us
@@ -159,10 +159,10 @@ function Terms() {
         <div className="mt-10 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
           Questions? Email{" "}
           <a
-            href="mailto:support@fittrack.app"
+            href="mailto:support@dombelz.app"
             className="text-accent underline-offset-2 hover:underline"
           >
-            support@fittrack.app
+            support@dombelz.app
           </a>{" "}
           · See also our{" "}
           <Link

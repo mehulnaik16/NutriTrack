@@ -24,9 +24,6 @@ import {
   Clock,
   Trash2,
   RotateCcw,
-  Layers,
-  Sparkles,
-  History,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -50,22 +47,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
 import { groqVision, groqTranscribe, groqChat } from "@/lib/groq";
-import ifctData from "@/data/ifct2017.json";
-import { EXTRA_FOODS } from "@/data/extraFoods";
 import { toLocalISO } from "@/lib/dates";
-
-interface IFCTItem {
-  code: string;
-  name: string;
-  scie: string;
-  lang: string;
-  grup: string;
-  enerc: number | null;
-  protcnt: number | null;
-  fatce: number | null;
-  choavldf: number | null;
-  fibtg: number | null;
-}
+import {
+  type IFCTItem,
+  ITEMS,
+  kcal,
+  KJ_PER_KCAL,
+  rank,
+} from "@/lib/foodDb";
 
 interface AIFoodResult {
   food_name: string;
@@ -90,21 +79,6 @@ interface VoiceFoodItem {
   carbs_g: number;
   fat_g: number;
   fiber_g: number;
-}
-
-const KJ_PER_KCAL = 4.184;
-
-const ITEMS = [...(ifctData as IFCTItem[]), ...(EXTRA_FOODS as IFCTItem[])];
-const kcal = (kj: number | null) => (kj == null ? 0 : kj / KJ_PER_KCAL);
-
-function rank(item: IFCTItem, q: string): number {
-  const name = item.name.toLowerCase();
-  const lang = item.lang.toLowerCase();
-  if (name.startsWith(q)) return 0;
-  if (name.includes(` ${q}`)) return 1;
-  if (name.includes(q)) return 2;
-  if (lang.includes(q)) return 3;
-  return 5;
 }
 
 // ── AI image recognition via Groq Llama 4 Scout vision ───────────────────────
@@ -196,7 +170,6 @@ export interface FoodSearchRef {
   editLog: (log: any) => void;
   refreshFavorites: () => void;
   openForMeal: (meal: string) => void;
-  openMealBuilder: () => void;
 }
 
 export const FoodSearch = forwardRef<
@@ -287,9 +260,6 @@ export const FoodSearch = forwardRef<
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
-    openMealBuilder: () => {
-      setMealBuilderOpen(true);
-    },
     editLog: (log: any) => {
       setIsEditing(true);
       setEditLogId(log.id);
@@ -357,163 +327,6 @@ export const FoodSearch = forwardRef<
   const [parsingVoice, setParsingVoice] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-
-  // Meal Builder
-  interface MealBuilderItem {
-    name: string;
-    quantity_g: number;
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fiber_g: number;
-    base_calories: number;
-    base_protein_g: number;
-    base_carbs_g: number;
-    base_fat_g: number;
-    base_fiber_g: number;
-  }
-  const [mealBuilderOpen, setMealBuilderOpen] = useState(false);
-  const [mealBuilderName, setMealBuilderName] = useState("");
-  const [mealBuilderItems, setMealBuilderItems] = useState<MealBuilderItem[]>(
-    [],
-  );
-  const [mealBuilderSearch, setMealBuilderSearch] = useState("");
-  const [mealBuilderSaving, setMealBuilderSaving] = useState(false);
-  const [mbAiSuggestions, setMbAiSuggestions] = useState<IFCTItem[]>([]);
-  const [mbSearching, setMbSearching] = useState(false);
-
-  const handleMbAiFallback = async () => {
-    if (mealBuilderSearch.trim().length < 2) return;
-    setMbSearching(true);
-    try {
-      const prompt = `You are a nutrition expert. The user is searching for "${mealBuilderSearch}". 
-If this food is missing from a standard database, provide its typical nutritional values per 100g.
-Return ONLY a JSON object with a key "items" containing up to 3 matching items, no markdown:
-{
-  "items": [
-    {
-      "code": "ai-fallback",
-      "name": "string (specific name)",
-      "scie": "",
-      "lang": "",
-      "grup": "AI Fallback",
-      "enerc": number (in KJ, multiply kcal by 4.184),
-      "protcnt": number (g),
-      "fatce": number (g),
-      "choavldf": number (g),
-      "fibtg": number (g)
-    }
-  ]
-}
-Rules for accuracy:
-- For cooked/boiled dals/pulses: ~90-110 kcal per 100g (thick consistency).
-- For thin dal/soups: ~40-60 kcal per 100g.
-- For cooked rice: ~130 kcal per 100g.
-- For Roti (standard): ~120 kcal per 40g (one roti).
-Use accurate values for common foods.`;
-
-      const raw = await groqChat({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 800,
-        temperature: 0.1,
-        response_format: { type: "json_object" },
-      });
-      const clean = raw.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
-      const results = (parsed.items || []) as IFCTItem[];
-      setMbAiSuggestions(results);
-    } catch (e: any) {
-      console.error("AI fallback failed", e);
-    } finally {
-      setMbSearching(false);
-    }
-  };
-
-  const mealBuilderSearchResults = useMemo(() => {
-    const term = mealBuilderSearch.trim().toLowerCase();
-    if (term.length < 2) return [];
-    const matches: { item: IFCTItem; r: number }[] = [];
-    for (const it of ITEMS) {
-      const r = rank(it, term);
-      if (r < 5) matches.push({ item: it, r });
-    }
-    matches.sort((a, b) => a.r - b.r || a.item.name.localeCompare(b.item.name));
-    return matches.slice(0, 8).map((m) => m.item);
-  }, [mealBuilderSearch]);
-
-  const allMbSuggestions = useMemo(
-    () => [...mealBuilderSearchResults, ...mbAiSuggestions],
-    [mealBuilderSearchResults, mbAiSuggestions],
-  );
-
-  const mealBuilderTotals = useMemo(() => {
-    return mealBuilderItems.reduce(
-      (a, it) => ({
-        calories: a.calories + it.calories,
-        protein_g: a.protein_g + it.protein_g,
-        carbs_g: a.carbs_g + it.carbs_g,
-        fat_g: a.fat_g + it.fat_g,
-        fiber_g: a.fiber_g + it.fiber_g,
-      }),
-      { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 },
-    );
-  }, [mealBuilderItems]);
-
-  // mbOverrideTotals removed, we use mealBuilderTotals directly
-
-  const addItemToMealBuilder = (item: IFCTItem, grams: number = 100) => {
-    const ratio = grams / 100;
-    setMealBuilderItems([
-      ...mealBuilderItems,
-      {
-        name: item.name,
-        quantity_g: grams,
-        calories: +(kcal(item.enerc) * ratio).toFixed(1),
-        protein_g: +((item.protcnt ?? 0) * ratio).toFixed(1),
-        carbs_g: +((item.choavldf ?? 0) * ratio).toFixed(1),
-        fat_g: +((item.fatce ?? 0) * ratio).toFixed(1),
-        fiber_g: +((item.fibtg ?? 0) * ratio).toFixed(1),
-        base_calories: kcal(item.enerc),
-        base_protein_g: item.protcnt ?? 0,
-        base_carbs_g: item.choavldf ?? 0,
-        base_fat_g: item.fatce ?? 0,
-        base_fiber_g: item.fibtg ?? 0,
-      },
-    ]);
-    setMbAiSuggestions([]);
-    setMealBuilderSearch("");
-  };
-
-  const saveMealBuilder = async () => {
-    if (!mealBuilderName.trim()) {
-      toast.error("Add a name for your meal");
-      return;
-    }
-    setMealBuilderSaving(true);
-    const ok = await saveFavoriteMeal({
-      name: mealBuilderName,
-      calories: mealBuilderTotals.calories,
-      protein_g: mealBuilderTotals.protein_g,
-      carbs_g: mealBuilderTotals.carbs_g,
-      fat_g: mealBuilderTotals.fat_g,
-      fiber_g: mealBuilderTotals.fiber_g,
-      ingredients: mealBuilderItems.map(it => ({
-        name: it.name,
-        quantity_g: it.quantity_g,
-        calories: it.calories
-      }))
-    });
-    setMealBuilderSaving(false);
-    if (!ok) {
-      return;
-    }
-    toast.success(`"${mealBuilderName}" saved to Favorites!`);
-    setMealBuilderOpen(false);
-    setMealBuilderName("");
-    setMealBuilderItems([]);
-  };
 
   // Recent foods (for quick re-logging)
   interface RecentFood {
@@ -1047,6 +860,18 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
           <Heart style={{ width: 18, height: 18 }} className="text-red-500" />
           <span className="text-[8px] font-medium text-red-500">Favourites</span>
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => setCustomFoodOpen(true)}
+          title="Add a custom food with your own macros"
+          className="flex flex-col items-center justify-center gap-1 p-0"
+          style={{ width: 56, height: 56, minWidth: 56 }}
+        >
+          <PenTool style={{ width: 18, height: 18 }} />
+          <span className="text-[8px] font-medium text-muted-foreground">
+            Custom
+          </span>
+        </Button>
       </div>
 
       {/* ── Favourites Dialog ── */}
@@ -1156,304 +981,6 @@ Use accurate values for Indian foods like Idli, Dosa, etc.`;
                 <p className="text-xs text-muted-foreground/70 mt-1">Tap the heart icon on logged foods to save them here.</p>
               </div>
             )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Meal Builder Dialog ── */}
-      <Dialog
-        open={mealBuilderOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            setMealBuilderOpen(false);
-            setMealBuilderSearch("");
-          }
-        }}
-      >
-        <DialogContent className="w-[95vw] sm:w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Layers className="h-5 w-5 text-accent" /> Create a Meal
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* Meal Name */}
-            <div className="space-y-1">
-              <Label>Meal Name</Label>
-              <Input
-                value={mealBuilderName}
-                onChange={(e) => setMealBuilderName(e.target.value)}
-                placeholder="e.g., My Protein Milkshake"
-              />
-            </div>
-
-            {/* Search to add items */}
-            <div className="space-y-1">
-              <Label>Add Foods</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search or use AI..."
-                  value={mealBuilderSearch}
-                  onChange={(e) => {
-                    setMealBuilderSearch(e.target.value);
-                    if (mbAiSuggestions.length > 0) setMbAiSuggestions([]);
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && handleMbAiFallback()}
-                  className="pl-9"
-                />
-                {mealBuilderSearch.length >= 2 && allMbSuggestions.length === 0 && !mbSearching && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMbAiFallback}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-xs flex items-center gap-1.5"
-                  >
-                    <Sparkles className="h-3 w-3 text-accent" />
-                    <span className="text-accent">AI Search</span>
-                  </Button>
-                )}
-                {mbSearching && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Searching...
-                  </div>
-                )}
-              </div>
-              
-              <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm max-h-40 overflow-y-auto">
-                {allMbSuggestions.length > 0 && allMbSuggestions.map((it) => (
-                  <button
-                    key={it.code}
-                    onClick={() => addItemToMealBuilder(it, 100)}
-                    className="flex min-w-0 w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
-                      <span className="font-medium truncate block">{it.name}</span>
-                      {it.code === "ai-fallback" && (
-                        <Badge className="text-[9px] h-4 px-1 bg-accent/20 text-accent border-none uppercase font-bold shrink-0">
-                          AI
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-muted-foreground">
-                        {kcal(it.enerc).toFixed(0)} kcal/100g
-                      </span>
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent">
-                        <Plus className="h-3 w-3" />
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-4 rounded-xl border border-border bg-card p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                  Total Nutrition
-                </p>
-                <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Cal</p>
-                    <p className="font-bold">{Math.round(mealBuilderTotals.calories)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Pro</p>
-                    <p className="font-bold">{Math.round(mealBuilderTotals.protein_g)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Carb</p>
-                    <p className="font-bold">{Math.round(mealBuilderTotals.carbs_g)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Fat</p>
-                    <p className="font-bold">{Math.round(mealBuilderTotals.fat_g)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-[9px]">Fib</p>
-                    <p className="font-bold">{Math.round(mealBuilderTotals.fiber_g)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Added items list */}
-            {mealBuilderItems.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                  Ingredients ({mealBuilderItems.length})
-                </Label>
-                <div className="rounded-xl border border-border overflow-hidden divide-y">
-                  {mealBuilderItems.map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start justify-between px-3 py-3 bg-card hover:bg-muted/20 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0 pr-2">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-bold truncate pr-2 flex-1 min-w-0">
-                            {item.name}
-                          </p>
-                          <div className="flex items-center gap-1 bg-accent/10 px-2 py-1 rounded-md border border-accent/20 shrink-0">
-                            <Input
-                              type="number"
-                              value={item.quantity_g}
-                              onChange={(e) => {
-                                const newQty = e.target.value === "" ? "" : +e.target.value;
-                                const calcQty = +newQty || 0;
-                                const ratio = calcQty / 100;
-                                const updated = [...mealBuilderItems];
-                                updated[i] = {
-                                  ...item,
-                                  quantity_g: newQty as number,
-                                  calories: +(item.base_calories * ratio).toFixed(1),
-                                  protein_g: +(item.base_protein_g * ratio).toFixed(1),
-                                  carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
-                                  fat_g: +(item.base_fat_g * ratio).toFixed(1),
-                                  fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
-                                };
-                                setMealBuilderItems(updated);
-                              }}
-                              className="w-12 h-5 text-xs text-center px-0 py-0 font-bold bg-transparent border-none shadow-none focus-visible:ring-0"
-                            />
-                            <span className="text-[10px] text-accent font-bold uppercase">
-                              g
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-5 gap-1.5 text-center bg-muted/30 rounded-lg p-2 border border-border/50">
-                          <div className="flex flex-col items-center">
-                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Cal</span>
-                            <Input
-                              type="number"
-                              value={item.calories.toFixed(0)}
-                              onChange={(e) => {
-                                const newCal = e.target.value === "" ? "" : +e.target.value;
-                                const calcCal = +newCal || 0;
-                                const ratio = item.base_calories > 0 ? calcCal / item.base_calories : 0;
-                                const updated = [...mealBuilderItems];
-                                updated[i] = {
-                                  ...item,
-                                  calories: newCal as number,
-                                  protein_g: +(item.base_protein_g * ratio).toFixed(1),
-                                  carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
-                                  fat_g: +(item.base_fat_g * ratio).toFixed(1),
-                                  fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
-                                };
-                                setMealBuilderItems(updated);
-                              }}
-                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
-                            />
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Pro</span>
-                            <Input
-                              type="number"
-                              value={Math.round(item.protein_g)}
-                              onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, protein_g: +(e.target.value || 0) }; setMealBuilderItems(u); }}
-                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
-                            />
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Carb</span>
-                            <Input
-                              type="number"
-                              value={Math.round(item.carbs_g)}
-                              onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, carbs_g: +(e.target.value || 0) }; setMealBuilderItems(u); }}
-                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
-                            />
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Fat</span>
-                            <Input
-                              type="number"
-                              value={Math.round(item.fat_g)}
-                              onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, fat_g: +(e.target.value || 0) }; setMealBuilderItems(u); }}
-                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
-                            />
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-[9px] uppercase font-bold text-muted-foreground mb-1">Fib</span>
-                            <Input
-                              type="number"
-                              value={Math.round(item.fiber_g)}
-                              onChange={(e) => { const u = [...mealBuilderItems]; u[i] = { ...item, fiber_g: +(e.target.value || 0) }; setMealBuilderItems(u); }}
-                              className="h-6 w-full text-[10px] text-center px-0 font-semibold bg-background"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 mt-1"
-                        onClick={() =>
-                          setMealBuilderItems(
-                            mealBuilderItems.filter((_, j) => j !== i),
-                          )
-                        }
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Save Button */}
-            <Button
-              onClick={saveMealBuilder}
-              disabled={mealBuilderSaving}
-              className="w-full h-12 text-base font-bold bg-accent text-accent-foreground hover:bg-accent/90 gap-2 mt-4"
-            >
-              {mealBuilderSaving ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : (
-                <Heart className="h-6 w-6" />
-              )}
-              Save to Favorites
-            </Button>
-
-            {/* History (Recent Foods) Below Save Button */}
-            {(() => {
-              const uniqueNames = Array.from(new Set(
-                savedMeals.flatMap((m: any) => m.ingredients || []).map((ig: any) => ig.name)
-              ));
-              const mbHistoryItems = uniqueNames
-                .map((name) => ITEMS.find((m) => m.name === name))
-                .filter(Boolean) as IFCTItem[];
-
-              if (mbHistoryItems.length === 0) return null;
-
-              return (
-                <div className="mt-6">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
-                    History (From Your Meals)
-                  </Label>
-                  <div className="rounded-xl border border-border bg-card overflow-hidden divide-y">
-                    {mbHistoryItems.map((item, idx) => (
-                      <button
-                        key={`mb-recent-bottom-${idx}`}
-                        onClick={() => addItemToMealBuilder(item, 100)}
-                        className="flex min-w-0 w-full items-center justify-between px-3 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
-                          <History className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="font-medium truncate">{item.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-accent">
-                            <Plus className="h-3 w-3" />
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         </DialogContent>
       </Dialog>

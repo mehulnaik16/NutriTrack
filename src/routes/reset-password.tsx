@@ -57,7 +57,7 @@ function ResetPassword() {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
             <Activity className="h-5 w-5" />
           </div>
-          <span className="text-2xl font-bold">FitTrack</span>
+          <span className="text-2xl font-bold">Dombelz</span>
         </div>
 
         <Card className="border-border/60 shadow-lg">

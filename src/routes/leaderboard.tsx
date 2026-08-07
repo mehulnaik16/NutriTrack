@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/client";
 import { Header } from "@/components/Header";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -61,21 +62,35 @@ function Leaderboard() {
       const startDateStr = startDate.toISOString().slice(0, 10);
 
       Promise.all([
+        // RLS only lets us read our own profile row — used to enrich our own entry.
         supabase.from("user_profiles").select("id, full_name, current_streak"),
+        // SECURITY DEFINER RPC — sees every user; this is the source of truth.
         (supabase.rpc as any)("get_leaderboard_stats", {
           start_date: startDateStr,
         }),
       ]).then(([profilesRes, statsRes]: [any, any]) => {
         if (!isMounted) return;
+
+        // Surface DB errors instead of silently showing an empty board
+        if (statsRes.error) {
+          console.error("[leaderboard] RPC error:", statsRes.error);
+          toast.error(`Leaderboard error: ${statsRes.error.message}`);
+        }
+        if (profilesRes.error) {
+          console.error("[leaderboard] profiles error:", profilesRes.error);
+        }
+
         const profiles = (profilesRes.data || []) as any[];
         const stats = (statsRes.data || []) as any[];
 
-        const merged: LeaderboardUser[] = profiles.map((p: any) => {
-          const s = stats.find((x: any) => x.user_id === p.id) || ({} as any);
+        // Build the board from the RPC so ALL users appear (profiles is
+        // RLS-restricted to the signed-in user and would hide everyone else).
+        const merged: LeaderboardUser[] = stats.map((s: any) => {
+          const p = profiles.find((x: any) => x.id === s.user_id);
           return {
-            id: p.id,
-            full_name: p.full_name,
-            current_streak: p.current_streak || 0,
+            id: s.user_id,
+            full_name: s.full_name ?? p?.full_name ?? null,
+            current_streak: s.current_streak ?? p?.current_streak ?? 0,
             workouts_count: s.workouts_count || 0,
             avg_calories: s.avg_calories || 0,
             total_water: s.total_water || 0,
@@ -83,6 +98,23 @@ function Leaderboard() {
             overall_score: s.overall_score || 0,
           };
         });
+
+        // Safety net: if the RPC missed anyone we can see (e.g. brand-new
+        // account before stats exist), still show them with zeroed stats.
+        for (const p of profiles) {
+          if (!merged.some((m) => m.id === p.id)) {
+            merged.push({
+              id: p.id,
+              full_name: p.full_name,
+              current_streak: p.current_streak || 0,
+              workouts_count: 0,
+              avg_calories: 0,
+              total_water: 0,
+              total_exercise_min: 0,
+              overall_score: 0,
+            });
+          }
+        }
 
         merged.sort((a, b) => {
           if (category === "streak") return b.current_streak - a.current_streak;
@@ -316,7 +348,7 @@ function Leaderboard() {
                         {initial(u.full_name)}
                       </div>
                       <span className="truncate text-sm font-semibold sm:text-base">
-                        {isMe ? "You" : u.full_name || "Anonymous User"}
+                        {u.full_name || "Anonymous User"}
                         {isMe && (
                           <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">
                             You

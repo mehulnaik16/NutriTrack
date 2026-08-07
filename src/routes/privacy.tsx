@@ -37,7 +37,7 @@ function Privacy() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
               <Activity className="h-4 w-4" />
             </div>
-            <span className="font-display text-sm font-bold">FitTrack</span>
+            <span className="font-display text-sm font-bold">Dombelz</span>
           </div>
         </div>
       </header>
@@ -57,9 +57,9 @@ function Privacy() {
 
         <Section title="1. Who we are">
           <p>
-            FitTrack ("we", "us") is a fitness and nutrition tracking
+            Dombelz ("we", "us") is a fitness and nutrition tracking
             application. This policy explains what data we collect, why we
-            collect it, and the choices you have. It applies to the FitTrack
+            collect it, and the choices you have. It applies to the Dombelz
             website and mobile applications.
           </p>
         </Section>
@@ -136,10 +136,10 @@ function Privacy() {
             These rights align with India's Digital Personal Data Protection
             Act, 2023 (DPDP). For any privacy request, you can also email{" "}
             <a
-              href="mailto:support@fittrack.app"
+              href="mailto:support@dombelz.app"
               className="text-accent underline-offset-2 hover:underline"
             >
-              support@fittrack.app
+              support@dombelz.app
             </a>
             . We respond within 30 days.
           </p>
@@ -156,7 +156,7 @@ function Privacy() {
 
         <Section title="8. Children">
           <p>
-            FitTrack is not intended for children. You must be at least 16
+            Dombelz is not intended for children. You must be at least 16
             years old to create an account, and our sign-up flow enforces this.
           </p>
         </Section>
@@ -182,10 +182,10 @@ function Privacy() {
         <div className="mt-10 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
           Questions? Email{" "}
           <a
-            href="mailto:support@fittrack.app"
+            href="mailto:support@dombelz.app"
             className="text-accent underline-offset-2 hover:underline"
           >
-            support@fittrack.app
+            support@dombelz.app
           </a>{" "}
           · See also our{" "}
           <Link

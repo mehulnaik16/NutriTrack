@@ -111,7 +111,7 @@ const PLANS = [
 
 const FAQS = [
   {
-    q: "Is FitTrack accurate for Indian food?",
+    q: "Is Dombelz accurate for Indian food?",
     a: "Yes. Our database is built on IFCT 2017 (Indian Food Composition Tables) with 3,600+ foods, plus AI fallback tuned for Indian portions — rotis, dals, dosas, and combo meals included.",
   },
   {
@@ -154,7 +154,7 @@ function Landing() {
               <Activity className="h-5 w-5" />
             </div>
             <span className="font-display text-lg font-bold tracking-tight">
-              FitTrack
+              Dombelz
             </span>
           </div>
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
@@ -515,10 +515,10 @@ function Landing() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
               <Activity className="h-4 w-4" />
             </div>
-            <span className="font-display text-sm font-bold">FitTrack</span>
+            <span className="font-display text-sm font-bold">Dombelz</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} FitTrack · Train. Track. Transform.
+            © {new Date().getFullYear()} Dombelz · Train. Track. Transform.
           </p>
           <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground">
             <a href="#features" className="hover:text-foreground">Features</a>

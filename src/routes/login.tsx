@@ -79,7 +79,7 @@ function Login() {
             <Activity className="h-5 w-5" />
           </div>
           <span className="font-display text-xl font-bold tracking-tight">
-            FitTrack
+            Dombelz
           </span>
         </Link>
 
@@ -105,7 +105,7 @@ function Login() {
         </div>
 
         <p className="relative text-xs text-muted-foreground">
-          © {new Date().getFullYear()} FitTrack
+          © {new Date().getFullYear()} Dombelz
         </p>
       </div>
 
@@ -120,7 +120,7 @@ function Login() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground glow-accent-sm">
               <Activity className="h-5 w-5" />
             </div>
-            <span className="font-display text-2xl font-bold">FitTrack</span>
+            <span className="font-display text-2xl font-bold">Dombelz</span>
           </Link>
 
           {mode === "login" && (

@@ -18,6 +18,8 @@ import {
   Sparkles,
   Loader2,
   Trash2,
+  ChevronDown,
+  PencilRuler,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
@@ -37,11 +39,31 @@ import { Slider } from "@/components/ui/slider";
 export const Route = createFileRoute("/workout")({ component: WorkoutPage });
 
 import { searchYouTube } from "@/lib/youtube";
-import { EXERCISES_DB } from "@/lib/exercises";
+import {
+  EXERCISES_DB,
+  MUSCLE_SUBCATEGORIES,
+  COMPOUND_EXERCISES,
+} from "@/lib/exercises";
 import { HOME_WORKOUTS } from "@/lib/homeWorkouts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { groqChat } from "@/lib/groq";
 import { todayLocal } from "@/lib/dates";
+import {
+  type WorkoutPrefs as UserWorkoutPrefs,
+  getCachedWorkoutPrefs,
+  loadWorkoutPrefs,
+  defaultLiftForExercise,
+  isRecommendedCardio,
+} from "@/lib/workoutPrefs";
+import {
+  type StandardMuscle,
+  isCustomPlan,
+  activeMuscles,
+  isRestDay,
+  tableColumnCount,
+  gridIdsForMuscles,
+  MUSCLE_EMOJI,
+} from "@/lib/musclePlan";
 
 // ── AI Workout Plan types ─────────────────────────────────────
 interface PlanExercise {
@@ -54,11 +76,13 @@ interface PlanDay {
   name: string;
   focus: string;
   exercises: PlanExercise[];
+  muscles?: string[]; // present on custom (table) plans
 }
 interface WorkoutPlan {
   goal: string;
   days_per_week: number;
   days: PlanDay[];
+  type?: string; // "custom" for table plans
 }
 
 /** Which plan day is "today"? Rotate the split across the week. */
@@ -75,16 +99,18 @@ const MUSCLES = [
   { id: "biceps", name: "Biceps", color: "from-rose-500/20 to-red-500/20" },
   { id: "triceps", name: "Triceps", color: "from-purple-500/20 to-pink-500/20" },
   { id: "abs", name: "Core & Abs", color: "from-green-500/20 to-emerald-500/20" },
-  { id: "quads", name: "Quads", color: "from-yellow-500/20 to-amber-500/20" },
-  { id: "hamstrings", name: "Hamstrings", color: "from-orange-500/20 to-amber-500/20" },
-  { id: "glutes", name: "Glutes", color: "from-pink-500/20 to-rose-500/20" },
-  { id: "calves", name: "Calves", color: "from-teal-500/20 to-cyan-500/20" },
-  { id: "lowerback", name: "Lower Back", color: "from-stone-500/20 to-neutral-500/20" },
-  { id: "traps", name: "Traps", color: "from-lime-500/20 to-green-500/20" },
+  { id: "legs", name: "Legs", color: "from-yellow-500/20 to-amber-500/20" },
+  { id: "compound", name: "Compound", color: "from-violet-500/20 to-purple-500/20" },
   { id: "forearms", name: "Forearms", color: "from-slate-500/20 to-gray-500/20" },
-  { id: "abductors", name: "Abductors", color: "from-violet-500/20 to-purple-500/20" },
-  { id: "adductors", name: "Adductors", color: "from-fuchsia-500/20 to-pink-500/20" },
 ];
+
+/** Card counts — parent/view categories resolve their own lists. */
+const muscleCardCount = (id: string): number =>
+  id === "compound"
+    ? COMPOUND_EXERCISES.length
+    : MUSCLE_SUBCATEGORIES[id]
+      ? MUSCLE_SUBCATEGORIES[id].reduce((s, c) => s + c.names.length, 0)
+      : (EXERCISES_DB[id]?.length ?? 0);
 
 const CARDIO_ACTIVITIES = [
   "Treadmill running",
@@ -97,6 +123,7 @@ const CARDIO_ACTIVITIES = [
   "Stair climbing",
   "Elliptical",
   "Rowing machine",
+  "SkiErg",
   "Dancing",
   "Badminton",
   "Cricket",
@@ -118,6 +145,7 @@ const CARDIO_METS: Record<string, number> = {
   "Stair climbing": 8.0,
   Elliptical: 5.0,
   "Rowing machine": 7.0,
+  SkiErg: 8.0,
   Dancing: 5.5,
   Badminton: 5.5,
   Cricket: 4.8,
@@ -145,14 +173,20 @@ function WorkoutPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"GYM" | "HOME" | "CARDIO">("GYM");
 
+  // The onboarding flow can hand off a starting tab (library / builder).
+  // Read in an effect — sessionStorage doesn't exist during server render.
+  useEffect(() => {
+    const t = sessionStorage.getItem("workout_initial_tab");
+    sessionStorage.removeItem("workout_initial_tab");
+    if (t === "HOME" || t === "CARDIO") setActiveTab(t);
+  }, []);
+
   // State for sub-views
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+  const [selectedSubcat, setSelectedSubcat] = useState<string | null>(null);
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
   const [selectedHomeRoutine, setSelectedHomeRoutine] = useState<string | null>(null);
   const [selectedCardio, setSelectedCardio] = useState<string | null>(null);
-
-  // Questionnaire Wizard state
-  const [wizardOpen, setWizardOpen] = useState(false);
 
   // DB States
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -165,9 +199,22 @@ function WorkoutPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [planDayIdx, setPlanDayIdx] = useState(0);
   const [planExpanded, setPlanExpanded] = useState(false);
+  const [customTableOpen, setCustomTableOpen] = useState(true);
 
   // Body weight for MET-based calorie estimates
   const [bodyWeight, setBodyWeight] = useState(70);
+
+  // Onboarding preferences (default lift weights, cardio recommendations)
+  const [prefs, setPrefs] = useState<UserWorkoutPrefs | null>(() =>
+    user ? getCachedWorkoutPrefs(user.id) : null,
+  );
+
+  useEffect(() => {
+    if (!user) return;
+    loadWorkoutPrefs(user.id).then((p) => {
+      if (p) setPrefs(p);
+    });
+  }, [user]);
 
   // Collect all exercises flattened for searching
   const allExercises = useMemo(() => {
@@ -273,8 +320,9 @@ function WorkoutPage() {
   const renderPlanCard = () => {
     if (!plan) {
       return (
+        <div className="space-y-2">
         <button
-          onClick={() => setWizardOpen(true)}
+          onClick={() => navigate({ to: "/workout-setup" })}
           className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
         >
           <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
@@ -283,14 +331,179 @@ function WorkoutPage() {
               <Sparkles className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-display font-bold">Build my AI training plan</p>
+              <p className="font-display font-bold">Set up my training</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Answer 4 quick questions — get a weekly split made for you.
+                2-minute questionnaire — AI plan, library, or build your own.
               </p>
             </div>
             <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
           </div>
         </button>
+        <button
+          onClick={() => navigate({ to: "/custom-plan" })}
+          className="w-full py-1 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-accent"
+        >
+          or create a custom weekly plan →
+        </button>
+        </div>
+      );
+    }
+
+    // ── Custom (table) plan ──
+    if (isCustomPlan(plan)) {
+      const todayIdx = todaysPlanIndex(plan.days.length);
+      const todayDay = plan.days[todayIdx];
+      const todayRest = isRestDay(todayDay);
+      const todayMuscles = activeMuscles(todayDay);
+      const colCount = tableColumnCount(plan.days);
+
+      return (
+        <div className="overflow-hidden rounded-2xl border border-accent/25 bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border/60 bg-accent/5 px-5 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
+                <PencilRuler className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-display text-sm font-bold uppercase tracking-wider">
+                  My Custom Plan
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {plan.days_per_week} training day
+                  {plan.days_per_week === 1 ? "" : "s"}/week
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-accent"
+                title="Edit custom plan"
+                onClick={() => navigate({ to: "/custom-plan" })}
+              >
+                <PencilRuler className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                title="Delete plan"
+                onClick={deletePlan}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-4 p-5">
+            {/* Today summary */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Today:
+              </span>
+              {todayRest ? (
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                  {MUSCLE_EMOJI["Rest Day"]} Rest Day — recover well
+                </span>
+              ) : (
+                todayMuscles.map((m) => (
+                  <span
+                    key={m}
+                    className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-accent-foreground glow-accent-sm"
+                  >
+                    {MUSCLE_EMOJI[m]} {m}
+                  </span>
+                ))
+              )}
+            </div>
+
+            {/* Toggle */}
+            <button
+              onClick={() => setCustomTableOpen((p) => !p)}
+              className="flex w-full items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {customTableOpen ? "Hide my custom plan" : "Show my custom plan"}
+              <ChevronDown
+                className={`h-4 w-4 transition-transform duration-300 ${
+                  customTableOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Dynamic-column table */}
+            {customTableOpen && (
+              <div className="animate-in fade-in slide-in-from-top-2 overflow-hidden rounded-xl border border-border duration-300">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground">
+                        Days
+                      </th>
+                      {Array.from({ length: colCount }, (_, i) => (
+                        <th
+                          key={i}
+                          className="px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground"
+                        >
+                          Muscle {i + 1}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plan.days.map((d, i) => {
+                      const act = activeMuscles(d);
+                      const rest = isRestDay(d);
+                      const isToday = i === todayIdx;
+                      return (
+                        <tr
+                          key={d.day}
+                          className={`border-b border-border/50 transition-colors last:border-b-0 ${
+                            isToday ? "bg-accent/10" : ""
+                          }`}
+                        >
+                          <td
+                            className={`px-3 py-2.5 font-semibold ${
+                              isToday ? "text-accent" : ""
+                            }`}
+                          >
+                            {d.day}
+                            {isToday && (
+                              <span className="ml-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold uppercase text-accent-foreground">
+                                Today
+                              </span>
+                            )}
+                          </td>
+                          {Array.from({ length: colCount }, (_, c) => (
+                            <td key={c} className="px-3 py-2.5">
+                              {rest ? (
+                                c === 0 ? (
+                                  <span className="italic text-muted-foreground">
+                                    Rest Day
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground/40">
+                                    -
+                                  </span>
+                                )
+                              ) : act[c] ? (
+                                <span className="font-medium">{act[c]}</span>
+                              ) : (
+                                <span className="text-muted-foreground/40">
+                                  -
+                                </span>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       );
     }
 
@@ -318,8 +531,8 @@ function WorkoutPage() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-accent"
-              title="Regenerate plan"
-              onClick={() => setWizardOpen(true)}
+              title="Redo setup & regenerate plan"
+              onClick={() => navigate({ to: "/workout-setup" })}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
@@ -419,6 +632,16 @@ function WorkoutPage() {
       ? allExercises.filter(ex => ex.toLowerCase().includes(searchQuery.toLowerCase()))
       : [];
 
+    // Auto-highlight today's targets when a custom plan is active
+    const todayGridIds: Set<string> =
+      plan && isCustomPlan(plan)
+        ? gridIdsForMuscles(
+            activeMuscles(
+              plan.days[todaysPlanIndex(plan.days.length)],
+            ) as StandardMuscle[],
+          )
+        : new Set<string>();
+
     if (searchQuery) {
       searchResults.sort((a, b) => {
         // 1. Favorites
@@ -512,19 +735,36 @@ function WorkoutPage() {
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3 animate-in fade-in">
-            {MUSCLES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMuscle(m.id)}
-                className={`card-lift flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border border-border/60 bg-card shadow-sm active:scale-95`}
-              >
-                <Dumbbell className="h-6 w-6 text-accent mb-2" />
-                <span className="font-display font-bold text-[13px] text-foreground text-center leading-tight">{m.name}</span>
-                <span className="text-[10px] font-bold text-muted-foreground mt-1 uppercase">
-                  {EXERCISES_DB[m.id]?.length ?? 0} Exercises
-                </span>
-              </button>
-            ))}
+            {MUSCLES.map((m) => {
+              const isTodayTarget = todayGridIds.has(m.id);
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    setSelectedSubcat(null);
+                    setSelectedMuscle(m.id);
+                  }}
+                  className={`card-lift relative flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border bg-card shadow-sm active:scale-95 transition-all duration-300 ${
+                    isTodayTarget
+                      ? "border-accent ring-2 ring-accent/60 glow-accent-sm"
+                      : "border-border/60"
+                  }`}
+                >
+                  {isTodayTarget && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-accent px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-accent-foreground shadow">
+                      Today
+                    </span>
+                  )}
+                  <Dumbbell
+                    className={`h-6 w-6 mb-2 ${isTodayTarget ? "text-accent" : "text-accent"}`}
+                  />
+                  <span className="font-display font-bold text-[13px] text-foreground text-center leading-tight">{m.name}</span>
+                  <span className="text-[10px] font-bold text-muted-foreground mt-1 uppercase">
+                    {muscleCardCount(m.id)} Exercises
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -599,21 +839,40 @@ function WorkoutPage() {
     );
   };
 
-  const renderCardioList = () => (
+  const renderCardioList = () => {
+    // Preferred activities from onboarding float to the top with a badge
+    const sorted = [...CARDIO_ACTIVITIES].sort((a, b) => {
+      const ra = isRecommendedCardio(a, prefs) ? 0 : 1;
+      const rb = isRecommendedCardio(b, prefs) ? 0 : 1;
+      return ra - rb;
+    });
+    return (
     <div className="space-y-3">
-      {CARDIO_ACTIVITIES.map((act) => (
+      {sorted.map((act) => {
+        const recommended = isRecommendedCardio(act, prefs);
+        return (
         <button
           key={act}
           onClick={() => setSelectedCardio(act)}
-          className="w-full flex items-center justify-between p-4 rounded-xl bg-card border border-border shadow-sm hover:border-accent/50 transition-colors"
+          className={`w-full flex items-center justify-between p-4 rounded-xl bg-card border shadow-sm transition-colors ${
+            recommended
+              ? "border-accent/50 bg-accent/5 hover:border-accent"
+              : "border-border hover:border-accent/50"
+          }`}
         >
-          <div className="flex items-center gap-3">
-            <Activity className="h-5 w-5 text-accent" />
-            <span className="font-semibold">{act}</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <Activity className={`h-5 w-5 shrink-0 ${recommended ? "text-accent" : "text-muted-foreground"}`} />
+            <span className="truncate font-semibold">{act}</span>
+            {recommended && (
+              <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-foreground">
+                Recommended
+              </span>
+            )}
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
-      ))}
+        );
+      })}
       <div className="p-4 mt-6 rounded-xl bg-muted/20 border border-dashed border-border/50 flex flex-col items-center text-center">
         <p className="text-sm font-medium mb-1">Other Activity?</p>
         <p className="text-xs text-muted-foreground">
@@ -621,12 +880,24 @@ function WorkoutPage() {
         </p>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderMuscleDetail = () => {
     if (!selectedMuscle) return null;
     const muscleInfo = MUSCLES.find((m) => m.id === selectedMuscle);
-    const exercises = EXERCISES_DB[selectedMuscle] || [];
+
+    // Parent categories (Legs, Back) show sub-category pills;
+    // the exercise lists are references into EXERCISES_DB — never copies.
+    const subcats = MUSCLE_SUBCATEGORIES[selectedMuscle];
+    const activeSubcat = subcats
+      ? (subcats.find((s) => s.label === selectedSubcat) ?? subcats[0])
+      : null;
+    const exercises = activeSubcat
+      ? activeSubcat.names
+      : selectedMuscle === "compound"
+        ? COMPOUND_EXERCISES
+        : EXERCISES_DB[selectedMuscle] || [];
 
     // Sort: favorites first, then logged today, then recent, then alphabetical
     const sorted = [...exercises].sort((a, b) => {
@@ -662,7 +933,10 @@ function WorkoutPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setSelectedMuscle(null)}
+            onClick={() => {
+              setSelectedMuscle(null);
+              setSelectedSubcat(null);
+            }}
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
@@ -673,7 +947,31 @@ function WorkoutPage() {
           <div className="w-9" /> {/* Spacer */}
         </div>
 
-        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50">
+        {/* Sub-category pills (Legs / Back parent pages) */}
+        {subcats && (
+          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {subcats.map((s) => {
+              const active = s.label === activeSubcat?.label;
+              return (
+                <button
+                  key={s.label}
+                  onClick={() => setSelectedSubcat(s.label)}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-200 ${
+                    active
+                      ? "bg-accent text-accent-foreground glow-accent-sm"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div
+          key={activeSubcat?.label ?? selectedMuscle}
+          className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50 animate-in fade-in duration-200">
           {sorted.map((ex, i) => {
             const isFav = favorites.includes(ex);
             const isLogged = loggedToday.includes(ex);
@@ -736,7 +1034,7 @@ function WorkoutPage() {
 
     const handleLog = async () => {
       if (!user) return;
-      toast.loading("Logging cardio...");
+      const t = toast.loading("Logging cardio...");
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
         date: todayLocal(),
@@ -746,9 +1044,9 @@ function WorkoutPage() {
         exercises_done: { bpm: parseInt(bpm) || null },
       });
       if (error) {
-        toast.error("Failed to log cardio");
+        toast.error(`Failed to log: ${error.message}`, { id: t });
       } else {
-        toast.success("Cardio logged!");
+        toast.success("Cardio logged!", { id: t });
         loadUserData();
         setSelectedCardio(null);
       }
@@ -920,7 +1218,8 @@ function WorkoutPage() {
       }
     }, [selectedExercise, user]);
 
-    // Pre-fill with what you did last time (like Strong/Hevy)
+    // Pre-fill with what you did last time (like Strong/Hevy);
+    // otherwise fall back to the user's strongest-lift defaults from onboarding.
     useEffect(() => {
       const last = history[0]?.exercises_done;
       if (Array.isArray(last) && last.length > 0 && last[0]?.reps) {
@@ -930,12 +1229,24 @@ function WorkoutPage() {
             weight: String(s.weight ?? "20"),
           })),
         );
+        return;
       }
-    }, [history]);
+      if (selectedExercise) {
+        const lift = defaultLiftForExercise(selectedExercise, prefs);
+        if (lift?.weight) {
+          setSets([
+            {
+              reps: String(lift.reps ?? 8),
+              weight: String(lift.weight),
+            },
+          ]);
+        }
+      }
+    }, [history, selectedExercise, prefs]);
 
     const handleLog = async () => {
       if (!user) return;
-      toast.loading("Logging exercise...");
+      const t = toast.loading("Logging exercise...");
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
         date: todayLocal(),
@@ -945,9 +1256,9 @@ function WorkoutPage() {
         exercises_done: sets,
       });
       if (error) {
-        toast.error("Failed to log exercise");
+        toast.error(`Failed to log: ${error.message}`, { id: t });
       } else {
-        toast.success("Exercise logged!");
+        toast.success("Exercise logged!", { id: t });
         loadUserData();
         setSelectedExercise(null);
       }
@@ -1147,197 +1458,6 @@ function WorkoutPage() {
     );
   };
 
-  const PlanWizard = () => {
-    const [level, setLevel] = useState("Intermediate");
-    const [goal, setGoal] = useState("Build muscle");
-    const [days, setDays] = useState(4);
-    const [time, setTime] = useState(60);
-    const [generating, setGenerating] = useState(false);
-
-    const generatePlan = async () => {
-      if (!user) return;
-      setGenerating(true);
-      try {
-        const prompt = `You are an expert strength & conditioning coach. Create a ${days}-day-per-week gym workout plan.
-User profile: experience level ${level}, primary goal: ${goal}, session length: about ${time} minutes.
-Return ONLY valid JSON, no markdown, in exactly this shape:
-{
-  "goal": "${goal}",
-  "days_per_week": ${days},
-  "days": [
-    {
-      "day": "Day 1",
-      "name": "Push Day",
-      "focus": "Chest, Shoulders & Triceps",
-      "exercises": [{ "name": "Barbell Bench Press", "sets": 4, "reps": "8-10" }]
-    }
-  ]
-}
-Rules:
-- Exactly ${days} entries in "days", labelled "Day 1" … "Day ${days}".
-- ${time <= 40 ? "4-5" : time <= 65 ? "5-7" : "6-8"} exercises per day, matched to the session length.
-- Use a sensible split for ${days} days/week (e.g. Push/Pull/Legs, Upper/Lower, or Full Body).
-- Use well-known gym exercise names only.
-- "reps" is a string like "8-12", "5", or "30 sec".
-- Scale intensity to a ${level.toLowerCase()} lifter.`;
-
-        const raw = await groqChat({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 2500,
-          temperature: 0.4,
-          response_format: { type: "json_object" },
-        });
-        const parsed = JSON.parse(
-          raw.replace(/```json|```/g, "").trim(),
-        ) as WorkoutPlan;
-
-        if (!parsed?.days || !Array.isArray(parsed.days) || parsed.days.length === 0) {
-          throw new Error("The AI returned an invalid plan. Please try again.");
-        }
-
-        // Replace any previous plan
-        if (planId) {
-          await supabase.from("workout_plans").delete().eq("id", planId);
-        }
-        const { error } = await supabase.from("workout_plans").insert({
-          user_id: user.id,
-          plan_json: parsed,
-        } as any);
-        if (error) throw error;
-
-        toast.success("Your AI plan is ready! 💪");
-        setWizardOpen(false);
-        loadUserData();
-      } catch (e: any) {
-        toast.error(e.message ?? "Plan generation failed");
-      } finally {
-        setGenerating(false);
-      }
-    };
-
-    const Chip = ({
-      active,
-      onClick,
-      children,
-    }: {
-      active: boolean;
-      onClick: () => void;
-      children: React.ReactNode;
-    }) => (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all ${
-          active
-            ? "border-accent bg-accent/10 text-accent"
-            : "border-border bg-muted/20 text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground"
-        }`}
-      >
-        {children}
-      </button>
-    );
-
-    return (
-      <Dialog open={wizardOpen} onOpenChange={(o) => !generating && setWizardOpen(o)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-border/50 bg-card/95 backdrop-blur-xl sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-display text-xl font-bold uppercase tracking-wider">
-              <Sparkles className="h-5 w-5 text-accent" /> AI Plan Builder
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-7 pb-2 pt-2">
-            <div className="space-y-3">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Experience level
-              </Label>
-              <div className="grid grid-cols-3 gap-2">
-                {["Beginner", "Intermediate", "Advanced"].map((o) => (
-                  <Chip key={o} active={level === o} onClick={() => setLevel(o)}>
-                    {o}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Primary goal
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                {["Build muscle", "Lose fat", "Get stronger", "General fitness"].map(
-                  (o) => (
-                    <Chip key={o} active={goal === o} onClick={() => setGoal(o)}>
-                      {o}
-                    </Chip>
-                  ),
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Training days / week
-              </Label>
-              <div className="grid grid-cols-5 gap-2">
-                {[2, 3, 4, 5, 6].map((n) => (
-                  <Chip key={n} active={days === n} onClick={() => setDays(n)}>
-                    {n}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                <span>Session length</span>
-                <span className="text-accent">{time} min</span>
-              </Label>
-              <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-5">
-                <Slider
-                  value={[time]}
-                  onValueChange={(v) => setTime(v[0])}
-                  max={120}
-                  min={30}
-                  step={15}
-                  className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-none [&_[role=slider]]:bg-accent"
-                />
-                <div className="mt-3 flex justify-between text-[10px] font-bold tracking-widest text-muted-foreground">
-                  <span>30m</span>
-                  <span>1h</span>
-                  <span>1.5h</span>
-                  <span>2h</span>
-                </div>
-              </div>
-            </div>
-
-            <Button
-              onClick={generatePlan}
-              disabled={generating}
-              className="h-14 w-full rounded-xl bg-accent text-base font-bold text-accent-foreground shadow-lg glow-accent-sm transition-all hover:-translate-y-0.5 hover:bg-accent/90"
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Building your
-                  plan…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-5 w-5" /> Generate my plan
-                </>
-              )}
-            </Button>
-            {plan && (
-              <p className="text-center text-xs text-muted-foreground">
-                Generating a new plan replaces your current one.
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-background pb-24 selection:bg-accent/20">
       <Header />
@@ -1383,7 +1503,6 @@ Rules:
 
       <CardioModal />
       <GymLogModal />
-      <PlanWizard />
 
     </div>
   );

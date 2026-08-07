@@ -1,17 +1,17 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * Capacitor wraps the deployed FitTrack web app into native Android/iOS shells.
+ * Capacitor wraps the deployed Dombelz web app into native Android/iOS shells.
  *
- * IMPORTANT: FitTrack is server-rendered (TanStack Start), so the native shell
+ * IMPORTANT: Dombelz is server-rendered (TanStack Start), so the native shell
  * loads your deployed HTTPS URL. Set `server.url` to your production domain
- * after deploying (e.g. https://fittrack.vercel.app).
+ * after deploying (e.g. https://dombelz.vercel.app).
  *
  * See MOBILE_APP_GUIDE.md for the full store-submission playbook.
  */
 const config: CapacitorConfig = {
-  appId: "app.fittrack.mobile",
-  appName: "FitTrack",
+  appId: "app.dombelz.mobile",
+  appName: "Dombelz",
   webDir: "public", // placeholder — the app is served from server.url below
   server: {
     url: "https://YOUR-DEPLOYED-DOMAIN.example", // ← change after deploying

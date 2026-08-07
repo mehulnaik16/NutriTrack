@@ -109,6 +109,7 @@ interface WorkoutDay {
   name: string;
   focus: string;
   exercises: any[];
+  muscles?: string[]; // present on custom (table) plans
 }
 
 interface WorkoutPlan {
@@ -920,10 +921,17 @@ function Dashboard() {
                       </div>
                       <div className="text-right">
                         <div className="font-display text-2xl font-bold text-accent">
-                          {todaysDay?.exercises.length}
+                          {todaysDay?.exercises?.length ||
+                            todaysDay?.muscles?.filter((m) => m !== "Rest Day")
+                              .length ||
+                            0}
                         </div>
                         <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                          Exercises
+                          {todaysDay?.exercises?.length
+                            ? "Exercises"
+                            : todaysDay?.muscles?.length
+                              ? "Muscle groups"
+                              : "Exercises"}
                         </div>
                       </div>
                     </div>
@@ -940,11 +948,11 @@ function Dashboard() {
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-sm text-muted-foreground mb-4">
-                      You haven't generated a workout plan yet.
+                      You haven't set up your training yet.
                     </p>
-                    <Link to="/workout">
+                    <Link to="/workout-setup">
                       <Button variant="outline" className="w-full">
-                        Generate AI Plan
+                        Set Up My Training
                       </Button>
                     </Link>
                   </div>

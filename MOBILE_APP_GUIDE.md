@@ -1,6 +1,6 @@
-# FitTrack — Mobile App & Store Submission Playbook
+# Dombelz — Mobile App & Store Submission Playbook
 
-This guide takes the FitTrack web app to the **Google Play Store** and **Apple App Store** (India). The in-app compliance work (privacy policy, terms, account deletion, data export) is already built — this document covers the packaging and submission steps that must run on your machine.
+This guide takes the Dombelz web app to the **Google Play Store** and **Apple App Store** (India). The in-app compliance work (privacy policy, terms, account deletion, data export) is already built — this document covers the packaging and submission steps that must run on your machine.
 
 ---
 
@@ -28,7 +28,7 @@ npm run build        # verify it builds clean
 npx vercel --prod    # or connect the repo in the Vercel dashboard
 ```
 
-Note your production URL, e.g. `https://fittrack.vercel.app`. Custom domain recommended before store submission (stores dislike changing URLs later).
+Note your production URL, e.g. `https://dombelz.vercel.app`. Custom domain recommended before store submission (stores dislike changing URLs later).
 
 **Environment variables to set in Vercel:** all `VITE_GROQ_KEY_*` keys and your Supabase URL/anon key (copy from your local `.env`).
 
@@ -48,7 +48,7 @@ Create PNG icons (the current `favicon.jpg` isn't enough):
 ```bash
 npm i -g @bubblewrap/cli
 bubblewrap init --manifest https://YOUR-DOMAIN/manifest.webmanifest
-# answers: package id: app.fittrack.mobile · app name: FitTrack · display: standalone
+# answers: package id: app.dombelz.mobile · app name: Dombelz · display: standalone
 bubblewrap build
 ```
 This produces `app-release-signed.aab` + `assetlinks.json`.
@@ -61,7 +61,7 @@ https://YOUR-DOMAIN/.well-known/assetlinks.json
 (put it in `public/.well-known/assetlinks.json` and redeploy).
 
 ### A4. Play Console
-1. Create app → App name **FitTrack**, category **Health & Fitness**, free.
+1. Create app → App name **Dombelz**, category **Health & Fitness**, free.
 2. Upload the `.aab` to an internal testing track first.
 3. Complete **Data safety** form (answers below).
 4. Complete **Content rating** questionnaire (IARC) — answer honestly; a fitness tracker with no UGC/violence typically rates 3+/Everyone. Note: the app has social leaderboard names — declare "users can see others' usernames".
@@ -116,15 +116,15 @@ npm run mobile:ios   # opens Xcode
 In `ios/App/App/Info.plist` add (App Store rejects without these):
 ```xml
 <key>NSCameraUsageDescription</key>
-<string>FitTrack uses the camera to photograph meals for AI nutrition logging, scan barcodes, and capture progress photos.</string>
+<string>Dombelz uses the camera to photograph meals for AI nutrition logging, scan barcodes, and capture progress photos.</string>
 <key>NSMicrophoneUsageDescription</key>
-<string>FitTrack uses the microphone so you can log food by voice.</string>
+<string>Dombelz uses the microphone so you can log food by voice.</string>
 ```
 
 ### B4. App Store submission notes
 - App Privacy "nutrition labels": mirror the Data safety table above.
 - Guideline 5.1.1(v): account deletion is in-app ✅.
-- Health & Fitness guidelines (1.4.1): FitTrack gives general guidance, not medical advice — the disclaimer in `/terms` covers this; repeat it in the App Store description.
+- Health & Fitness guidelines (1.4.1): Dombelz gives general guidance, not medical advice — the disclaimer in `/terms` covers this; repeat it in the App Store description.
 - India storefront: price tier in INR when subscriptions launch; Apple IAP mandatory for digital subscriptions.
 
 ---

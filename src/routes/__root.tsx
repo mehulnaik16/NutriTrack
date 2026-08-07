@@ -37,14 +37,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           name: "viewport",
           content: "width=device-width, initial-scale=1, viewport-fit=cover",
         },
-        { title: "FitTrack — Train. Track. Transform." },
+        { title: "Dombelz — Train. Track. Transform." },
         {
           name: "description",
           content:
             "AI-powered fitness & nutrition tracking. Log food by photo, voice, or barcode. Train smarter with personalized plans.",
         },
         { name: "theme-color", content: "#101014" },
-        { property: "og:title", content: "FitTrack — Train. Track. Transform." },
+        { property: "og:title", content: "Dombelz — Train. Track. Transform." },
         {
           property: "og:description",
           content:
@@ -54,7 +54,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { property: "og:image", content: "/favicon.jpg" },
         { name: "twitter:card", content: "summary" },
         { name: "apple-mobile-web-app-capable", content: "yes" },
-        { name: "apple-mobile-web-app-title", content: "FitTrack" },
+        { name: "apple-mobile-web-app-title", content: "Dombelz" },
       ],
       links: [
         { rel: "stylesheet", href: appCss },

@@ -585,7 +585,7 @@ function FoodPage() {
               <Button
                 variant="outline"
                 className="w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
-                onClick={() => searchRef.current?.openMealBuilder()}
+                onClick={() => navigate({ to: "/meal-builder" })}
               >
                 <ChefHat className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
                 <span className="font-bold text-sm">Create Custom Meal</span>

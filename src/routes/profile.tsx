@@ -978,7 +978,7 @@ function SettingsPage({
       setDeleteOpen(false);
       await onSignOut();
     } catch (e: any) {
-      toast.error(e.message ?? "Deletion failed — please email support@fittrack.app");
+      toast.error(e.message ?? "Deletion failed — please email support@dombelz.app");
     } finally {
       setDeleting(false);
     }
@@ -1044,7 +1044,7 @@ function SettingsPage({
       };
       download(
         JSON.stringify(payload, null, 2),
-        `fittrack-export-${new Date().toISOString().slice(0, 10)}.json`,
+        `dombelz-export-${new Date().toISOString().slice(0, 10)}.json`,
         "application/json",
       );
       toast.success("Export downloaded");
@@ -1081,7 +1081,7 @@ function SettingsPage({
         .join("\n");
       download(
         `${header}\n${body}`,
-        `fittrack-food-diary-${new Date().toISOString().slice(0, 10)}.csv`,
+        `dombelz-food-diary-${new Date().toISOString().slice(0, 10)}.csv`,
         "text/csv",
       );
       toast.success("Food diary downloaded");
@@ -1303,7 +1303,7 @@ function SettingsPage({
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                This permanently deletes all your FitTrack data — profile,
+                This permanently deletes all your Dombelz data — profile,
                 logs, photos, plans, and favorites. Consider exporting your
                 data first. Type{" "}
                 <span className="font-mono font-bold text-destructive">DELETE</span>{" "}
@@ -1390,7 +1390,7 @@ function HelpPage({ onBack }: { onBack: () => void }) {
           </p>
           <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
             <a
-              href="mailto:support@fittrack.app?subject=FitTrack%20support%20request"
+              href="mailto:support@dombelz.app?subject=Dombelz%20support%20request"
               className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40"
             >
               <span className="flex items-center gap-3 text-sm font-medium">
@@ -1399,7 +1399,7 @@ function HelpPage({ onBack }: { onBack: () => void }) {
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </a>
             <a
-              href="mailto:support@fittrack.app?subject=FitTrack%20bug%20report&body=What%20happened%3A%0A%0ASteps%20to%20reproduce%3A%0A%0ADevice%20%2F%20browser%3A"
+              href="mailto:support@dombelz.app?subject=Dombelz%20bug%20report&body=What%20happened%3A%0A%0ASteps%20to%20reproduce%3A%0A%0ADevice%20%2F%20browser%3A"
               className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40"
             >
               <span className="flex items-center gap-3 text-sm font-medium">
@@ -1453,12 +1453,12 @@ function AboutPage({ onBack }: { onBack: () => void }) {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
               <Activity className="h-8 w-8" />
             </div>
-            <h2 className="font-display text-2xl font-bold">FitTrack</h2>
+            <h2 className="font-display text-2xl font-bold">Dombelz</h2>
             <p className="mt-1 text-xs font-bold uppercase tracking-widest text-accent">
               Train. Track. Transform.
             </p>
             <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              FitTrack was built on a simple idea: tracking should take seconds,
+              Dombelz was built on a simple idea: tracking should take seconds,
               not minutes. When logging is effortless, consistency follows — and
               consistency is what transforms bodies.
             </p>
@@ -1501,7 +1501,7 @@ function AboutPage({ onBack }: { onBack: () => void }) {
         </section>
 
         <p className="px-4 text-center text-xs leading-relaxed text-muted-foreground">
-          FitTrack provides general fitness information and is not a substitute
+          Dombelz provides general fitness information and is not a substitute
           for professional medical advice. Consult a healthcare provider before
           starting any diet or exercise program.
         </p>
@@ -1516,7 +1516,7 @@ function AboutPage({ onBack }: { onBack: () => void }) {
 function ReferPage({ userId, onBack }: { userId: string; onBack: () => void }) {
   const code = userId.replace(/-/g, "").slice(0, 8).toUpperCase();
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/quiz?ref=${code}`;
-  const shareText = `I'm tracking my fitness with FitTrack — AI food logging that takes 10 seconds a meal. Join me: ${shareUrl}`;
+  const shareText = `I'm tracking my fitness with Dombelz — AI food logging that takes 10 seconds a meal. Join me: ${shareUrl}`;
 
   const copy = async (text: string, msg: string) => {
     try {
@@ -1531,7 +1531,7 @@ function ReferPage({ userId, onBack }: { userId: string; onBack: () => void }) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Join me on FitTrack",
+          title: "Join me on Dombelz",
           text: shareText,
           url: shareUrl,
         });
@@ -1557,7 +1557,7 @@ function ReferPage({ userId, onBack }: { userId: string; onBack: () => void }) {
               Training is better together
             </h2>
             <p className="mx-auto mt-2 max-w-xs text-sm text-muted-foreground">
-              Invite friends to FitTrack and battle it out on the leaderboard.
+              Invite friends to Dombelz and battle it out on the leaderboard.
             </p>
 
             <div className="mt-6">

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkoutSetupRouteImport } from './routes/workout-setup'
 import { Route as WorkoutRouteImport } from './routes/workout'
 import { Route as WeightRouteImport } from './routes/weight'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -17,12 +18,19 @@ import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PlansRouteImport } from './routes/plans'
+import { Route as MealBuilderRouteImport } from './routes/meal-builder'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as FoodRouteImport } from './routes/food'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CustomPlanRouteImport } from './routes/custom-plan'
 import { Route as IndexRouteImport } from './routes/index'
 
+const WorkoutSetupRoute = WorkoutSetupRouteImport.update({
+  id: '/workout-setup',
+  path: '/workout-setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkoutRoute = WorkoutRouteImport.update({
   id: '/workout',
   path: '/workout',
@@ -63,6 +71,11 @@ const PlansRoute = PlansRouteImport.update({
   path: '/plans',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MealBuilderRoute = MealBuilderRouteImport.update({
+  id: '/meal-builder',
+  path: '/meal-builder',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -83,6 +96,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomPlanRoute = CustomPlanRouteImport.update({
+  id: '/custom-plan',
+  path: '/custom-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -91,10 +109,12 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/custom-plan': typeof CustomPlanRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
   '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
+  '/meal-builder': typeof MealBuilderRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -103,13 +123,16 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/workout': typeof WorkoutRoute
+  '/workout-setup': typeof WorkoutSetupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/custom-plan': typeof CustomPlanRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
   '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
+  '/meal-builder': typeof MealBuilderRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -118,14 +141,17 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/workout': typeof WorkoutRoute
+  '/workout-setup': typeof WorkoutSetupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/custom-plan': typeof CustomPlanRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
   '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
+  '/meal-builder': typeof MealBuilderRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -134,15 +160,18 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/workout': typeof WorkoutRoute
+  '/workout-setup': typeof WorkoutSetupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/custom-plan'
     | '/dashboard'
     | '/food'
     | '/leaderboard'
     | '/login'
+    | '/meal-builder'
     | '/plans'
     | '/privacy'
     | '/profile'
@@ -151,13 +180,16 @@ export interface FileRouteTypes {
     | '/terms'
     | '/weight'
     | '/workout'
+    | '/workout-setup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/custom-plan'
     | '/dashboard'
     | '/food'
     | '/leaderboard'
     | '/login'
+    | '/meal-builder'
     | '/plans'
     | '/privacy'
     | '/profile'
@@ -166,13 +198,16 @@ export interface FileRouteTypes {
     | '/terms'
     | '/weight'
     | '/workout'
+    | '/workout-setup'
   id:
     | '__root__'
     | '/'
+    | '/custom-plan'
     | '/dashboard'
     | '/food'
     | '/leaderboard'
     | '/login'
+    | '/meal-builder'
     | '/plans'
     | '/privacy'
     | '/profile'
@@ -181,14 +216,17 @@ export interface FileRouteTypes {
     | '/terms'
     | '/weight'
     | '/workout'
+    | '/workout-setup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CustomPlanRoute: typeof CustomPlanRoute
   DashboardRoute: typeof DashboardRoute
   FoodRoute: typeof FoodRoute
   LeaderboardRoute: typeof LeaderboardRoute
   LoginRoute: typeof LoginRoute
+  MealBuilderRoute: typeof MealBuilderRoute
   PlansRoute: typeof PlansRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
@@ -197,10 +235,18 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WeightRoute: typeof WeightRoute
   WorkoutRoute: typeof WorkoutRoute
+  WorkoutSetupRoute: typeof WorkoutSetupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workout-setup': {
+      id: '/workout-setup'
+      path: '/workout-setup'
+      fullPath: '/workout-setup'
+      preLoaderRoute: typeof WorkoutSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workout': {
       id: '/workout'
       path: '/workout'
@@ -257,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlansRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/meal-builder': {
+      id: '/meal-builder'
+      path: '/meal-builder'
+      fullPath: '/meal-builder'
+      preLoaderRoute: typeof MealBuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -285,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/custom-plan': {
+      id: '/custom-plan'
+      path: '/custom-plan'
+      fullPath: '/custom-plan'
+      preLoaderRoute: typeof CustomPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -297,10 +357,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CustomPlanRoute: CustomPlanRoute,
   DashboardRoute: DashboardRoute,
   FoodRoute: FoodRoute,
   LeaderboardRoute: LeaderboardRoute,
   LoginRoute: LoginRoute,
+  MealBuilderRoute: MealBuilderRoute,
   PlansRoute: PlansRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
@@ -309,6 +371,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WeightRoute: WeightRoute,
   WorkoutRoute: WorkoutRoute,
+  WorkoutSetupRoute: WorkoutSetupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
