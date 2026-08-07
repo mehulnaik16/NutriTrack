@@ -588,7 +588,7 @@ Rules:
       </main>
 
       {/* ── Sticky footer nav ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl">
+      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl">
         <div className="mx-auto max-w-md px-4 py-3">
           {step < TOTAL_STEPS ? (
             <Button

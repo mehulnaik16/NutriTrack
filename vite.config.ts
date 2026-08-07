@@ -16,7 +16,7 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     define: envDefine,
-    server: { host: "::", port: 8080 },
+    server: { host: true, port: 8080, allowedHosts: true },
     resolve: {
       alias: {
         "@": `${process.cwd()}/src`,

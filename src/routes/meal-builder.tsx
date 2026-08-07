@@ -448,7 +448,7 @@ function MealBuilderPage() {
       </main>
 
       {/* ── Sticky totals + save bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl">
+      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl">
         <div className="mx-auto max-w-2xl space-y-3 px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">

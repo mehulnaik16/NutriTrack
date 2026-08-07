@@ -93,24 +93,16 @@ function todaysPlanIndex(daysCount: number): number {
 }
 
 const MUSCLES = [
-  { id: "chest", name: "Chest", color: "from-red-500/20 to-orange-500/20" },
-  { id: "back", name: "Back", color: "from-indigo-500/20 to-blue-500/20" },
-  { id: "shoulders", name: "Shoulders", color: "from-blue-500/20 to-cyan-500/20" },
-  { id: "biceps", name: "Biceps", color: "from-rose-500/20 to-red-500/20" },
-  { id: "triceps", name: "Triceps", color: "from-purple-500/20 to-pink-500/20" },
-  { id: "abs", name: "Core & Abs", color: "from-green-500/20 to-emerald-500/20" },
-  { id: "legs", name: "Legs", color: "from-yellow-500/20 to-amber-500/20" },
-  { id: "compound", name: "Compound", color: "from-violet-500/20 to-purple-500/20" },
-  { id: "forearms", name: "Forearms", color: "from-slate-500/20 to-gray-500/20" },
+  { id: "chest",     name: "Chest",      color: "from-red-500/20 to-orange-500/20",    spritePos: "0% 0%" },
+  { id: "back",      name: "Back",       color: "from-indigo-500/20 to-blue-500/20",   spritePos: "50% 0%" },
+  { id: "shoulders", name: "Shoulders",  color: "from-blue-500/20 to-cyan-500/20",    spritePos: "100% 0%" },
+  { id: "biceps",    name: "Biceps",     color: "from-rose-500/20 to-red-500/20",     spritePos: "0% 50%" },
+  { id: "triceps",   name: "Triceps",    color: "from-purple-500/20 to-pink-500/20",  spritePos: "50% 50%" },
+  { id: "abs",       name: "Core & Abs", color: "from-green-500/20 to-emerald-500/20", spritePos: "100% 50%" },
+  { id: "legs",      name: "Legs",       color: "from-yellow-500/20 to-amber-500/20",  spritePos: "0% 100%" },
+  { id: "compound",  name: "Compound",   color: "from-violet-500/20 to-purple-500/20", spritePos: "50% 100%" },
+  { id: "forearms",  name: "Forearms",   color: "from-slate-500/20 to-gray-500/20",   spritePos: "100% 100%" },
 ];
-
-/** Card counts — parent/view categories resolve their own lists. */
-const muscleCardCount = (id: string): number =>
-  id === "compound"
-    ? COMPOUND_EXERCISES.length
-    : MUSCLE_SUBCATEGORIES[id]
-      ? MUSCLE_SUBCATEGORIES[id].reduce((s, c) => s + c.names.length, 0)
-      : (EXERCISES_DB[id]?.length ?? 0);
 
 const CARDIO_ACTIVITIES = [
   "Treadmill running",
@@ -321,30 +313,30 @@ function WorkoutPage() {
     if (!plan) {
       return (
         <div className="space-y-2">
-        <button
-          onClick={() => navigate({ to: "/workout-setup" })}
-          className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
-        >
-          <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
-              <Sparkles className="h-6 w-6" />
+          <button
+            onClick={() => navigate({ to: "/workout-setup" })}
+            className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
+          >
+            <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-display font-bold">Set up my training</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  2-minute questionnaire — AI plan, library, or build your own.
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-display font-bold">Set up my training</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                2-minute questionnaire — AI plan, library, or build your own.
-              </p>
-            </div>
-            <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
-          </div>
-        </button>
-        <button
-          onClick={() => navigate({ to: "/custom-plan" })}
-          className="w-full py-1 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-accent"
-        >
-          or create a custom weekly plan →
-        </button>
+          </button>
+          <button
+            onClick={() => navigate({ to: "/custom-plan" })}
+            className="w-full py-1 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-accent"
+          >
+            or create a custom weekly plan →
+          </button>
         </div>
       );
     }
@@ -425,9 +417,8 @@ function WorkoutPage() {
             >
               {customTableOpen ? "Hide my custom plan" : "Show my custom plan"}
               <ChevronDown
-                className={`h-4 w-4 transition-transform duration-300 ${
-                  customTableOpen ? "rotate-180" : ""
-                }`}
+                className={`h-4 w-4 transition-transform duration-300 ${customTableOpen ? "rotate-180" : ""
+                  }`}
               />
             </button>
 
@@ -458,14 +449,12 @@ function WorkoutPage() {
                       return (
                         <tr
                           key={d.day}
-                          className={`border-b border-border/50 transition-colors last:border-b-0 ${
-                            isToday ? "bg-accent/10" : ""
-                          }`}
+                          className={`border-b border-border/50 transition-colors last:border-b-0 ${isToday ? "bg-accent/10" : ""
+                            }`}
                         >
                           <td
-                            className={`px-3 py-2.5 font-semibold ${
-                              isToday ? "text-accent" : ""
-                            }`}
+                            className={`px-3 py-2.5 font-semibold ${isToday ? "text-accent" : ""
+                              }`}
                           >
                             {d.day}
                             {isToday && (
@@ -555,13 +544,12 @@ function WorkoutPage() {
               <button
                 key={i}
                 onClick={() => setPlanDayIdx(i)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
-                  i === planDayIdx
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${i === planDayIdx
                     ? "bg-accent text-accent-foreground glow-accent-sm"
                     : i === todayIdx
                       ? "border border-accent/50 text-accent"
                       : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 {d.day}
                 {i === todayIdx && " · Today"}
@@ -591,11 +579,10 @@ function WorkoutPage() {
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                          isLogged
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${isLogged
                             ? "bg-accent text-accent-foreground"
                             : "bg-muted text-muted-foreground"
-                        }`}
+                          }`}
                       >
                         {isLogged ? "✓" : i + 1}
                       </span>
@@ -636,10 +623,10 @@ function WorkoutPage() {
     const todayGridIds: Set<string> =
       plan && isCustomPlan(plan)
         ? gridIdsForMuscles(
-            activeMuscles(
-              plan.days[todaysPlanIndex(plan.days.length)],
-            ) as StandardMuscle[],
-          )
+          activeMuscles(
+            plan.days[todaysPlanIndex(plan.days.length)],
+          ) as StandardMuscle[],
+        )
         : new Set<string>();
 
     if (searchQuery) {
@@ -661,7 +648,7 @@ function WorkoutPage() {
         const bRecentIdx = recentExercises.indexOf(b);
         const aRecent = aRecentIdx !== -1;
         const bRecent = bRecentIdx !== -1;
-        
+
         if (aRecent && !bRecent) return -1;
         if (!aRecent && bRecent) return 1;
         if (aRecent && bRecent) return aRecentIdx - bRecentIdx;
@@ -743,25 +730,22 @@ function WorkoutPage() {
                   onClick={() => {
                     setSelectedSubcat(null);
                     setSelectedMuscle(m.id);
+                    window.scrollTo(0, 0);
                   }}
-                  className={`card-lift relative flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${m.color} border bg-card shadow-sm active:scale-95 transition-all duration-300 ${
-                    isTodayTarget
-                      ? "border-accent ring-2 ring-accent/60 glow-accent-sm"
-                      : "border-border/60"
+                  className={`relative overflow-hidden rounded-2xl aspect-[1202/1308] active:scale-95 transition-transform duration-150 ${
+                    isTodayTarget ? "ring-2 ring-accent" : ""
                   }`}
+                  style={{
+                    backgroundImage: "url('/image.png')",
+                    backgroundSize: "300% auto",
+                    backgroundPosition: m.spritePos,
+                  }}
                 >
                   {isTodayTarget && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-accent px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-accent-foreground shadow">
+                    <span className="absolute top-2 left-2 rounded-full bg-accent px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-accent-foreground shadow">
                       Today
                     </span>
                   )}
-                  <Dumbbell
-                    className={`h-6 w-6 mb-2 ${isTodayTarget ? "text-accent" : "text-accent"}`}
-                  />
-                  <span className="font-display font-bold text-[13px] text-foreground text-center leading-tight">{m.name}</span>
-                  <span className="text-[10px] font-bold text-muted-foreground mt-1 uppercase">
-                    {muscleCardCount(m.id)} Exercises
-                  </span>
                 </button>
               );
             })}
@@ -829,8 +813,8 @@ function WorkoutPage() {
             </div>
           ))}
         </div>
-        
-        <Button 
+
+        <Button
           onClick={() => setSelectedExercise(routine.name)}
           className="w-full mt-4 font-bold h-14 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
           <Play className="mr-2 h-5 w-5" /> Start Routine
@@ -847,39 +831,38 @@ function WorkoutPage() {
       return ra - rb;
     });
     return (
-    <div className="space-y-3">
-      {sorted.map((act) => {
-        const recommended = isRecommendedCardio(act, prefs);
-        return (
-        <button
-          key={act}
-          onClick={() => setSelectedCardio(act)}
-          className={`w-full flex items-center justify-between p-4 rounded-xl bg-card border shadow-sm transition-colors ${
-            recommended
-              ? "border-accent/50 bg-accent/5 hover:border-accent"
-              : "border-border hover:border-accent/50"
-          }`}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <Activity className={`h-5 w-5 shrink-0 ${recommended ? "text-accent" : "text-muted-foreground"}`} />
-            <span className="truncate font-semibold">{act}</span>
-            {recommended && (
-              <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-foreground">
-                Recommended
-              </span>
-            )}
-          </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-        </button>
-        );
-      })}
-      <div className="p-4 mt-6 rounded-xl bg-muted/20 border border-dashed border-border/50 flex flex-col items-center text-center">
-        <p className="text-sm font-medium mb-1">Other Activity?</p>
-        <p className="text-xs text-muted-foreground">
-          Log custom cardio duration to track your burned calories.
-        </p>
+      <div className="space-y-3">
+        {sorted.map((act) => {
+          const recommended = isRecommendedCardio(act, prefs);
+          return (
+            <button
+              key={act}
+              onClick={() => setSelectedCardio(act)}
+              className={`w-full flex items-center justify-between p-4 rounded-xl bg-card border shadow-sm transition-colors ${recommended
+                  ? "border-accent/50 bg-accent/5 hover:border-accent"
+                  : "border-border hover:border-accent/50"
+                }`}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <Activity className={`h-5 w-5 shrink-0 ${recommended ? "text-accent" : "text-muted-foreground"}`} />
+                <span className="truncate font-semibold">{act}</span>
+                {recommended && (
+                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-foreground">
+                    Recommended
+                  </span>
+                )}
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+          );
+        })}
+        <div className="p-4 mt-6 rounded-xl bg-muted/20 border border-dashed border-border/50 flex flex-col items-center text-center">
+          <p className="text-sm font-medium mb-1">Other Activity?</p>
+          <p className="text-xs text-muted-foreground">
+            Log custom cardio duration to track your burned calories.
+          </p>
+        </div>
       </div>
-    </div>
     );
   };
 
@@ -918,7 +901,7 @@ function WorkoutPage() {
       const bRecentIdx = recentExercises.indexOf(b);
       const aRecent = aRecentIdx !== -1;
       const bRecent = bRecentIdx !== -1;
-      
+
       if (aRecent && !bRecent) return -1;
       if (!aRecent && bRecent) return 1;
       if (aRecent && bRecent) return aRecentIdx - bRecentIdx;
@@ -956,11 +939,10 @@ function WorkoutPage() {
                 <button
                   key={s.label}
                   onClick={() => setSelectedSubcat(s.label)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-200 ${
-                    active
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-200 ${active
                       ? "bg-accent text-accent-foreground glow-accent-sm"
                       : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   {s.label}
                 </button>
@@ -1084,11 +1066,10 @@ function WorkoutPage() {
                     <button
                       key={m}
                       onClick={() => handleDuration(String(m))}
-                      className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition-colors ${
-                        parseInt(duration) === m
+                      className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition-colors ${parseInt(duration) === m
                           ? "border-accent bg-accent/10 text-accent"
                           : "border-border text-muted-foreground hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       {m}m
                     </button>
@@ -1280,9 +1261,9 @@ function WorkoutPage() {
 
           <Tabs defaultValue="log" className="w-full mt-2">
             <TabsList className="w-full flex">
-              <TabsTrigger value="log" className="flex-1 font-bold"><Plus className="w-4 h-4 mr-2"/> Log</TabsTrigger>
-              <TabsTrigger value="history" className="flex-1 font-bold"><LineChart className="w-4 h-4 mr-2"/> History</TabsTrigger>
-              <TabsTrigger value="video" className="flex-1 font-bold"><Play className="w-4 h-4 mr-2"/> Tutorial</TabsTrigger>
+              <TabsTrigger value="log" className="flex-1 font-bold"><Plus className="w-4 h-4 mr-2" /> Log</TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 font-bold"><LineChart className="w-4 h-4 mr-2" /> History</TabsTrigger>
+              <TabsTrigger value="video" className="flex-1 font-bold"><Play className="w-4 h-4 mr-2" /> Tutorial</TabsTrigger>
             </TabsList>
 
             <TabsContent value="log" className="space-y-6 pt-4">
@@ -1471,11 +1452,10 @@ function WorkoutPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${
-                  activeTab === tab
+                className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${activeTab === tab
                     ? "bg-background text-foreground shadow-sm scale-100 ring-1 ring-border/50"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50 scale-95"
-                }`}
+                  }`}
               >
                 {tab}
               </button>
