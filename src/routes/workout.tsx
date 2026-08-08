@@ -1042,7 +1042,7 @@ function WorkoutPage() {
 
     return (
       <Dialog open={!!selectedCardio} onOpenChange={() => setSelectedCardio(null)}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-[10vh] sm:px-6 sm:pb-6 sm:pt-[8vh] overflow-y-auto flex flex-col gap-0">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between text-xl font-black uppercase tracking-wider">
               <span className="text-accent">{selectedCardio}</span>
@@ -1253,7 +1253,7 @@ function WorkoutPage() {
 
     return (
       <Dialog open={!!selectedExercise} onOpenChange={() => setSelectedExercise(null)}>
-        <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-[10vh] sm:px-6 sm:pb-6 sm:pt-[8vh] overflow-y-auto flex flex-col gap-0">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent">
               {selectedExercise}
