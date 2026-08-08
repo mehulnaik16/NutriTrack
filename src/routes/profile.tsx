@@ -1516,7 +1516,8 @@ function AboutPage({ onBack }: { onBack: () => void }) {
 function ReferPage({ userId, onBack }: { userId: string; onBack: () => void }) {
   const code = userId.replace(/-/g, "").slice(0, 8).toUpperCase();
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/quiz?ref=${code}`;
-  const shareText = `I'm tracking my fitness with Dombelz — AI food logging that takes 10 seconds a meal. Join me: ${shareUrl}`;
+  const shareText = "I'm tracking my fitness with Dombelz — AI food logging that takes 10 seconds a meal. Join me:";
+  const fullShareMessage = `${shareText} ${shareUrl}`;
 
   const copy = async (text: string, msg: string) => {
     try {
@@ -1539,7 +1540,7 @@ function ReferPage({ userId, onBack }: { userId: string; onBack: () => void }) {
         /* user cancelled */
       }
     } else {
-      copy(shareText, "Invite message copied!");
+      copy(fullShareMessage, "Invite message copied!");
     }
   };
 

@@ -68,6 +68,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { uploadWeightPhoto } from "@/services/storage";
 import { todayLocal, toLocalISO } from "@/lib/dates";
+import { calcBMR, calcTDEE, calcCalorieTarget, calcMacros } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -82,6 +83,11 @@ interface Profile {
   weight_kg: number | null;
   goal_weight_kg: number | null;
   activity_level: string | null;
+  height_cm: number | null;
+  age: number | null;
+  gender: string | null;
+  bmr: number | null;
+  tdee: number | null;
 }
 
 interface FoodLog {
@@ -297,6 +303,31 @@ function Dashboard() {
     setWeightEntries((w as WeightEntry[]) ?? []);
     if (wp?.plan_json) setWorkoutPlan(wp.plan_json as unknown as WorkoutPlan);
     if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
+
+    // Self-healing: recalculate targets if stale (formula was updated after onboarding)
+    if (p?.weight_kg && p?.height_cm && p?.age && p?.gender && p?.goal) {
+      const freshBmr = calcBMR(p.weight_kg, p.height_cm, p.age, p.gender);
+      const freshTdee = calcTDEE(freshBmr, p.activity_level || "Sedentary");
+      const freshTarget = calcCalorieTarget(freshTdee, p.goal, p.gender);
+      const freshMacros = calcMacros(freshTarget, p.goal, p.weight_kg);
+      if (
+        p.bmr !== freshBmr || p.tdee !== freshTdee ||
+        p.daily_calorie_target !== freshTarget ||
+        p.protein_target_g !== freshMacros.protein ||
+        p.fiber_target_g !== freshMacros.fiber
+      ) {
+        const patch = {
+          bmr: freshBmr, tdee: freshTdee,
+          daily_calorie_target: freshTarget,
+          protein_target_g: freshMacros.protein,
+          carbs_target_g: freshMacros.carbs,
+          fat_target_g: freshMacros.fat,
+          fiber_target_g: freshMacros.fiber,
+        };
+        supabase.from("user_profiles").update(patch).eq("id", user.id).then();
+        setProfile({ ...p, ...patch } as Profile);
+      }
+    }
 
     const s = await computeStreak(user.id);
     setStreak(s);

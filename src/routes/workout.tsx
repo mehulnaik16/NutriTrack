@@ -1207,7 +1207,7 @@ function WorkoutPage() {
         .limit(10)
         .then(({ data }) => {
           setHistory(data || []);
-          const last = data?.[0]?.exercises_done;
+          const last = data?.[0]?.exercises_done as any[] | undefined;
           if (Array.isArray(last) && last.length > 0 && last[0]?.reps) {
             setSets(
               last.map((s: any) => ({

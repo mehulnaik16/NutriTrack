@@ -42,13 +42,16 @@ export function calcTDEE(bmr: number, activity: string) {
 // Source: NutriTrack Nutrition Calculation Engine spec
 const GOAL_MULTIPLIERS: Record<string, number> = {
   maintain:    1.00,
-  lose_0_25kg: 0.90,   // −10% TDEE
-  lose_0_5kg:  0.80,   // −20% TDEE
-  lose_0_75kg: 0.70,   // −30% TDEE
-  gain_muscle: 1.10,   // legacy key → same as gain_0_25kg
-  gain_0_25kg: 1.10,   // +10% TDEE
-  gain_0_5kg:  1.20,   // +20% TDEE
-  gain_0_75kg: 1.30,   // +30% TDEE
+  "Maintain Weight": 1.00,  // legacy
+  lose_0_25kg: 0.90,
+  lose_0_5kg:  0.80,
+  lose_0_75kg: 0.70,
+  "Lose Weight": 0.80,      // legacy → default to −20%
+  gain_muscle: 1.10,
+  "Gain Muscle": 1.10,      // legacy
+  gain_0_25kg: 1.10,
+  gain_0_5kg:  1.20,
+  gain_0_75kg: 1.30,
 };
 
 // ─── Primary goal options shown as radio cards in the UI ──────────────────────
@@ -104,8 +107,8 @@ export function calcCalorieTarget(tdee: number, goalKey: string, gender: string)
  * Fiber:   14 g per 1000 kcal
  */
 export function calcMacros(calories: number, goalKey: string, weightKg: number) {
-  const isLoss = goalKey.startsWith("lose");
-  const isGain = goalKey.startsWith("gain");
+  const isLoss = goalKey.startsWith("lose") || goalKey === "Lose Weight";
+  const isGain = goalKey.startsWith("gain") || goalKey === "Gain Muscle";
 
   const protein = Math.round(weightKg * (isLoss ? 2.2 : isGain ? 2.0 : 1.8));
   const fat     = Math.round(weightKg * (isLoss ? 0.8 : isGain ? 1.0 : 0.9));
