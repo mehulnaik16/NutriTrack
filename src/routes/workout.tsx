@@ -1124,9 +1124,20 @@ function WorkoutPage() {
 
   const GymLogModal = () => {
     const [sets, setSets] = useState([{ reps: "10", weight: "20" }]);
+    const [currentUnit, setCurrentUnit] = useState<'kg' | 'lbs'>('kg');
     const [history, setHistory] = useState<any[]>([]);
     const [videos, setVideos] = useState<any[]>([]);
     const [loadingMedia, setLoadingMedia] = useState(false);
+
+    const toggleUnit = (toUnit: 'kg' | 'lbs') => {
+      if (toUnit === currentUnit) return;
+      setSets(prev => prev.map(s => {
+        const w = parseFloat(s.weight) || 0;
+        const converted = toUnit === 'lbs' ? Math.round(w * 2.2) : Math.round(w / 2.2);
+        return { ...s, weight: String(converted) };
+      }));
+      setCurrentUnit(toUnit);
+    };
 
     // Rest timer
     const [restLeft, setRestLeft] = useState(0);
@@ -1184,17 +1195,40 @@ function WorkoutPage() {
       }, 0);
     };
 
-    useEffect(() => {
-      if (selectedExercise && user) {
-        supabase
-          .from("workout_logs")
-          .select("date, exercises_done")
-          .eq("user_id", user.id)
-          .eq("workout_name", selectedExercise)
-          .order("date", { ascending: false })
-          .limit(10)
-          .then(({ data }) => setHistory(data || []));
+    const fetchHistory = () => {
+      if (!selectedExercise || !user) return;
+      supabase
+        .from("workout_logs")
+        .select("id, date, logged_at, exercises_done")
+        .eq("user_id", user.id)
+        .eq("workout_name", selectedExercise)
+        .order("date", { ascending: false })
+        .order("logged_at", { ascending: false })
+        .limit(10)
+        .then(({ data }) => {
+          setHistory(data || []);
+          const last = data?.[0]?.exercises_done;
+          if (Array.isArray(last) && last.length > 0 && last[0]?.reps) {
+            setSets(
+              last.map((s: any) => ({
+                reps: String(s.reps ?? "10"),
+                weight: String(s.weight ?? "20"),
+              }))
+            );
+          } else {
+            const lift = defaultLiftForExercise(selectedExercise, prefs);
+            if (lift?.weight) {
+              setSets([{ reps: String(lift.reps ?? 8), weight: String(lift.weight) }]);
+            } else {
+              setSets([{ reps: "10", weight: currentUnit === "lbs" ? "45" : "20" }]);
+            }
+          }
+        });
+    };
 
+    useEffect(() => {
+      fetchHistory();
+      if (selectedExercise) {
         setLoadingMedia(true);
         searchYouTube({ data: selectedExercise })
           .then((res) => {
@@ -1205,31 +1239,17 @@ function WorkoutPage() {
       }
     }, [selectedExercise, user]);
 
-    // Pre-fill with what you did last time (like Strong/Hevy);
-    // otherwise fall back to the user's strongest-lift defaults from onboarding.
-    useEffect(() => {
-      const last = history[0]?.exercises_done;
-      if (Array.isArray(last) && last.length > 0 && last[0]?.reps) {
-        setSets(
-          last.map((s: any) => ({
-            reps: String(s.reps ?? "10"),
-            weight: String(s.weight ?? "20"),
-          })),
-        );
-        return;
+    const handleDeleteHistory = async (logId: string) => {
+      const t = toast.loading("Deleting log...");
+      const { error } = await supabase.from("workout_logs").delete().eq("id", logId);
+      if (error) {
+        toast.error(`Failed to delete: ${error.message}`, { id: t });
+      } else {
+        toast.success("Log deleted", { id: t });
+        fetchHistory();
+        loadUserData();
       }
-      if (selectedExercise) {
-        const lift = defaultLiftForExercise(selectedExercise, prefs);
-        if (lift?.weight) {
-          setSets([
-            {
-              reps: String(lift.reps ?? 8),
-              weight: String(lift.weight),
-            },
-          ]);
-        }
-      }
-    }, [history, selectedExercise, prefs]);
+    };
 
     const handleLog = async () => {
       if (!user) return;
@@ -1240,7 +1260,7 @@ function WorkoutPage() {
         workout_name: selectedExercise || "",
         duration_min: sets.length * 3, // rough estimate
         calories_burned: sets.length * 15,
-        exercises_done: sets,
+        exercises_done: sets.map(s => ({ ...s, unit: currentUnit })),
       });
       if (error) {
         toast.error(`Failed to log: ${error.message}`, { id: t });
@@ -1277,12 +1297,27 @@ function WorkoutPage() {
                 <div className="flex justify-between items-center mb-4 px-2">
                   <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Set</span>
                   <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Reps</span>
-                  <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Lbs / Kg</span>
+                  {/* KG / LBS toggle */}
+                  <div className="flex bg-muted/50 rounded-md p-0.5 gap-0.5">
+                    {(['kg', 'lbs'] as const).map(u => (
+                      <button
+                        key={u}
+                        onClick={() => toggleUnit(u)}
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase transition-all ${
+                          currentUnit === u
+                            ? 'bg-accent text-accent-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {sets.map((s, i) => (
-                    <div key={i} className="flex gap-3 items-center bg-card p-2 rounded-xl border border-border shadow-sm">
-                      <div className="w-10 text-center font-black text-muted-foreground">{i + 1}.</div>
+                    <div key={i} className="flex gap-2 items-center bg-card p-2 rounded-xl border border-border shadow-sm">
+                      <div className="w-8 text-center font-black text-muted-foreground">{i + 1}.</div>
                       <Input
                         type="number"
                         className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
@@ -1303,6 +1338,18 @@ function WorkoutPage() {
                           setSets(n);
                         }}
                       />
+                      <button
+                        onClick={() => {
+                          if (sets.length > 1) {
+                            setSets(sets.filter((_, idx) => idx !== i));
+                          } else {
+                            toast.error("You must log at least 1 set.");
+                          }
+                        }}
+                        className="text-muted-foreground hover:text-destructive p-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1382,25 +1429,45 @@ function WorkoutPage() {
               ) : (
                 <div className="space-y-3">
                   {history.map((log, idx) => {
+                    const logUnit = Array.isArray(log.exercises_done) && log.exercises_done[0]?.unit ? log.exercises_done[0].unit : currentUnit;
                     const rm = best1RMForLog(log);
+                    const dateObj = new Date(log.date);
+                    dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
+                    
+                    let vol = 0;
+                    if (Array.isArray(log.exercises_done)) {
+                      vol = log.exercises_done.reduce((acc: number, s: any) => acc + (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0), 0);
+                    }
+
                     return (
                       <div key={idx} className="bg-muted/20 p-4 rounded-xl border border-border/50">
-                        <div className="mb-2 flex items-center justify-between border-b border-border/50 pb-2">
-                          <span className="font-bold text-accent">
-                            {new Date(log.date).toLocaleDateString()}
-                          </span>
-                          {rm > 0 && (
-                            <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
-                              e1RM {rm} kg
+                        <div className="mb-2 flex flex-row items-center justify-between border-b border-border/50 pb-2">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-accent">
+                              {dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
-                          )}
+                            {vol > 0 && <span className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Vol: {vol} {logUnit}</span>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {rm > 0 && (
+                              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                                e1RM {rm} {logUnit}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleDeleteHistory(log.id)}
+                              className="text-muted-foreground hover:text-destructive p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                         <div className="space-y-1">
                           {Array.isArray(log.exercises_done) &&
                             log.exercises_done.map((set: any, sIdx: number) => (
                               <div key={sIdx} className="flex justify-between text-sm">
                                 <span className="font-semibold text-muted-foreground">Set {sIdx + 1}</span>
-                                <span className="font-bold">{set.reps} reps @ {set.weight} kg</span>
+                                <span className="font-bold">{set.reps} reps @ {set.weight} {set.unit || logUnit}</span>
                               </div>
                             ))}
                         </div>
@@ -1428,6 +1495,7 @@ function WorkoutPage() {
                         src={vid.embed_url}
                         title={vid.title}
                         className="w-full aspect-video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
                       />
                       <div className="bg-card p-3">
@@ -1436,6 +1504,13 @@ function WorkoutPage() {
                       </div>
                     </div>
                   ))}
+                  <Button
+                    variant="outline"
+                    className="w-full font-bold mt-4 border-dashed border-border/50 rounded-xl"
+                    onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent((selectedExercise || "") + " form tutorial")}`, "_blank")}
+                  >
+                    Search on YouTube instead
+                  </Button>
                 </div>
               )}
             </TabsContent>
