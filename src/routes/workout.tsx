@@ -93,15 +93,15 @@ function todaysPlanIndex(daysCount: number): number {
 }
 
 const MUSCLES = [
-  { id: "chest",     name: "Chest",      color: "from-red-500/20 to-orange-500/20",    spritePos: "0% 0%" },
-  { id: "back",      name: "Back",       color: "from-indigo-500/20 to-blue-500/20",   spritePos: "50% 0%" },
-  { id: "shoulders", name: "Shoulders",  color: "from-blue-500/20 to-cyan-500/20",    spritePos: "100% 0%" },
-  { id: "biceps",    name: "Biceps",     color: "from-rose-500/20 to-red-500/20",     spritePos: "0% 50%" },
-  { id: "triceps",   name: "Triceps",    color: "from-purple-500/20 to-pink-500/20",  spritePos: "50% 50%" },
-  { id: "abs",       name: "Core & Abs", color: "from-green-500/20 to-emerald-500/20", spritePos: "100% 50%" },
-  { id: "legs",      name: "Legs",       color: "from-yellow-500/20 to-amber-500/20",  spritePos: "0% 100%" },
-  { id: "compound",  name: "Compound",   color: "from-violet-500/20 to-purple-500/20", spritePos: "50% 100%" },
-  { id: "forearms",  name: "Forearms",   color: "from-slate-500/20 to-gray-500/20",   spritePos: "100% 100%" },
+  { id: "chest",     name: "Chest",      img: "/images/chest.png" },
+  { id: "back",      name: "Back",       img: "/images/back.png" },
+  { id: "shoulders", name: "Shoulders",  img: "/images/shoulders.png" },
+  { id: "biceps",    name: "Biceps",     img: "/images/biceps.png" },
+  { id: "triceps",   name: "Triceps",    img: "/images/triceps.png" },
+  { id: "abs",       name: "Core & Abs", img: "/images/abs.png" },
+  { id: "legs",      name: "Legs",       img: "/images/legs.png" },
+  { id: "compound",  name: "Compound",   img: "/images/compound.png" },
+  { id: "forearms",  name: "Forearms",   img: "/images/forearms.png" },
 ];
 
 const CARDIO_ACTIVITIES = [
@@ -661,7 +661,7 @@ function WorkoutPage() {
     return (
       <div className="space-y-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -721,7 +721,7 @@ function WorkoutPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 animate-in fade-in">
+          <div className="grid grid-cols-3 gap-2 animate-in fade-in">
             {MUSCLES.map((m) => {
               const isTodayTarget = todayGridIds.has(m.id);
               return (
@@ -732,20 +732,26 @@ function WorkoutPage() {
                     setSelectedMuscle(m.id);
                     window.scrollTo(0, 0);
                   }}
-                  className={`relative overflow-hidden rounded-2xl aspect-[1202/1308] active:scale-95 transition-transform duration-150 ${
+                  className={`flex flex-col overflow-hidden rounded-2xl active:scale-95 transition-transform duration-150 ${
                     isTodayTarget ? "ring-2 ring-accent" : ""
                   }`}
-                  style={{
-                    backgroundImage: "url('/image.png')",
-                    backgroundSize: "300% auto",
-                    backgroundPosition: m.spritePos,
-                  }}
                 >
-                  {isTodayTarget && (
-                    <span className="absolute top-2 left-2 rounded-full bg-accent px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-accent-foreground shadow">
-                      Today
-                    </span>
-                  )}
+                  <div className="relative w-full">
+                    <img
+                      src={m.img}
+                      alt={m.name}
+                      className="w-full h-auto block"
+                      loading="lazy"
+                    />
+                    {isTodayTarget && (
+                      <span className="absolute top-2 left-2 rounded-full bg-accent px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-accent-foreground shadow">
+                        Today
+                      </span>
+                    )}
+                  </div>
+                  <span className="w-full py-1.5 text-center text-[14.5px] font-semibold tracking-wide text-foreground" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    {m.name}
+                  </span>
                 </button>
               );
             })}
