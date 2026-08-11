@@ -93,14 +93,14 @@ function todaysPlanIndex(daysCount: number): number {
 }
 
 const MUSCLES = [
-  { id: "chest",     name: "Chest",      img: "/images/chest.png" },
-  { id: "back",      name: "Back",       img: "/images/back.png" },
-  { id: "shoulders", name: "Shoulders",  img: "/images/shoulders.png" },
-  { id: "biceps",    name: "Biceps",     img: "/images/biceps.png" },
-  { id: "triceps",   name: "Triceps",    img: "/images/triceps.png" },
-  { id: "abs",       name: "Core & Abs", img: "/images/abs.png" },
+  { id: "chest",     name: "Chest",      img: "/images/chestfinal.png" },
+  { id: "back",      name: "Back",       img: "/images/backfinal.png" },
+  { id: "shoulders", name: "Shoulders",  img: "/images/shouldersfinal.png" },
+  { id: "biceps",    name: "Biceps",     img: "/images/biceps%20final.png" },
+  { id: "triceps",   name: "Triceps",    img: "/images/tricepsfinal.png" },
+  { id: "abs",       name: "Core & Abs", img: "/images/corefinal.png" },
   { id: "legs",      name: "Legs",       img: "/images/legs.png" },
-  { id: "compound",  name: "Compound",   img: "/images/compound.png" },
+  { id: "compound",  name: "Compound",   img: "/images/compoundfinal.png" },
   { id: "forearms",  name: "Forearms",   img: "/images/forearms.png" },
 ];
 
@@ -191,7 +191,7 @@ function WorkoutPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [planDayIdx, setPlanDayIdx] = useState(0);
   const [planExpanded, setPlanExpanded] = useState(false);
-  const [customTableOpen, setCustomTableOpen] = useState(true);
+  const [customTableOpen, setCustomTableOpen] = useState(false);
 
   // Body weight for MET-based calorie estimates
   const [bodyWeight, setBodyWeight] = useState(70);
@@ -740,7 +740,7 @@ function WorkoutPage() {
                     <img
                       src={m.img}
                       alt={m.name}
-                      className="w-full h-auto block"
+                      className="w-full h-auto block scale-[1.05]"
                       loading="lazy"
                     />
                     {isTodayTarget && (

@@ -10,8 +10,8 @@ export function BottomNav() {
     { to: "/dashboard", icon: Activity, label: "Home" },
     { to: "/food", icon: Utensils, label: "Food" },
     { to: "/workout", icon: Dumbbell, label: "Workout" },
-    { to: "/weight", icon: Scale, label: "Weight" },
     { to: "/leaderboard", icon: Trophy, label: "Rank" },
+    { to: "/weight", icon: Scale, label: "Weight" },
   ] as const;
 
   return (

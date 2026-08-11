@@ -141,6 +141,7 @@ function WorkoutSetup() {
   const [deadlift, setDeadlift] = useState<LiftDraft>({ weight: "", reps: "" });
   const [days, setDays] = useState(3);
   const [cardio, setCardio] = useState<string[]>([]);
+  const [customCardio, setCustomCardio] = useState("");
   const [muscles, setMuscles] =
     useState<WorkoutPrefs["musclesPerWorkout"]>("not_sure");
   const [duration, setDuration] = useState(60);
@@ -430,49 +431,117 @@ Rules:
           )}
 
           {/* ── 5. Cardio multi-select ── */}
-          {step === 5 && (
-            <div className="space-y-3">
-              <p className="mb-5 text-sm text-muted-foreground">
-                Pick all that apply — we'll recommend these on your Cardio tab.
-                Leave empty if cardio isn't your thing.
-              </p>
-              {CARDIO_OPTIONS.map((c) => {
-                const active = cardio.includes(c);
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() =>
-                      setCardio((prev) =>
-                        active ? prev.filter((x) => x !== c) : [...prev, c],
-                      )
-                    }
-                    className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
-                      active
-                        ? "border-accent bg-accent/10 glow-accent-sm"
-                        : "border-border bg-card hover:border-muted-foreground/40"
-                    }`}
-                  >
-                    <span
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+          {step === 5 && (() => {
+            const CARDIO_EMOJI: Record<string, string> = {
+              "Treadmill running": "🏃",
+              "Outdoor walk": "🚶",
+              "Cycling": "🚴",
+              "Swimming": "🏊",
+              "Jump rope": "🪢",
+              "HIIT": "🔥",
+              "Yoga & Pilates": "🧘",
+              "Stair climbing": "🪜",
+              "Elliptical": "⚙️",
+              "Rowing machine": "🚣",
+              "SkiErg": "⛷️",
+              "Dancing": "💃",
+              "Badminton": "🏸",
+              "Cricket": "🏏",
+              "Football": "⚽",
+            };
+            return (
+              <div className="space-y-3">
+                <p className="mb-5 text-sm text-muted-foreground">
+                  Pick all that apply — we'll recommend these on your Cardio tab.
+                  Leave empty if cardio isn't your thing.
+                </p>
+                {CARDIO_OPTIONS.map((c) => {
+                  const active = cardio.includes(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() =>
+                        setCardio((prev) =>
+                          active ? prev.filter((x) => x !== c) : [...prev, c],
+                        )
+                      }
+                      className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
                         active
-                          ? "border-accent bg-accent"
-                          : "border-muted-foreground/40"
+                          ? "border-accent bg-accent/10 glow-accent-sm"
+                          : "border-border bg-card hover:border-muted-foreground/40"
                       }`}
                     >
-                      {active && (
-                        <Check className="h-3 w-3 text-accent-foreground" />
-                      )}
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {c === "Running" ? "🏃" : c === "Cycling" ? "🚴" : "🏊"}{" "}
-                      {c}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+                          active
+                            ? "border-accent bg-accent"
+                            : "border-muted-foreground/40"
+                        }`}
+                      >
+                        {active && (
+                          <Check className="h-3 w-3 text-accent-foreground" />
+                        )}
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {CARDIO_EMOJI[c] ?? "🏅"} {c}
+                      </span>
+                    </button>
+                  );
+                })}
+                {/* Custom entry */}
+                <div className="rounded-2xl border-2 border-dashed border-border bg-card p-4">
+                  <p className="mb-2 text-xs font-bold text-muted-foreground">Can't find what you're looking for? Type it in</p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={customCardio}
+                      onChange={(e) => setCustomCardio(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && customCardio.trim()) {
+                          const val = customCardio.trim();
+                          if (!cardio.includes(val)) setCardio((prev) => [...prev, val]);
+                          setCustomCardio("");
+                        }
+                      }}
+                      placeholder="e.g. Rock climbing"
+                      className="h-10 rounded-xl flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = customCardio.trim();
+                        if (!val) return;
+                        if (!cardio.includes(val)) setCardio((prev) => [...prev, val]);
+                        setCustomCardio("");
+                      }}
+                      className="h-10 rounded-xl border-2 border-accent bg-accent/10 px-4 text-sm font-bold text-accent transition-all hover:bg-accent/20"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {cardio.filter((c) => !CARDIO_OPTIONS.includes(c as any)).length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {cardio.filter((c) => !CARDIO_OPTIONS.includes(c as any)).map((c) => (
+                        <span
+                          key={c}
+                          className="flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent"
+                        >
+                          🏅 {c}
+                          <button
+                            type="button"
+                            onClick={() => setCardio((prev) => prev.filter((x) => x !== c))}
+                            className="ml-0.5 opacity-60 hover:opacity-100"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── 6. Muscles per workout ── */}
           {step === 6 && (

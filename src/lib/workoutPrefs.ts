@@ -46,7 +46,23 @@ export const FITNESS_GOALS = [
   { value: "strength", label: "Get Stronger (Powerlifting)", emoji: "🏋️" },
 ] as const;
 
-export const CARDIO_OPTIONS = ["Running", "Cycling", "Swimming"] as const;
+export const CARDIO_OPTIONS = [
+  "Treadmill running",
+  "Outdoor walk",
+  "Cycling",
+  "Swimming",
+  "Jump rope",
+  "HIIT",
+  "Yoga & Pilates",
+  "Stair climbing",
+  "Elliptical",
+  "Rowing machine",
+  "SkiErg",
+  "Dancing",
+  "Badminton",
+  "Cricket",
+  "Football",
+] as const;
 
 /** Split guidance used in the AI prompt, keyed by training days. */
 export const SPLIT_GUIDE: Record<number, string> = {
@@ -165,11 +181,5 @@ export function isRecommendedCardio(
 ): boolean {
   if (!prefs || prefs.cardioActivities.length === 0) return false;
   const a = activity.toLowerCase();
-  return prefs.cardioActivities.some((c) => {
-    const pref = c.toLowerCase();
-    if (pref === "running") return a.includes("running") || a.includes("run");
-    if (pref === "cycling") return a.includes("cycling") || a.includes("bike");
-    if (pref === "swimming") return a.includes("swimming");
-    return false;
-  });
+  return prefs.cardioActivities.some((c) => a.includes(c.toLowerCase()) || c.toLowerCase().includes(a));
 }
