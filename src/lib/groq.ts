@@ -150,6 +150,7 @@ export interface ChatOptions {
   max_tokens?: number;
   temperature?: number;
   response_format?: { type: "json_object" };
+  reasoning_effort?: "none" | "low" | "medium" | "high";
 }
 
 /** Text / vision chat completion */
@@ -162,6 +163,9 @@ export async function groqChat(opts: ChatOptions): Promise<string> {
       temperature: opts.temperature ?? 0.7,
       ...(opts.response_format
         ? { response_format: opts.response_format }
+        : {}),
+      ...(opts.reasoning_effort
+        ? { reasoning_effort: opts.reasoning_effort }
         : {}),
       messages: opts.messages,
     },
@@ -187,6 +191,7 @@ export async function groqVision(opts: {
     model: "qwen/qwen3.6-27b",
     max_tokens: opts.max_tokens ?? 500,
     temperature: 0.2,
+    reasoning_effort: "none",
     messages: [
       {
         role: "user",

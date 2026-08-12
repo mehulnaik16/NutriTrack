@@ -81,7 +81,7 @@ interface VoiceFoodItem {
   fiber_g: number;
 }
 
-// ── AI image recognition via Groq Llama 4 Scout vision ───────────────────────
+// ── AI image recognition via Groq qwen/qwen3.6-27b vision ───────────────────
 async function recognizeFoodFromImage(
   base64: string,
   mimeType: string,
@@ -100,9 +100,15 @@ async function recognizeFoodFromImage(
 }
 A human palm is ~18cm — use it as a size reference if visible. Use accurate nutritional values for Indian foods.`;
 
-  const raw = await groqVision({ prompt, base64, mimeType, max_tokens: 400 });
-  const clean = raw.replace(/```json|```/g, "").trim();
-  return JSON.parse(clean) as AIFoodResult;
+  const raw = await groqVision({ prompt, base64, mimeType });
+  // Safety: strip any <think> tags + markdown fences
+  const clean = raw
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .replace(/```json|```/g, "")
+    .trim();
+  const jsonMatch = clean.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("AI did not return nutrition data. Please retry.");
+  return JSON.parse(jsonMatch[0]) as AIFoodResult;
 }
 
 // ── Voice food logging via Groq Whisper + Llama 4 Scout ──────────────────────
