@@ -19,8 +19,8 @@ const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard", icon: null },
   { to: "/food", label: "Food", icon: Utensils },
   { to: "/workout", label: "Workout", icon: Dumbbell },
-  { to: "/weight", label: "Weight", icon: Scale },
   { to: "/leaderboard", label: "Rank", icon: Trophy },
+  { to: "/weight", label: "Weight", icon: Scale },
 ] as const;
 
 /** Local YYYY-MM-DD (avoids UTC off-by-one) */

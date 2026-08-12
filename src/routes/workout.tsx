@@ -740,7 +740,7 @@ function WorkoutPage() {
                     <img
                       src={m.img}
                       alt={m.name}
-                      className="w-full h-auto block scale-[1.05]"
+                      className="w-full h-auto block"
                       loading="lazy"
                     />
                     {isTodayTarget && (

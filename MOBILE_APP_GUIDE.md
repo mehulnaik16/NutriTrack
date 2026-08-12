@@ -90,8 +90,23 @@ https://YOUR-DOMAIN/.well-known/assetlinks.json
 
 Capacitor deps and scripts are already in `package.json`, and `capacitor.config.ts` is at the repo root.
 
+### B0. Architecture Options: Local Bundle (Recommended) vs. Hosted Web App
+
+| Option | How it works | Vercel Required? | Bandwidth / Hosting Cost | Launch Speed |
+|---|---|---|---|---|
+| **Local Bundle (Recommended)** | UI (HTML/JS/CSS) bundled 100% inside the APK/IPA (`webDir: "dist/client"`). App only connects to Supabase DB & Groq AI over network. | **NO** | **$0** (zero static asset traffic) | Instant (<100ms) |
+| **Hosted Web App** | Shell opens live URL (`server.url: "https://..."`). UI fetched over network on every launch. | Yes | Consumes Vercel bandwidth quota | 2-4s network load |
+
+> 💡 **Recommendation**: Use **Local Bundle Mode** for production. It saves bandwidth costs, works offline, complies with App Store policies, and only uses Supabase for backend data.
+
 ### B1. Configure
-Edit `capacitor.config.ts` → set `server.url` to your deployed domain.
+
+- **For Local Standalone Bundle (Recommended)**:
+  In `capacitor.config.ts`, set `webDir: "dist/client"` and remove/comment out the `server` block.
+  Build command sequence: `npm run build` → `npx cap sync android` → `npx cap open android`.
+
+- **For Hosted Mode**:
+  In `capacitor.config.ts`, set `server.url` to your deployed domain.
 
 ### B2. Android
 ```bash
