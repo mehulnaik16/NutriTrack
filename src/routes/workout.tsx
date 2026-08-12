@@ -765,7 +765,7 @@ function WorkoutPage() {
     return (
       <div className="space-y-6 pb-20">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
           <Input
             placeholder="Search home routines..."
             className="pl-10 h-14 text-md bg-card/50 backdrop-blur-sm border-border/50 shadow-sm rounded-2xl transition-all focus-visible:ring-accent"
@@ -777,11 +777,11 @@ function WorkoutPage() {
             <button
               key={routine.name}
               onClick={() => setSelectedHomeRoutine(routine.name)}
-              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md h-32"
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-accent text-accent-foreground border border-border/50 shadow-sm transition-transform active:scale-95 hover:shadow-md h-32"
             >
-              <Flame className="h-8 w-8 text-white/80 drop-shadow-sm mb-2" />
-              <span className="font-black text-sm text-white drop-shadow-md text-center leading-tight">{routine.name}</span>
-              <span className="text-[11px] font-bold text-white/70 mt-2 uppercase tracking-widest">{routine.exercises.length} Exercises</span>
+              <Flame className="h-8 w-8 opacity-80 drop-shadow-sm mb-2" />
+              <span className="font-black text-sm drop-shadow-md text-center leading-tight">{routine.name}</span>
+              <span className="text-[11px] font-bold opacity-70 mt-2 uppercase tracking-widest">{routine.exercises.length} Exercises</span>
             </button>
           ))}
         </div>
