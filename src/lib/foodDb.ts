@@ -5,7 +5,7 @@
 
 import ifctData from "@/data/ifct2017.json";
 import { EXTRA_FOODS } from "@/data/extraFoods";
-import { groqChat } from "@/lib/groq";
+import { serverAiFoodSearch } from "@/lib/ai";
 
 export interface IFCTItem {
   code: string;
@@ -61,40 +61,7 @@ export function searchFoods(query: string, limit = 8): IFCTItem[] {
  */
 export async function aiFoodSearch(query: string): Promise<IFCTItem[]> {
   if (query.trim().length < 2) return [];
-  const prompt = `You are a nutrition expert. The user is searching for "${query}".
-If this food is missing from a standard database, provide its typical nutritional values per 100g.
-Return ONLY a JSON object with a key "items" containing up to 3 matching items, no markdown:
-{
-  "items": [
-    {
-      "code": "ai-fallback",
-      "name": "string (specific name)",
-      "scie": "",
-      "lang": "",
-      "grup": "AI Fallback",
-      "enerc": number (in KJ, multiply kcal by 4.184),
-      "protcnt": number (g),
-      "fatce": number (g),
-      "choavldf": number (g),
-      "fibtg": number (g)
-    }
-  ]
+  const { items } = await serverAiFoodSearch({ data: query });
+  return (items || []) as IFCTItem[];
 }
-Rules for accuracy:
-- For cooked/boiled dals/pulses: ~90-110 kcal per 100g (thick consistency).
-- For thin dal/soups: ~40-60 kcal per 100g.
-- For cooked rice: ~130 kcal per 100g.
-- For Roti (standard): ~120 kcal per 40g (one roti).
-Use accurate values for common Indian foods.`;
 
-  const raw = await groqChat({
-    model: "llama-3.3-70b-versatile",
-    messages: [{ role: "user", content: prompt }],
-    max_tokens: 800,
-    temperature: 0.1,
-    response_format: { type: "json_object" },
-  });
-  const clean = raw.replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(clean);
-  return (parsed.items || []) as IFCTItem[];
-}

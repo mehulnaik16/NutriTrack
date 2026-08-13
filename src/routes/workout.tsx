@@ -46,7 +46,6 @@ import {
 } from "@/lib/exercises";
 import { HOME_WORKOUTS } from "@/lib/homeWorkouts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { groqChat } from "@/lib/groq";
 import { todayLocal } from "@/lib/dates";
 import {
   type WorkoutPrefs as UserWorkoutPrefs,

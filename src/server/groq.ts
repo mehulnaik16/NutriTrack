@@ -1,13 +1,14 @@
 /**
- * groq.ts — Groq API client with automatic key rotation
+ * Server-only Groq API client with automatic key rotation.
+ *
+ * This file lives under src/server/ and is blocked from client bundles
+ * by the TanStack Start importProtection in vite.config.ts.
  *
  * HOW TO ADD MORE KEYS:
- * In your .env file, just add more numbered keys:
- *   VITE_GROQ_KEY_1=gsk_...
- *   VITE_GROQ_KEY_2=gsk_...
- *   VITE_GROQ_KEY_3=gsk_...
- *   VITE_GROQ_KEY_4=gsk_...   ← just add this when you get a new one
- *   VITE_GROQ_KEY_5=gsk_...   ← and this, no code changes needed
+ * In your .env file, add more numbered keys:
+ *   GROQ_API_KEY_1=gsk_...
+ *   GROQ_API_KEY_2=gsk_...
+ *   GROQ_API_KEY_3=gsk_...
  *
  * The client picks up however many keys are defined and rotates
  * through them automatically on rate limit (429) or server errors (5xx).
@@ -15,21 +16,18 @@
 
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 
-// ── Load all keys from env ────────────────────────────────────────────────────
-// Scans VITE_GROQ_KEY_1 through VITE_GROQ_KEY_20.
+// ── Load all keys from server-side env ────────────────────────────────────────
+// Scans GROQ_API_KEY_1 through GROQ_API_KEY_20.
 // Any slot that's empty or undefined is skipped.
-// Add more by just adding VITE_GROQ_KEY_N to your .env — no code change needed.
 function loadKeys(): string[] {
   const keys: string[] = [];
   for (let i = 1; i <= 20; i++) {
-    const key = (import.meta.env as Record<string, string>)[
-      `VITE_GROQ_KEY_${i}`
-    ];
+    const key = process.env[`GROQ_API_KEY_${i}`];
     if (key && key.trim().length > 0) keys.push(key.trim());
   }
   if (keys.length === 0) {
     console.warn(
-      "[groq] No API keys found. Add VITE_GROQ_KEY_1, VITE_GROQ_KEY_2, … to your .env",
+      "[groq] No API keys found. Add GROQ_API_KEY_1, GROQ_API_KEY_2, … to your .env",
     );
   }
   return keys;
@@ -72,17 +70,9 @@ function markRateLimited(index: number, retryAfterSeconds = 60) {
 interface GroqRequestOptions {
   endpoint: string;
   body: Record<string, unknown>;
-  isFormData?: false;
-}
-interface GroqFormRequestOptions {
-  endpoint: string;
-  formData: FormData;
-  isFormData: true;
 }
 
-async function groqFetch(
-  opts: GroqRequestOptions | GroqFormRequestOptions,
-): Promise<Response> {
+async function groqFetch(opts: GroqRequestOptions): Promise<Response> {
   if (KEYS.length === 0) throw new Error("No Groq API keys configured.");
 
   const triedKeys = new Set<number>();
@@ -95,20 +85,15 @@ async function groqFetch(
     if (triedKeys.has(index) && triedKeys.size >= KEYS.length) break;
     triedKeys.add(index);
 
-    const headers: Record<string, string> = { Authorization: `Bearer ${key}` };
-    let fetchBody: BodyInit;
-
-    if (opts.isFormData) {
-      fetchBody = opts.formData;
-    } else {
-      headers["Content-Type"] = "application/json";
-      fetchBody = JSON.stringify(opts.body);
-    }
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    };
 
     const res = await fetch(`${GROQ_BASE}/${opts.endpoint}`, {
       method: "POST",
       headers,
-      body: fetchBody,
+      body: JSON.stringify(opts.body),
     });
 
     if (res.status === 429) {
@@ -131,7 +116,7 @@ async function groqFetch(
   throw new Error(`All ${KEYS.length} Groq keys exhausted or rate-limited.`);
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
+// ── Public API (server-only) ──────────────────────────────────────────────────
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -205,49 +190,4 @@ export async function groqVision(opts: {
       },
     ],
   });
-}
-
-/** Speech to text via Whisper */
-export async function groqTranscribe(audioBlob: Blob): Promise<string> {
-  const form = new FormData();
-  form.append("file", audioBlob, "audio.webm");
-  form.append("model", "whisper-large-v3-turbo");
-  form.append("response_format", "text");
-  form.append("language", "en");
-
-  const res = await groqFetch({
-    endpoint: "audio/transcriptions",
-    formData: form,
-    isFormData: true,
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq Whisper error ${res.status}: ${err}`);
-  }
-
-  return res.text();
-}
-
-/** Returns how many keys are loaded and their rate-limit status — useful for debugging */
-export function groqStatus(): {
-  total: number;
-  available: number;
-  keys: { index: number; available: boolean; resetsIn?: number }[];
-} {
-  const now = Date.now();
-  const keys = KEYS.map((_, i) => {
-    const resetAt = rateLimitedUntil[i] ?? 0;
-    const available = now >= resetAt;
-    return {
-      index: i + 1,
-      available,
-      ...(available ? {} : { resetsIn: Math.ceil((resetAt - now) / 1000) }),
-    };
-  });
-  return {
-    total: KEYS.length,
-    available: keys.filter((k) => k.available).length,
-    keys,
-  };
 }

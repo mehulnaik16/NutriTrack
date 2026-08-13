@@ -77,7 +77,7 @@ nutritrack/
 │   │
 │   ├── lib/
 │   │   ├── auth.tsx          # Auth context / useAuth hook
-│   │   ├── groq.ts           # Groq AI client (food recognition, meal suggestions)
+│   │   ├── foodDb.ts         # Local food database + AI fallback search (calls server function)
 │   │   ├── nutrition.ts      # Macro calculation helpers (BMR, TDEE, targets)
 │   │   ├── error-capture.ts  # Global error capture for SSR
 │   │   ├── error-page.ts     # Error page renderer
@@ -173,7 +173,7 @@ npm run format   # Prettier
 - **SSR**: TanStack Start provides SSR. Server routes and client routes share the same file via `createServerFn`.
 - **Auth**: Supabase Auth with session cookies managed by `auth-middleware.ts`. The `useAuth()` hook exposes the current user.
 - **Storage**: All photo operations route through `src/services/storage.ts`. Components never call `supabase.storage` directly.
-- **AI**: Groq API is called server-side via `src/lib/groq.ts`. Multiple keys are round-robined for rate limit handling.
+- **AI**: Groq API is called server-side via `src/server/groq.ts`, exposed through `createServerFn` in `src/server/ai.ts`. Multiple keys are round-robined for rate limit handling. Client code never touches the Groq API key.
 - **Food DB**: `ifct2017.json` is the IFCT 2017 Indian food database loaded client-side for instant offline search.
 - **Barcode**: ZXing library handles barcode scanning; fallback to Open Food Facts API for nutrition lookup.
 - **Routing**: TanStack Router auto-generates `routeTree.gen.ts` — do not edit manually.

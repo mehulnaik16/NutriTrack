@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { groqChat } from "@/lib/groq";
+import { serverGroqChat } from "@/lib/ai";
 import { Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,12 +112,15 @@ This week's data:
 
 Write a 3-4 sentence weekly summary. Be specific, warm, and actionable. Give one concrete tip for next week based on the data. No hashtags.`;
 
-  return await groqChat({
-    model: "llama-3.3-70b-versatile",
-    max_tokens: 200,
-    temperature: 0.7,
-    messages: [{ role: "user", content: prompt }],
+  const { result } = await serverGroqChat({
+    data: {
+      prompt,
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 200,
+      temperature: 0.7,
+    },
   });
+  return result;
 }
 
 export function WeeklyReport({ userId, profile }: Props) {

@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
-import { groqVision, groqTranscribe, groqChat } from "@/lib/groq";
+import { serverGroqVision, serverGroqChat, serverAiFoodSearchInline } from "@/lib/ai";
 import { toLocalISO } from "@/lib/dates";
 import {
   type IFCTItem,
@@ -100,7 +100,7 @@ async function recognizeFoodFromImage(
 }
 A human palm is ~18cm — use it as a size reference if visible. Use accurate nutritional values for Indian foods.`;
 
-  const raw = await groqVision({ prompt, base64, mimeType });
+  const { result: raw } = await serverGroqVision({ data: { prompt, base64, mimeType } });
   // Safety: strip any <think> tags + markdown fences
   const clean = raw
     .replace(/<think>[\s\S]*?<\/think>/g, "")
@@ -139,11 +139,13 @@ Rules:
 - Each distinct food is a separate item in the array
 - Return empty array [] if no food is mentioned`;
 
-  const raw = await groqChat({
-    model: "llama-3.3-70b-versatile",
-    messages: [{ role: "user", content: prompt }],
-    max_tokens: 600,
-    temperature: 0.1,
+  const { result: raw } = await serverGroqChat({
+    data: {
+      prompt,
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 600,
+      temperature: 0.1,
+    },
   });
   const clean = raw.replace(/```json|```/g, "").trim();
   return JSON.parse(clean) as VoiceFoodItem[];
@@ -392,44 +394,8 @@ export const FoodSearch = forwardRef<
     if (q.trim().length < 2) return;
     setSearching(true);
     try {
-      const prompt = `You are a nutrition expert. The user is searching for "${q}". 
-If this food is missing from a standard database, provide its typical nutritional values per 100g.
-Return ONLY a JSON object with a key "items" containing up to 3 matching items, no markdown:
-{
-  "items": [
-    {
-      "code": "ai-fallback",
-      "name": "string (specific name)",
-      "scie": "",
-      "lang": "",
-      "grup": "AI Fallback",
-      "enerc": number (in KJ, multiply kcal by 4.184),
-      "protcnt": number (g),
-      "fatce": number (g),
-      "choavldf": number (g),
-      "fibtg": number (g)
-    }
-  ]
-}
-Rules for accuracy:
-- For cooked/boiled dals/pulses: ~90-110 kcal per 100g (thick consistency).
-- For thin dal/soups: ~40-60 kcal per 100g.
-- For cooked rice: ~130 kcal per 100g.
-- For Roti (standard): ~120 kcal per 40g (one roti).
-- NEVER return values as low as 28 kcal for dal unless it is mostly water.
-Use accurate values for Indian foods like Idli, Dosa, etc.`;
-
-      const raw = await groqChat({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 800,
-        temperature: 0.1,
-        response_format: { type: "json_object" },
-      });
-      const clean = raw.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
-      const results = (parsed.items || []) as IFCTItem[];
-      setAiSuggestions(results);
+      const { items } = await serverAiFoodSearchInline({ data: q });
+      setAiSuggestions((items || []) as IFCTItem[]);
     } catch (e: any) {
       console.error("AI fallback failed", e);
     } finally {

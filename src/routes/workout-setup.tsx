@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
-import { groqChat } from "@/lib/groq";
+import { serverGroqChat } from "@/lib/ai";
 import {
   type WorkoutPrefs,
   FITNESS_LEVELS,
@@ -239,12 +239,14 @@ Rules:
 - "reps" is a string like "8-12", "5", or "30 sec".
 - Scale intensity to a ${prefs.fitnessLevel} lifter.`;
 
-    const raw = await groqChat({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 2500,
-      temperature: 0.4,
-      response_format: { type: "json_object" },
+    const { result: raw } = await serverGroqChat({
+      data: {
+        prompt,
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 2500,
+        temperature: 0.4,
+        response_format_json: true,
+      },
     });
     const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
     if (!parsed?.days || !Array.isArray(parsed.days) || parsed.days.length === 0) {

@@ -30,7 +30,7 @@ npx vercel --prod    # or connect the repo in the Vercel dashboard
 
 Note your production URL, e.g. `https://dombelz.vercel.app`. Custom domain recommended before store submission (stores dislike changing URLs later).
 
-**Environment variables to set in Vercel:** all `VITE_GROQ_KEY_*` keys and your Supabase URL/anon key (copy from your local `.env`).
+**Environment variables to set in Vercel:** all `GROQ_API_KEY_*` keys (as server-only vars, not prefixed with `VITE_`) and your Supabase URL/anon key (copy from your local `.env`).
 
 ---
 

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { groqChat } from "@/lib/groq";
+import { serverGroqChat } from "@/lib/ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Scale,
@@ -71,12 +71,15 @@ async function getGroqMotivation(
 User: ${name}, goal: ${goal}, current weight: ${currentWeight}kg, starting weight: ${startWeight}kg, goal weight: ${goalWeight ?? "not set"}kg, logging streak: ${streak} days.
 Be specific to their numbers. Be warm and real — not generic or cheesy. No hashtags.`;
 
-  return await groqChat({
-    model: "llama-3.3-70b-versatile",
-    max_tokens: 120,
-    temperature: 0.8,
-    messages: [{ role: "user", content: prompt }],
+  const { result } = await serverGroqChat({
+    data: {
+      prompt,
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 120,
+      temperature: 0.8,
+    },
   });
+  return result;
 }
 
 function WeightPage() {
