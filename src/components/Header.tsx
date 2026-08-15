@@ -124,11 +124,128 @@ function StreakDialog({
   );
 }
 
-export function Header({ name }: { name?: string }) {
+function DayRow({ dates, src }: { dates: Set<string>; src: string }) {
+  const week = lastSevenDays();
+  return (
+    <div style={{ background: "#fff", borderRadius: 10, padding: "8px 10px", display: "flex", justifyContent: "space-between" }}>
+      {week.map((d) => {
+        const active = dates.has(d.iso);
+        return (
+          <div key={d.iso} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#6B7280" }}>{d.letter}</span>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", background: active ? "#FFFFFF" : "#E5E7EB", border: active ? "1px solid #E5E7EB" : "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {active && <img src={src} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} />}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DashboardStreakDialog({
+  foodStreak,
+  workoutStreak,
+  foodDates,
+  workoutDates,
+  trigger,
+}: {
+  foodStreak: number;
+  workoutStreak: number;
+  foodDates: Set<string>;
+  workoutDates: Set<string>;
+  trigger: React.ReactNode;
+}) {
+  const foodSubtitle =
+    foodStreak === 0 ? "Start logging food today!" : `${foodStreak} days in a row. Keep the chain alive.`;
+  const workoutSubtitle =
+    workoutStreak === 0 ? "Log a workout to start your streak!" : `${workoutStreak} days in a row. Amazing consistency!`;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="border-0 bg-transparent p-0 shadow-none sm:max-w-[360px] [&>button]:text-black [&>button]:opacity-100">
+        <div style={{ background: "#FFFFFF", borderRadius: 20, padding: 20, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+          <DialogTitle style={{ fontWeight: 700, fontSize: 20, color: "#1C1C1E", margin: "0 0 3px" }}>
+            A Daily Streak
+          </DialogTitle>
+          <p style={{ fontSize: 13, color: "#6B7280", margin: "0 0 16px" }}>
+            Keep the chain alive. Consistency is progress.
+          </p>
+
+          {/* Top summary: leaf + flame side by side */}
+          <div style={{ display: "flex", alignItems: "flex-end", marginBottom: 16 }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+              <div style={{ position: "relative", width: 80, height: 80 }}>
+                <img src="/leaf.png" alt="Food Streak" style={{ width: 80, height: 80, objectFit: "contain" }} />
+                <span style={{ position: "absolute", top: "43%", left: "43%", transform: "translate(-50%, -50%)", fontWeight: 800, fontSize: 26, color: "#fff", lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>
+                  {foodStreak}
+                </span>
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#1C1C1E" }}>Food Streak</span>
+            </div>
+
+            <div style={{ width: 1, height: 72, background: "#E5E7EB", flexShrink: 0, margin: "0 4px 22px" }} />
+
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+              <div style={{ position: "relative", width: 80, height: 80 }}>
+                <img src="/fire image.png" alt="Workout Streak" style={{ width: 80, height: 80, objectFit: "contain" }} />
+                <span style={{ position: "absolute", top: "52%", left: "50%", transform: "translate(-50%, -50%)", fontWeight: 800, fontSize: 26, color: "#fff", lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}>
+                  {workoutStreak}
+                </span>
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#1C1C1E" }}>Workout Streak</span>
+            </div>
+          </div>
+
+          {/* Food Streak detail card */}
+          <div style={{ background: "#F4FAF4", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <img src="/leaf.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1E" }}>Food Streak</div>
+                <div style={{ fontSize: 11.5, color: "#6B7280" }}>{foodSubtitle}</div>
+              </div>
+            </div>
+            <DayRow dates={foodDates} src="/leaf.png" />
+          </div>
+
+          {/* Workout Streak detail card */}
+          <div style={{ background: "#FFF5EC", borderRadius: 14, padding: "12px 14px", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <img src="/fire image.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1E" }}>Workout Streak</div>
+                <div style={{ fontSize: 11.5, color: "#6B7280" }}>{workoutSubtitle}</div>
+              </div>
+            </div>
+            <DayRow dates={workoutDates} src="/fire image.png" />
+          </div>
+
+          <p style={{ textAlign: "center", fontSize: 11.5, color: "#6B7280", margin: 0, lineHeight: 1.5 }}>
+            Complete a lesson, log your food, or finish a workout to keep your streaks going and earn badges!
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function Header({
+  name,
+  hideStreak,
+}: {
+  name?: string;
+  hideStreak?: boolean;
+}) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
+
+  const shouldHideStreak =
+    hideStreak ??
+    (pathname.startsWith("/leaderboard") || pathname.startsWith("/weight"));
 
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -219,22 +336,42 @@ export function Header({ name }: { name?: string }) {
 
           {user && (
             <>
-              <StreakDialog
-                count={streakCfg.count}
-                title={streakCfg.title}
-                icon={streakCfg.icon}
-                activeDates={streakCfg.dates}
-                trigger={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`h-9 gap-1.5 rounded-full px-3 font-bold transition-all ${chipStyle}`}
-                  >
-                    <streakCfg.icon className="h-4 w-4" />
-                    {streakCfg.count}
-                  </Button>
-                }
-              />
+              {!shouldHideStreak &&
+                (pathname === "/dashboard" ? (
+                  <DashboardStreakDialog
+                    foodStreak={foodStreak}
+                    workoutStreak={workoutStreak}
+                    foodDates={foodDates}
+                    workoutDates={workoutDates}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`h-9 gap-1.5 rounded-full px-3 font-bold transition-all ${chipStyle}`}
+                      >
+                        <Flame className="h-4 w-4" />
+                        {foodStreak}
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <StreakDialog
+                    count={streakCfg.count}
+                    title={streakCfg.title}
+                    icon={streakCfg.icon}
+                    activeDates={streakCfg.dates}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`h-9 gap-1.5 rounded-full px-3 font-bold transition-all ${chipStyle}`}
+                      >
+                        <streakCfg.icon className="h-4 w-4" />
+                        {streakCfg.count}
+                      </Button>
+                    }
+                  />
+                ))}
               <Button
                 variant="ghost"
                 size="icon"
