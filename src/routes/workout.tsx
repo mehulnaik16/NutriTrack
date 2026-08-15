@@ -1,6 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import {
+  LineChart as RechartsLineChart,
+  Line,
+  ResponsiveContainer,
+  YAxis,
+  XAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+import {
   Flame,
   Dumbbell,
   Activity,
@@ -1288,6 +1297,7 @@ function WorkoutPage() {
             <TabsList className="w-full flex">
               <TabsTrigger value="log" className="flex-1 font-bold"><Plus className="w-4 h-4 mr-2" /> Log</TabsTrigger>
               <TabsTrigger value="history" className="flex-1 font-bold"><LineChart className="w-4 h-4 mr-2" /> History</TabsTrigger>
+              <TabsTrigger value="analytics" className="flex-1 font-bold"><Activity className="w-4 h-4 mr-2" /> Analytics</TabsTrigger>
               <TabsTrigger value="video" className="flex-1 font-bold"><Play className="w-4 h-4 mr-2" /> Tutorial</TabsTrigger>
             </TabsList>
 
@@ -1473,6 +1483,94 @@ function WorkoutPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-4 pt-4">
+              {history.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground font-semibold">
+                  No data to display. Log workouts to see your analytics.
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Volume Graph */}
+                  <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
+                    <h3 className="text-sm font-bold text-muted-foreground mb-4">Volume (Weight x Reps)</h3>
+                    <div className="h-[150px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsLineChart
+                          data={(() => {
+                            const repMaxes: Record<number, number> = {};
+                            history.forEach(log => {
+                              if (Array.isArray(log.exercises_done)) {
+                                log.exercises_done.forEach((s: any) => {
+                                  const reps = parseInt(s.reps) || 0;
+                                  const weight = parseFloat(s.weight) || 0;
+                                  if (reps > 0 && weight > 0) {
+                                    if (!repMaxes[reps] || weight > repMaxes[reps]) {
+                                      repMaxes[reps] = weight;
+                                    }
+                                  }
+                                });
+                              }
+                            });
+                            return Object.keys(repMaxes)
+                              .map(r => parseInt(r))
+                              .sort((a, b) => a - b)
+                              .map(reps => ({
+                                reps: reps.toString() + " reps",
+                                weight: repMaxes[reps]
+                              }));
+                          })()}
+                          margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                          <XAxis dataKey="reps" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} padding={{ left: 10, right: 10 }} />
+                          <YAxis dataKey="weight" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                            itemStyle={{ color: 'hsl(var(--accent))', fontWeight: 'bold' }}
+                          />
+                          <Line type="monotone" dataKey="weight" stroke="hsl(var(--accent))" strokeWidth={3} dot={{ fill: 'hsl(var(--accent))', r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                        </RechartsLineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* 1RM Graph */}
+                  <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
+                    <h3 className="text-sm font-bold text-muted-foreground mb-4">1RM (kg)</h3>
+                    <div className="h-[150px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsLineChart
+                          data={[...history].reverse().map(log => {
+                            const dateObj = new Date(log.date);
+                            return {
+                              date: dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                              rm: best1RMForLog(log)
+                            };
+                          })}
+                          margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                          <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} padding={{ left: 10, right: 10 }} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                            itemStyle={{ color: 'hsl(var(--accent))', fontWeight: 'bold' }}
+                          />
+                          <Line type="monotone" dataKey="rm" stroke="hsl(var(--accent))" strokeWidth={3} dot={{ fill: 'hsl(var(--accent))', r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                        </RechartsLineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="text-center pt-2 pb-4">
+                    <h3 className="text-lg font-bold">
+                      Estimated 1RM: {Math.max(...history.map(log => best1RMForLog(log)), 0)} {currentUnit}
+                    </h3>
+                  </div>
                 </div>
               )}
             </TabsContent>
