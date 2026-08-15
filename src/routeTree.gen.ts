@@ -20,7 +20,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as MealBuilderRouteImport } from './routes/meal-builder'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as HubRouteImport } from './routes/hub'
 import { Route as FoodRouteImport } from './routes/food'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CustomPlanRouteImport } from './routes/custom-plan'
@@ -81,9 +81,9 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LeaderboardRoute = LeaderboardRouteImport.update({
-  id: '/leaderboard',
-  path: '/leaderboard',
+const HubRoute = HubRouteImport.update({
+  id: '/hub',
+  path: '/hub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FoodRoute = FoodRouteImport.update({
@@ -112,7 +112,7 @@ export interface FileRoutesByFullPath {
   '/custom-plan': typeof CustomPlanRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
-  '/leaderboard': typeof LeaderboardRoute
+  '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
   '/plans': typeof PlansRoute
@@ -130,7 +130,7 @@ export interface FileRoutesByTo {
   '/custom-plan': typeof CustomPlanRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
-  '/leaderboard': typeof LeaderboardRoute
+  '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
   '/plans': typeof PlansRoute
@@ -149,7 +149,7 @@ export interface FileRoutesById {
   '/custom-plan': typeof CustomPlanRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
-  '/leaderboard': typeof LeaderboardRoute
+  '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
   '/plans': typeof PlansRoute
@@ -169,7 +169,7 @@ export interface FileRouteTypes {
     | '/custom-plan'
     | '/dashboard'
     | '/food'
-    | '/leaderboard'
+    | '/hub'
     | '/login'
     | '/meal-builder'
     | '/plans'
@@ -187,7 +187,7 @@ export interface FileRouteTypes {
     | '/custom-plan'
     | '/dashboard'
     | '/food'
-    | '/leaderboard'
+    | '/hub'
     | '/login'
     | '/meal-builder'
     | '/plans'
@@ -205,7 +205,7 @@ export interface FileRouteTypes {
     | '/custom-plan'
     | '/dashboard'
     | '/food'
-    | '/leaderboard'
+    | '/hub'
     | '/login'
     | '/meal-builder'
     | '/plans'
@@ -224,7 +224,7 @@ export interface RootRouteChildren {
   CustomPlanRoute: typeof CustomPlanRoute
   DashboardRoute: typeof DashboardRoute
   FoodRoute: typeof FoodRoute
-  LeaderboardRoute: typeof LeaderboardRoute
+  HubRoute: typeof HubRoute
   LoginRoute: typeof LoginRoute
   MealBuilderRoute: typeof MealBuilderRoute
   PlansRoute: typeof PlansRoute
@@ -317,11 +317,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/leaderboard': {
-      id: '/leaderboard'
-      path: '/leaderboard'
-      fullPath: '/leaderboard'
-      preLoaderRoute: typeof LeaderboardRouteImport
+    '/hub': {
+      id: '/hub'
+      path: '/hub'
+      fullPath: '/hub'
+      preLoaderRoute: typeof HubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/food': {
@@ -360,7 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomPlanRoute: CustomPlanRoute,
   DashboardRoute: DashboardRoute,
   FoodRoute: FoodRoute,
-  LeaderboardRoute: LeaderboardRoute,
+  HubRoute: HubRoute,
   LoginRoute: LoginRoute,
   MealBuilderRoute: MealBuilderRoute,
   PlansRoute: PlansRoute,
