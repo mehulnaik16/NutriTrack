@@ -81,6 +81,7 @@ export type Database = {
           trial_start_date: string | null;
           weight_kg: number | null;
           goal_weight_kg: number | null;
+          username: string | null;
         };
         Insert: {
           activity_level?: string | null;
@@ -103,6 +104,7 @@ export type Database = {
           trial_start_date?: string | null;
           weight_kg?: number | null;
           goal_weight_kg?: number | null;
+          username?: string | null;
         };
         Update: {
           activity_level?: string | null;
@@ -125,6 +127,7 @@ export type Database = {
           trial_start_date?: string | null;
           weight_kg?: number | null;
           goal_weight_kg?: number | null;
+          username?: string | null;
         };
         Relationships: [];
       };
@@ -212,6 +215,57 @@ export type Database = {
           logged_at?: string;
           user_id?: string;
           workout_name?: string;
+        };
+        Relationships: [];
+      };
+      friendships: {
+        Row: {
+          id: string;
+          requester_id: string;
+          addressee_id: string;
+          status: string;
+          created_at: string;
+          responded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          requester_id: string;
+          addressee_id: string;
+          status?: string;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          requester_id?: string;
+          addressee_id?: string;
+          status?: string;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Relationships: [];
+      };
+      cheers: {
+        Row: {
+          id: string;
+          from_user: string;
+          to_user: string;
+          date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          from_user: string;
+          to_user: string;
+          date?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          from_user?: string;
+          to_user?: string;
+          date?: string;
+          created_at?: string;
         };
         Relationships: [];
       };

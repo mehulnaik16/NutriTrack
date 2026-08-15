@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/client";
 import { Header } from "@/components/Header";
+import { WorkoutLogHistory } from "@/components/WorkoutLogHistory";
+import { FriendsPanel } from "@/components/FriendsPanel";
 import { Card, CardHeader } from "@/components/ui/card";
 import {
   Select,
@@ -358,13 +360,9 @@ function Hub() {
         {/* ── Content Area ── */}
         <div className="space-y-6">
           {activeTab === "ANALYTICS" ? (
-            <div className="rounded-2xl border border-dashed border-border p-16 text-center text-muted-foreground">
-              Analytics coming soon...
-            </div>
+            <WorkoutLogHistory />
           ) : activeTab === "FRIENDS" ? (
-            <div className="rounded-2xl border border-dashed border-border p-16 text-center text-muted-foreground">
-              Friends coming soon...
-            </div>
+            <FriendsPanel />
           ) : (
             renderLeaderboard()
           )}
