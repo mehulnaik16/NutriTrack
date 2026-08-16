@@ -1212,7 +1212,6 @@ function WorkoutPage() {
         .eq("workout_name", selectedExercise)
         .order("date", { ascending: false })
         .order("logged_at", { ascending: false })
-        .limit(10)
         .then(({ data }) => {
           setHistory(data || []);
           const last = data?.[0]?.exercises_done as any[] | undefined;
@@ -1281,7 +1280,7 @@ function WorkoutPage() {
 
     return (
       <Dialog open={!!selectedExercise} onOpenChange={() => setSelectedExercise(null)}>
-        <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-[10vh] sm:px-6 sm:pb-6 sm:pt-[8vh] overflow-y-auto flex flex-col gap-0">
+        <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-[10vh] sm:px-6 sm:pb-6 sm:pt-[8vh] overflow-y-auto overflow-x-hidden flex flex-col gap-0">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent">
               {selectedExercise}
@@ -1293,43 +1292,45 @@ function WorkoutPage() {
             )}
           </DialogHeader>
 
-          <Tabs defaultValue="log" className="w-full mt-2">
-            <TabsList className="w-full flex">
-              <TabsTrigger value="log" className="flex-1 font-bold"><Plus className="w-4 h-4 mr-2" /> Log</TabsTrigger>
-              <TabsTrigger value="history" className="flex-1 font-bold"><LineChart className="w-4 h-4 mr-2" /> History</TabsTrigger>
-              <TabsTrigger value="analytics" className="flex-1 font-bold"><Activity className="w-4 h-4 mr-2" /> Analytics</TabsTrigger>
-              <TabsTrigger value="video" className="flex-1 font-bold"><Play className="w-4 h-4 mr-2" /> Tutorial</TabsTrigger>
+          <Tabs defaultValue="log" className="w-full mt-2 max-w-full">
+            <TabsList className="w-full flex overflow-x-auto no-scrollbar">
+              <TabsTrigger value="log" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3"><Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> Log</TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3"><LineChart className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> History</TabsTrigger>
+              <TabsTrigger value="analytics" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3"><Activity className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> Analytics</TabsTrigger>
+              <TabsTrigger value="video" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3"><Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> Tutorial</TabsTrigger>
             </TabsList>
 
             <TabsContent value="log" className="space-y-6 pt-4">
               <div className="bg-muted/20 p-5 rounded-2xl border border-border/50">
-                <div className="flex justify-between items-center mb-4 px-2">
-                  <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Set</span>
-                  <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Reps</span>
-                  {/* KG / LBS toggle */}
-                  <div className="flex bg-muted/50 rounded-md p-0.5 gap-0.5">
-                    {(['kg', 'lbs'] as const).map(u => (
-                      <button
-                        key={u}
-                        onClick={() => toggleUnit(u)}
-                        className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase transition-all ${
-                          currentUnit === u
-                            ? 'bg-accent text-accent-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {u}
-                      </button>
-                    ))}
+                <div className="flex gap-2 items-center mb-2 px-2">
+                  <div className="w-8 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Set</div>
+                  <div className="flex-1 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Reps</div>
+                  <div className="flex-1 flex justify-center">
+                    <div className="flex bg-muted/50 rounded-md p-0.5 gap-0.5">
+                      {(['kg', 'lbs'] as const).map(u => (
+                        <button
+                          key={u}
+                          onClick={() => toggleUnit(u)}
+                          className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase transition-all ${
+                            currentUnit === u
+                              ? 'bg-accent text-accent-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          {u}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  <div className="w-8"></div>
                 </div>
                 <div className="space-y-2">
                   {sets.map((s, i) => (
                     <div key={i} className="flex gap-2 items-center bg-card p-2 rounded-xl border border-border shadow-sm">
-                      <div className="w-8 text-center font-black text-muted-foreground">{i + 1}.</div>
+                      <div className="w-8 text-center text-sm font-black text-muted-foreground">{i + 1}.</div>
                       <Input
                         type="number"
-                        className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                        className="flex-1 text-center text-sm font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
                         value={s.reps}
                         onChange={(e) => {
                           const n = [...sets];
@@ -1339,7 +1340,7 @@ function WorkoutPage() {
                       />
                       <Input
                         type="number"
-                        className="flex-1 text-center font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                        className="flex-1 text-center text-sm font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
                         value={s.weight}
                         onChange={(e) => {
                           const n = [...sets];
@@ -1364,14 +1365,14 @@ function WorkoutPage() {
                 </div>
                 <Button
                   variant="outline"
-                  className="w-full mt-4 text-xs font-bold border-dashed border-border/50 rounded-xl h-10 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"
+                  className="w-full mt-4 text-[11px] font-bold border-dashed border-border/50 rounded-xl h-10 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"
                   onClick={() => setSets([...sets, { reps: "10", weight: sets[sets.length - 1].weight }])}
                 >
                   <Plus className="mr-2 h-3 w-3" /> Add Set
                 </Button>
 
                 {currentBest1RM > 0 && (
-                  <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-accent/10 px-3 py-2 text-xs font-bold text-accent">
+                  <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-accent/10 px-3 py-2 text-[11px] font-bold text-accent">
                     <LineChart className="h-3.5 w-3.5" />
                     Est. 1RM from these sets: {currentBest1RM} kg
                   </div>
@@ -1381,7 +1382,7 @@ function WorkoutPage() {
               {/* ── Rest timer ── */}
               <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Rest Timer
                   </span>
                   {restLeft > 0 && (
@@ -1390,7 +1391,7 @@ function WorkoutPage() {
                         setRestLeft(0);
                         setRestTotal(0); // cancels the interval without the beep
                       }}
-                      className="p-2 -m-2 text-[10px] font-bold uppercase text-muted-foreground hover:text-destructive"
+                      className="p-2 -m-2 text-[9px] font-bold uppercase text-muted-foreground hover:text-destructive"
                     >
                       Skip
                     </button>
@@ -1398,7 +1399,7 @@ function WorkoutPage() {
                 </div>
                 {restLeft > 0 ? (
                   <div className="space-y-2">
-                    <div className="text-center font-display text-4xl font-bold text-accent">
+                    <div className="text-center font-display text-3xl font-bold text-accent">
                       {Math.floor(restLeft / 60)}:{String(restLeft % 60).padStart(2, "0")}
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -1416,7 +1417,7 @@ function WorkoutPage() {
                       <button
                         key={s}
                         onClick={() => startRest(s)}
-                        className="flex-1 rounded-xl border border-border py-2.5 text-xs font-bold text-muted-foreground transition-colors hover:border-accent hover:bg-accent/10 hover:text-accent"
+                        className="flex-1 rounded-xl border border-border py-2.5 text-[11px] font-bold text-muted-foreground transition-colors hover:border-accent hover:bg-accent/10 hover:text-accent"
                       >
                         {s < 120 ? `${s}s` : `${s / 60}m`}
                       </button>
@@ -1425,7 +1426,7 @@ function WorkoutPage() {
                 )}
               </div>
 
-              <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
+              <Button onClick={handleLog} className="w-full font-bold h-14 text-sm rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
                 <Plus className="mr-2 h-5 w-5" /> Log Workout
               </Button>
             </TabsContent>
@@ -1488,91 +1489,110 @@ function WorkoutPage() {
             </TabsContent>
 
             <TabsContent value="analytics" className="space-y-4 pt-4">
-              {history.length === 0 ? (
+              {history.length < 2 ? (
                 <div className="text-center py-8 text-muted-foreground font-semibold">
-                  No data to display. Log workouts to see your analytics.
+                  Log this exercise at least twice to see progress.
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Volume Graph */}
-                  <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
-                    <h3 className="text-sm font-bold text-muted-foreground mb-4">Volume (Weight x Reps)</h3>
-                    <div className="h-[150px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsLineChart
-                          data={(() => {
-                            const repMaxes: Record<number, number> = {};
-                            history.forEach(log => {
-                              if (Array.isArray(log.exercises_done)) {
-                                log.exercises_done.forEach((s: any) => {
-                                  const reps = parseInt(s.reps) || 0;
-                                  const weight = parseFloat(s.weight) || 0;
-                                  if (reps > 0 && weight > 0) {
-                                    if (!repMaxes[reps] || weight > repMaxes[reps]) {
-                                      repMaxes[reps] = weight;
-                                    }
-                                  }
-                                });
-                              }
-                            });
-                            return Object.keys(repMaxes)
-                              .map(r => parseInt(r))
-                              .sort((a, b) => a - b)
-                              .map(reps => ({
-                                reps: reps.toString() + " reps",
-                                weight: repMaxes[reps]
-                              }));
-                          })()}
-                          margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                          <XAxis dataKey="reps" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} padding={{ left: 10, right: 10 }} />
-                          <YAxis dataKey="weight" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                            itemStyle={{ color: 'hsl(var(--accent))', fontWeight: 'bold' }}
-                          />
-                          <Line type="monotone" dataKey="weight" stroke="hsl(var(--accent))" strokeWidth={3} dot={{ fill: 'hsl(var(--accent))', r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                        </RechartsLineChart>
-                      </ResponsiveContainer>
+              ) : (() => {
+                // ── Compute chart data: reverse history to oldest→newest ──
+                const chronological = [...history].reverse();
+
+                const strengthData = chronological.map((log) => {
+                  const sets = Array.isArray(log.exercises_done)
+                    ? log.exercises_done.filter((s: any) => s && typeof s === "object" && "weight" in s)
+                    : [];
+                  const maxW = sets.reduce((m: number, s: any) => {
+                    const w = parseFloat(s.weight);
+                    if (isNaN(w)) { console.warn('[analytics] bad weight value:', s.weight, 'in log', log.id); return m; }
+                    return Math.max(m, w);
+                  }, 0);
+                  const e1rm = sets.reduce((b: number, s: any) => {
+                    const w = parseFloat(s.weight), r = parseInt(s.reps);
+                    if (isNaN(w) || isNaN(r)) { console.warn('[analytics] bad set data:', s, 'in log', log.id); return b; }
+                    const rm = estimate1RM(w, r);
+                    return rm > b ? rm : b;
+                  }, 0);
+                  return { date: log.date.slice(5), maxWeight: maxW, e1rm };
+                });
+
+                const volumeData = chronological.map((log) => {
+                  const sets = Array.isArray(log.exercises_done)
+                    ? log.exercises_done.filter((s: any) => s && typeof s === "object" && "weight" in s)
+                    : [];
+                  const vol = sets.reduce((v: number, s: any) => {
+                    const w = parseFloat(s.weight), r = parseInt(s.reps);
+                    if (isNaN(w) || isNaN(r)) { console.warn('[analytics] bad set data:', s, 'in log', log.id); return v; }
+                    return v + w * r;
+                  }, 0);
+                  return { date: log.date.slice(5), volume: vol };
+                });
+
+                const unit = currentUnit;
+                const peakE1RM = Math.max(...strengthData.map((d) => d.e1rm), 0);
+
+                return (
+                  <div className="space-y-6">
+                    {/* ── Chart 1: Strength Progress ── */}
+                    <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
+                      <h3 className="text-xs font-bold text-muted-foreground mb-4 uppercase tracking-wider">
+                        Strength Progress
+                      </h3>
+                      <div className="h-[180px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsLineChart data={strengthData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} padding={{ left: 10, right: 10 }} />
+                            <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '8px', fontSize: 12 }}
+                              itemStyle={{ fontWeight: 'bold' }}
+                              formatter={(v: any, name: string) => [`${v} ${unit}`, name]}
+                            />
+                            <Line type="monotone" dataKey="maxWeight" name="Max Weight" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
+                            <Line type="monotone" dataKey="e1rm" name="Est. 1RM" stroke="var(--muted-foreground)" strokeDasharray="5 4" strokeWidth={2} dot={false} />
+                          </RechartsLineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="flex gap-4 mt-3 text-[10px] font-bold uppercase tracking-wider">
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-block h-0.5 w-5 rounded bg-accent" /> Max Weight
+                        </span>
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                          <span className="inline-block h-0.5 w-5 rounded border-dashed border-t-2 border-muted-foreground" /> Est. 1RM
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* ── Chart 2: Volume Over Time ── */}
+                    <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
+                      <h3 className="text-xs font-bold text-muted-foreground mb-4 uppercase tracking-wider">
+                        Volume over time ({unit})
+                      </h3>
+                      <div className="h-[180px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsLineChart data={volumeData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} padding={{ left: 10, right: 10 }} />
+                            <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '8px', fontSize: 12 }}
+                              itemStyle={{ fontWeight: 'bold' }}
+                              formatter={(v: any) => [`${v} ${unit}`, 'Volume']}
+                            />
+                            <Line type="monotone" dataKey="volume" name="Volume" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
+                          </RechartsLineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* ── Peak e1RM summary ── */}
+                    <div className="text-center pb-2">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Peak Est. 1RM</p>
+                      <p className="text-2xl font-black text-accent mt-1">{peakE1RM} {unit}</p>
                     </div>
                   </div>
-
-                  {/* 1RM Graph */}
-                  <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
-                    <h3 className="text-sm font-bold text-muted-foreground mb-4">1RM (kg)</h3>
-                    <div className="h-[150px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsLineChart
-                          data={[...history].reverse().map(log => {
-                            const dateObj = new Date(log.date);
-                            return {
-                              date: dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-                              rm: best1RMForLog(log)
-                            };
-                          })}
-                          margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                          <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} padding={{ left: 10, right: 10 }} />
-                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                            itemStyle={{ color: 'hsl(var(--accent))', fontWeight: 'bold' }}
-                          />
-                          <Line type="monotone" dataKey="rm" stroke="hsl(var(--accent))" strokeWidth={3} dot={{ fill: 'hsl(var(--accent))', r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                        </RechartsLineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className="text-center pt-2 pb-4">
-                    <h3 className="text-lg font-bold">
-                      Estimated 1RM: {Math.max(...history.map(log => best1RMForLog(log)), 0)} {currentUnit}
-                    </h3>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </TabsContent>
 
             <TabsContent value="video" className="space-y-4 pt-4">
