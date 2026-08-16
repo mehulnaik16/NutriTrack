@@ -354,7 +354,11 @@ export function Header({
 
         <div className="flex items-center gap-2">
           <div className="mr-1 hidden flex-col items-end text-right lg:flex">
-            {name && <span className="text-sm font-semibold">Hey, {name} 👋</span>}
+            {name && (
+              <span className="text-sm font-semibold">
+                {pathname === "/hub" ? `Welcome to Hub, ${name} 🙏` : `Hey, ${name} 👋`}
+              </span>
+            )}
             <span className="text-xs text-muted-foreground">{today}</span>
           </div>
 
@@ -424,7 +428,7 @@ export function Header({
       {user && (
         <div className="mx-auto flex max-w-7xl items-center justify-between px-3 pb-2 text-xs text-muted-foreground lg:hidden">
           <span className="truncate font-medium">
-            {name ? `Hey, ${name} 👋` : "Welcome back"}
+            {name ? (pathname === "/hub" ? `Welcome to Hub, ${name} 🙏` : `Hey, ${name} 👋`) : "Welcome back"}
           </span>
           <span className="shrink-0">{today}</span>
         </div>

@@ -42,7 +42,20 @@ interface LeaderboardUser {
 
 function Hub() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"ANALYTICS" | "FRIENDS" | "RANK">("RANK");
+  const [activeTab, setActiveTab] = useState<"ANALYTICS" | "FRIENDS" | "RANK">("ANALYTICS");
+  const [firstName, setFirstName] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.full_name) setFirstName(data.full_name.split(" ")[0]);
+      });
+  }, [user]);
 
   // ── Leaderboard state ──────────────────────────────────────────
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
@@ -338,7 +351,7 @@ function Hub() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <Header name="Hub" />
+      <Header name={firstName} />
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         {/* ── Custom Tabs (same style as workout.tsx) ── */}
         <div className="mb-6 flex gap-2 rounded-2xl border border-border/50 bg-muted/40 p-1.5 backdrop-blur-sm">
