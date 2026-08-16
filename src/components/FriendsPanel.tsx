@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import Webcam from "react-webcam";
 import { BrowserMultiFormatReader } from "@zxing/browser";
@@ -15,6 +16,7 @@ import {
   Hand,
   Loader2,
   Clock,
+  Gift,
 } from "lucide-react";
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
@@ -82,11 +84,13 @@ function Avatar({ name, active, ring }: { name: string | null; active?: boolean;
 
 export function FriendsPanel() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"FRIENDS" | "REQUESTS" | "DISCOVER">("FRIENDS");
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [myUsername, setMyUsername] = useState<string | null>(null);
+  const [myName, setMyName] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
 
   const [query, setQuery] = useState("");
@@ -102,12 +106,13 @@ export function FriendsPanel() {
     const [f, r, me] = await Promise.all([
       rpc("get_friends"),
       rpc("get_friend_requests"),
-      supabase.from("user_profiles").select("username").eq("id", user.id).maybeSingle(),
+      supabase.from("user_profiles").select("username, full_name").eq("id", user.id).maybeSingle(),
     ]);
     if (f.error) toast.error(f.error.message);
     setFriends((f.data || []) as Friend[]);
     setRequests((r.data || []) as Request[]);
     setMyUsername((me.data as any)?.username ?? null);
+    setMyName((me.data as any)?.full_name ?? null);
     setLoading(false);
   }, [user]);
 
@@ -318,6 +323,39 @@ export function FriendsPanel() {
         ))}
       </div>
 
+      {/* ── Profile header — fixed above all sub-tabs ── */}
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Avatar name={myName} />
+            <div className="min-w-0">
+              <p className="truncate font-bold">{myName || "Anonymous"}</p>
+              <p className="truncate text-xs text-muted-foreground">@{myUsername}</p>
+            </div>
+          </div>
+          <div className="shrink-0 text-right pr-6">
+            <p className="font-bold">
+              <span className="text-muted-foreground">Friends: </span>
+              <span className="tabular-nums">{friends.length}</span>
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setTab("DISCOVER")}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-accent px-3 py-2.5 text-xs font-bold text-accent-foreground active:scale-95"
+          >
+            <UserPlus className="h-4 w-4" /> Add Friends
+          </button>
+          <button
+            onClick={() => navigate({ to: "/profile", search: { page: "refer" } })}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-xs font-bold active:scale-95 hover:border-accent/50"
+          >
+            <Gift className="h-4 w-4" /> Refer a Friend
+          </button>
+        </div>
+      </div>
+
       {loading ? (
         <Skeleton />
       ) : tab === "FRIENDS" ? (
@@ -325,23 +363,6 @@ export function FriendsPanel() {
           <Empty icon={Users} text="No friends yet — scan a QR code or search in Discover." />
         ) : (
           <>
-            {/* Streak leaders */}
-            <div className="rounded-2xl border border-border bg-card p-3">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Streak Leaders
-              </p>
-              <div className="flex gap-3 overflow-x-auto pb-1">
-                {friends.slice(0, 8).map((f) => (
-                  <div key={f.id} className="flex w-14 shrink-0 flex-col items-center gap-1">
-                    <Avatar name={f.full_name} active={f.active_today} ring={f.workouts_this_week} />
-                    <span className="w-full truncate text-center text-[10px] text-muted-foreground">
-                      {f.full_name?.split(" ")[0]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {friends.map((f) => (
               <div key={f.id} className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex gap-3">
@@ -487,7 +508,14 @@ export function FriendsPanel() {
           {searching ? (
             <Skeleton />
           ) : found.length === 0 ? (
-            <Empty icon={Search} text="No matches found. Try a different name or scan a QR code." />
+            <Empty
+              icon={Search}
+              text={
+                query.trim()
+                  ? "No matches found. Try a different name or scan a QR code."
+                  : "No suggestions yet — search by name/@username or share your QR code to add friends."
+              }
+            />
           ) : (
             <>
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">

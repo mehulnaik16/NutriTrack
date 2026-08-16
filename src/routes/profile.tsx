@@ -87,7 +87,11 @@ import {
   decomposeGoalKey,
 } from "@/lib/nutrition";
 
-export const Route = createFileRoute("/profile")({ component: Profile });
+export const Route = createFileRoute("/profile")({
+  component: Profile,
+  validateSearch: (s: Record<string, unknown>): { page?: Page } =>
+    s.page === "refer" ? { page: "refer" } : {},
+});
 
 const plans = [
   {
@@ -191,7 +195,8 @@ const DEFAULT_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"];
 function Profile() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const [page, setPage] = useState<Page>("menu");
+  const { page: initialPage } = Route.useSearch();
+  const [page, setPage] = useState<Page>(initialPage ?? "menu");
   const [profile, setProfile] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [weight, setWeight] = useState("");
