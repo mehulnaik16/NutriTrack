@@ -125,6 +125,11 @@ export function WorkoutLogHistory() {
         date: l.date.slice(5),
         maxWeight: setsOf(l).reduce((m, s) => Math.max(m, num(s.weight)), 0),
         e1rm: best1RM(l),
+        volume: setsOf(l).reduce((v, s) => {
+          const w = num(s.weight), r = num(s.reps);
+          if (!w || !r) return v;
+          return v + w * r;
+        }, 0),
       }));
   }, [chartFor, logs]);
 
@@ -309,10 +314,13 @@ export function WorkoutLogHistory() {
               setExpanded(null);
               setCalOpen(false);
             }}
+            disabled={{ after: new Date() }}
             modifiers={{ logged: loggedDates.map((d) => new Date(d + "T00:00:00")) }}
             modifiersClassNames={{
               logged:
                 "relative after:absolute after:bottom-1 after:left-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:rounded-full after:bg-accent",
+              today:
+                "!bg-transparent !text-foreground ring-2 ring-accent/60 ring-inset rounded-md",
             }}
             className="mx-auto"
           />
@@ -342,38 +350,85 @@ export function WorkoutLogHistory() {
               Log this exercise at least twice to see progress.
             </p>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 12,
-                    fontSize: 12,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="maxWeight"
-                  name="Max Weight"
-                  stroke="var(--accent)"
-                  strokeWidth={2.5}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="e1rm"
-                  name="Est. 1RM"
-                  stroke="var(--muted-foreground)"
-                  strokeDasharray="5 4"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="space-y-6">
+              {/* ── Strength Progress: maxWeight + e1RM ── */}
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Strength Progress
+                </p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
+                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                    <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 12,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="maxWeight"
+                      name="Max Weight"
+                      stroke="var(--accent)"
+                      strokeWidth={2.5}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="e1rm"
+                      name="Est. 1RM"
+                      stroke="var(--muted-foreground)"
+                      strokeDasharray="5 4"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="flex gap-4 mt-2 text-[10px] font-bold uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-0.5 w-5 rounded bg-accent" /> Max Weight
+                  </span>
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className="inline-block h-0.5 w-5 rounded border-dashed border-t-2 border-muted-foreground" /> Est. 1RM
+                  </span>
+                </div>
+              </div>
+
+              {/* ── Volume Over Time ── */}
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Volume over time
+                </p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
+                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                    <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 12,
+                        fontSize: 12,
+                      }}
+                      formatter={(v: any) => [`${v}`, "Volume"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="volume"
+                      name="Volume"
+                      stroke="var(--accent)"
+                      strokeWidth={2.5}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
