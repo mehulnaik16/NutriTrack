@@ -7,6 +7,9 @@ import {
   Dumbbell,
   Star,
   TrendingUp,
+  Heart,
+  Timer,
+  Flame,
 } from "lucide-react";
 import {
   Line,
@@ -19,6 +22,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
+import { CardioPaceChart } from "@/components/CardioPaceChart";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
@@ -47,14 +51,18 @@ interface Log {
   date: string;
   logged_at: string;
   workout_name: string;
-  exercises_done: { weight?: string | number; reps?: string | number; unit?: string }[];
+  duration_min: number;
+  calories_burned: number;
+  exercises_done:
+    | { weight?: string | number; reps?: string | number; unit?: string; bpm?: number | null; distance?: number | null }
+    | { weight?: string | number; reps?: string | number; unit?: string }[];
 }
 
 const num = (v: unknown) => parseFloat(String(v ?? "")) || 0;
 
 /**
  * `exercises_done` is jsonb and holds three different shapes:
- *   - logged sets   → [{ weight, reps, unit }]   ← the only shape this page renders
+ *   - logged sets   → [{ weight, reps, unit }]   ← strength logs
  *   - cardio        → { bpm: null }              (an object, not an array)
  *   - plan template → [{ name, sets, reps }]     (exercises, not sets — no weight)
  * Every read goes through here so no caller can trip over the other two.
@@ -65,59 +73,77 @@ const setsOf = (l: Log) => {
   return raw.filter((s) => s && typeof s === "object" && "weight" in s);
 };
 
+/** Returns true when the log is a cardio entry (exercises_done is a plain object). */
+const isCardio = (l: Log) => !Array.isArray(l.exercises_done) && l.duration_min > 0;
+
 /** Best estimated 1RM across a log's sets. */
 const best1RM = (l: Log) =>
   setsOf(l).reduce((b, s) => Math.max(b, estimate1RM(num(s.weight), num(s.reps))), 0);
 
+/** Compute pace string (MM:SS min/km) from duration and distance. */
+const computePace = (durationMin: number, distanceKm: number): string | null => {
+  if (!durationMin || !distanceKm) return null;
+  const ppm = durationMin / distanceKm;
+  const min = Math.floor(ppm);
+  const sec = Math.round((ppm - min) * 60);
+  return sec === 60 ? `${min + 1}:00` : `${min}:${String(sec).padStart(2, "0")}`;
+};
+
 export function WorkoutLogHistory() {
   const { user } = useAuth();
-  const [logs, setLogs] = useState<Log[]>([]);
+  const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [picked, setPicked] = useState<string | null>(null);
   const [calOpen, setCalOpen] = useState(false);
+  // Workout Log UI state
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
   const [chartFor, setChartFor] = useState<string | null>(null);
+  // Cardio Log UI state
+  const [cardioExpanded, setCardioExpanded] = useState<string | null>(null);
+  const [cardioChartFor, setCardioChartFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("workout_logs")
-      .select("id, date, logged_at, workout_name, exercises_done")
+      .select("id, date, logged_at, workout_name, duration_min, calories_burned, exercises_done")
       .eq("user_id", user.id)
       .order("date", { ascending: false })
       .order("logged_at", { ascending: false })
       .limit(1000)
       .then(({ data }) => {
-        // Keep only strength logs — cardio and plan-template rows have no sets to show.
-        setLogs(((data || []) as Log[]).filter((l) => setsOf(l).length > 0));
+        setAllLogs((data || []) as Log[]);
         setLoading(false);
       });
   }, [user]);
 
-  const loggedDates = useMemo(() => [...new Set(logs.map((l) => l.date))], [logs]);
+
+  // ── Workout Log (strength only) ──────────────────────────────────
+  const strengthLogs = useMemo(() => allLogs.filter((l) => setsOf(l).length > 0), [allLogs]);
+  const loggedDates = useMemo(() => [...new Set(strengthLogs.map((l) => l.date))], [strengthLogs]);
   const activeDate = picked ?? loggedDates[0] ?? null;
 
-  /** The active day's logs bucketed by muscle group — max 3 groups, per spec. */
+  /** The active day's strength logs bucketed by muscle group — max 3 groups, per spec. */
   const groups = useMemo(() => {
-    const day = logs.filter((l) => l.date === activeDate);
+    const day = strengthLogs.filter((l) => l.date === activeDate);
     const by = new Map<string, Log[]>();
     for (const l of day) {
       const g = MUSCLE_OF.get(l.workout_name.toLowerCase()) ?? "other";
       by.set(g, [...(by.get(g) ?? []), l]);
     }
     return [...by.entries()].slice(0, 3);
-  }, [logs, activeDate]);
+  }, [strengthLogs, activeDate]);
 
   /** Best 1RM for an exercise strictly before this log — anything above it is a PR. */
   const priorBest = (l: Log) =>
-    logs
+    strengthLogs
       .filter((x) => x.workout_name === l.workout_name && x.logged_at < l.logged_at)
       .reduce((b, x) => Math.max(b, best1RM(x)), 0);
 
   const chartData = useMemo(() => {
     if (!chartFor) return [];
-    return logs
+    return strengthLogs
       .filter((l) => l.workout_name === chartFor)
       .slice()
       .reverse()
@@ -131,7 +157,26 @@ export function WorkoutLogHistory() {
           return v + w * r;
         }, 0),
       }));
-  }, [chartFor, logs]);
+  }, [chartFor, strengthLogs]);
+
+  // ── Cardio Log ────────────────────────────────────────────────────
+  const cardioLogs = useMemo(() => allLogs.filter(isCardio), [allLogs]);
+
+  /**
+   * Rows to display in the Cardio Log section.
+   * Always filtered to activeDate — the same date Workout Log shows.
+   * - No date picked: activeDate = loggedDates[0] (most-recent strength-log date),
+   *   so Cardio Log shows that day's cardio, keeping both sections in sync.
+   * - Date picked: activeDate = picked, showing all cardio logged that day.
+   * Multiple activities on the same date each get their own row.
+   */
+  const cardioRows = useMemo(
+    () => (activeDate ? cardioLogs.filter((l) => l.date === activeDate) : []),
+    [cardioLogs, activeDate],
+  );
+
+
+
 
   if (loading) {
     return (
@@ -142,7 +187,11 @@ export function WorkoutLogHistory() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      {/* ══════════════════════════════════════════
+          WORKOUT LOG SECTION
+      ══════════════════════════════════════════ */}
+      <div className="space-y-4">
       {/* ── Sub-header: title + calendar trigger (calendar itself stays hidden) ── */}
       <div className="flex items-center justify-between">
         <h2 className="font-display text-2xl font-bold tracking-tight">🏋️ Workout Log</h2>
@@ -294,14 +343,108 @@ export function WorkoutLogHistory() {
           );
         })
       )}
+      </div>{/* end Workout Log section */}
 
-      {/* ── Calendar overlay — only mounted when the button is tapped ── */}
+      {/* ══════════════════════════════════════════
+          CARDIO LOG SECTION
+      ══════════════════════════════════════════ */}
+      <div className="space-y-4">
+        {/* ── Sub-header: title only — date is controlled by Workout Log's calendar ── */}
+        <h2 className="font-display text-2xl font-bold tracking-tight">🏃 Cardio Log</h2>
+
+        {/* Rows — empty state renders nothing per spec */}
+        {cardioRows.length > 0 && (
+          <div className="space-y-3">
+            {cardioRows.map((l) => {
+              const ex = !Array.isArray(l.exercises_done) ? l.exercises_done : null;
+              const dist = ex?.distance ? parseFloat(String(ex.distance)) : null;
+              const bpmVal = ex?.bpm ? Number(ex.bpm) : null;
+              const pace = dist ? computePace(l.duration_min, dist) : null;
+              const open = cardioExpanded === l.id;
+              return (
+                <div key={l.id} className="overflow-hidden rounded-2xl border border-border bg-card">
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-base font-bold">{l.workout_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {l.duration_min} min · {Math.round(l.calories_burned)} kcal
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setCardioExpanded(open ? null : l.id)}
+                      aria-label={open ? "Collapse details" : "Expand details"}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all active:scale-95 ${
+                        open
+                          ? "border-accent bg-accent/10 text-accent glow-accent-sm"
+                          : "border-border bg-muted/50 text-muted-foreground"
+                      }`}
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    <button
+                      onClick={() => setCardioChartFor(l.workout_name)}
+                      aria-label="View cardio progress chart"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-transform active:scale-95"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {open && (
+                    <div className="mx-4 mb-4 rounded-xl border border-border/70 bg-muted/30 p-4">
+                      <p className="mb-2 text-xs text-muted-foreground font-semibold">{l.date}</p>
+                      <div className="space-y-1.5 border-t border-border/60 pt-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-muted-foreground font-semibold">
+                            <Timer className="h-3.5 w-3.5" /> Duration
+                          </span>
+                          <span className="font-bold tabular-nums">{l.duration_min} min</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-muted-foreground font-semibold">
+                            <Flame className="h-3.5 w-3.5" /> Calories
+                          </span>
+                          <span className="font-bold tabular-nums">{Math.round(l.calories_burned)} kcal</span>
+                        </div>
+                        {dist !== null && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground font-semibold">Distance</span>
+                            <span className="font-bold tabular-nums">{dist} km</span>
+                          </div>
+                        )}
+                        {bpmVal !== null && (
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-muted-foreground font-semibold">
+                              <Heart className="h-3.5 w-3.5" /> BPM
+                            </span>
+                            <span className="font-bold tabular-nums">{bpmVal} bpm</span>
+                          </div>
+                        )}
+                        {pace !== null && (
+                          <div className="flex items-center justify-between border-t border-border/60 pt-1.5 mt-1">
+                            <span className="text-muted-foreground font-semibold">Est. Pace</span>
+                            <span className="font-bold tabular-nums text-accent">{pace} min/km</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>{/* end Cardio Log section */}
+
+
       <Dialog open={calOpen} onOpenChange={setCalOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Pick a date</DialogTitle>
             <DialogDescription className="sr-only">
-              Pick a date to view that day's workout log
+              Pick a date to view that day's workout and cardio log
             </DialogDescription>
           </DialogHeader>
           <Calendar
@@ -312,6 +455,7 @@ export function WorkoutLogHistory() {
               const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
               setPicked(iso);
               setExpanded(null);
+              setCardioExpanded(null);
               setCalOpen(false);
             }}
             disabled={{ after: new Date() }}
@@ -430,6 +574,19 @@ export function WorkoutLogHistory() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Cardio progress chart ── */}
+      <Dialog open={!!cardioChartFor} onOpenChange={() => setCardioChartFor(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-accent">{cardioChartFor}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Cardio progress over time for {cardioChartFor}
+            </DialogDescription>
+          </DialogHeader>
+          {cardioChartFor && <CardioPaceChart activityName={cardioChartFor} />}
         </DialogContent>
       </Dialog>
     </div>

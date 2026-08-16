@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
+import { CardioPaceChart } from "@/components/CardioPaceChart";
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -1016,6 +1017,38 @@ function WorkoutPage() {
     );
     const [kcalTouched, setKcalTouched] = useState(false);
     const [bpm, setBpm] = useState("");
+    const [distance, setDistance] = useState("");
+    const [history, setHistory] = useState<any[]>([]);
+
+    const fetchHistory = () => {
+      if (!selectedCardio || !user) return;
+      supabase
+        .from("workout_logs")
+        .select("id, date, logged_at, duration_min, calories_burned, exercises_done")
+        .eq("user_id", user.id)
+        .eq("workout_name", selectedCardio)
+        .order("date", { ascending: false })
+        .order("logged_at", { ascending: false })
+        .then(({ data }) => {
+          setHistory(data || []);
+        });
+    };
+
+    useEffect(() => {
+      fetchHistory();
+    }, [selectedCardio, user]);
+
+    const handleDeleteHistory = async (logId: string) => {
+      const t = toast.loading("Deleting log...");
+      const { error } = await supabase.from("workout_logs").delete().eq("id", logId);
+      if (error) {
+        toast.error(`Failed to delete: ${error.message}`, { id: t });
+      } else {
+        toast.success("Log deleted", { id: t });
+        fetchHistory();
+        loadUserData();
+      }
+    };
 
     const met = (selectedCardio && CARDIO_METS[selectedCardio]) || 6.0;
 
@@ -1037,7 +1070,7 @@ function WorkoutPage() {
         workout_name: selectedCardio || "",
         duration_min: parseInt(duration) || 30,
         calories_burned: parseInt(kcal) || 0,
-        exercises_done: { bpm: parseInt(bpm) || null },
+        exercises_done: { bpm: parseInt(bpm) || null, distance: parseFloat(distance) || null },
       });
       if (error) {
         toast.error(`Failed to log: ${error.message}`, { id: t });
@@ -1048,24 +1081,40 @@ function WorkoutPage() {
       }
     };
 
+    const durationNum = parseInt(duration) || 0;
+    const distanceNum = parseFloat(distance) || 0;
+    const showPace = durationNum > 0 && distanceNum > 0;
+    const paceMinPerKm = showPace ? durationNum / distanceNum : 0;
+    const paceMin = Math.floor(paceMinPerKm);
+    const paceSec = Math.round((paceMinPerKm - paceMin) * 60);
+    const paceDisplay = paceSec === 60
+      ? `${paceMin + 1}:00`
+      : `${paceMin}:${String(paceSec).padStart(2, '0')}`;
+
     return (
       <Dialog open={!!selectedCardio} onOpenChange={() => setSelectedCardio(null)}>
         <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-[10vh] sm:px-6 sm:pb-6 sm:pt-[8vh] overflow-y-auto flex flex-col gap-0">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between text-xl font-black uppercase tracking-wider">
-              <span className="text-accent">{selectedCardio}</span>
+            <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent flex items-center justify-center gap-2">
+              <span>{selectedCardio}</span>
               <Heart className="h-5 w-5 text-red-500 fill-current" />
             </DialogTitle>
+            {history.length > 0 && (
+              <p className="text-xs text-center text-muted-foreground font-semibold mt-1">
+                Last performed: {new Date(history[0].date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+            )}
           </DialogHeader>
-          <div className="space-y-6 pt-4">
-            <div className="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
-              <span className="rounded-full bg-accent/10 px-3 py-1 text-accent">
-                {met} METs
-              </span>
-              <span className="rounded-full bg-muted px-3 py-1">
-                ~{Math.round(met * bodyWeight * (1 / 60))} kcal / min at {bodyWeight} kg
-              </span>
-            </div>
+
+          <Tabs defaultValue="log" className="w-full mt-2 max-w-full">
+            <TabsList className="w-full flex overflow-x-auto no-scrollbar py-2">
+              <TabsTrigger value="log" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3 py-3"><Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> Log</TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3 py-3"><LineChart className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> History</TabsTrigger>
+              <TabsTrigger value="analytics" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3 py-3"><Activity className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> Analytics</TabsTrigger>
+              <TabsTrigger value="timer" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3 py-3"><RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> Timer</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="log" className="space-y-6 pt-4">
             <div className="space-y-4 bg-muted/20 p-5 rounded-2xl border border-border/50">
               <div className="space-y-2">
                 <Label className="text-xs uppercase font-bold text-muted-foreground">Duration (min)</Label>
@@ -1109,6 +1158,19 @@ function WorkoutPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
+                  <span>Distance (km)</span>
+                  <span className="text-muted-foreground/50">Optional</span>
+                </Label>
+                <Input
+                  type="number"
+                  value={distance}
+                  onChange={(e) => setDistance(e.target.value)}
+                  placeholder="e.g. 5.2"
+                  className="h-12 bg-background/50 text-center font-semibold"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
                   <span>BPM (Heart Rate)</span>
                   <span className="text-muted-foreground/50">Optional</span>
                 </Label>
@@ -1121,10 +1183,113 @@ function WorkoutPage() {
                 />
               </div>
             </div>
+            {showPace && (
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
+                <span className="rounded-full bg-accent/10 px-3 py-1 text-accent">
+                  Est. pace: {paceDisplay} min/km
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
+              <span className="rounded-full bg-accent/10 px-3 py-1 text-accent">
+                {met} METs
+              </span>
+              <span className="rounded-full bg-muted px-3 py-1">
+                ~{Math.round(met * bodyWeight * (1 / 60))} kcal / min at {bodyWeight} kg
+              </span>
+            </div>
             <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
               <Plus className="mr-2 h-5 w-5" /> Log Workout
             </Button>
-          </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="space-y-4 pt-4">
+              {history.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground font-semibold">
+                  No history logged yet.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {history.map((log, idx) => {
+                    const dateObj = new Date(log.date);
+                    dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
+                    
+                    const ex = log.exercises_done || {};
+                    const dist = ex.distance ? parseFloat(ex.distance) : null;
+                    const logBpm = ex.bpm ? parseInt(ex.bpm) : null;
+                    
+                    let paceDisplay = null;
+                    if (log.duration_min > 0 && dist && dist > 0) {
+                      const paceMinPerKm = log.duration_min / dist;
+                      const paceMin = Math.floor(paceMinPerKm);
+                      const paceSec = Math.round((paceMinPerKm - paceMin) * 60);
+                      paceDisplay = paceSec === 60
+                        ? `${paceMin + 1}:00`
+                        : `${paceMin}:${String(paceSec).padStart(2, '0')}`;
+                    }
+
+                    return (
+                      <div key={log.id || idx} className="bg-muted/20 p-4 rounded-xl border border-border/50">
+                        <div className="mb-2 flex flex-row items-center justify-between border-b border-border/50 pb-2">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-accent">
+                              {dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleDeleteHistory(log.id)}
+                              className="text-muted-foreground hover:text-destructive p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-semibold text-muted-foreground">Duration</span>
+                            <span className="font-bold">{log.duration_min} min</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="font-semibold text-muted-foreground">Calories Burned</span>
+                            <span className="font-bold">{log.calories_burned} kcal</span>
+                          </div>
+                          {dist !== null && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Distance</span>
+                              <span className="font-bold">{dist} km</span>
+                            </div>
+                          )}
+                          {logBpm !== null && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">BPM</span>
+                              <span className="font-bold">{logBpm}</span>
+                            </div>
+                          )}
+                          {paceDisplay !== null && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Est. Pace</span>
+                              <span className="font-bold">{paceDisplay} min/km</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="analytics" className="pt-4">
+              {selectedCardio && <CardioPaceChart activityName={selectedCardio} />}
+            </TabsContent>
+
+            <TabsContent value="timer" className="pt-4">
+              <div className="text-center py-12 text-muted-foreground font-semibold">
+                Coming soon
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     );
