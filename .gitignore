@@ -37,4 +37,7 @@ mcp-config.json
 .gemini/
 
 # Debug/audit scripts — local only, not needed for production
-scratch/
+scratch/
+
+# Architecture docs
+architecture.md

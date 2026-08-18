@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/client";
 import { Header } from "@/components/Header";
 import { WorkoutLogHistory } from "@/components/WorkoutLogHistory";
 import { FriendsPanel } from "@/components/FriendsPanel";
+import { RankPage } from "@/components/RankPage";
 import { Card, CardHeader } from "@/components/ui/card";
 import {
   Select,
@@ -177,9 +178,12 @@ function Hub() {
   };
 
   const initial = (n: string | null) => (n?.trim()?.[0] ?? "A").toUpperCase();
-  const podium = users.slice(0, 3);
-  const rest = users.slice(3);
-  const myRank = users.findIndex((u) => u.id === user?.id);
+  const allUsers = users; // full sorted list (up to 50)
+  const top10 = allUsers.slice(0, 10);
+  const podium = top10.slice(0, 3);
+  const rest = top10.slice(3); // ranks 4–10 for the list below podium
+  const myRank = allUsers.findIndex((u) => u.id === user?.id); // 0-indexed, -1 if not found
+  const currentUserInTop10 = myRank >= 0 && myRank < 10;
 
   const PODIUM_STYLES = [
     {
@@ -207,19 +211,13 @@ function Hub() {
 
   const renderLeaderboard = () => (
     <>
-      {/* ── Page header ── */}
-      <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent glow-accent-sm">
-          <Trophy className="h-8 w-8" />
-        </div>
-        <h1 className="font-display text-3xl font-bold tracking-tight">Leaderboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          See how you rank against the community
-          {myRank >= 0 && (
-            <span className="ml-1 font-bold text-accent">— you're #{myRank + 1}</span>
-          )}
-        </p>
-      </div>
+      {/* ── Section subtitle (header lives in RankPage) ── */}
+      <p className="mb-4 text-center text-sm text-muted-foreground">
+        See how you rank against the community
+        {myRank >= 0 && (
+          <span className="ml-1 font-bold text-accent">— you're #{myRank + 1}</span>
+        )}
+      </p>
 
       {/* ── Filters ── */}
       <Card className="mb-6 border-border/60">
@@ -306,9 +304,9 @@ function Hub() {
             </div>
           )}
 
-          {/* ── Everyone else ── */}
+          {/* ── Ranks 4–10 ── */}
           <div className="space-y-2">
-            {(podium.length >= 2 ? rest : users).map((u, i) => {
+            {(podium.length >= 2 ? rest : top10).map((u, i) => {
               const rank = podium.length >= 2 ? i + 4 : i + 1;
               const isMe = u.id === user?.id;
               return (
@@ -344,6 +342,41 @@ function Hub() {
               );
             })}
           </div>
+
+          {/* ── 11th card: current user if outside top 10 ── */}
+          {!currentUserInTop10 && myRank >= 0 && (() => {
+            const me = allUsers[myRank];
+            const actualRank = myRank + 1; // 1-indexed
+            return (
+              <>
+                <div className="my-2 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  Your position
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-accent/60 bg-accent/5 p-3.5 glow-accent-sm sm:p-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="w-7 shrink-0 text-center font-display text-sm font-bold text-muted-foreground">
+                      {actualRank}
+                    </span>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-display text-sm font-bold">
+                      {initial(me.full_name)}
+                    </div>
+                    <span className="truncate text-sm font-semibold sm:text-base">
+                      {me.full_name || "Anonymous User"}
+                      <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">
+                        You
+                      </span>
+                    </span>
+                  </div>
+                  <div className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-accent">
+                    {getCategoryIcon()}
+                    <span className="text-sm font-bold">{getCategoryValue(me)}</span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </>
       )}
     </>
@@ -377,7 +410,10 @@ function Hub() {
           ) : activeTab === "FRIENDS" ? (
             <FriendsPanel />
           ) : (
-            renderLeaderboard()
+            <>
+              <RankPage />
+              {renderLeaderboard()}
+            </>
           )}
         </div>
       </main>
