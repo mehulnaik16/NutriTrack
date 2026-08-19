@@ -50,7 +50,7 @@ interface FormData {
 
 function Quiz() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const isOAuth = !!user;
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -159,6 +159,8 @@ function Quiz() {
         fiber_target_g: macros.fiber,
       });
       if (pErr) throw pErr;
+      // The nav stays hidden until the provider knows a profile exists.
+      await refreshProfile();
       toast.success("Account created!");
       navigate({ to: "/plans" });
     } catch (e: any) {

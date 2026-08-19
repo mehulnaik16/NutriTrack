@@ -28,8 +28,10 @@ function HubIcon({ className }: { className?: string }) {
 }
 
 export function BottomNav() {
-  const { user } = useAuth();
-  if (!user) return null;
+  const { user, hasProfile } = useAuth();
+  // Hidden until onboarding is finished — every tab below is profile-gated, so
+  // showing them mid-quiz just offers a way to land on a loading spinner.
+  if (!user || hasProfile !== true) return null;
 
   const navItems = [
     { to: "/dashboard", icon: Activity, label: "Home" },
