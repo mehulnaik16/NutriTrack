@@ -104,7 +104,7 @@ function Quiz() {
       if (isOAuth) return identityOk && d.age >= 16;
       return (
         identityOk &&
-        d.password.length >= 6 &&
+        d.password.length >= 8 &&
         d.password.length <= 72 &&
         d.password === d.repeatPassword &&
         d.age >= 16

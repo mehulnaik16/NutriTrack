@@ -196,17 +196,22 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
 
 // ── AI Chat (generic — used by WeeklyReport, weight motivation, workout plan, voice parse) ──
 
-interface ChatInput {
-  prompt: string;
-  model?: string;
-  max_tokens?: number;
-  temperature?: number;
-  response_format_json?: boolean;
-}
+// Without a runtime schema this endpoint is a general-purpose LLM API billed to
+// our Groq account: a TypeScript interface erases at compile time and enforces
+// nothing. The allowlist and ceilings below are sized to the app's real callers.
+const ALLOWED_CHAT_MODELS = ["llama-3.3-70b-versatile"] as const;
+
+const ChatInput = z.object({
+  prompt: z.string().min(1).max(12_000),
+  model: z.enum(ALLOWED_CHAT_MODELS).optional(),
+  max_tokens: z.number().int().min(1).max(3000).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  response_format_json: z.boolean().optional(),
+});
 
 export const serverGroqChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: ChatInput) => d)
+  .inputValidator(ChatInput)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
     const { groqChat } = await import("@/server/groq");
@@ -228,15 +233,23 @@ export const serverGroqChat = createServerFn({ method: "POST" })
 
 // ── AI Vision (food photo recognition) ───────────────────────────────────────
 
-interface VisionInput {
-  prompt: string;
-  base64: string;
-  mimeType: string;
-}
+// ~8 MB decoded — base64 inflates by 4/3, and the whole string is buffered in
+// serverless memory before it is forwarded to Groq.
+const MAX_IMAGE_BASE64_CHARS = 11_000_000;
+
+const VisionInput = z.object({
+  prompt: z.string().min(1).max(4000),
+  base64: z
+    .string()
+    .min(1)
+    .max(MAX_IMAGE_BASE64_CHARS)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/, "Invalid base64 image data"),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+});
 
 export const serverGroqVision = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: VisionInput) => d)
+  .inputValidator(VisionInput)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
     const { groqVision } = await import("@/server/groq");

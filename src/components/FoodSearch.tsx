@@ -84,7 +84,7 @@ interface VoiceFoodItem {
 // ── AI image recognition via Groq qwen/qwen3.6-27b vision ───────────────────
 async function recognizeFoodFromImage(
   base64: string,
-  mimeType: string,
+  mimeType: "image/jpeg" | "image/png" | "image/webp",
 ): Promise<AIFoodResult> {
   const prompt = `You are a nutrition expert. Analyze this food photo and return ONLY valid JSON, no markdown:
 {

@@ -11,6 +11,9 @@
 import { supabase } from "@/integrations/client";
 
 const BUCKET = "weight-photos";
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -51,11 +54,18 @@ export async function uploadWeightPhoto(
   file: File,
   userId: string,
 ): Promise<StorageResult<UploadResult>> {
+  if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+    return { data: null, error: "Only JPEG, PNG, or WebP images are allowed." };
+  }
+  if (file.size > MAX_PHOTO_BYTES) {
+    return { data: null, error: "Image must be smaller than 8 MB." };
+  }
+
   const path = buildPath(userId, file);
 
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, file, { upsert: false });
+    .upload(path, file, { upsert: false, contentType: file.type });
 
   if (error) {
     console.error("[storage] upload failed:", error.message);
@@ -71,7 +81,29 @@ export async function uploadWeightPhoto(
 }
 
 /**
- * Delete a weight photo by its public URL.
+ * Resolve a stored photo reference into a short-lived signed URL.
+ * The bucket is private, so the stored URL is only an object identifier —
+ * it grants no access on its own and must be signed before rendering.
+ */
+export async function getSignedPhotoUrl(
+  photoUrl: string,
+): Promise<string | null> {
+  const path = extractPath(photoUrl);
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+
+  if (error) {
+    console.error("[storage] signing failed:", error.message);
+    return null;
+  }
+  return data.signedUrl;
+}
+
+/**
+ * Delete a weight photo by its stored URL.
  * Safely extracts the object path first.
  */
 export async function deleteWeightPhoto(

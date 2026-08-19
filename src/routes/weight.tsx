@@ -39,6 +39,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { uploadWeightPhoto, deleteWeightPhoto, replaceWeightPhoto } from "@/services/storage";
+import { SignedPhoto } from "@/components/SignedPhoto";
 import { todayLocal } from "@/lib/dates";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
@@ -653,7 +654,7 @@ function WeightPage() {
                   (entry, i) =>
                     entry && (
                       <div key={i} className="space-y-1">
-                        <img
+                        <SignedPhoto
                           src={entry.photo_url!}
                           alt={entry.date}
                           className="w-full rounded-lg object-cover aspect-[3/4]"
@@ -836,7 +837,7 @@ function WeightEntryModal({
               <div className="flex justify-center">
                 {editPhotoPreview ? (
                   <div className="relative group rounded-lg overflow-hidden max-h-[50vh] w-full flex justify-center bg-black/5 transition-all">
-                    <img
+                    <SignedPhoto
                       src={editPhotoPreview}
                       alt={`Weight on ${editDate}`}
                       className="w-full h-full object-contain"
