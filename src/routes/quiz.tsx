@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { supabase } from "@/integrations/client";
+import { useAuth } from "@/lib/auth";
 import {
   activityMultipliers,
   bmiCategory,
@@ -48,6 +50,8 @@ interface FormData {
 
 function Quiz() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isOAuth = !!user;
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [d, setD] = useState<FormData>({
@@ -68,6 +72,19 @@ function Quiz() {
   const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setD((p) => ({ ...p, [k]: v }));
 
+  useEffect(() => {
+    if (!user) return;
+    setD((p) => ({
+      ...p,
+      fullName:
+        p.fullName ||
+        (user.user_metadata?.full_name as string | undefined) ||
+        (user.user_metadata?.name as string | undefined) ||
+        "",
+      email: p.email || user.email || "",
+    }));
+  }, [user]);
+
   const bmi = useMemo(
     () => calcBMI(d.weightKg, d.heightCm),
     [d.weightKg, d.heightCm],
@@ -82,15 +99,17 @@ function Quiz() {
   const macros  = useMemo(() => calcMacros(target, goalKey, d.weightKg), [target, goalKey, d.weightKg]);
 
   const canNext = () => {
-    if (step === 1)
+    if (step === 1) {
+      const identityOk = d.fullName.trim() !== "" && d.email.trim() !== "";
+      if (isOAuth) return identityOk && d.age >= 16;
       return (
-        d.fullName.trim() !== "" &&
-        d.email.trim() !== "" &&
+        identityOk &&
         d.password.length >= 6 &&
         d.password.length <= 72 &&
         d.password === d.repeatPassword &&
         d.age >= 16
       );
+    }
     if (step === 2) return d.heightCm > 0 && d.weightKg > 0;
     if (step === 3) return !!d.activity;
     if (step === 4) {
@@ -106,16 +125,19 @@ function Quiz() {
   const submit = async () => {
     setSubmitting(true);
     try {
-      const { data: signup, error } = await supabase.auth.signUp({
-        email: d.email,
-        password: d.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-          data: { full_name: d.fullName },
-        },
-      });
-      if (error) throw error;
-      const userId = signup.user?.id;
+      let userId = user?.id;
+      if (!userId) {
+        const { data: signup, error } = await supabase.auth.signUp({
+          email: d.email,
+          password: d.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+            data: { full_name: d.fullName },
+          },
+        });
+        if (error) throw error;
+        userId = signup.user?.id;
+      }
       if (!userId) throw new Error("No user created");
 
       const { error: pErr } = await supabase.from("user_profiles").upsert({
@@ -166,8 +188,22 @@ function Quiz() {
               <div className="space-y-6">
                 <h2 className="text-3xl font-semibold mb-2">Tell us about you</h2>
                 <p className="text-muted-foreground mb-8 text-sm">
-                  Create your account to get started on your journey.
+                  {isOAuth
+                    ? "Finish your profile to get started on your journey."
+                    : "Create your account to get started on your journey."}
                 </p>
+                {!isOAuth && (
+                  <div className="mb-8 space-y-5">
+                    <GoogleSignInButton label="Sign up with Google" />
+                    <div className="flex items-center gap-3">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        or
+                      </span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-5">
                   <div className="space-y-2">
                     <Label className="text-foreground/80">Full Name</Label>
@@ -183,10 +219,13 @@ function Quiz() {
                       <Input
                         type="email"
                         value={d.email}
+                        disabled={isOAuth}
                         onChange={(e) => set("email", e.target.value)}
                         className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl"
                       />
                     </div>
+                    {!isOAuth && (
+                    <>
                     <div className="space-y-2">
                       <Label className="text-foreground/80">Password</Label>
                       <Input
@@ -208,6 +247,8 @@ function Quiz() {
                         className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl"
                       />
                     </div>
+                    </>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label className="text-foreground/80">Age</Label>
