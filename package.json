@@ -77,8 +77,6 @@
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.1.1",
-    "youtube-ext": "^1.1.25",
-    "yt-search": "^2.13.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {

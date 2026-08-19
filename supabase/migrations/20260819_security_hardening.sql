@@ -8,8 +8,8 @@
 --      unconstrained.
 -- M-4: award_achievement did not need anon EXECUTE.
 
-drop function if exists get_leaderboard_stats(text);
-
+-- Signature is unchanged from the previous definition, so `create or replace`
+-- swaps the body in place — no drop, no window where the function is missing.
 create or replace function get_leaderboard_stats(start_date text)
 returns table (
   user_id uuid,
