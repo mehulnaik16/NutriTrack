@@ -177,11 +177,18 @@ function FoodPage() {
         .select("name")
         .eq("user_id", user.id),
     ]);
+    // No profile row means onboarding was never finished — the guard below
+    // waits on `profile`, so without this the page spins forever.
+    if (!p) {
+      navigate({ to: "/quiz" });
+      return;
+    }
+
     setProfile(p);
     setTodayLogs(t ?? []);
     setMonthLogs(m ?? []);
     if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
-  }, [user, selectedDate]);
+  }, [user, selectedDate, navigate]);
 
   useEffect(() => {
     load();

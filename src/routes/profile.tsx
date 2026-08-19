@@ -265,6 +265,12 @@ function Profile() {
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
+        // No profile row means onboarding was never finished — the guard below
+        // waits on `profile`, so without this the page spins forever.
+        if (!data) {
+          navigate({ to: "/quiz" });
+          return;
+        }
         setProfile(data);
         if (data?.weight_kg) setWeight(String(data.weight_kg));
         if (data?.height_cm) setHeight(String(data.height_cm));
@@ -278,7 +284,7 @@ function Profile() {
         }
         if (data?.activity_level) setActivity(data.activity_level);
       });
-  }, [user]);
+  }, [user, navigate]);
 
   const updateProfile = async () => {
     if (!user || !profile) return;

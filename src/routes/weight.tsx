@@ -119,11 +119,18 @@ function WeightPage() {
         .eq("user_id", user.id)
         .order("date", { ascending: true }),
     ]);
+    // No profile row means onboarding was never finished — the guard below
+    // waits on `profile`, so without this the page spins forever.
+    if (!p) {
+      navigate({ to: "/quiz" });
+      return;
+    }
+
     setProfile(p as Profile);
     setEntries((e as WeightEntry[]) ?? []);
     if (p?.weight_kg) setWeight(String(p.weight_kg));
     if (p?.goal_weight_kg) setGoalWeight(String(p.goal_weight_kg));
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => {
     load();
