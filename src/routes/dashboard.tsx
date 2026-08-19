@@ -297,6 +297,13 @@ function Dashboard() {
           .eq("user_id", user.id),
       ]);
 
+    // An OAuth user who has not finished onboarding has no profile row. Without
+    // this the render below spins forever, since it waits on `profile`.
+    if (!p) {
+      navigate({ to: "/quiz" });
+      return;
+    }
+
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);
     setMonthLogs((m as FoodLog[]) ?? []);
@@ -331,7 +338,7 @@ function Dashboard() {
 
     const s = await computeStreak(user.id);
     setStreak(s);
-  }, [user, selectedDate]);
+  }, [user, selectedDate, navigate]);
 
   useEffect(() => {
     load();
