@@ -1507,7 +1507,7 @@ function AboutPage({ onBack }: { onBack: () => void }) {
           <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
             <InfoRow label="Version" value="2.0.0" />
             <InfoRow label="Nutrition data" value="IFCT 2017 + Open Food Facts" />
-            <InfoRow label="AI engine" value="Groq · Llama 3.3" />
+            <InfoRow label="AI engine" value="Groq · GPT-OSS 120B" />
           </div>
         </section>
 

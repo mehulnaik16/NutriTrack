@@ -115,7 +115,7 @@ Write a 3-4 sentence weekly summary. Be specific, warm, and actionable. Give one
   const { result } = await serverGroqChat({
     data: {
       prompt,
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       max_tokens: 200,
       temperature: 0.7,
     },

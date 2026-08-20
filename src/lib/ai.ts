@@ -140,7 +140,7 @@ export const serverAiFoodSearch = createServerFn({ method: "POST" })
     if (cleanQuery.length < 2) return { items: [] };
 
     const raw = await groqChat({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [
         { role: "system", content: FOOD_SEARCH_SYSTEM },
         { role: "user",   content: `<query>${cleanQuery}</query>` },
@@ -173,7 +173,7 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
     if (cleanQuery.length < 2) return { items: [] };
 
     const raw = await groqChat({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [
         { role: "system", content: FOOD_SEARCH_SYSTEM },
         { role: "user",   content: `<query>${cleanQuery}</query>` },
@@ -199,7 +199,7 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
 // Without a runtime schema this endpoint is a general-purpose LLM API billed to
 // our Groq account: a TypeScript interface erases at compile time and enforces
 // nothing. The allowlist and ceilings below are sized to the app's real callers.
-const ALLOWED_CHAT_MODELS = ["llama-3.3-70b-versatile"] as const;
+const ALLOWED_CHAT_MODELS = ["openai/gpt-oss-120b"] as const;
 
 const ChatInput = z.object({
   prompt: z.string().min(1).max(12_000),
@@ -219,7 +219,7 @@ export const serverGroqChat = createServerFn({ method: "POST" })
       ctx.data;
 
     const raw = await groqChat({
-      model: model ?? "llama-3.3-70b-versatile",
+      model: model ?? "openai/gpt-oss-120b",
       messages: [{ role: "user", content: prompt }],
       max_tokens: max_tokens ?? 1000,
       temperature: temperature ?? 0.7,

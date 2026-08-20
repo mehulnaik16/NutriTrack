@@ -143,15 +143,17 @@ export async function groqChat(opts: ChatOptions): Promise<string> {
   const res = await groqFetch({
     endpoint: "chat/completions",
     body: {
-      model: opts.model ?? "llama-3.3-70b-versatile",
+      model: opts.model ?? "openai/gpt-oss-120b",
       max_tokens: opts.max_tokens ?? 1000,
       temperature: opts.temperature ?? 0.7,
       ...(opts.response_format
         ? { response_format: opts.response_format }
         : {}),
-      ...(opts.reasoning_effort
-        ? { reasoning_effort: opts.reasoning_effort }
-        : {}),
+      // gpt-oss models reason before emitting content and bill those tokens
+      // against max_tokens, which truncates short prose. "low" keeps that
+      // overhead near zero. Note: gpt-oss rejects "none" with a 400 — only
+      // the qwen vision model accepts it, and groqVision passes it explicitly.
+      reasoning_effort: opts.reasoning_effort ?? "low",
       messages: opts.messages,
     },
   });

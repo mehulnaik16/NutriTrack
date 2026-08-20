@@ -242,7 +242,7 @@ Rules:
     const { result: raw } = await serverGroqChat({
       data: {
         prompt,
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         max_tokens: 2500,
         temperature: 0.4,
         response_format_json: true,

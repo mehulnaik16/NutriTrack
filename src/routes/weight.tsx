@@ -75,8 +75,8 @@ Be specific to their numbers. Be warm and real — not generic or cheesy. No has
   const { result } = await serverGroqChat({
     data: {
       prompt,
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 120,
+      model: "openai/gpt-oss-120b",
+      max_tokens: 300,
       temperature: 0.8,
     },
   });
