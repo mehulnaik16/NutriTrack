@@ -240,7 +240,7 @@ function Dashboard() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (!loading && !user) navigate({ to: "/login", replace: true });
   }, [loading, user, navigate]);
 
   const handleDateSelect = (d: Date | undefined) => {
@@ -300,7 +300,7 @@ function Dashboard() {
     // An OAuth user who has not finished onboarding has no profile row. Without
     // this the render below spins forever, since it waits on `profile`.
     if (!p) {
-      navigate({ to: "/quiz" });
+      navigate({ to: "/quiz", replace: true });
       return;
     }
 

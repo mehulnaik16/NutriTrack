@@ -47,7 +47,7 @@ function ResetPassword() {
       return;
     }
     toast.success("Password updated! Logging you in…");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/dashboard", replace: true });
   };
 
   return (

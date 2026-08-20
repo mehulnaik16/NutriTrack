@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Activity } from "lucide-react";
@@ -33,7 +33,13 @@ import {
   resolveGoalKey,
 } from "@/lib/nutrition";
 
-export const Route = createFileRoute("/quiz")({ component: Quiz });
+export const Route = createFileRoute("/quiz")({
+  component: Quiz,
+  validateSearch: (s: Record<string, unknown>): { step?: number } => {
+    const n = Number(s.step);
+    return Number.isInteger(n) && n >= 1 && n <= 5 ? { step: n } : {};
+  },
+});
 
 interface FormData {
   fullName: string;
@@ -50,9 +56,14 @@ interface FormData {
 
 function Quiz() {
   const navigate = useNavigate();
+  const routeNavigate = Route.useNavigate();
+  const router = useRouter();
   const { user, refreshProfile } = useAuth();
   const isOAuth = !!user;
-  const [step, setStep] = useState(1);
+  const { step: searchStep } = Route.useSearch();
+  const step = searchStep ?? 1;
+  // Each step is a real history entry: forward pushes, back pops.
+  const setStep = (n: number) => routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
   const [submitting, setSubmitting] = useState(false);
   const [d, setD] = useState<FormData>({
     fullName: "",
@@ -175,7 +186,7 @@ function Quiz() {
       <div className="mx-auto max-w-md w-full">
         {/* Top Navigation */}
         <div className="mb-8 flex items-center justify-between text-sm font-medium">
-          <button className="text-accent p-2 -ml-2" onClick={() => step > 1 ? setStep(step - 1) : navigate({ to: "/login" })}>
+          <button className="text-accent p-2 -ml-2" onClick={() => step > 1 ? router.history.back() : navigate({ to: "/login" })}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
           <span className="text-foreground font-bold tracking-wide">
@@ -559,7 +570,7 @@ function Quiz() {
             <div className="mt-12 flex items-center justify-center">
               {step < 5 ? (
                 <Button
-                  onClick={() => setStep((s) => s + 1)}
+                  onClick={() => setStep(step + 1)}
                   disabled={!canNext()}
                   className="w-full max-w-sm rounded-full h-14 bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground"
                 >

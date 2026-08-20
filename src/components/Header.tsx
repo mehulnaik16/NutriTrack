@@ -415,7 +415,7 @@ export function Header({
                 className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive"
                 onClick={async () => {
                   await signOut();
-                  navigate({ to: "/login" });
+                  navigate({ to: "/login", replace: true });
                 }}
                 aria-label="Logout"
               >

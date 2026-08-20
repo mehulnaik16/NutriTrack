@@ -47,7 +47,7 @@ function Login() {
       return;
     }
     toast.success("Welcome back!");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/dashboard", replace: true });
   };
 
   const handleForgot = async (e: React.FormEvent) => {

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Moon,
@@ -87,10 +87,15 @@ import {
   decomposeGoalKey,
 } from "@/lib/nutrition";
 
+const PAGE_VALUES: readonly Page[] = [
+  "menu", "details", "theme", "transactions", "pricing",
+  "settings", "help", "about", "refer", "achievements",
+];
+
 export const Route = createFileRoute("/profile")({
   component: Profile,
   validateSearch: (s: Record<string, unknown>): { page?: Page } =>
-    s.page === "refer" ? { page: "refer" } : {},
+    PAGE_VALUES.includes(s.page as Page) ? { page: s.page as Page } : {},
 });
 
 const plans = [
@@ -195,8 +200,15 @@ const DEFAULT_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"];
 function Profile() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const { page: initialPage } = Route.useSearch();
-  const [page, setPage] = useState<Page>(initialPage ?? "menu");
+  const routeNavigate = Route.useNavigate();
+  const router = useRouter();
+  const { page: searchPage } = Route.useSearch();
+  const page = searchPage ?? "menu";
+  // Drilling into a sub-page pushes a history entry; the in-page back arrows
+  // call goBack() so hardware back and the on-screen arrow can never disagree.
+  const setPage = (p: Page) =>
+    routeNavigate({ search: (prev) => ({ ...prev, page: p }) });
+  const goBack = () => router.history.back();
   const [profile, setProfile] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [weight, setWeight] = useState("");
@@ -230,7 +242,7 @@ function Profile() {
 
   const startPlan = async (planId: string) => {
     if (!user) {
-      navigate({ to: "/login" });
+      navigate({ to: "/login", replace: true });
       return;
     }
     const { error } = await supabase
@@ -250,11 +262,11 @@ function Profile() {
       selected_plan: planId,
       trial_start_date: todayLocal(),
     }));
-    setPage("menu");
+    goBack();
   };
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (!loading && !user) navigate({ to: "/login", replace: true });
   }, [loading, user, navigate]);
 
   useEffect(() => {
@@ -268,7 +280,7 @@ function Profile() {
         // No profile row means onboarding was never finished — the guard below
         // waits on `profile`, so without this the page spins forever.
         if (!data) {
-          navigate({ to: "/quiz" });
+          navigate({ to: "/quiz", replace: true });
           return;
         }
         setProfile(data);
@@ -361,7 +373,7 @@ function Profile() {
     return (
       <TransactionsPage
         profile={profile}
-        onBack={() => setPage("menu")}
+        onBack={goBack}
         onPricing={() => setPage("pricing")}
       />
     );
@@ -369,20 +381,20 @@ function Profile() {
     return (
       <SettingsPage
         userId={user.id}
-        onBack={() => setPage("menu")}
+        onBack={goBack}
         onTheme={() => setPage("theme")}
         onSignOut={async () => {
           await signOut();
-          navigate({ to: "/login" });
+          navigate({ to: "/login", replace: true });
         }}
       />
     );
-  if (page === "help") return <HelpPage onBack={() => setPage("menu")} />;
-  if (page === "about") return <AboutPage onBack={() => setPage("menu")} />;
+  if (page === "help") return <HelpPage onBack={goBack} />;
+  if (page === "about") return <AboutPage onBack={goBack} />;
   if (page === "refer")
-    return <ReferPage userId={user.id} onBack={() => setPage("menu")} />;
+    return <ReferPage userId={user.id} onBack={goBack} />;
   if (page === "achievements")
-    return <AchievementsPage userId={user.id} onBack={() => setPage("menu")} />;
+    return <AchievementsPage userId={user.id} onBack={goBack} />;
 
   /* ─── PRICING PAGE ─── */
   if (page === "pricing") {
@@ -390,7 +402,7 @@ function Profile() {
       <div className="min-h-screen bg-background pb-24">
         <SubHeader
           title="Pricing"
-          onBack={() => setPage("menu")}
+          onBack={goBack}
           action={
             <Button
               variant="ghost"
@@ -464,7 +476,7 @@ function Profile() {
   if (page === "theme") {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <SubHeader title="Theme" onBack={() => setPage("menu")} />
+        <SubHeader title="Theme" onBack={goBack} />
         <main className="mx-auto max-w-lg px-4 py-8">
           <p className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             Appearance
@@ -510,7 +522,7 @@ function Profile() {
       <div className="min-h-screen bg-background pb-24">
         <SubHeader
           title="Profile details"
-          onBack={() => { setIsEditing(false); setPage("menu"); }}
+          onBack={() => { setIsEditing(false); goBack(); }}
           action={
             !isEditing ? (
               <Button
@@ -716,7 +728,7 @@ function Profile() {
           variant="ghost"
           size="icon"
           className="h-10 w-10 min-h-[44px] min-w-[44px] rounded-full flex-shrink-0"
-          onClick={() => navigate({ to: "/dashboard" })}
+          onClick={goBack}
         >
           <ArrowLeft className="h-6 w-6" />
         </Button>
@@ -761,7 +773,7 @@ function Profile() {
           className="mt-6 h-12 w-full gap-2 rounded-2xl font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={async () => {
             await signOut();
-            navigate({ to: "/login" });
+            navigate({ to: "/login", replace: true });
           }}
         >
           <LogOut className="h-4 w-4" /> Sign out

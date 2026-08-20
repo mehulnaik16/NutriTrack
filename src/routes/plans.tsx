@@ -54,7 +54,7 @@ function Plans() {
 
   const start = async (planId: string) => {
     if (!user) {
-      navigate({ to: "/login" });
+      navigate({ to: "/login", replace: true });
       return;
     }
     const { error } = await supabase
@@ -69,7 +69,7 @@ function Plans() {
       return;
     }
     toast.success("Free trial started!");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/dashboard", replace: true });
   };
 
   return (

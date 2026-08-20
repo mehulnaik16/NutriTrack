@@ -19,7 +19,7 @@ function AuthCallback() {
       const oauthError = params.get("error_description") ?? params.get("error");
       if (oauthError) {
         toast.error(oauthError);
-        navigate({ to: "/login" });
+        navigate({ to: "/login", replace: true });
         return;
       }
 
@@ -28,7 +28,7 @@ function AuthCallback() {
 
       if (error || !data.session) {
         toast.error("Sign-in failed. Try again.");
-        navigate({ to: "/login" });
+        navigate({ to: "/login", replace: true });
         return;
       }
 
@@ -39,7 +39,7 @@ function AuthCallback() {
         .maybeSingle();
 
       if (cancelled) return;
-      navigate({ to: profile ? "/dashboard" : "/quiz" });
+      navigate({ to: profile ? "/dashboard" : "/quiz", replace: true });
     };
 
     // detectSessionInUrl resolves the OAuth response asynchronously; the

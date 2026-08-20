@@ -102,7 +102,7 @@ function WeightPage() {
   const [compareIdx, setCompareIdx] = useState(0);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (!loading && !user) navigate({ to: "/login", replace: true });
   }, [loading, user, navigate]);
 
   const load = useCallback(async () => {
@@ -122,7 +122,7 @@ function WeightPage() {
     // No profile row means onboarding was never finished — the guard below
     // waits on `profile`, so without this the page spins forever.
     if (!p) {
-      navigate({ to: "/quiz" });
+      navigate({ to: "/quiz", replace: true });
       return;
     }
 

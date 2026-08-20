@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -47,6 +47,7 @@ interface BuilderItem {
 function MealBuilderPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
 
   const [name, setName] = useState("");
   const [items, setItems] = useState<BuilderItem[]>([]);
@@ -57,7 +58,7 @@ function MealBuilderPage() {
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (!loading && !user) navigate({ to: "/login", replace: true });
   }, [loading, user, navigate]);
 
   // Saved meals — powers the History section + upsert-by-name on save
@@ -202,7 +203,7 @@ function MealBuilderPage() {
       if (error) throw error;
 
       toast.success(`"${payload.name}" saved to Favourites!`);
-      navigate({ to: "/food" });
+      router.history.back();
     } catch (e: any) {
       toast.error(e.message ?? "Could not save meal");
     } finally {
@@ -242,7 +243,7 @@ function MealBuilderPage() {
             variant="ghost"
             size="icon"
             className="h-9 w-9 rounded-full"
-            onClick={() => navigate({ to: "/food" })}
+            onClick={() => router.history.back()}
             aria-label="Back to Food"
           >
             <ArrowLeft className="h-5 w-5" />

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { CardioPaceChart } from "@/components/CardioPaceChart";
 import {
@@ -46,7 +46,28 @@ import {
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
-export const Route = createFileRoute("/workout")({ component: WorkoutPage });
+type WorkoutTab = "GYM" | "HOME" | "CARDIO";
+
+interface WorkoutSearch {
+  tab?: WorkoutTab;
+  muscle?: string;
+  subcat?: string;
+  exercise?: string;
+  homeRoutine?: string;
+  cardio?: string;
+}
+
+export const Route = createFileRoute("/workout")({
+  component: WorkoutPage,
+  validateSearch: (s: Record<string, unknown>): WorkoutSearch => ({
+    tab: s.tab === "GYM" || s.tab === "HOME" || s.tab === "CARDIO" ? s.tab : undefined,
+    muscle: typeof s.muscle === "string" ? s.muscle : undefined,
+    subcat: typeof s.subcat === "string" ? s.subcat : undefined,
+    exercise: typeof s.exercise === "string" ? s.exercise : undefined,
+    homeRoutine: typeof s.homeRoutine === "string" ? s.homeRoutine : undefined,
+    cardio: typeof s.cardio === "string" ? s.cardio : undefined,
+  }),
+});
 
 import { searchYouTube } from "@/lib/youtube";
 import {
@@ -172,22 +193,44 @@ const estimate1RM = (weight: number, reps: number): number => {
 function WorkoutPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"GYM" | "HOME" | "CARDIO">("GYM");
+  const routeNavigate = Route.useNavigate();
+  const router = useRouter();
+  const search = Route.useSearch();
+
+  // Drill-down state lives in the URL so the hardware back button and swipe-
+  // back gesture retrace it correctly: each level is a real history entry.
+  const activeTab = search.tab ?? "GYM";
+  const selectedMuscle = search.muscle ?? null;
+  const selectedSubcat = search.subcat ?? null;
+  const selectedExercise = search.exercise ?? null;
+  const selectedHomeRoutine = search.homeRoutine ?? null;
+  const selectedCardio = search.cardio ?? null;
+
+  // Setting a value pushes a new history entry (drilling in); clearing one
+  // (passing null) pops the existing entry instead of pushing a fresh one,
+  // so this always matches what the hardware back button would do.
+  const setActiveTab = (tab: WorkoutTab) => routeNavigate({ search: () => ({ tab }) });
+  const setSelectedMuscle = (v: string | null) =>
+    v === null ? router.history.back() : routeNavigate({ search: (prev) => ({ tab: prev.tab, muscle: v }) });
+  const setSelectedSubcat = (v: string | null) =>
+    v === null ? router.history.back() : routeNavigate({ search: (prev) => ({ ...prev, subcat: v, exercise: undefined }) });
+  const setSelectedExercise = (v: string | null) =>
+    v === null ? router.history.back() : routeNavigate({ search: (prev) => ({ ...prev, exercise: v }) });
+  const setSelectedHomeRoutine = (v: string | null) =>
+    v === null ? router.history.back() : routeNavigate({ search: (prev) => ({ tab: prev.tab, homeRoutine: v }) });
+  const setSelectedCardio = (v: string | null) =>
+    v === null ? router.history.back() : routeNavigate({ search: (prev) => ({ tab: prev.tab, cardio: v }) });
 
   // The onboarding flow can hand off a starting tab (library / builder).
   // Read in an effect — sessionStorage doesn't exist during server render.
+  // Uses replace: this is a system-seeded default, not a step the user took.
   useEffect(() => {
     const t = sessionStorage.getItem("workout_initial_tab");
     sessionStorage.removeItem("workout_initial_tab");
-    if (t === "HOME" || t === "CARDIO") setActiveTab(t);
+    if (t === "HOME" || t === "CARDIO") {
+      routeNavigate({ search: (prev) => ({ ...prev, tab: t }), replace: true });
+    }
   }, []);
-
-  // State for sub-views
-  const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
-  const [selectedSubcat, setSelectedSubcat] = useState<string | null>(null);
-  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
-  const [selectedHomeRoutine, setSelectedHomeRoutine] = useState<string | null>(null);
-  const [selectedCardio, setSelectedCardio] = useState<string | null>(null);
 
   // DB States
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -227,7 +270,7 @@ function WorkoutPage() {
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      navigate({ to: "/login" });
+      navigate({ to: "/login", replace: true });
       return;
     }
     loadUserData();
@@ -737,7 +780,6 @@ function WorkoutPage() {
                 <button
                   key={m.id}
                   onClick={() => {
-                    setSelectedSubcat(null);
                     setSelectedMuscle(m.id);
                     window.scrollTo(0, 0);
                   }}
@@ -931,10 +973,7 @@ function WorkoutPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => {
-              setSelectedMuscle(null);
-              setSelectedSubcat(null);
-            }}
+            onClick={() => router.history.back()}
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -31,6 +31,10 @@ import {
 
 export const Route = createFileRoute("/workout-setup")({
   component: WorkoutSetup,
+  validateSearch: (s: Record<string, unknown>): { step?: number } => {
+    const n = Number(s.step);
+    return Number.isInteger(n) && n >= 1 && n <= 8 ? { step: n } : {};
+  },
 });
 
 const TOTAL_STEPS = 8;
@@ -129,8 +133,13 @@ function LiftRow({
 function WorkoutSetup() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const routeNavigate = Route.useNavigate();
+  const router = useRouter();
 
-  const [step, setStep] = useState(1);
+  const { step: searchStep } = Route.useSearch();
+  const step = searchStep ?? 1;
+  // Each step is a real history entry: forward pushes, back pops.
+  const setStep = (n: number) => routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
   const [busy, setBusy] = useState(false);
 
   // Answers
@@ -149,7 +158,7 @@ function WorkoutSetup() {
     useState<WorkoutPrefs["preferredTrainingPlan"]>("ai_generated");
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (!loading && !user) navigate({ to: "/login", replace: true });
   }, [loading, user, navigate]);
 
   // Pre-fill if the user has done this before
@@ -317,7 +326,7 @@ Rules:
             className="h-9 w-9 rounded-full"
             disabled={busy}
             onClick={() =>
-              step > 1 ? setStep(step - 1) : navigate({ to: "/workout" })
+              step > 1 ? router.history.back() : navigate({ to: "/workout" })
             }
             aria-label="Back"
           >

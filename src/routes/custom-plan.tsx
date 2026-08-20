@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -34,6 +34,7 @@ const emptyWeek = (): StandardMuscle[][] =>
 function CustomPlanBuilder() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
 
   const [day, setDay] = useState(1); // 1..7
   const [week, setWeek] = useState<StandardMuscle[][]>(emptyWeek);
@@ -41,7 +42,7 @@ function CustomPlanBuilder() {
   const [existingPlanIds, setExistingPlanIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (!loading && !user) navigate({ to: "/login", replace: true });
   }, [loading, user, navigate]);
 
   // Pre-fill when editing an existing custom plan
@@ -155,7 +156,7 @@ function CustomPlanBuilder() {
             className="h-9 w-9 rounded-full"
             disabled={saving}
             onClick={() =>
-              day > 1 ? setDay(day - 1) : navigate({ to: "/workout" })
+              day > 1 ? setDay(day - 1) : router.history.back()
             }
             aria-label="Back"
           >

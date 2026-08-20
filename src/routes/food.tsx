@@ -134,7 +134,7 @@ function FoodPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
+    if (!loading && !user) navigate({ to: "/login", replace: true });
   }, [loading, user, navigate]);
 
   const handleDateSelect = (d: Date | undefined) => {
@@ -180,7 +180,7 @@ function FoodPage() {
     // No profile row means onboarding was never finished — the guard below
     // waits on `profile`, so without this the page spins forever.
     if (!p) {
-      navigate({ to: "/quiz" });
+      navigate({ to: "/quiz", replace: true });
       return;
     }
 
