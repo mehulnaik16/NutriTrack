@@ -1,18 +1,23 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Loader2, PencilRuler } from "lucide-react";
+import { ArrowLeft, Check, Loader2, PencilRuler, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CustomPlanTable } from "@/components/CustomPlanTable";
+import { CustomPlanDayPicker } from "@/components/CustomPlanDayPicker";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { todayLocal } from "@/lib/dates";
 import {
   type CustomPlan,
   type StandardMuscle,
+  STANDARD_MUSCLE_GROUPS,
+  MUSCLE_EMOJI,
+  MAX_MUSCLES_PER_DAY,
   isCustomPlan,
   cycleDayIndex,
   updatePlanDay,
+  activeMuscles,
 } from "@/lib/musclePlan";
 
 export const Route = createFileRoute("/custom-plan-edit")({
@@ -35,6 +40,11 @@ function CustomPlanEditor() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [todayIdx, setTodayIdx] = useState(0);
   const [fetching, setFetching] = useState(true);
+
+  // Inline day editor state
+  const [editingDayIdx, setEditingDayIdx] = useState<number | null>(null);
+  const [editSelections, setEditSelections] = useState<StandardMuscle[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -72,7 +82,7 @@ function CustomPlanEditor() {
     const updated = updatePlanDay(plan, dayIdx, muscles);
     const { error } = await supabase
       .from("workout_plans")
-      .update({ plan_json: updated })
+      .update({ plan_json: updated as any })
       .eq("id", planId);
     if (error) {
       toast.error(error.message);
@@ -80,6 +90,60 @@ function CustomPlanEditor() {
     }
     setPlan(updated);
     toast.success(`Day ${dayIdx + 1} updated`);
+  };
+
+  const openDayEditor = (dayIdx: number) => {
+    if (!plan) return;
+    const day = plan.days[dayIdx];
+    const current = activeMuscles(day) as StandardMuscle[];
+    setEditSelections(current);
+    setEditingDayIdx(dayIdx);
+  };
+
+  const toggleMuscle = (m: StandardMuscle) => {
+    setEditSelections((prev) => {
+      if (m === "Rest Day") {
+        return prev.includes("Rest Day") ? [] : ["Rest Day"];
+      }
+      const withoutRest = prev.filter((x) => x !== "Rest Day");
+      if (withoutRest.includes(m)) return withoutRest.filter((x) => x !== m);
+      if (withoutRest.length >= MAX_MUSCLES_PER_DAY) {
+        toast.info(`Max ${MAX_MUSCLES_PER_DAY} muscle groups per day`);
+        return withoutRest;
+      }
+      return [...withoutRest, m];
+    });
+  };
+
+  const confirmEdit = async () => {
+    if (editingDayIdx === null) return;
+    setSaving(true);
+    await saveDay(editingDayIdx, editSelections);
+    setSaving(false);
+    setEditingDayIdx(null);
+  };
+
+  /**
+   * Re-phase the cycle to the picked day, anchored to today. Same write the
+   * Workout page's picker performs; the row is updated, never replaced.
+   */
+  const confirmDay = async (i: number) => {
+    if (!planId) return false;
+    const { error } = await supabase
+      .from("workout_plans")
+      .update({
+        custom_plan_day_idx: i,
+        custom_plan_day_anchor: todayLocal(),
+      } as any)
+      .eq("id", planId);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
+    // Anchored to today, so the picked day *is* today — no cycle math needed.
+    setTodayIdx(i);
+    toast.success("Day updated");
+    return true;
   };
 
   if (loading || fetching) {
@@ -127,7 +191,92 @@ function CustomPlanEditor() {
               plan={plan}
               todayIdx={todayIdx}
               onSaveDay={saveDay}
+              onEditDay={openDayEditor}
             />
+
+            {/* ── Inline day muscle editor ── */}
+            {editingDayIdx !== null && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 mt-4 rounded-2xl border border-border bg-card p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="font-display text-sm font-bold">
+                    {plan.days[editingDayIdx].day} — pick muscles
+                  </p>
+                  <button
+                    onClick={() => setEditingDayIdx(null)}
+                    className="rounded p-1 text-muted-foreground hover:text-foreground"
+                    aria-label="Cancel"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {STANDARD_MUSCLE_GROUPS.map((m) => {
+                    const selected = editSelections.includes(m);
+                    const isRestSelected = editSelections.includes("Rest Day");
+                    const isRestOption = m === "Rest Day";
+                    const dimmed = isRestSelected && !isRestOption;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => toggleMuscle(m)}
+                        className={`relative flex items-center gap-2 rounded-2xl border-2 p-3 text-left text-sm transition-all duration-200 ${
+                          selected
+                            ? "border-accent bg-accent/10 glow-accent-sm"
+                            : dimmed
+                              ? "border-border bg-card opacity-40"
+                              : "border-border bg-card hover:border-muted-foreground/40"
+                        } ${isRestOption ? "col-span-2" : ""}`}
+                      >
+                        <span className="text-base">{MUSCLE_EMOJI[m]}</span>
+                        <span className={`min-w-0 flex-1 truncate font-semibold ${selected ? "text-accent" : ""}`}>
+                          {m}
+                        </span>
+                        {selected && isRestOption && (
+                          <Check className="h-4 w-4 shrink-0 text-accent" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingDayIdx(null)}
+                    disabled={saving}
+                    className="flex-1 rounded-full font-bold"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={confirmEdit}
+                    disabled={saving}
+                    className="flex-1 rounded-full bg-accent font-bold text-accent-foreground hover:bg-accent/90"
+                  >
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Save {plan.days[editingDayIdx].day}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 space-y-4 rounded-2xl border border-border bg-card p-5">
+              <div>
+                <h2 className="font-display text-base font-bold tracking-tight">
+                  Change today's day
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Missed a session, or started the week somewhere else? Tap the
+                  day you're actually doing today, then hit Confirm. The plan
+                  carries on from there — Day 1 doesn't have to be Monday.
+                </p>
+              </div>
+              <CustomPlanDayPicker
+                days={plan.days}
+                todayIdx={todayIdx}
+                onConfirm={confirmDay}
+              />
+            </div>
           </>
         ) : (
           <div className="rounded-2xl border border-border bg-card p-6 text-center">
