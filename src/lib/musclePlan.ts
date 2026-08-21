@@ -6,6 +6,8 @@
  * so filtering and highlighting stay in sync app-wide.
  */
 
+import { daysBetweenLocal } from "./dates";
+
 export const STANDARD_MUSCLE_GROUPS = [
   "Biceps",
   "Triceps",
@@ -131,6 +133,61 @@ export function buildCustomPlan(
   return {
     goal: "Custom Plan",
     type: "custom",
+    days_per_week: days.filter((d) => !isRestDay(d)).length,
+    days,
+  };
+}
+
+/**
+ * Which day of the plan is "today"?
+ *
+ * The plan is a repeating cycle, NOT a Mon-Sun calendar: the user picks which
+ * day of their split they're on, and it rolls forward one per day from there,
+ * wrapping at the end. `storedIdx` is the phase (which day they picked),
+ * `anchorISO` is the clock (the date they picked it on) — neither is useful
+ * without the other.
+ *
+ * A null anchor (legacy row written before the column existed) falls back to
+ * the stored index unchanged, which is exactly the old behaviour.
+ */
+export function cycleDayIndex(
+  storedIdx: number,
+  anchorISO: string | null,
+  todayISO: string,
+  dayCount: number,
+): number {
+  if (dayCount <= 0) return 0;
+  const elapsed = anchorISO ? daysBetweenLocal(anchorISO, todayISO) : 0;
+  // Double-mod keeps it in range even if elapsed is negative (clock skew, or
+  // a device whose date is behind the one the anchor was written on).
+  return (((storedIdx + elapsed) % dayCount) + dayCount) % dayCount;
+}
+
+/**
+ * Replace one day's muscles in an existing custom plan. Used for inline
+ * single-day edits so changing one day doesn't require deleting and
+ * rebuilding the whole 7-day plan.
+ */
+export function updatePlanDay(
+  plan: CustomPlan,
+  dayIndex: number,
+  muscles: StandardMuscle[],
+): CustomPlan {
+  const act = muscles.filter((m) => m !== "Rest Day");
+  const rest = act.length === 0;
+  const days = plan.days.map((d, i) =>
+    i === dayIndex
+      ? {
+          day: `Day ${dayIndex + 1}`,
+          name: rest ? "Rest Day" : act.join(" · "),
+          focus: rest ? "Recovery" : act.join(", "),
+          muscles: rest ? (["Rest Day"] as StandardMuscle[]) : act,
+          exercises: d.exercises,
+        }
+      : d,
+  );
+  return {
+    ...plan,
     days_per_week: days.filter((d) => !isRestDay(d)).length,
     days,
   };

@@ -23,6 +23,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as HubRouteImport } from './routes/hub'
 import { Route as FoodRouteImport } from './routes/food'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CustomPlanEditRouteImport } from './routes/custom-plan-edit'
 import { Route as CustomPlanRouteImport } from './routes/custom-plan'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -97,6 +98,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomPlanEditRoute = CustomPlanEditRouteImport.update({
+  id: '/custom-plan-edit',
+  path: '/custom-plan-edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CustomPlanRoute = CustomPlanRouteImport.update({
   id: '/custom-plan',
   path: '/custom-plan',
@@ -116,6 +122,7 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/custom-plan': typeof CustomPlanRoute
+  '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
   '/hub': typeof HubRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/custom-plan': typeof CustomPlanRoute
+  '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
   '/hub': typeof HubRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/custom-plan': typeof CustomPlanRoute
+  '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
   '/hub': typeof HubRoute
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/custom-plan'
+    | '/custom-plan-edit'
     | '/dashboard'
     | '/food'
     | '/hub'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/custom-plan'
+    | '/custom-plan-edit'
     | '/dashboard'
     | '/food'
     | '/hub'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/custom-plan'
+    | '/custom-plan-edit'
     | '/dashboard'
     | '/food'
     | '/hub'
@@ -234,6 +246,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CustomPlanRoute: typeof CustomPlanRoute
+  CustomPlanEditRoute: typeof CustomPlanEditRoute
   DashboardRoute: typeof DashboardRoute
   FoodRoute: typeof FoodRoute
   HubRoute: typeof HubRoute
@@ -351,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/custom-plan-edit': {
+      id: '/custom-plan-edit'
+      path: '/custom-plan-edit'
+      fullPath: '/custom-plan-edit'
+      preLoaderRoute: typeof CustomPlanEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/custom-plan': {
       id: '/custom-plan'
       path: '/custom-plan'
@@ -378,6 +398,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CustomPlanRoute: CustomPlanRoute,
+  CustomPlanEditRoute: CustomPlanEditRoute,
   DashboardRoute: DashboardRoute,
   FoodRoute: FoodRoute,
   HubRoute: HubRoute,

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, type ReactNode } from "react";
 import { CardioPaceChart } from "@/components/CardioPaceChart";
 import {
   LineChart as RechartsLineChart,
@@ -26,13 +26,13 @@ import {
   ChevronRight,
   Search,
   Sparkles,
-  Loader2,
   Trash2,
   ChevronDown,
   PencilRuler,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
+import { CustomPlanTable } from "@/components/CustomPlanTable";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { Button } from "@/components/ui/button";
@@ -90,8 +90,9 @@ import {
   isCustomPlan,
   activeMuscles,
   isRestDay,
-  tableColumnCount,
+  cycleDayIndex,
   gridIdsForMuscles,
+  updatePlanDay,
   MUSCLE_EMOJI,
 } from "@/lib/musclePlan";
 
@@ -121,6 +122,109 @@ function todaysPlanIndex(daysCount: number): number {
   const weekday = (new Date().getDay() + 6) % 7; // Mon = 0
   return weekday % daysCount;
 }
+
+/**
+ * One horizontally-scrolling line of day pills.
+ *
+ * Touch swipe scrolls this natively and is left completely alone. A mouse has
+ * nothing to grab (the scrollbar is hidden by design), so three things are
+ * added for it: click-and-drag, the wheel, and auto-scrolling the day of
+ * interest into view.
+ */
+function ScrollableDayRow({
+  activeIdx,
+  children,
+}: {
+  activeIdx: number;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  // Mouse-drag bookkeeping. A ref, not state — this changes on every
+  // mousemove and must not re-render the row while it's being dragged.
+  const drag = useRef({ down: false, startX: 0, startScroll: 0, moved: false });
+
+  // Wheel → horizontal scroll, without stealing the page's vertical scroll.
+  // Bound natively with { passive: false } because React binds wheel
+  // passively at the root, where preventDefault() is ignored.
+  useEffect(() => {
+    const row = ref.current;
+    if (!row) return;
+    const onWheel = (e: WheelEvent) => {
+      if (row.scrollWidth <= row.clientWidth) return; // nothing to scroll
+      const delta =
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      const atStart = row.scrollLeft <= 0 && delta < 0;
+      const atEnd =
+        row.scrollLeft + row.clientWidth >= row.scrollWidth - 1 && delta > 0;
+      if (atStart || atEnd) return; // let the page take it
+      e.preventDefault();
+      row.scrollLeft += delta;
+    };
+    row.addEventListener("wheel", onWheel, { passive: false });
+    return () => row.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // Bring the day of interest into view: the current day on load, and
+  // whichever day the user taps (so tapping a half-visible pill at the edge
+  // pulls it and its neighbours into frame).
+  useEffect(() => {
+    const row = ref.current;
+    const pill = row?.children[activeIdx] as HTMLElement | undefined;
+    if (!row || !pill) return;
+    // scrollLeft directly, never scrollIntoView — the latter can scroll the
+    // page vertically when this row is below the fold.
+    const target =
+      pill.offsetLeft - row.clientWidth / 2 + pill.clientWidth / 2;
+    row.scrollTo({ left: target, behavior: "smooth" });
+    // Keyed on activeIdx alone — adding `children` would re-run this on every
+    // parent render and fight the user mid-drag.
+  }, [activeIdx]);
+
+  return (
+    <div
+      ref={ref}
+      className="no-scrollbar flex cursor-grab select-none gap-2 overflow-x-auto pb-1 active:cursor-grabbing"
+      onPointerDown={(e) => {
+        // Touch/pen already scroll natively — only the mouse needs help.
+        if (e.pointerType !== "mouse") return;
+        const row = ref.current;
+        if (!row) return;
+        drag.current = {
+          down: true,
+          startX: e.clientX,
+          startScroll: row.scrollLeft,
+          moved: false,
+        };
+      }}
+      onPointerMove={(e) => {
+        const row = ref.current;
+        if (!drag.current.down || !row) return;
+        const dx = e.clientX - drag.current.startX;
+        // Small threshold so a slightly-shaky click still counts as a click.
+        if (Math.abs(dx) > 4) drag.current.moved = true;
+        row.scrollLeft = drag.current.startScroll - dx;
+      }}
+      onPointerUp={() => {
+        drag.current.down = false;
+      }}
+      onPointerLeave={() => {
+        drag.current.down = false;
+      }}
+      onClickCapture={(e) => {
+        // Swallow the click that follows a drag, so dragging across the row
+        // never selects whichever day you happened to let go over.
+        if (drag.current.moved) {
+          e.preventDefault();
+          e.stopPropagation();
+          drag.current.moved = false;
+        }
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 
 const MUSCLES = [
   { id: "chest",     name: "Chest",      img: "/images/chestfinal.png" },
@@ -244,6 +348,14 @@ function WorkoutPage() {
   const [planDayIdx, setPlanDayIdx] = useState(0);
   const [planExpanded, setPlanExpanded] = useState(false);
   const [customTableOpen, setCustomTableOpen] = useState(false);
+  // Which custom-plan day the user has marked "current" — persisted, so it
+  // survives missed days instead of snapping back to the calendar weekday.
+  const [customDayIdx, setCustomDayIdx] = useState(0);
+  // The date customDayIdx was set on. Index = phase, anchor = clock; together
+  // they make the plan a self-advancing cycle (see cycleDayIndex).
+  const [customDayAnchor, setCustomDayAnchor] = useState<string | null>(null);
+  // A day the user tapped but hasn't confirmed. Local only — never written.
+  const [pendingDayIdx, setPendingDayIdx] = useState<number | null>(null);
 
   // Body weight for MET-based calorie estimates
   const [bodyWeight, setBodyWeight] = useState(70);
@@ -313,7 +425,8 @@ function WorkoutPage() {
       .maybeSingle();
     if (prof?.weight_kg) setBodyWeight(prof.weight_kg);
 
-    // Load latest AI plan
+    // Load latest AI/custom plan (custom_plan_day_idx lives on this row —
+    // it's progress through THIS plan, so it travels with the plan, not the user)
     const { data: wp } = await supabase
       .from("workout_plans")
       .select("*")
@@ -326,6 +439,8 @@ function WorkoutPage() {
       setPlan(p);
       setPlanId(wp.id);
       setPlanDayIdx(todaysPlanIndex(p.days?.length ?? 0));
+      setCustomDayIdx((wp as any).custom_plan_day_idx ?? 0);
+      setCustomDayAnchor((wp as any).custom_plan_day_anchor ?? null);
     } else {
       setPlan(null);
       setPlanId(null);
@@ -345,6 +460,51 @@ function WorkoutPage() {
     setPlan(null);
     setPlanId(null);
     toast.success("Plan removed");
+    // No redirect — the user stays on /workout. Once workout_profile
+    // exists, the empty state already shows a "Create a custom weekly
+    // plan" card (renderPlanCard's `prefs`-gated branch) as an explicit
+    // next action, so an automatic jump here would just be a second,
+    // unwanted deviation.
+  };
+
+  /**
+   * Re-phase the cycle: the picked day becomes today, anchored to today's
+   * date so it rolls forward from here. Only called from the explicit confirm
+   * control — tapping a pill alone stages the choice, it never writes.
+   */
+  const confirmCustomDay = async (i: number) => {
+    if (!planId) return;
+    const anchor = todayLocal();
+    const { error } = await supabase
+      .from("workout_plans")
+      .update({ custom_plan_day_idx: i, custom_plan_day_anchor: anchor } as any)
+      .eq("id", planId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    // State updates only after the write lands — the old version set state
+    // first and left the UI showing a day the database had rejected.
+    setCustomDayIdx(i);
+    setCustomDayAnchor(anchor);
+    setPendingDayIdx(null);
+    toast.success("Day updated");
+  };
+
+  /** Patch one day's muscles in place — no need to delete/rebuild the whole plan. */
+  const saveCustomDay = async (dayIdx: number, muscles: StandardMuscle[]) => {
+    if (!plan || !planId || !isCustomPlan(plan)) return;
+    const updated = updatePlanDay(plan, dayIdx, muscles);
+    const { error } = await supabase
+      .from("workout_plans")
+      .update({ plan_json: updated })
+      .eq("id", planId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setPlan(updated);
+    toast.success(`Day ${dayIdx + 1} updated`);
   };
 
   const toggleFavorite = (exercise: string) => {
@@ -363,6 +523,33 @@ function WorkoutPage() {
 
   const renderPlanCard = () => {
     if (!plan) {
+      // Once workout_profile exists (prefs loaded), the user has already
+      // answered the questionnaire once — never send them back through the
+      // full /workout-setup flow from here again. Editing those answers now
+      // lives exclusively on Profile → Workout details; this page only
+      // offers building a new custom weekly plan.
+      if (prefs) {
+        return (
+          <button
+            onClick={() => navigate({ to: "/custom-plan" })}
+            className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
+          >
+            <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
+                <PencilRuler className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-display font-bold">Create a custom weekly plan</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Build your own day-by-day split — pick muscle groups for each day.
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
+            </div>
+          </button>
+        );
+      }
       return (
         <div className="space-y-2">
           <button
@@ -395,11 +582,18 @@ function WorkoutPage() {
 
     // ── Custom (table) plan ──
     if (isCustomPlan(plan)) {
-      const todayIdx = todaysPlanIndex(plan.days.length);
+      // The cycle: the user's chosen day, rolled forward by the days elapsed
+      // since they chose it. Never consults the weekday — Day 1 is wherever
+      // the user started, not Monday.
+      const todayIdx = cycleDayIndex(
+        customDayIdx,
+        customDayAnchor,
+        todayLocal(),
+        plan.days.length,
+      );
       const todayDay = plan.days[todayIdx];
       const todayRest = isRestDay(todayDay);
       const todayMuscles = activeMuscles(todayDay);
-      const colCount = tableColumnCount(plan.days);
 
       return (
         <div className="overflow-hidden rounded-2xl border border-accent/25 bg-card shadow-sm">
@@ -423,8 +617,8 @@ function WorkoutPage() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-accent"
-                title="Edit custom plan"
-                onClick={() => navigate({ to: "/custom-plan" })}
+                title="Edit my plan"
+                onClick={() => navigate({ to: "/custom-plan-edit" })}
               >
                 <PencilRuler className="h-4 w-4" />
               </Button>
@@ -462,6 +656,62 @@ function WorkoutPage() {
               )}
             </div>
 
+            {/* Day selector — tap to stage, then confirm below. The row
+                follows whichever day you tap, falling back to today's. */}
+            <ScrollableDayRow activeIdx={pendingDayIdx ?? todayIdx}>
+              {plan.days.map((d, i) => {
+                const isToday = i === todayIdx;
+                const isPending = i === pendingDayIdx && !isToday;
+                return (
+                  <button
+                    key={i}
+                    onClick={() =>
+                      setPendingDayIdx((prev) =>
+                        prev === i || i === todayIdx ? null : i,
+                      )
+                    }
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+                      isToday
+                        ? "bg-accent text-accent-foreground glow-accent-sm"
+                        : isPending
+                          ? "border-2 border-accent text-accent"
+                          : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {d.day}
+                  </button>
+                );
+              })}
+            </ScrollableDayRow>
+
+            {/* Confirm bar — only while a different day is staged */}
+            {pendingDayIdx !== null && pendingDayIdx !== todayIdx && (
+              <div className="animate-in fade-in slide-in-from-top-1 flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/5 p-3 duration-200">
+                <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                  Make{" "}
+                  <span className="font-bold text-foreground">
+                    {plan.days[pendingDayIdx].day}
+                  </span>{" "}
+                  today? Your plan continues from there.
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 shrink-0 text-xs"
+                  onClick={() => setPendingDayIdx(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 shrink-0 bg-accent text-xs text-accent-foreground hover:bg-accent/90"
+                  onClick={() => confirmCustomDay(pendingDayIdx)}
+                >
+                  Confirm
+                </Button>
+              </div>
+            )}
+
             {/* Toggle */}
             <button
               onClick={() => setCustomTableOpen((p) => !p)}
@@ -476,71 +726,12 @@ function WorkoutPage() {
 
             {/* Dynamic-column table */}
             {customTableOpen && (
-              <div className="animate-in fade-in slide-in-from-top-2 overflow-hidden rounded-xl border border-border duration-300">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/30">
-                      <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground">
-                        Days
-                      </th>
-                      {Array.from({ length: colCount }, (_, i) => (
-                        <th
-                          key={i}
-                          className="px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground"
-                        >
-                          Muscle {i + 1}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {plan.days.map((d, i) => {
-                      const act = activeMuscles(d);
-                      const rest = isRestDay(d);
-                      const isToday = i === todayIdx;
-                      return (
-                        <tr
-                          key={d.day}
-                          className={`border-b border-border/50 transition-colors last:border-b-0 ${isToday ? "bg-accent/10" : ""
-                            }`}
-                        >
-                          <td
-                            className={`px-3 py-2.5 font-semibold ${isToday ? "text-accent" : ""
-                              }`}
-                          >
-                            {d.day}
-                            {isToday && (
-                              <span className="ml-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold uppercase text-accent-foreground">
-                                Today
-                              </span>
-                            )}
-                          </td>
-                          {Array.from({ length: colCount }, (_, c) => (
-                            <td key={c} className="px-3 py-2.5">
-                              {rest ? (
-                                c === 0 ? (
-                                  <span className="italic text-muted-foreground">
-                                    Rest Day
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground/40">
-                                    -
-                                  </span>
-                                )
-                              ) : act[c] ? (
-                                <span className="font-medium">{act[c]}</span>
-                              ) : (
-                                <span className="text-muted-foreground/40">
-                                  -
-                                </span>
-                              )}
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <CustomPlanTable
+                  plan={plan}
+                  todayIdx={todayIdx}
+                  onSaveDay={saveCustomDay}
+                />
               </div>
             )}
           </div>
@@ -591,7 +782,7 @@ function WorkoutPage() {
 
         <div className="space-y-4 p-5">
           {/* Day selector */}
-          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+          <ScrollableDayRow activeIdx={planDayIdx}>
             {plan.days.map((d, i) => (
               <button
                 key={i}
@@ -607,7 +798,7 @@ function WorkoutPage() {
                 {i === todayIdx && " · Today"}
               </button>
             ))}
-          </div>
+          </ScrollableDayRow>
 
           <div className="flex items-end justify-between gap-2">
             <div className="min-w-0">
@@ -676,7 +867,14 @@ function WorkoutPage() {
       plan && isCustomPlan(plan)
         ? gridIdsForMuscles(
           activeMuscles(
-            plan.days[todaysPlanIndex(plan.days.length)],
+            plan.days[
+              cycleDayIndex(
+                customDayIdx,
+                customDayAnchor,
+                todayLocal(),
+                plan.days.length,
+              )
+            ],
           ) as StandardMuscle[],
         )
         : new Set<string>();

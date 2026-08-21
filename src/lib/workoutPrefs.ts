@@ -1,7 +1,7 @@
 /**
- * Workout onboarding preferences — stored in user_profiles.workout_prefs
- * (jsonb) with a localStorage fallback + cache, so the app works even
- * before the DB migration has been applied.
+ * Workout onboarding preferences — stored in the public.workout_profile
+ * table (one row per user) with a localStorage fallback + cache, so the
+ * app still works if a DB write/read fails.
  *
  * Used across the app:
  *  - AI plan generation (level, goal, days, duration, muscles/session, lifts)
@@ -28,7 +28,7 @@ export interface WorkoutPrefs {
   cardioActivities: string[]; // "Running" | "Cycling" | "Swimming"
   musclesPerWorkout: 1 | 2 | 3 | "not_sure";
   preferredWorkoutTime: number; // minutes
-  preferredTrainingPlan: "ai_generated" | "library" | "custom";
+  preferredTrainingPlan: "ai_generated" | "library" | "custom" | "skip";
   completedAt?: string;
 }
 
@@ -77,7 +77,49 @@ export const SPLIT_GUIDE: Record<number, string> = {
 
 const lsKey = (userId: string) => `workout_prefs_${userId}`;
 
-/** Save to DB (jsonb column) and localStorage cache. Never throws. */
+/** WorkoutPrefs (app shape) → workout_profile row (DB shape). */
+function toRow(userId: string, prefs: WorkoutPrefs) {
+  return {
+    user_id: userId,
+    fitness_level: prefs.fitnessLevel,
+    fitness_goal: prefs.fitnessGoal,
+    bench_weight_kg: prefs.strongestLifts.benchPress.weight,
+    bench_reps: prefs.strongestLifts.benchPress.reps,
+    squat_weight_kg: prefs.strongestLifts.squat.weight,
+    squat_reps: prefs.strongestLifts.squat.reps,
+    deadlift_weight_kg: prefs.strongestLifts.deadlift.weight,
+    deadlift_reps: prefs.strongestLifts.deadlift.reps,
+    training_days_per_week: prefs.trainingDaysPerWeek,
+    cardio_activities: prefs.cardioActivities,
+    muscles_per_workout: String(prefs.musclesPerWorkout),
+    preferred_workout_time_min: prefs.preferredWorkoutTime,
+    preferred_training_plan: prefs.preferredTrainingPlan,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/** workout_profile row (DB shape) → WorkoutPrefs (app shape). */
+function fromRow(row: any): WorkoutPrefs {
+  const lift = (w: number | null, r: number | null) => ({ weight: w, reps: r });
+  const muscles = row.muscles_per_workout;
+  return {
+    fitnessLevel: row.fitness_level,
+    fitnessGoal: row.fitness_goal,
+    strongestLifts: {
+      benchPress: lift(row.bench_weight_kg, row.bench_reps),
+      squat: lift(row.squat_weight_kg, row.squat_reps),
+      deadlift: lift(row.deadlift_weight_kg, row.deadlift_reps),
+    },
+    trainingDaysPerWeek: row.training_days_per_week,
+    cardioActivities: row.cardio_activities ?? [],
+    musclesPerWorkout: muscles === "not_sure" ? "not_sure" : (Number(muscles) as 1 | 2 | 3),
+    preferredWorkoutTime: row.preferred_workout_time_min,
+    preferredTrainingPlan: row.preferred_training_plan,
+    completedAt: row.completed_at,
+  };
+}
+
+/** Save to DB (workout_profile row) and localStorage cache. Never throws. */
 export async function saveWorkoutPrefs(
   userId: string,
   prefs: WorkoutPrefs,
@@ -89,11 +131,9 @@ export async function saveWorkoutPrefs(
     /* storage full/blocked — DB is still attempted */
   }
   const { error } = await supabase
-    .from("user_profiles")
-    .update({ workout_prefs: payload } as any)
-    .eq("id", userId);
+    .from("workout_profile" as any)
+    .upsert(toRow(userId, prefs) as any, { onConflict: "user_id" });
   if (error) {
-    // Column may not exist yet (migration not run) — localStorage carries it.
     console.warn("[workoutPrefs] DB save failed:", error.message);
     return { dbSaved: false };
   }
@@ -113,15 +153,12 @@ export async function loadWorkoutPrefs(
   }
 
   const { data, error } = await supabase
-    .from("user_profiles")
-    .select("workout_prefs" as any)
-    .eq("id", userId)
+    .from("workout_profile" as any)
+    .select("*")
+    .eq("user_id", userId)
     .maybeSingle();
 
-  const dbPrefs =
-    !error && data && (data as any).workout_prefs
-      ? ((data as any).workout_prefs as WorkoutPrefs)
-      : null;
+  const dbPrefs = !error && data ? fromRow(data) : null;
 
   if (dbPrefs) {
     try {

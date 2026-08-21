@@ -8,6 +8,7 @@ import {
   Library,
   Loader2,
   PencilRuler,
+  SkipForward,
   Sparkles,
   Timer,
 } from "lucide-react";
@@ -295,6 +296,9 @@ Rules:
       } else if (planChoice === "library") {
         sessionStorage.setItem("workout_initial_tab", "HOME");
         toast.success("Preferences saved — browse the library!");
+        navigate({ to: "/workout" });
+      } else if (planChoice === "skip") {
+        toast.success("Preferences saved!");
         navigate({ to: "/workout" });
       } else {
         toast.success("Preferences saved — build your weekly plan!");
@@ -660,6 +664,17 @@ Rules:
                 </span>
                 <span className="mt-1 block text-xs text-muted-foreground">
                   Start empty — pick muscle groups and log as you go.
+                </span>
+              </OptionCard>
+              <OptionCard
+                active={planChoice === "skip"}
+                onClick={() => setPlanChoice("skip")}
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <SkipForward className="h-4 w-4 text-accent" /> Skip & Save
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Just save my answers — I'll set up a plan later.
                 </span>
               </OptionCard>
             </div>

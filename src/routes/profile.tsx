@@ -86,9 +86,37 @@ import {
   resolveGoalKey,
   decomposeGoalKey,
 } from "@/lib/nutrition";
+import {
+  type WorkoutPrefs,
+  FITNESS_LEVELS,
+  FITNESS_GOALS,
+  CARDIO_OPTIONS,
+  saveWorkoutPrefs,
+  loadWorkoutPrefs,
+  getCachedWorkoutPrefs,
+} from "@/lib/workoutPrefs";
+
+/** WorkoutPrefs -> the profile page's wp* draft-field values (edit form + cache seed). */
+function wpFieldValues(p: WorkoutPrefs) {
+  return {
+    level: p.fitnessLevel,
+    goal: p.fitnessGoal,
+    benchW: p.strongestLifts.benchPress.weight ? String(p.strongestLifts.benchPress.weight) : "",
+    benchR: p.strongestLifts.benchPress.reps ? String(p.strongestLifts.benchPress.reps) : "",
+    squatW: p.strongestLifts.squat.weight ? String(p.strongestLifts.squat.weight) : "",
+    squatR: p.strongestLifts.squat.reps ? String(p.strongestLifts.squat.reps) : "",
+    deadliftW: p.strongestLifts.deadlift.weight ? String(p.strongestLifts.deadlift.weight) : "",
+    deadliftR: p.strongestLifts.deadlift.reps ? String(p.strongestLifts.deadlift.reps) : "",
+    days: p.trainingDaysPerWeek,
+    cardio: p.cardioActivities.join(", "),
+    muscles: p.musclesPerWorkout,
+    duration: p.preferredWorkoutTime,
+    planChoice: p.preferredTrainingPlan,
+  };
+}
 
 const PAGE_VALUES: readonly Page[] = [
-  "menu", "details", "theme", "transactions", "pricing",
+  "menu", "details", "workout-details", "theme", "transactions", "pricing",
   "settings", "help", "about", "refer", "achievements",
 ];
 
@@ -139,6 +167,7 @@ const plans = [
 type Page =
   | "menu"
   | "details"
+  | "workout-details"
   | "theme"
   | "transactions"
   | "pricing"
@@ -154,7 +183,8 @@ const MENU_ITEMS: {
   icon: React.ReactNode;
   label: string;
 }[] = [
-  { id: "details",      icon: <User className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Profile details" },
+  { id: "details",         icon: <User className="h-7 w-7 md:h-[26px] md:w-[26px]" />,      label: "Profile details" },
+  { id: "workout-details", icon: <Dumbbell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,   label: "Workout details" },
   { id: "achievements", icon: <Award className="h-7 w-7 md:h-[26px] md:w-[26px]" />,         label: "Achievements" },
   { id: "transactions", icon: <ListOrdered className="h-7 w-7 md:h-[26px] md:w-[26px]" />,   label: "Plan & billing" },
   { id: "theme",        icon: <Palette className="h-7 w-7 md:h-[26px] md:w-[26px]" />,       label: "Theme" },
@@ -221,6 +251,26 @@ function Profile() {
   const [loseRate, setLoseRate] = useState("lose_0_25kg");
   const [saving, setSaving] = useState(false);
   const [theme, setTheme] = useState<string>("dark");
+  const [wp, setWp] = useState<WorkoutPrefs | null>(() =>
+    user ? getCachedWorkoutPrefs(user.id) : null,
+  );
+  const wpInit = wp ? wpFieldValues(wp) : null;
+  const [isEditingWp, setIsEditingWp] = useState(false);
+  const [savingWp, setSavingWp] = useState(false);
+  const [wpLevel, setWpLevel] = useState<WorkoutPrefs["fitnessLevel"]>(wpInit?.level ?? "beginner");
+  const [wpGoal, setWpGoal] = useState<WorkoutPrefs["fitnessGoal"]>(wpInit?.goal ?? "build_muscle");
+  const [wpBenchW, setWpBenchW] = useState(wpInit?.benchW ?? "");
+  const [wpBenchR, setWpBenchR] = useState(wpInit?.benchR ?? "");
+  const [wpSquatW, setWpSquatW] = useState(wpInit?.squatW ?? "");
+  const [wpSquatR, setWpSquatR] = useState(wpInit?.squatR ?? "");
+  const [wpDeadliftW, setWpDeadliftW] = useState(wpInit?.deadliftW ?? "");
+  const [wpDeadliftR, setWpDeadliftR] = useState(wpInit?.deadliftR ?? "");
+  const [wpDays, setWpDays] = useState(wpInit?.days ?? 3);
+  const [wpCardio, setWpCardio] = useState(wpInit?.cardio ?? "");
+  const [wpMuscles, setWpMuscles] = useState<WorkoutPrefs["musclesPerWorkout"]>(wpInit?.muscles ?? "not_sure");
+  const [wpDuration, setWpDuration] = useState(wpInit?.duration ?? 60);
+  const [wpPlanChoice, setWpPlanChoice] =
+    useState<WorkoutPrefs["preferredTrainingPlan"]>(wpInit?.planChoice ?? "ai_generated");
 
   useEffect(() => {
     setTheme(localStorage.getItem("theme") || "dark");
@@ -298,6 +348,28 @@ function Profile() {
       });
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (!user) return;
+    loadWorkoutPrefs(user.id).then((p) => {
+      if (!p) return;
+      setWp(p);
+      const f = wpFieldValues(p);
+      setWpLevel(f.level);
+      setWpGoal(f.goal);
+      setWpBenchW(f.benchW);
+      setWpBenchR(f.benchR);
+      setWpSquatW(f.squatW);
+      setWpSquatR(f.squatR);
+      setWpDeadliftW(f.deadliftW);
+      setWpDeadliftR(f.deadliftR);
+      setWpDays(f.days);
+      setWpCardio(f.cardio);
+      setWpMuscles(f.muscles);
+      setWpDuration(f.duration);
+      setWpPlanChoice(f.planChoice);
+    });
+  }, [user]);
+
   const updateProfile = async () => {
     if (!user || !profile) return;
     const w = +weight || 0;
@@ -358,6 +430,35 @@ function Profile() {
       fiber_target_g: m.fiber,
     });
     setIsEditing(false);
+  };
+
+  const updateWorkoutProfile = async () => {
+    if (!user) return;
+    setSavingWp(true);
+    const lift = (w: string, r: string) => ({ weight: w ? +w : null, reps: r ? +r : null });
+    const prefs: WorkoutPrefs = {
+      fitnessLevel: wpLevel,
+      fitnessGoal: wpGoal,
+      strongestLifts: {
+        benchPress: lift(wpBenchW, wpBenchR),
+        squat: lift(wpSquatW, wpSquatR),
+        deadlift: lift(wpDeadliftW, wpDeadliftR),
+      },
+      trainingDaysPerWeek: wpDays,
+      cardioActivities: wpCardio.split(",").map((c) => c.trim()).filter(Boolean),
+      musclesPerWorkout: wpMuscles,
+      preferredWorkoutTime: wpDuration,
+      preferredTrainingPlan: wpPlanChoice,
+    };
+    const { dbSaved } = await saveWorkoutPrefs(user.id, prefs);
+    setSavingWp(false);
+    if (!dbSaved) {
+      toast.error("Could not save — check your connection");
+      return;
+    }
+    toast.success("Workout details updated");
+    setWp(prefs);
+    setIsEditingWp(false);
   };
 
   if (!user || !profile) {
@@ -711,6 +812,239 @@ function Profile() {
               )}
             </div>
           </section>
+        </main>
+      </div>
+    );
+  }
+
+  /* ─── WORKOUT DETAILS PAGE ─── */
+  if (page === "workout-details") {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <SubHeader
+          title="Workout details"
+          onBack={() => { setIsEditingWp(false); goBack(); }}
+          action={
+            !wp ? null : !isEditingWp ? (
+              <Button
+                size="sm"
+                onClick={() => setIsEditingWp(true)}
+                className="h-8 rounded-xl bg-foreground text-background text-xs font-semibold px-4 hover:opacity-90"
+              >
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setIsEditingWp(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="h-8 text-xs" onClick={updateWorkoutProfile} disabled={savingWp}>
+                  {savingWp ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            )
+          }
+        />
+        <main className="mx-auto max-w-lg px-4 py-6 space-y-6">
+          {!wp ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
+              <Dumbbell className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="mb-1 text-sm font-semibold">You haven't set up your training yet</p>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Answer a few questions on the Workout page to get a personalized plan.
+              </p>
+              <Button size="sm" onClick={() => navigate({ to: "/workout-setup" })} className="rounded-xl">
+                Set up my training
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Training profile */}
+              <section>
+                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+                  Training profile
+                </p>
+                <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
+                  {isEditingWp ? (
+                    <div className="p-4 grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <Label className="text-xs text-muted-foreground">Fitness level</Label>
+                        <Select value={wpLevel} onValueChange={(v) => setWpLevel(v as WorkoutPrefs["fitnessLevel"])}>
+                          <SelectTrigger className="h-9"><SelectValue placeholder="Fitness level" /></SelectTrigger>
+                          <SelectContent>
+                            {FITNESS_LEVELS.map(({ value, label }) => (
+                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <Label className="text-xs text-muted-foreground">Goal</Label>
+                        <Select value={wpGoal} onValueChange={(v) => setWpGoal(v as WorkoutPrefs["fitnessGoal"])}>
+                          <SelectTrigger className="h-9"><SelectValue placeholder="Goal" /></SelectTrigger>
+                          <SelectContent>
+                            {FITNESS_GOALS.map(({ value, label, emoji }) => (
+                              <SelectItem key={value} value={value}>{emoji} {label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Training days/week</Label>
+                        <Select value={String(wpDays)} onValueChange={(v) => setWpDays(+v)}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                              <SelectItem key={n} value={String(n)}>{n} {n === 1 ? "day" : "days"}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Session length</Label>
+                        <Select value={String(wpDuration)} onValueChange={(v) => setWpDuration(+v)}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {[30, 40, 50, 60, 70, 80, 90, 100, 110, 120].map((m) => (
+                              <SelectItem key={m} value={String(m)}>{m} min</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <Label className="text-xs text-muted-foreground">Muscles per session</Label>
+                        <Select
+                          value={String(wpMuscles)}
+                          onValueChange={(v) =>
+                            setWpMuscles((v === "not_sure" ? "not_sure" : +v) as WorkoutPrefs["musclesPerWorkout"])
+                          }
+                        >
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">One</SelectItem>
+                            <SelectItem value="2">Two</SelectItem>
+                            <SelectItem value="3">Three</SelectItem>
+                            <SelectItem value="not_sure">Not sure</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <Label className="text-xs text-muted-foreground">Preferred plan type</Label>
+                        <Select value={wpPlanChoice} onValueChange={(v) => setWpPlanChoice(v as WorkoutPrefs["preferredTrainingPlan"])}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ai_generated">Let AI pick for me</SelectItem>
+                            <SelectItem value="library">Workout library</SelectItem>
+                            <SelectItem value="custom">Build my own</SelectItem>
+                            <SelectItem value="skip">Skip for now</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="col-span-2 text-xs text-muted-foreground">
+                        Changing these won't update a plan you've already generated — build a new
+                        one from the Workout page if you want it to match.
+                      </p>
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <Label className="text-xs text-muted-foreground">Cardio you enjoy (comma-separated)</Label>
+                        <Input
+                          value={wpCardio}
+                          onChange={(e) => setWpCardio(e.target.value)}
+                          placeholder={CARDIO_OPTIONS.slice(0, 3).join(", ")}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <InfoRow
+                        label="Fitness level"
+                        value={FITNESS_LEVELS.find((l) => l.value === wp.fitnessLevel)?.label ?? wp.fitnessLevel}
+                      />
+                      <InfoRow
+                        label="Goal"
+                        value={FITNESS_GOALS.find((g) => g.value === wp.fitnessGoal)?.label ?? wp.fitnessGoal}
+                      />
+                      <div className="grid grid-cols-2 divide-x divide-border">
+                        <InfoCell label="Training days" value={`${wp.trainingDaysPerWeek}/week`} />
+                        <InfoCell label="Session length" value={`${wp.preferredWorkoutTime} min`} />
+                      </div>
+                      <InfoRow
+                        label="Muscles/session"
+                        value={wp.musclesPerWorkout === "not_sure" ? "Not sure" : String(wp.musclesPerWorkout)}
+                      />
+                      <InfoRow
+                        label="Plan type"
+                        value={
+                          wp.preferredTrainingPlan === "ai_generated"
+                            ? "Let AI pick for me"
+                            : wp.preferredTrainingPlan === "library"
+                              ? "Workout library"
+                              : wp.preferredTrainingPlan === "skip"
+                                ? "Skipped for now"
+                                : "Build my own"
+                        }
+                      />
+                      <InfoRow label="Cardio" value={wp.cardioActivities.length ? wp.cardioActivities.join(", ") : "None set"} />
+                    </>
+                  )}
+                </div>
+              </section>
+
+              {/* Strongest lifts */}
+              <section>
+                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+                  Strongest lifts
+                </p>
+                <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
+                  {isEditingWp ? (
+                    <div className="p-4 grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Bench (kg)</Label>
+                        <Input type="number" value={wpBenchW} onChange={(e) => setWpBenchW(e.target.value)} className="h-9" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Bench reps</Label>
+                        <Input type="number" value={wpBenchR} onChange={(e) => setWpBenchR(e.target.value)} className="h-9" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Squat (kg)</Label>
+                        <Input type="number" value={wpSquatW} onChange={(e) => setWpSquatW(e.target.value)} className="h-9" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Squat reps</Label>
+                        <Input type="number" value={wpSquatR} onChange={(e) => setWpSquatR(e.target.value)} className="h-9" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Deadlift (kg)</Label>
+                        <Input type="number" value={wpDeadliftW} onChange={(e) => setWpDeadliftW(e.target.value)} className="h-9" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Deadlift reps</Label>
+                        <Input type="number" value={wpDeadliftR} onChange={(e) => setWpDeadliftR(e.target.value)} className="h-9" />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 divide-x divide-border">
+                        <InfoCell
+                          label="Bench"
+                          value={wp.strongestLifts.benchPress.weight ? `${wp.strongestLifts.benchPress.weight}kg × ${wp.strongestLifts.benchPress.reps ?? "?"}` : "Not set"}
+                        />
+                        <InfoCell
+                          label="Squat"
+                          value={wp.strongestLifts.squat.weight ? `${wp.strongestLifts.squat.weight}kg × ${wp.strongestLifts.squat.reps ?? "?"}` : "Not set"}
+                        />
+                      </div>
+                      <InfoCell
+                        label="Deadlift"
+                        value={wp.strongestLifts.deadlift.weight ? `${wp.strongestLifts.deadlift.weight}kg × ${wp.strongestLifts.deadlift.reps ?? "?"}` : "Not set"}
+                      />
+                    </>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
         </main>
       </div>
     );

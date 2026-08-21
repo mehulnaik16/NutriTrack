@@ -25,3 +25,15 @@ export function daysAgoLocal(n: number): string {
   d.setDate(d.getDate() - n);
   return toLocalISO(d);
 }
+
+/**
+ * Whole days from ISO date `from` to ISO date `to` (positive when `to` is
+ * later). Parses at local midnight and rounds, so a DST day (23h or 25h)
+ * still counts as exactly one day.
+ */
+export function daysBetweenLocal(from: string, to: string): number {
+  const a = new Date(`${from}T00:00:00`);
+  const b = new Date(`${to}T00:00:00`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+}
