@@ -32,6 +32,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { EXERCISES_DB } from "@/lib/exercises";
+import { todayLocal } from "@/lib/dates";
 
 /** Epley formula — estimated one-rep max. */
 const estimate1RM = (weight: number, reps: number): number => {
@@ -122,7 +123,11 @@ export function WorkoutLogHistory() {
   // ── Workout Log (strength only) ──────────────────────────────────
   const strengthLogs = useMemo(() => allLogs.filter((l) => setsOf(l).length > 0), [allLogs]);
   const loggedDates = useMemo(() => [...new Set(strengthLogs.map((l) => l.date))], [strengthLogs]);
-  const activeDate = picked ?? loggedDates[0] ?? null;
+  // Falls back to TODAY, never to loggedDates[0] — that was the most recent
+  // day with a log, so the Today button and the initial view both landed on
+  // the last workout instead of the current date.
+  const activeDate = picked ?? todayLocal();
+  const isToday = activeDate === todayLocal();
 
   /** The active day's strength logs bucketed by muscle group — max 3 groups, per spec. */
   const groups = useMemo(() => {
@@ -165,8 +170,8 @@ export function WorkoutLogHistory() {
   /**
    * Rows to display in the Cardio Log section.
    * Always filtered to activeDate — the same date Workout Log shows.
-   * - No date picked: activeDate = loggedDates[0] (most-recent strength-log date),
-   *   so Cardio Log shows that day's cardio, keeping both sections in sync.
+   * - No date picked: activeDate = today, so Cardio Log shows today's cardio,
+   *   keeping both sections in sync.
    * - Date picked: activeDate = picked, showing all cardio logged that day.
    * Multiple activities on the same date each get their own row.
    */
@@ -193,12 +198,27 @@ export function WorkoutLogHistory() {
       ══════════════════════════════════════════ */}
       <div className="space-y-4">
       {/* ── Sub-header: title + calendar trigger (calendar itself stays hidden) ── */}
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-2xl font-bold tracking-tight">🏋️ Workout Log</h2>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl font-bold tracking-tight">🏋️ Workout Log</h2>
+          <p
+            className={`mt-0.5 truncate text-xs font-bold uppercase tracking-widest ${
+              isToday ? "text-accent" : "text-muted-foreground"
+            }`}
+          >
+            {isToday
+              ? "Today"
+              : new Date(activeDate + "T00:00:00").toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+          </p>
+        </div>
         <button
           onClick={() => setCalOpen(true)}
           aria-label="Open calendar"
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-accent/40 bg-accent/10 text-accent transition-transform active:scale-95"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-accent/40 bg-accent/10 text-accent transition-transform active:scale-95"
         >
           <CalendarDays className="h-5 w-5" />
         </button>

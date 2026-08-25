@@ -19,6 +19,8 @@ import { Slider } from "@/components/ui/slider";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
+import { isValidCode, REFEREE_DISCOUNT_RUPEES } from "@/lib/referral";
+import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
 import {
   activityMultipliers,
   bmiCategory,
@@ -35,11 +37,43 @@ import {
 
 export const Route = createFileRoute("/quiz")({
   component: Quiz,
-  validateSearch: (s: Record<string, unknown>): { step?: number } => {
+  // `ref` carries a friend's invite code. Unlisted params are stripped by the
+  // router, so leaving it out here silently discards every referral link.
+  validateSearch: (s: Record<string, unknown>): { step?: number; ref?: string } => {
     const n = Number(s.step);
-    return Number.isInteger(n) && n >= 1 && n <= 5 ? { step: n } : {};
+    const out: { step?: number; ref?: string } = {};
+    if (Number.isInteger(n) && n >= 1 && n <= 5) out.step = n;
+    const code = typeof s.ref === "string" ? s.ref.trim().toUpperCase() : "";
+    if (isValidCode(code)) out.ref = code;
+    return out;
   },
 });
+
+const REF_STORAGE_KEY = "dombelz.referralCode";
+
+/**
+ * Google OAuth navigates away and back, which loses the search param, so the
+ * code is parked in sessionStorage the moment we see it.
+ */
+function rememberReferralCode(code: string | undefined) {
+  if (!code || typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.setItem(REF_STORAGE_KEY, code);
+  } catch {
+    /* private mode — the in-URL code still works for a same-tab signup */
+  }
+}
+
+function pendingReferralCode(fromSearch?: string): string | null {
+  if (fromSearch) return fromSearch;
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const stored = sessionStorage.getItem(REF_STORAGE_KEY);
+    return isValidCode(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
 
 interface FormData {
   fullName: string;
@@ -60,11 +94,12 @@ function Quiz() {
   const router = useRouter();
   const { user, refreshProfile } = useAuth();
   const isOAuth = !!user;
-  const { step: searchStep } = Route.useSearch();
+  const { step: searchStep, ref: searchRef } = Route.useSearch();
   const step = searchStep ?? 1;
   // Each step is a real history entry: forward pushes, back pops.
   const setStep = (n: number) => routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
   const [submitting, setSubmitting] = useState(false);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const [d, setD] = useState<FormData>({
     fullName: "",
     email: "",
@@ -82,6 +117,26 @@ function Quiz() {
 
   const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setD((p) => ({ ...p, [k]: v }));
+
+  // Park the invite code before any OAuth round-trip can drop it, then resolve
+  // the sender's first name for the gift banner. An unknown code resolves to
+  // null and the quiz simply renders as normal.
+  useEffect(() => {
+    rememberReferralCode(searchRef);
+    const code = pendingReferralCode(searchRef);
+    if (!code) return;
+    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
+    (supabase.rpc as any)("get_referrer_name", { code }).then(
+      ({ data }: { data: string | null }) => {
+        if (!cancelled) setReferrerName(data ?? null);
+      },
+      () => {},
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [searchRef]);
 
   useEffect(() => {
     if (!user) return;
@@ -170,6 +225,21 @@ function Quiz() {
         fiber_target_g: macros.fiber,
       });
       if (pErr) throw pErr;
+
+      // Attribution is best-effort by design: an unknown code, a self-referral
+      // or a second attempt all come back false, and none of them may block an
+      // account that has already been created.
+      const refCode = pendingReferralCode(searchRef);
+      if (refCode) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
+          await (supabase.rpc as any)("claim_referral", { code: refCode });
+          sessionStorage.removeItem(REF_STORAGE_KEY);
+        } catch (refErr) {
+          console.warn("[referral] could not claim code", refErr);
+        }
+      }
+
       // The nav stays hidden until the provider knows a profile exists.
       await refreshProfile();
       toast.success("Account created!");
@@ -199,6 +269,24 @@ function Quiz() {
         <div className="animate-in fade-in slide-in-from-right-4 duration-500">
             {step === 1 && (
               <div className="space-y-6">
+                {referrerName && (
+                  <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
+                    <p className="flex items-center gap-2 font-display text-base font-bold text-accent">
+                      🎁 {referrerName} sent you a gift
+                    </p>
+                    <p className="mt-1.5 text-sm text-muted-foreground">
+                      Sign up and you'll get ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
+                      {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"} plan,
+                      plus a free trial to explore everything.
+                    </p>
+                    <p className="mt-2 text-xs font-medium text-muted-foreground">
+                      Gift code applied:{" "}
+                      <span className="font-display tracking-widest text-accent">
+                        {pendingReferralCode(searchRef)}
+                      </span>
+                    </p>
+                  </div>
+                )}
                 <h2 className="text-3xl font-semibold mb-2">Tell us about you</h2>
                 <p className="text-muted-foreground mb-8 text-sm">
                   {isOAuth

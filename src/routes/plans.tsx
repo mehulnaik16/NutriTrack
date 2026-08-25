@@ -7,46 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { todayLocal } from "@/lib/dates";
+import { PLANS, PLAN_FEATURES, monthlyRate, periodLabel } from "@/lib/plans";
+import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export const Route = createFileRoute("/plans")({ component: Plans });
-
-const plans = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: 299,
-    popular: false,
-    features: [
-      "Food logging (up to 3 meals/day)",
-      "Calorie tracking",
-      "Basic charts",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 599,
-    popular: true,
-    features: [
-      "Unlimited food logging",
-      "Macro tracking (protein, carbs, fats)",
-      "Monthly progress graphs",
-      "Meal history",
-    ],
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    price: 999,
-    popular: false,
-    features: [
-      "Everything in Pro",
-      "AI meal suggestions",
-      "Priority support",
-      "Export data as PDF",
-    ],
-  },
-];
 
 function Plans() {
   const { user } = useAuth();
@@ -79,10 +43,11 @@ function Plans() {
       <div className="relative mx-auto max-w-6xl">
         <div className="mb-8 rounded-2xl border border-accent/30 bg-accent/10 p-5 text-center">
           <div className="mb-1 inline-flex items-center gap-2 text-sm font-bold text-accent">
-            <Sparkles className="h-4 w-4" /> Try any plan FREE for 2 days
+            <Sparkles className="h-4 w-4" /> Try any plan FREE for {BASE_TRIAL_DAYS} days
           </div>
           <p className="text-sm text-muted-foreground">
-            No credit card required. After 2 days, choose a plan to continue.
+            No credit card required. After {BASE_TRIAL_DAYS} days, choose a plan to
+            continue.
           </p>
         </div>
         <div className="mb-10 text-center">
@@ -94,7 +59,7 @@ function Plans() {
           </p>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
-          {plans.map((p) => (
+          {PLANS.map((p) => (
             <Card
               key={p.id}
               className={`card-lift relative border-border/60 ${p.popular ? "border-accent shadow-xl glow-accent-sm md:-translate-y-2" : ""}`}
@@ -110,10 +75,17 @@ function Plans() {
                   <span className="font-display text-4xl font-bold">
                     ₹{p.price}
                   </span>
-                  <span className="text-sm text-muted-foreground">/month</span>
+                  <span className="text-sm text-muted-foreground">
+                    {periodLabel(p.months)}
+                  </span>
                 </div>
+                {p.months > 1 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Works out to ₹{monthlyRate(p)}/month
+                  </p>
+                )}
                 <ul className="mt-6 space-y-3 text-sm">
-                  {p.features.map((f) => (
+                  {PLAN_FEATURES.map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                       <span className="text-muted-foreground">{f}</span>

@@ -82,6 +82,8 @@ export type Database = {
           weight_kg: number | null;
           goal_weight_kg: number | null;
           username: string | null;
+          referral_code: string;
+          bonus_trial_days: number;
         };
         Insert: {
           activity_level?: string | null;
@@ -105,6 +107,9 @@ export type Database = {
           weight_kg?: number | null;
           goal_weight_kg?: number | null;
           username?: string | null;
+          // Assigned by a BEFORE INSERT trigger; never supplied by the client.
+          referral_code?: string;
+          bonus_trial_days?: number;
         };
         Update: {
           activity_level?: string | null;
@@ -128,6 +133,8 @@ export type Database = {
           weight_kg?: number | null;
           goal_weight_kg?: number | null;
           username?: string | null;
+          referral_code?: string;
+          bonus_trial_days?: number;
         };
         Relationships: [];
       };
@@ -330,6 +337,23 @@ export type Database = {
           fiber_g?: number;
           created_at?: string;
         };
+        Relationships: [];
+      };
+      referrals: {
+        // Read-only from the client: RLS grants SELECT only, and every write
+        // goes through the claim_referral / qualify_referral definer functions.
+        Row: {
+          id: string;
+          referrer_id: string;
+          referee_id: string;
+          code_used: string;
+          status: "pending" | "trial" | "subscribed";
+          created_at: string;
+          qualified_at: string | null;
+          subscribed_at: string | null;
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
     };

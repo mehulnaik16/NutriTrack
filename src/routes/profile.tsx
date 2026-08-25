@@ -73,7 +73,22 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { AchievementsPage } from "@/components/Achievements";
+import { ReferAndEarnPage } from "@/components/ReferAndEarn";
+import { SubHeader } from "@/components/SubHeader";
 import { todayLocal } from "@/lib/dates";
+import {
+  PLANS,
+  PLAN_FEATURES,
+  findPlan,
+  monthlyRate,
+  periodLabel,
+} from "@/lib/plans";
+import {
+  BASE_TRIAL_DAYS,
+  isTrialActive,
+  trialDaysLeft,
+  trialEndDate,
+} from "@/lib/trial";
 import {
   calcBMI,
   calcBMR,
@@ -126,44 +141,6 @@ export const Route = createFileRoute("/profile")({
     PAGE_VALUES.includes(s.page as Page) ? { page: s.page as Page } : {},
 });
 
-const plans = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: 299,
-    popular: false,
-    features: [
-      "Food logging (up to 3 meals/day)",
-      "Calorie tracking",
-      "Basic charts",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 599,
-    popular: true,
-    features: [
-      "Unlimited food logging",
-      "Macro tracking (protein, carbs, fats)",
-      "Monthly progress graphs",
-      "Meal history",
-    ],
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    price: 999,
-    popular: false,
-    features: [
-      "Everything in Pro",
-      "AI meal suggestions",
-      "Priority support",
-      "Export data as PDF",
-    ],
-  },
-];
-
 type Page =
   | "menu"
   | "details"
@@ -192,7 +169,7 @@ const MENU_ITEMS: {
   { id: "settings",     icon: <Settings className="h-7 w-7 md:h-[26px] md:w-[26px]" />,      label: "Settings" },
   { id: "help",         icon: <MessageCircle className="h-7 w-7 md:h-[26px] md:w-[26px]" />, label: "Help & support" },
   { id: "about",        icon: <Info className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "About us" },
-  { id: "refer",        icon: <Gift className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Invite friends" },
+  { id: "refer",        icon: <Gift className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Refer & Earn" },
 ];
 
 const FAQS = [
@@ -493,7 +470,7 @@ function Profile() {
   if (page === "help") return <HelpPage onBack={goBack} />;
   if (page === "about") return <AboutPage onBack={goBack} />;
   if (page === "refer")
-    return <ReferPage userId={user.id} onBack={goBack} />;
+    return <ReferAndEarnPage userId={user.id} onBack={goBack} />;
   if (page === "achievements")
     return <AchievementsPage userId={user.id} onBack={goBack} />;
 
@@ -518,14 +495,16 @@ function Profile() {
         <main className="mx-auto max-w-6xl px-4 py-8">
           <div className="mb-8 rounded-2xl bg-accent text-accent-foreground p-5 text-center shadow-lg glow-accent-sm">
             <div className="mb-1 flex items-center justify-center gap-2 text-base font-bold">
-              <Sparkles className="h-5 w-5" /> Try any plan FREE for 2 days
+              <Sparkles className="h-5 w-5" /> Try any plan FREE for{" "}
+              {BASE_TRIAL_DAYS} days
             </div>
             <p className="text-sm font-medium opacity-90">
-              No credit card required. After 2 days, choose a plan to continue.
+              No credit card required. After {BASE_TRIAL_DAYS} days, choose a plan
+              to continue.
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
-            {plans.map((p) => (
+            {PLANS.map((p) => (
               <Card
                 key={p.id}
                 className={`card-lift relative border-border/60 ${p.popular ? "border-accent shadow-xl glow-accent-sm" : ""}`}
@@ -544,10 +523,17 @@ function Profile() {
                   <h3 className="font-display text-xl font-bold">{p.name}</h3>
                   <div className="mt-3 flex items-baseline gap-1">
                     <span className="font-display text-4xl font-bold">₹{p.price}</span>
-                    <span className="text-sm text-muted-foreground">/month</span>
+                    <span className="text-sm text-muted-foreground">
+                      {periodLabel(p.months)}
+                    </span>
                   </div>
+                  {p.months > 1 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Works out to ₹{monthlyRate(p)}/month
+                    </p>
+                  )}
                   <ul className="mt-6 space-y-3 text-sm">
-                    {p.features.map((f) => (
+                    {PLAN_FEATURES.map((f) => (
                       <li key={f} className="flex items-start gap-2.5">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                         <span className="text-muted-foreground">{f}</span>
@@ -1147,18 +1133,12 @@ function TransactionsPage({
   onBack: () => void;
   onPricing: () => void;
 }) {
-  const plan = plans.find((p) => p.id === profile.selected_plan);
-  const trialStart = profile.trial_start_date
-    ? new Date(profile.trial_start_date + "T00:00:00")
-    : null;
-  const trialEnd = trialStart
-    ? new Date(trialStart.getTime() + 2 * 24 * 60 * 60 * 1000)
-    : null;
-  const now = new Date();
-  const trialDaysLeft = trialEnd
-    ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)))
-    : null;
-  const trialActive = trialDaysLeft !== null && trialDaysLeft > 0;
+  const plan = findPlan(profile.selected_plan);
+  // Referral rewards extend the trial, so the length is no longer a constant —
+  // see src/lib/trial.ts, which the Refer & Earn page shares.
+  const bonusDays = profile.bonus_trial_days ?? 0;
+  const daysLeft = trialDaysLeft(profile.trial_start_date, bonusDays);
+  const trialActive = isTrialActive(profile.trial_start_date, bonusDays);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -1187,7 +1167,8 @@ function TransactionsPage({
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    ₹{plan.price}/month after trial
+                    ₹{plan.price}
+                    {periodLabel(plan.months)} after trial
                   </p>
                 </div>
                 <BadgeCheck className="h-6 w-6 text-accent" />
@@ -1209,9 +1190,16 @@ function TransactionsPage({
                   </div>
                   <p className="mt-1 text-sm font-semibold">
                     {trialActive
-                      ? `${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"}`
-                      : (trialEnd?.toISOString().slice(0, 10) ?? "—")}
+                      ? `${daysLeft} day${daysLeft === 1 ? "" : "s"}`
+                      : (trialEndDate(profile.trial_start_date, bonusDays)
+                          ?.toISOString()
+                          .slice(0, 10) ?? "—")}
                   </p>
+                  {bonusDays > 0 && (
+                    <p className="mt-0.5 text-[11px] font-medium text-accent">
+                      +{bonusDays} from referrals
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1868,141 +1856,8 @@ function AboutPage({ onBack }: { onBack: () => void }) {
 }
 
 /* ═══════════════════════════════════════════════════
-   Invite friends (was "Refer & save more")
-══════════════════════════════════════════════════════ */
-function ReferPage({ userId, onBack }: { userId: string; onBack: () => void }) {
-  const code = userId.replace(/-/g, "").slice(0, 8).toUpperCase();
-  const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/quiz?ref=${code}`;
-  const shareText = "I'm tracking my fitness with Dombelz — AI food logging that takes 10 seconds a meal. Join me:";
-  const fullShareMessage = `${shareText} ${shareUrl}`;
-
-  const copy = async (text: string, msg: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(msg);
-    } catch {
-      toast.error("Couldn't copy — select and copy manually");
-    }
-  };
-
-  const share = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Join me on Dombelz",
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch {
-        /* user cancelled */
-      }
-    } else {
-      copy(fullShareMessage, "Invite message copied!");
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-background pb-24">
-      <SubHeader title="Invite friends" onBack={onBack} />
-      <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
-        <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-card p-6 text-center">
-          <div className="pointer-events-none absolute -top-20 left-1/2 h-48 w-80 -translate-x-1/2 rounded-full bg-accent/15 blur-3xl" />
-          <div className="relative">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/15 text-accent">
-              <Gift className="h-8 w-8" />
-            </div>
-            <h2 className="font-display text-xl font-bold">
-              Training is better together
-            </h2>
-            <p className="mx-auto mt-2 max-w-xs text-sm text-muted-foreground">
-              Invite friends to Dombelz and battle it out on the leaderboard.
-            </p>
-
-            <div className="mt-6">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Your invite code
-              </p>
-              <button
-                onClick={() => copy(code, "Code copied!")}
-                className="group inline-flex items-center gap-3 rounded-2xl border-2 border-dashed border-accent/50 bg-accent/5 px-6 py-3 transition-colors hover:border-accent"
-              >
-                <span className="font-display text-2xl font-bold tracking-[0.25em] text-accent">
-                  {code}
-                </span>
-                <Copy className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-accent" />
-              </button>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-              <Button
-                onClick={share}
-                className="h-12 flex-1 gap-2 rounded-xl bg-accent font-bold text-accent-foreground hover:bg-accent/90"
-              >
-                <Share2 className="h-4 w-4" /> Share invite
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => copy(shareUrl, "Link copied!")}
-                className="h-12 flex-1 gap-2 rounded-xl font-semibold"
-              >
-                <Copy className="h-4 w-4" /> Copy link
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <section>
-          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            How it works
-          </p>
-          <div className="space-y-3">
-            {[
-              { n: "1", text: "Share your invite link with a training partner." },
-              { n: "2", text: "They take the quiz and create their account." },
-              { n: "3", text: "Find each other on the leaderboard and compete on streaks." },
-            ].map((s) => (
-              <div
-                key={s.n}
-                className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4"
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 font-display text-sm font-bold text-accent">
-                  {s.n}
-                </span>
-                <p className="text-sm text-muted-foreground">{s.text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
    Sub-components
 ══════════════════════════════════════════════════════ */
-
-function SubHeader({
-  title,
-  onBack,
-  action,
-}: {
-  title: string;
-  onBack: () => void;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h2 className="text-base font-semibold">{title}</h2>
-      </div>
-      {action && <div>{action}</div>}
-    </div>
-  );
-}
 
 function InfoRow({
   label,
