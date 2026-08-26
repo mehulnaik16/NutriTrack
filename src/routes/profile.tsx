@@ -52,6 +52,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import {
+  AGE_YEARS,
+  HEIGHT_CM,
+  WEIGHT_KG,
+  validateMeasurement,
+} from "@/lib/measurements";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -349,14 +355,21 @@ function Profile() {
 
   const updateProfile = async () => {
     if (!user || !profile) return;
-    const w = +weight || 0;
-    const h = +height || 0;
-    const a = +age || 0;
-
-    if (!w || w <= 0 || !h || h <= 0 || !a || a < 16) {
-      toast.error("Age must be at least 16; height and weight must be greater than 0");
+    // Shared bounds, so this page, the Weight page and the quiz sliders all
+    // agree. The old check here only required "greater than 0", which let a
+    // 1 kg weight through and then fed it into BMI, BMR and the calorie target.
+    const weightCheck = validateMeasurement(weight, WEIGHT_KG);
+    const heightCheck = validateMeasurement(height, HEIGHT_CM);
+    const ageCheck = validateMeasurement(age, AGE_YEARS);
+    const failed = [weightCheck, heightCheck, ageCheck].find((c) => !c.ok);
+    if (failed && !failed.ok) {
+      toast.error(failed.error);
       return;
     }
+    if (!weightCheck.ok || !heightCheck.ok || !ageCheck.ok) return;
+    const w = weightCheck.value;
+    const h = heightCheck.value;
+    const a = Math.round(ageCheck.value);
 
     setSaving(true);
     const bmi = calcBMI(w, h);
@@ -664,7 +677,7 @@ function Profile() {
                   <div className="p-4 grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <Label className="text-xs text-muted-foreground">Age</Label>
-                      <Input type="number" value={age} onChange={(e) => setAge(e.target.value)} className="h-9" />
+                      <Input type="number" min={AGE_YEARS.min} max={AGE_YEARS.max} value={age} onChange={(e) => setAge(e.target.value)} className="h-9" />
                     </div>
                     <div className="flex flex-col gap-1">
                       <Label className="text-xs text-muted-foreground">Gender</Label>
@@ -678,11 +691,11 @@ function Profile() {
                     </div>
                     <div className="flex flex-col gap-1">
                       <Label className="text-xs text-muted-foreground">Height (cm)</Label>
-                      <Input type="number" value={height} onChange={(e) => setHeight(e.target.value)} className="h-9" />
+                      <Input type="number" min={HEIGHT_CM.min} max={HEIGHT_CM.max} value={height} onChange={(e) => setHeight(e.target.value)} className="h-9" />
                     </div>
                     <div className="flex flex-col gap-1">
                       <Label className="text-xs text-muted-foreground">Weight (kg)</Label>
-                      <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} className="h-9" />
+                      <Input type="number" step="0.1" min={WEIGHT_KG.min} max={WEIGHT_KG.max} value={weight} onChange={(e) => setWeight(e.target.value)} className="h-9" />
                     </div>
                     <div className="flex flex-col gap-1 col-span-2">
                       <Label className="text-xs text-muted-foreground">Activity Level</Label>

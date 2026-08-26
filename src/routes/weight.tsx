@@ -15,6 +15,11 @@ import {
   CalendarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  GOAL_WEIGHT_KG,
+  WEIGHT_KG,
+  validateMeasurement,
+} from "@/lib/measurements";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -163,6 +168,20 @@ function WeightPage() {
 
   const logWeight = async () => {
     if (!user || !weight) return;
+
+    const w = validateMeasurement(weight, WEIGHT_KG);
+    if (!w.ok) {
+      toast.error(w.error);
+      return;
+    }
+    // The goal field is optional here, but if it has been typed into it is
+    // written by the same update below and has to clear the same bar.
+    const g = goalWeight ? validateMeasurement(goalWeight, GOAL_WEIGHT_KG) : null;
+    if (g && !g.ok) {
+      toast.error(g.error);
+      return;
+    }
+
     setSaving(true);
     try {
       let photo_url: string | null = null;
@@ -178,7 +197,7 @@ function WeightPage() {
       const payload: any = {
         user_id: user.id,
         date: todayLocal(),
-        weight_kg: +weight,
+        weight_kg: w.value,
       };
       
       if (photo_url) payload.photo_url = photo_url;
@@ -194,8 +213,8 @@ function WeightPage() {
       await supabase
         .from("user_profiles")
         .update({
-          weight_kg: +weight,
-          ...(goalWeight ? { goal_weight_kg: +goalWeight } : {}),
+          weight_kg: w.value,
+          ...(g?.ok ? { goal_weight_kg: g.value } : {}),
         })
         .eq("id", user.id);
 
@@ -288,9 +307,16 @@ function WeightPage() {
 
   const saveGoalWeight = async () => {
     if (!user || !goalWeight) return;
+
+    const g = validateMeasurement(goalWeight, GOAL_WEIGHT_KG);
+    if (!g.ok) {
+      toast.error(g.error);
+      return;
+    }
+
     const { error } = await supabase
       .from("user_profiles")
-      .update({ goal_weight_kg: +goalWeight })
+      .update({ goal_weight_kg: g.value })
       .eq("id", user.id);
 
     if (error) {
@@ -490,6 +516,8 @@ function WeightPage() {
                 <Input
                   type="number"
                   step="0.1"
+                  min={WEIGHT_KG.min}
+                  max={WEIGHT_KG.max}
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
                   placeholder="e.g. 82.5"
@@ -501,6 +529,8 @@ function WeightPage() {
                   <Input
                     type="number"
                     step="0.1"
+                    min={GOAL_WEIGHT_KG.min}
+                    max={GOAL_WEIGHT_KG.max}
                     value={goalWeight}
                     onChange={(e) => setGoalWeight(e.target.value)}
                     placeholder="e.g. 75"
