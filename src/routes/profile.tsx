@@ -42,6 +42,7 @@ import {
   Plus,
   X,
   Award,
+  Ruler,
   AlertTriangle,
   Trash2,
 } from "lucide-react";
@@ -73,6 +74,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { AchievementsPage } from "@/components/Achievements";
+import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
 import { SubHeader } from "@/components/SubHeader";
 import { todayLocal } from "@/lib/dates";
@@ -132,7 +134,7 @@ function wpFieldValues(p: WorkoutPrefs) {
 
 const PAGE_VALUES: readonly Page[] = [
   "menu", "details", "workout-details", "theme", "transactions", "pricing",
-  "settings", "help", "about", "refer", "achievements",
+  "settings", "help", "about", "refer", "achievements", "measurements",
 ];
 
 export const Route = createFileRoute("/profile")({
@@ -152,7 +154,8 @@ type Page =
   | "help"
   | "about"
   | "refer"
-  | "achievements";
+  | "achievements"
+  | "measurements";
 
 /* ─── menu items ─── */
 const MENU_ITEMS: {
@@ -163,6 +166,7 @@ const MENU_ITEMS: {
   { id: "details",         icon: <User className="h-7 w-7 md:h-[26px] md:w-[26px]" />,      label: "Profile details" },
   { id: "workout-details", icon: <Dumbbell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,   label: "Workout details" },
   { id: "achievements", icon: <Award className="h-7 w-7 md:h-[26px] md:w-[26px]" />,         label: "Achievements" },
+  { id: "measurements", icon: <Ruler className="h-7 w-7 md:h-[26px] md:w-[26px]" />,         label: "Body measurements" },
   { id: "transactions", icon: <ListOrdered className="h-7 w-7 md:h-[26px] md:w-[26px]" />,   label: "Plan & billing" },
   { id: "theme",        icon: <Palette className="h-7 w-7 md:h-[26px] md:w-[26px]" />,       label: "Theme" },
   { id: "pricing",      icon: <Tag className="h-7 w-7 md:h-[26px] md:w-[26px]" />,           label: "Pricing" },
@@ -473,6 +477,8 @@ function Profile() {
     return <ReferAndEarnPage userId={user.id} onBack={goBack} />;
   if (page === "achievements")
     return <AchievementsPage userId={user.id} onBack={goBack} />;
+  if (page === "measurements")
+    return <BodyMeasurementsPage userId={user.id} onBack={goBack} />;
 
   /* ─── PRICING PAGE ─── */
   if (page === "pricing") {

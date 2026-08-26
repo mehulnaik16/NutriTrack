@@ -14,6 +14,36 @@ export type Database = {
   };
   public: {
     Tables: {
+      body_measurements: {
+        Row: {
+          created_at: string;
+          id: string;
+          measured_at: string;
+          // Storage key -> centimetres, e.g. { "biceps_left": 35.5 }. Keys come
+          // from fieldKey() in src/lib/measurements.ts; the column is sparse, so
+          // readers must tolerate any key being absent.
+          measurements: Json;
+          note: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          measured_at?: string;
+          measurements?: Json;
+          note?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          measured_at?: string;
+          measurements?: Json;
+          note?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       food_logs: {
         Row: {
           calories: number;
