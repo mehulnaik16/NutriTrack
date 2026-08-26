@@ -1,5 +1,19 @@
 # Barcode Scanner Viewfinder Plan
 
+> **STATUS: IMPLEMENTED, 2026-08-26.**
+> Shipped as `src/components/BarcodeScanner.tsx`, replacing the snapshot path
+> in `FoodSearch.tsx` (`captureBarcodePhoto` and its shutter button are gone).
+> Detection is automatic — there is no button to press. The scanline keyframes
+> live in `src/styles.css`.
+>
+> Not done, and deliberately so: Task 4 Step 4 (verifying camera permission in
+> the Capacitor Android shell) cannot be checked yet — `npx cap add android`
+> has never been run, so there is no `android/` directory and no manifest to
+> declare `android.permission.CAMERA` in. This must be re-tested once the
+> native shell is generated; a scanner that works in Chrome and silently fails
+> in the shipped app is the expected failure mode if the WebView permission
+> bridge is not wired.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild the barcode lookup dialog so it scans the way the PhonePe / GPay scanners do — a dark scrim over the live camera with a bright cut-out window, continuous automatic detection with no shutter button, and decoding restricted to the window rather than the whole frame. That last part is the actual "focus point change by reducing the size of the camera" in the request: the decoder stops chewing on the full frame and only reads the small region the user has been told to aim with.

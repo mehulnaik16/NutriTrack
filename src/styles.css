@@ -323,4 +323,23 @@
   .animate-pulse-ring {
     animation: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
+  /* Barcode scanner: the line sweeping the cut-out window. */
+  @keyframes scan-sweep {
+    0% {
+      top: 6%;
+    }
+    100% {
+      top: 94%;
+    }
+  }
+  .scanline {
+    animation: scan-sweep 2s ease-in-out infinite alternate;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scanline {
+      animation: none;
+      top: 50%;
+    }
+  }
 }

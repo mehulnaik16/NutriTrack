@@ -55,7 +55,10 @@ export type Validated =
  * `+""` is 0 and `+"abc"` is NaN, and both would otherwise reach the database
  * as a silently wrong number.
  */
-export function validateMeasurement(raw: string | number, range: Range): Validated {
+export function validateMeasurement(
+  raw: string | number,
+  range: Range,
+): Validated {
   const value = typeof raw === "number" ? raw : parseFloat(String(raw).trim());
 
   if (!Number.isFinite(value)) {

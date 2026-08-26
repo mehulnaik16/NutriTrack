@@ -1,4 +1,3 @@
-import { BrowserMultiFormatReader } from "@zxing/browser";
 import {
   useMemo,
   useRef,
@@ -29,6 +28,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Webcam from "react-webcam";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -549,33 +549,12 @@ export const FoodSearch = forwardRef<
   };
 
   // ── Barcode ──────────────────────────────────────────────────────────────────
-  const barcodeWebcamRef = useRef<Webcam>(null);
-  const [scanningBarcode, setScanningBarcode] = useState(false);
-
-  const captureBarcodePhoto = async () => {
-    const imageSrc = barcodeWebcamRef.current?.getScreenshot();
-    if (!imageSrc) return;
-
-    setScanningBarcode(true);
-    try {
-      const reader = new BrowserMultiFormatReader();
-      const result = await reader.decodeFromImageUrl(imageSrc);
-
-      if (result && result.getText()) {
-        const text = result.getText();
-        setBarcodeVal(text);
-        toast.success(`Scanned: ${text}`);
-      } else {
-        toast.error("Could not find a clear barcode in the image. Try again.");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error(
-        "No barcode detected. Please ensure the barcode is clear and in focus.",
-      );
-    } finally {
-      setScanningBarcode(false);
-    }
+  // Detection lives in BarcodeScanner, which decodes the live video
+  // continuously rather than one screenshot per button press. It hands back a
+  // confirmed code; everything below this point is unchanged lookup logic.
+  const onBarcodeDetected = (code: string) => {
+    setBarcodeVal(code);
+    handleBarcode(code);
   };
 
   const handleBarcode = async (valToLookup = barcodeVal) => {
@@ -1669,26 +1648,9 @@ export const FoodSearch = forwardRef<
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid gap-2">
-              <div className="relative overflow-hidden rounded-lg border-2 border-border bg-black min-h-[250px] flex items-center justify-center">
-                <Webcam
-                  audio={false}
-                  ref={barcodeWebcamRef}
-                  screenshotFormat="image/jpeg"
-                  videoConstraints={{ facingMode: "environment" }}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-4 inset-x-0 flex justify-center">
-                  <button
-                    onClick={captureBarcodePhoto}
-                    disabled={scanningBarcode}
-                    className="h-14 w-14 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg disabled:opacity-50"
-                  >
-                    {scanningBarcode && (
-                      <Loader2 className="h-6 w-6 animate-spin text-accent" />
-                    )}
-                  </button>
-                </div>
-              </div>
+              {barcodeMode && (
+                <BarcodeScanner onDetected={onBarcodeDetected} />
+              )}
             </div>
 
             <div className="relative">
