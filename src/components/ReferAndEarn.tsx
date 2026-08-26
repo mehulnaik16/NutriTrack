@@ -19,13 +19,16 @@ import {
   Check,
   Copy,
   Gift,
+  Link2,
   Lock,
   Mail,
   MessageCircle,
-  MoreHorizontal,
+  MessageSquare,
+  Pencil,
   RotateCcw,
   Share2,
   Sparkles,
+  User,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -69,7 +72,7 @@ const rpc = (fn: string, args?: Record<string, unknown>) =>
 
 const yearly = findPlan(REFERRAL_DISCOUNT_PLAN_ID);
 
-type Platform = "whatsapp" | "sms" | "email" | "more";
+type Platform = "whatsapp" | "sms" | "email" | "copy";
 
 export function ReferAndEarnPage({
   userId,
@@ -83,6 +86,9 @@ export function ReferAndEarnPage({
   const [rows, setRows] = useState<ReferralRow[] | null>(null);
   const [copied, setCopied] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  /** Which tile the user came in on, so the composer opens on their choice. */
+  const [platform, setPlatform] = useState<Platform>("whatsapp");
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,39 +152,62 @@ export function ReferAndEarnPage({
     }
   };
 
-  const send = async (platform: Platform) => {
+  /**
+   * Hand the message off. Nothing here claims the gift was *sent* — once the
+   * message leaves for another app we cannot know it landed, so only the copy
+   * path, which completes here, gets a success toast.
+   */
+  const send = async (target: Platform) => {
     const text = message || defaultMessage;
     if (!text) return;
+    setPlatform(target);
 
-    if (platform === "more") {
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: "A gift for you",
-            text,
-            url: shareUrl,
-          });
-          toast.success("🎁 Gift sent to your friend!");
-        } catch {
-          /* the user backed out of the share sheet */
-        }
-      } else {
-        await copy(text, "🎁 Gift copied — paste it to your friend!");
-      }
+    if (target === "copy") {
+      await copy(text, "🎁 Gift copied — paste it to your friend!");
       setComposerOpen(false);
       return;
     }
 
     const encoded = encodeURIComponent(text);
-    const href =
-      platform === "whatsapp"
-        ? `https://wa.me/?text=${encoded}`
-        : platform === "sms"
-          ? `sms:?body=${encoded}`
-          : `mailto:?subject=${encodeURIComponent("A gift for you 🎁")}&body=${encoded}`;
 
-    window.open(href, "_blank", "noopener,noreferrer");
-    toast.success("🎁 Gift sent to your friend!");
+    if (target === "whatsapp") {
+      // wa.me is https, so a new tab is right: the browser or the Android
+      // WebView hands it to the installed app.
+      const opened = window.open(
+        `https://wa.me/?text=${encoded}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+      if (!opened) {
+        // Popup blocked. The system share sheet beats a dead button.
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "A gift for you",
+              text,
+              url: shareUrl,
+            });
+          } catch {
+            /* the user backed out of the share sheet */
+          }
+        } else {
+          await copy(text, "🎁 Gift copied — paste it to your friend!");
+        }
+      }
+      setComposerOpen(false);
+      return;
+    }
+
+    // ponytail: sms:/mailto: go through window.location, not window.open —
+    // a custom scheme opened with "_blank" is silently dropped by the Capacitor
+    // Android WebView, which is why SMS did nothing before.
+    // ponytail: UA sniff, because iOS wants sms:&body= and everyone else wants
+    // sms:?body=. No feature detect exists; revisit if a third form appears.
+    const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    window.location.href =
+      target === "sms"
+        ? `sms:${iOS ? "&" : "?"}body=${encoded}`
+        : `mailto:?subject=${encodeURIComponent("A gift for you 🎁")}&body=${encoded}`;
     setComposerOpen(false);
   };
 
@@ -236,11 +265,14 @@ export function ReferAndEarnPage({
               {SHARE_BUTTONS.map((b) => (
                 <button
                   key={b.platform}
-                  onClick={() => setComposerOpen(true)}
+                  onClick={() => {
+                    setPlatform(b.platform);
+                    setComposerOpen(true);
+                  }}
                   disabled={!code}
                   className="flex min-h-[64px] flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-1 py-2 transition-colors hover:border-accent/50 disabled:opacity-50"
                 >
-                  <b.icon className="h-5 w-5 text-accent" />
+                  <b.icon className={`h-5 w-5 ${b.tint}`} />
                   <span className="text-[11px] font-medium text-muted-foreground">
                     {b.label}
                   </span>
@@ -462,38 +494,61 @@ export function ReferAndEarnPage({
           </DrawerHeader>
 
           <div className="space-y-4 overflow-y-auto px-4 pb-6">
-            <p className="text-xs text-muted-foreground">
-              Sending as{" "}
-              <span className="font-semibold text-foreground">
-                {fullName ?? "you"}
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/15 text-accent">
+                <User className="h-3.5 w-3.5" />
               </span>
-            </p>
+              <p className="text-xs text-muted-foreground">
+                Sending as{" "}
+                <span className="font-semibold text-foreground">
+                  {fullName ?? "you"}
+                </span>
+              </p>
+            </div>
 
             <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label
-                  htmlFor="gift-message"
-                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                🎁 Your gift message
+              </p>
+
+              {editing ? (
+                <Textarea
+                  id="gift-message"
+                  aria-label="Your gift message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={9}
+                  className="resize-none bg-muted/30 text-sm leading-relaxed"
+                />
+              ) : (
+                <p className="whitespace-pre-wrap rounded-xl border border-l-4 border-warn/30 border-l-warn bg-warn/10 p-4 text-sm leading-relaxed">
+                  {message || defaultMessage}
+                </p>
+              )}
+
+              <div className="mt-2 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 flex-1 gap-1.5 text-xs"
+                  onClick={() => setEditing((e) => !e)}
                 >
-                  Your personal message
-                </label>
+                  <Pencil className="h-3 w-3" />{" "}
+                  {editing ? "Done" : "Edit message"}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1.5 text-xs"
-                  onClick={() => setMessage(defaultMessage)}
+                  className="h-8 flex-1 gap-1.5 text-xs"
+                  onClick={() => {
+                    setMessage(defaultMessage);
+                    setEditing(false);
+                  }}
                   disabled={message === defaultMessage}
                 >
-                  <RotateCcw className="h-3 w-3" /> Reset
+                  <RotateCcw className="h-3 w-3" /> Reset to default
                 </Button>
               </div>
-              <Textarea
-                id="gift-message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={9}
-                className="resize-none bg-muted/30 text-sm leading-relaxed"
-              />
             </div>
 
             <div>
@@ -501,18 +556,26 @@ export function ReferAndEarnPage({
                 Choose where to send it
               </p>
               <div className="grid grid-cols-4 gap-2">
-                {SHARE_BUTTONS.map((b) => (
-                  <button
-                    key={b.platform}
-                    onClick={() => send(b.platform)}
-                    className="flex min-h-[64px] flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-1 py-2 transition-colors hover:border-accent/50"
-                  >
-                    <b.icon className="h-5 w-5 text-accent" />
-                    <span className="text-[11px] font-medium text-muted-foreground">
-                      {b.label}
-                    </span>
-                  </button>
-                ))}
+                {SHARE_BUTTONS.map((b) => {
+                  const selected = b.platform === platform;
+                  return (
+                    <button
+                      key={b.platform}
+                      onClick={() => send(b.platform)}
+                      aria-pressed={selected}
+                      className={`flex min-h-[64px] flex-col items-center justify-center gap-1.5 rounded-xl border bg-card px-1 py-2 transition-colors ${
+                        selected
+                          ? "border-accent ring-2 ring-accent/40"
+                          : "border-border hover:border-accent/50"
+                      }`}
+                    >
+                      <b.icon className={`h-5 w-5 ${b.tint}`} />
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        {b.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -527,15 +590,28 @@ export function ReferAndEarnPage({
   );
 }
 
+/** `tint` carries WhatsApp's brand green as a literal — it is a third party's
+ *  colour, not part of the Dombelz palette, so it earns no theme token. */
 const SHARE_BUTTONS: {
   platform: Platform;
   label: string;
   icon: typeof Mail;
+  tint: string;
 }[] = [
-  { platform: "whatsapp", label: "WhatsApp", icon: MessageCircle },
-  { platform: "sms", label: "SMS", icon: MessageCircle },
-  { platform: "email", label: "Email", icon: Mail },
-  { platform: "more", label: "More", icon: MoreHorizontal },
+  {
+    platform: "whatsapp",
+    label: "WhatsApp",
+    icon: MessageCircle,
+    tint: "text-[#25D366]",
+  },
+  { platform: "sms", label: "SMS", icon: MessageSquare, tint: "text-accent" },
+  { platform: "email", label: "Email", icon: Mail, tint: "text-accent" },
+  {
+    platform: "copy",
+    label: "Copy",
+    icon: Link2,
+    tint: "text-muted-foreground",
+  },
 ];
 
 function Stat({
