@@ -51,6 +51,7 @@ import { toLocalISO } from "@/lib/dates";
 import {
   type IFCTItem,
   ITEMS,
+  defaultQtyFor,
   kcal,
   KJ_PER_KCAL,
   rank,
@@ -587,7 +588,7 @@ export const FoodSearch = forwardRef<
       return;
     }
     setSelected(item);
-    setQty("100");
+    setQty(String(defaultQtyFor(item)));
     setBarcodeMode(false);
     setBarcodeVal("");
     setOpen(true);
@@ -759,6 +760,7 @@ export const FoodSearch = forwardRef<
               }
               onClick={() => {
                 setSelected(it);
+                setQty(String(defaultQtyFor(it)));
                 setQ("");
                 setAiSuggestions([]);
                 setOpen(true);
@@ -1212,6 +1214,24 @@ export const FoodSearch = forwardRef<
                   <MealSelect />
                 </div>
               </div>
+              {/* Menu items come as a portion, so offer that portion directly —
+                  the field still holds grams, which keeps one unit throughout. */}
+              {selected?.serving_g && (
+                <div className="flex items-center gap-2 -mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setQty(String(selected.serving_g))}
+                    className="rounded-full border border-accent/40 px-3 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent/10"
+                  >
+                    1 serving
+                  </button>
+                  <span className="text-xs text-muted-foreground">
+                    {selected.serving_est ? "≈" : ""}
+                    {selected.serving_g} g
+                    {selected.serving_est && " (estimated)"}
+                  </span>
+                </div>
+              )}
               <Button
                 onClick={async () => {
                   const oFib = (

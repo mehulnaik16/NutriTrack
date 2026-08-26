@@ -43,3 +43,9 @@ scratch/
 # Architecture docs
 architecture.md
 apitest.md
+
+# Raw food-data drops. Sources for scripts/build-restaurant-foods.mjs; the
+# zip is ~34MB of the scraper's own node_modules. Only the generated
+# src/data/restaurantFoods.json belongs in the repo.
+/food data.txt
+/zenin-nutrition-scraper-main.zip

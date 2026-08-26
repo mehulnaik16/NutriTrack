@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import {
   type IFCTItem,
+  defaultQtyFor,
   kcal,
   searchFoods,
   aiFoodSearch,
@@ -108,7 +109,7 @@ function MealBuilderPage() {
     }
   };
 
-  const addItem = (item: IFCTItem, grams = 100) => {
+  const addItem = (item: IFCTItem, grams = defaultQtyFor(item)) => {
     const ratio = grams / 100;
     setItems((prev) => [
       ...prev,
@@ -314,7 +315,7 @@ function MealBuilderPage() {
               {allSuggestions.map((it, idx) => (
                 <button
                   key={`${it.code}-${idx}`}
-                  onClick={() => addItem(it, 100)}
+                  onClick={() => addItem(it)}
                   className="flex w-full min-w-0 items-center justify-between border-b border-border px-3 py-3 text-left text-sm transition-colors last:border-b-0 hover:bg-muted"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-2 pr-2">
@@ -431,7 +432,7 @@ function MealBuilderPage() {
               {historyItems.map((item, idx) => (
                 <button
                   key={`hist-${idx}`}
-                  onClick={() => addItem(item, 100)}
+                  onClick={() => addItem(item)}
                   className="flex w-full min-w-0 items-center justify-between px-3 py-3 text-left text-sm transition-colors hover:bg-muted"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-2 pr-2">
