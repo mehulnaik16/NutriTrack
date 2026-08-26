@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { WorkoutGate } from "@/components/WorkoutGate";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -25,8 +26,17 @@ import {
 } from "@/lib/musclePlan";
 
 export const Route = createFileRoute("/custom-plan")({
-  component: CustomPlanBuilder,
+  component: GatedCustomPlanBuilder,
 });
+
+/** Gated: building a plan depends on the questionnaire the gate enforces. */
+function GatedCustomPlanBuilder() {
+  return (
+    <WorkoutGate>
+      <CustomPlanBuilder />
+    </WorkoutGate>
+  );
+}
 
 const TOTAL_DAYS = 7;
 const emptyWeek = (): StandardMuscle[][] =>
