@@ -48,6 +48,7 @@ export const FITNESS_GOALS = [
 
 export const CARDIO_OPTIONS = [
   "Treadmill running",
+  "Outdoor run",
   "Outdoor walk",
   "Cycling",
   "Swimming",
