@@ -94,6 +94,16 @@ import {
 import { HOME_WORKOUTS } from "@/lib/homeWorkouts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { todayLocal } from "@/lib/dates";
+import { exerciseKind } from "@/lib/exerciseKind";
+import {
+  estimate1RM,
+  formatDuration,
+  formatSet,
+  parseDuration,
+  setsOf as readSets,
+  summarizeSets,
+  type LoggedSet,
+} from "@/lib/workoutSets";
 import {
   type WorkoutPrefs as UserWorkoutPrefs,
   defaultLiftForExercise,
@@ -198,11 +208,13 @@ const estimateCardioKcal = (
   return Math.round(met * weightKg * (minutes / 60));
 };
 
-/** Epley formula — estimated one-rep max. */
-const estimate1RM = (weight: number, reps: number): number => {
-  if (!weight || !reps) return 0;
-  if (reps === 1) return weight;
-  return Math.round(weight * (1 + reps / 30) * 10) / 10;
+/** RPE 1-10 → colour band. Purely cosmetic; an unset RPE keeps the default. */
+const rpeColor = (rpe?: number) => {
+  if (!rpe) return "";
+  if (rpe <= 3) return "text-green-500";
+  if (rpe <= 6) return "text-yellow-500";
+  if (rpe <= 8) return "text-orange-500";
+  return "text-red-500";
 };
 
 /**

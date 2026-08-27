@@ -33,13 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { EXERCISES_DB } from "@/lib/exercises";
 import { todayLocal } from "@/lib/dates";
-
-/** Epley formula — estimated one-rep max. */
-const estimate1RM = (weight: number, reps: number): number => {
-  if (!weight || !reps) return 0;
-  if (reps === 1) return weight;
-  return Math.round(weight * (1 + reps / 30) * 10) / 10;
-};
+import { estimate1RM, formatSet, setsOf as readSets } from "@/lib/workoutSets";
 
 /** exercise name (lowercased) → muscle-group key, built once from EXERCISES_DB. */
 const MUSCLE_OF = new Map<string, string>();
@@ -61,18 +55,8 @@ interface Log {
 
 const num = (v: unknown) => parseFloat(String(v ?? "")) || 0;
 
-/**
- * `exercises_done` is jsonb and holds three different shapes:
- *   - logged sets   → [{ weight, reps, unit }]   ← strength logs
- *   - cardio        → { bpm: null }              (an object, not an array)
- *   - plan template → [{ name, sets, reps }]     (exercises, not sets — no weight)
- * Every read goes through here so no caller can trip over the other two.
- */
-const setsOf = (l: Log) => {
-  const raw = l.exercises_done;
-  if (!Array.isArray(raw)) return [];
-  return raw.filter((s) => s && typeof s === "object" && "weight" in s);
-};
+/** Log-shaped wrapper over the shared reader in @/lib/workoutSets. */
+const setsOf = (l: Log) => readSets(l.exercises_done);
 
 /** Returns true when the log is a cardio entry (exercises_done is a plain object). */
 const isCardio = (l: Log) => !Array.isArray(l.exercises_done) && l.duration_min > 0;
