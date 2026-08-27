@@ -305,12 +305,7 @@ export function WorkoutLogHistory() {
                                   className="flex items-center gap-3 text-sm tabular-nums"
                                 >
                                   <span className="w-12 text-muted-foreground">Set {si + 1}</span>
-                                  <span className="w-20 text-right font-bold">
-                                    {num(s.weight)}
-                                    {unit}
-                                  </span>
-                                  <span className="text-muted-foreground">×</span>
-                                  <span className="flex-1 font-bold">{num(s.reps)} reps</span>
+                                  <span className="flex-1 font-bold">{formatSet(s, unit)}</span>
                                   {isPR && (
                                     <span className="flex shrink-0 items-center gap-1 rounded-md bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-black text-amber-400">
                                       <Star className="h-3 w-3 fill-current" /> PR!

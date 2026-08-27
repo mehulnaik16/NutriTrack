@@ -161,6 +161,7 @@ const MUSCLES = [
 
 const CARDIO_ACTIVITIES = [
   "Treadmill running",
+  "Outdoor run",
   "Outdoor walk",
   "Cycling",
   "Swimming",
@@ -183,6 +184,7 @@ const CARDIO_ACTIVITIES = [
  */
 const CARDIO_METS: Record<string, number> = {
   "Treadmill running": 8.3,
+  "Outdoor run": 9.8,
   "Outdoor walk": 3.8,
   Cycling: 7.5,
   Swimming: 7.0,
@@ -1849,15 +1851,21 @@ function WorkoutPage() {
               ) : (
                 <div className="space-y-3">
                   {history.map((log, idx) => {
-                    const logUnit = Array.isArray(log.exercises_done) && log.exercises_done[0]?.unit ? log.exercises_done[0].unit : currentUnit;
-                    const rm = best1RMForLog(log);
+                    const logSets = readSets(log.exercises_done);
+                    const logUnit = logSets[0]?.unit ?? currentUnit;
                     const dateObj = new Date(log.date);
                     dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
-                    
-                    let vol = 0;
-                    if (Array.isArray(log.exercises_done)) {
-                      vol = log.exercises_done.reduce((acc: number, s: any) => acc + (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0), 0);
-                    }
+
+                    // Volume and 1RM only mean anything when the weight is load.
+                    // On an assisted machine it is the opposite, so both stay hidden.
+                    const showLoadStats = kind === "weighted";
+                    const rm = showLoadStats ? best1RMForLog(log) : 0;
+                    const vol = showLoadStats
+                      ? logSets.reduce(
+                          (acc, s) => acc + (parseFloat(s.weight ?? "") || 0) * (parseInt(s.reps ?? "") || 0),
+                          0,
+                        )
+                      : 0;
 
                     return (
                       <div key={idx} className="bg-muted/20 p-4 rounded-xl border border-border/50">
@@ -1883,13 +1891,12 @@ function WorkoutPage() {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          {Array.isArray(log.exercises_done) &&
-                            log.exercises_done.map((set: any, sIdx: number) => (
-                              <div key={sIdx} className="flex justify-between text-sm">
-                                <span className="font-semibold text-muted-foreground">Set {sIdx + 1}</span>
-                                <span className="font-bold">{set.reps} reps @ {set.weight} {set.unit || logUnit}</span>
-                              </div>
-                            ))}
+                          {logSets.map((set, sIdx) => (
+                            <div key={sIdx} className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Set {sIdx + 1}</span>
+                              <span className="font-bold">{formatSet(set, logUnit)}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
@@ -1907,87 +1914,121 @@ function WorkoutPage() {
                 // ── Compute chart data: reverse history to oldest→newest ──
                 const chronological = [...history].reverse();
 
+                /* What "progress" means depends on the exercise: heavier for a
+                   barbell, more reps for a push-up, longer for a plank. */
+                const isLoad = kind === "weighted";
+                const repsOf = (s: LoggedSet) => parseInt(s.reps ?? "") || 0;
+                const weightOf = (s: LoggedSet) => parseFloat(s.weight ?? "") || 0;
+
                 const strengthData = chronological.map((log) => {
-                  const sets = Array.isArray(log.exercises_done)
-                    ? log.exercises_done.filter((s: any) => s && typeof s === "object" && "weight" in s)
-                    : [];
-                  const maxW = sets.reduce((m: number, s: any) => {
-                    const w = parseFloat(s.weight);
-                    if (isNaN(w)) { console.warn('[analytics] bad weight value:', s.weight, 'in log', log.id); return m; }
-                    return Math.max(m, w);
-                  }, 0);
-                  const e1rm = sets.reduce((b: number, s: any) => {
-                    const w = parseFloat(s.weight), r = parseInt(s.reps);
-                    if (isNaN(w) || isNaN(r)) { console.warn('[analytics] bad set data:', s, 'in log', log.id); return b; }
-                    const rm = estimate1RM(w, r);
-                    return rm > b ? rm : b;
-                  }, 0);
-                  return { date: log.date.slice(5), maxWeight: maxW, e1rm };
+                  const sets = readSets(log.exercises_done);
+                  const date = log.date.slice(5);
+                  if (kind === "isometric")
+                    return { date, best: Math.max(0, ...sets.map((s) => s.duration_seconds ?? 0)) };
+                  if (!isLoad) return { date, best: Math.max(0, ...sets.map(repsOf)) };
+                  return {
+                    date,
+                    maxWeight: Math.max(0, ...sets.map(weightOf)),
+                    e1rm: sets.reduce((b, s) => Math.max(b, estimate1RM(weightOf(s), repsOf(s))), 0),
+                  };
                 });
 
                 const volumeData = chronological.map((log) => {
-                  const sets = Array.isArray(log.exercises_done)
-                    ? log.exercises_done.filter((s: any) => s && typeof s === "object" && "weight" in s)
-                    : [];
-                  const vol = sets.reduce((v: number, s: any) => {
-                    const w = parseFloat(s.weight), r = parseInt(s.reps);
-                    if (isNaN(w) || isNaN(r)) { console.warn('[analytics] bad set data:', s, 'in log', log.id); return v; }
-                    return v + w * r;
-                  }, 0);
-                  return { date: log.date.slice(5), volume: vol };
+                  const sets = readSets(log.exercises_done);
+                  const date = log.date.slice(5);
+                  if (kind === "isometric")
+                    return { date, volume: sets.reduce((v, s) => v + (s.duration_seconds ?? 0), 0) };
+                  if (!isLoad) return { date, volume: sets.reduce((v, s) => v + repsOf(s), 0) };
+                  return { date, volume: sets.reduce((v, s) => v + weightOf(s) * repsOf(s), 0) };
                 });
 
-                const unit = currentUnit;
-                const peakE1RM = Math.max(...strengthData.map((d) => d.e1rm), 0);
+                const allSets = chronological.flatMap((log) => readSets(log.exercises_done));
+                const unit = allSets.find((s) => s.unit)?.unit ?? currentUnit;
+                const peakE1RM = Math.max(
+                  0,
+                  ...strengthData.map((d) => ("e1rm" in d ? (d.e1rm ?? 0) : 0)),
+                );
+
+                const progressTitle =
+                  kind === "isometric" ? "Longest Hold" : isLoad ? "Strength Progress" : "Best Set";
+                const volumeTitle =
+                  kind === "isometric" ? "Total time per session" : isLoad ? `Volume over time (${unit})` : "Total reps per session";
+                const record =
+                  kind === "isometric"
+                    ? { label: "Longest Hold", value: formatDuration(Math.max(0, ...allSets.map((s) => s.duration_seconds ?? 0))) }
+                    : !isLoad
+                      ? { label: "Most Reps in a Set", value: `${Math.max(0, ...allSets.map(repsOf))} reps` }
+                      : { label: "Peak Est. 1RM", value: `${peakE1RM} ${unit}` };
+                const fmtY = (v: any) =>
+                  kind === "isometric" ? formatDuration(Number(v) || 0) : String(v);
 
                 return (
                   <div className="space-y-6">
                     {/* ── Chart 1: Strength Progress ── */}
                     <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
                       <h3 className="text-xs font-bold text-muted-foreground mb-4 uppercase tracking-wider">
-                        Strength Progress
+                        {progressTitle}
                       </h3>
                       <div className="h-[180px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <RechartsLineChart data={strengthData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                             <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} padding={{ left: 10, right: 10 }} />
-                            <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} tickFormatter={fmtY} />
                             <Tooltip
                               contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '8px', fontSize: 12 }}
                               itemStyle={{ fontWeight: 'bold' }}
-                              formatter={(v: any, name: string) => [`${v} ${unit}`, name]}
+                              formatter={(v: any, name: string) =>
+                                isLoad
+                                  ? [`${v} ${unit}`, name]
+                                  : [kind === "isometric" ? formatDuration(Number(v) || 0) : `${v} reps`, name]
+                              }
                             />
-                            <Line type="monotone" dataKey="maxWeight" name="Max Weight" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
-                            <Line type="monotone" dataKey="e1rm" name="Est. 1RM" stroke="var(--muted-foreground)" strokeDasharray="5 4" strokeWidth={2} dot={false} />
+                            {isLoad ? (
+                              <>
+                                <Line type="monotone" dataKey="maxWeight" name="Max Weight" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
+                                <Line type="monotone" dataKey="e1rm" name="Est. 1RM" stroke="var(--muted-foreground)" strokeDasharray="5 4" strokeWidth={2} dot={false} />
+                              </>
+                            ) : (
+                              <Line type="monotone" dataKey="best" name={kind === "isometric" ? "Longest Hold" : "Best Set"} stroke="var(--accent)" strokeWidth={2.5} dot={false} />
+                            )}
                           </RechartsLineChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="flex gap-4 mt-3 text-[10px] font-bold uppercase tracking-wider">
-                        <span className="flex items-center gap-1.5">
-                          <span className="inline-block h-0.5 w-5 rounded bg-accent" /> Max Weight
-                        </span>
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className="inline-block h-0.5 w-5 rounded border-dashed border-t-2 border-muted-foreground" /> Est. 1RM
-                        </span>
-                      </div>
+                      {isLoad && (
+                        <div className="flex gap-4 mt-3 text-[10px] font-bold uppercase tracking-wider">
+                          <span className="flex items-center gap-1.5">
+                            <span className="inline-block h-0.5 w-5 rounded bg-accent" /> Max Weight
+                          </span>
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <span className="inline-block h-0.5 w-5 rounded border-dashed border-t-2 border-muted-foreground" /> Est. 1RM
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* ── Chart 2: Volume Over Time ── */}
                     <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
                       <h3 className="text-xs font-bold text-muted-foreground mb-4 uppercase tracking-wider">
-                        Volume over time ({unit})
+                        {volumeTitle}
                       </h3>
                       <div className="h-[180px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <RechartsLineChart data={volumeData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                             <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} padding={{ left: 10, right: 10 }} />
-                            <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                            <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} tickFormatter={fmtY} />
                             <Tooltip
                               contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '8px', fontSize: 12 }}
                               itemStyle={{ fontWeight: 'bold' }}
-                              formatter={(v: any) => [`${v} ${unit}`, 'Volume']}
+                              formatter={(v: any) => [
+                                isLoad
+                                  ? `${v} ${unit}`
+                                  : kind === "isometric"
+                                    ? formatDuration(Number(v) || 0)
+                                    : `${v} reps`,
+                                isLoad ? 'Volume' : kind === "isometric" ? 'Total Time' : 'Total Reps',
+                              ]}
                             />
                             <Line type="monotone" dataKey="volume" name="Volume" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
                           </RechartsLineChart>
@@ -1995,10 +2036,10 @@ function WorkoutPage() {
                       </div>
                     </div>
 
-                    {/* ── Peak e1RM summary ── */}
+                    {/* ── All-time best for this exercise ── */}
                     <div className="text-center pb-2">
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Peak Est. 1RM</p>
-                      <p className="text-2xl font-black text-accent mt-1">{peakE1RM} {unit}</p>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{record.label}</p>
+                      <p className="text-2xl font-black text-accent mt-1">{record.value}</p>
                     </div>
                   </div>
                 );
