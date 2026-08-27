@@ -1392,16 +1392,48 @@ function WorkoutPage() {
   };
 
   const GymLogModal = () => {
-    const [sets, setSets] = useState([{ reps: "10", weight: "20" }]);
+    const [sets, setSets] = useState<LoggedSet[]>([{ reps: "10", weight: "20" }]);
     const [currentUnit, setCurrentUnit] = useState<'kg' | 'lbs'>('kg');
     const [history, setHistory] = useState<any[]>([]);
     const [videos, setVideos] = useState<any[]>([]);
     const [loadingMedia, setLoadingMedia] = useState(false);
 
+    /* Which columns this exercise needs. Anything unclassified is "weighted",
+       which is the table that existed before this feature. */
+    const kind = exerciseKind(selectedExercise);
+    const canAddWeight = kind === "bodyweight" || kind === "isometric";
+
+    /* Remembered per exercise, same convention as workout_favorites. The modal
+       remounts per exercise (selectedExercise drives the Dialog's open), so the
+       lazy initialiser re-reads on every open. */
+    const [addWeight, setAddWeight] = useState(() => {
+      try {
+        const raw = localStorage.getItem("workout_addweight");
+        return !!(raw && JSON.parse(raw)[selectedExercise ?? ""]);
+      } catch {
+        return false;
+      }
+    });
+
+    useEffect(() => {
+      if (!selectedExercise) return;
+      try {
+        const raw = localStorage.getItem("workout_addweight");
+        const map = raw ? JSON.parse(raw) : {};
+        map[selectedExercise] = addWeight;
+        localStorage.setItem("workout_addweight", JSON.stringify(map));
+      } catch {
+        /* private mode — the toggle just won't persist */
+      }
+    }, [addWeight, selectedExercise]);
+
+    const showWeight = kind === "weighted" || kind === "assisted" || (canAddWeight && addWeight);
+    const showRpe = canAddWeight;
+
     const toggleUnit = (toUnit: 'kg' | 'lbs') => {
       if (toUnit === currentUnit) return;
       setSets(prev => prev.map(s => {
-        const w = parseFloat(s.weight) || 0;
+        const w = parseFloat(s.weight ?? "") || 0;
         const converted = toUnit === 'lbs' ? Math.round(w * 2.2) : Math.round(w / 2.2);
         return { ...s, weight: String(converted) };
       }));
@@ -1450,19 +1482,11 @@ function WorkoutPage() {
       setRestTotal(seconds + Math.random()); // unique value re-triggers effect
     };
 
-    // Best estimated 1RM from the sets currently entered
-    const currentBest1RM = sets.reduce((best, s) => {
-      const rm = estimate1RM(parseFloat(s.weight) || 0, parseInt(s.reps) || 0);
-      return rm > best ? rm : best;
-    }, 0);
-
-    const best1RMForLog = (log: any): number => {
-      const exSets = Array.isArray(log?.exercises_done) ? log.exercises_done : [];
-      return exSets.reduce((best: number, s: any) => {
-        const rm = estimate1RM(parseFloat(s.weight) || 0, parseInt(s.reps) || 0);
+    const best1RMForLog = (log: any): number =>
+      readSets(log?.exercises_done).reduce((best: number, s) => {
+        const rm = estimate1RM(parseFloat(s.weight ?? "") || 0, parseInt(s.reps ?? "") || 0);
         return rm > best ? rm : best;
       }, 0);
-    };
 
     const fetchHistory = () => {
       if (!selectedExercise || !user) return;
@@ -1475,14 +1499,16 @@ function WorkoutPage() {
         .order("logged_at", { ascending: false })
         .then(({ data }) => {
           setHistory(data || []);
-          const last = data?.[0]?.exercises_done as any[] | undefined;
-          if (Array.isArray(last) && last.length > 0 && last[0]?.reps) {
-            setSets(
-              last.map((s: any) => ({
-                reps: String(s.reps ?? "10"),
-                weight: String(s.weight ?? "20"),
-              }))
-            );
+          // Prefill from the last session, carrying whatever fields that kind
+          // uses. Falling back per kind matters: seeding a Plank with reps
+          // would leave the duration input empty.
+          const prior = readSets(data?.[0]?.exercises_done);
+          if (prior.length > 0) {
+            setSets(prior.map((s) => ({ ...s })));
+          } else if (kind === "isometric") {
+            setSets([{ duration_seconds: 30 }]);
+          } else if (kind === "bodyweight") {
+            setSets([{ reps: "10" }]);
           } else {
             const lift = defaultLiftForExercise(selectedExercise, prefs);
             if (lift?.weight) {
@@ -1522,13 +1548,28 @@ function WorkoutPage() {
     const handleLog = async () => {
       if (!user) return;
       const t = toast.loading("Logging exercise...");
+      // Only the fields this kind actually uses are written, so readers can
+      // tell a weightless bodyweight set from a 0kg one.
+      const payload: LoggedSet[] = sets.map((s) => ({
+        ...(kind === "isometric"
+          ? { duration_seconds: s.duration_seconds ?? 0 }
+          : { reps: s.reps }),
+        ...(showWeight && s.weight ? { weight: s.weight, unit: currentUnit } : {}),
+        ...(showRpe && s.rpe ? { rpe: s.rpe } : {}),
+        kind,
+      }));
+      const holdSec = payload.reduce((total, s) => total + (s.duration_seconds ?? 0), 0);
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
         date: todayLocal(),
         workout_name: selectedExercise || "",
-        duration_min: sets.length * 3, // rough estimate
+        // Isometrics know their real duration; everything else stays a guess.
+        duration_min:
+          kind === "isometric" ? Math.max(1, Math.round(holdSec / 60)) : sets.length * 3,
         calories_burned: sets.length * 15,
-        exercises_done: sets.map(s => ({ ...s, unit: currentUnit })),
+        // LoggedSet is a closed interface, so it lacks the index signature the
+        // generated Json type wants. The shape is checked above.
+        exercises_done: payload as any,
       });
       if (error) {
         toast.error(`Failed to log: ${error.message}`, { id: t });
@@ -1562,53 +1603,130 @@ function WorkoutPage() {
             </TabsList>
 
             <TabsContent value="log" className="space-y-6 pt-4">
+              {/* Bodyweight and isometric work has no load by default. The
+                  toggle opts into an ADDED weight — a vest, a belt, a dumbbell. */}
+              {canAddWeight && (
+                <div className="-mb-2 flex items-center justify-end gap-2">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider ${
+                      addWeight ? "text-accent" : "text-muted-foreground"
+                    }`}
+                  >
+                    {addWeight ? "+ Weight" : "Bodyweight"}
+                  </span>
+                  <button
+                    role="switch"
+                    aria-checked={addWeight}
+                    aria-label="Add weight"
+                    onClick={() => setAddWeight((v) => !v)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                      addWeight ? "bg-accent" : "bg-muted"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${
+                        addWeight ? "translate-x-[22px]" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+              )}
               <div className="bg-muted/20 p-5 rounded-2xl border border-border/50">
                 <div className="flex gap-2 items-center mb-2 px-2">
                   <div className="w-8 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Set</div>
-                  <div className="flex-1 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Reps</div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="flex bg-muted/50 rounded-md p-0.5 gap-0.5">
-                      {(['kg', 'lbs'] as const).map(u => (
-                        <button
-                          key={u}
-                          onClick={() => toggleUnit(u)}
-                          className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase transition-all ${
-                            currentUnit === u
-                              ? 'bg-accent text-accent-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          {u}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex-1 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    {kind === "isometric" ? "Time" : "Reps"}
                   </div>
+                  {showWeight && (
+                    <div className="flex-1 flex flex-col justify-center">
+                      <div className="flex justify-center">
+                        <div className="flex bg-muted/50 rounded-md p-0.5 gap-0.5">
+                          {(['kg', 'lbs'] as const).map(u => (
+                            <button
+                              key={u}
+                              onClick={() => toggleUnit(u)}
+                              className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase transition-all ${
+                                currentUnit === u
+                                  ? 'bg-accent text-accent-foreground shadow-sm'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                            >
+                              {u}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Without this the number reads as load, when it is the
+                          opposite — assistance that makes the rep easier. */}
+                      {kind === "assisted" && (
+                        <span className="mt-0.5 block text-center text-[8px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Assist
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {showRpe && (
+                    <div className="w-14 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-wider">RPE</div>
+                  )}
                   <div className="w-8"></div>
                 </div>
                 <div className="space-y-2">
                   {sets.map((s, i) => (
                     <div key={i} className="flex gap-2 items-center bg-card p-2 rounded-xl border border-border shadow-sm">
                       <div className="w-8 text-center text-sm font-black text-muted-foreground">{i + 1}.</div>
-                      <Input
-                        type="number"
-                        className="flex-1 text-center text-sm font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
-                        value={s.reps}
-                        onChange={(e) => {
-                          const n = [...sets];
-                          n[i].reps = e.target.value;
-                          setSets(n);
-                        }}
-                      />
-                      <Input
-                        type="number"
-                        className="flex-1 text-center text-sm font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
-                        value={s.weight}
-                        onChange={(e) => {
-                          const n = [...sets];
-                          n[i].weight = e.target.value;
-                          setSets(n);
-                        }}
-                      />
+                      {kind === "isometric" ? (
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0:30"
+                          className="flex-1 text-center text-sm font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                          value={formatDuration(s.duration_seconds ?? 0)}
+                          onChange={(e) => {
+                            const n = [...sets];
+                            n[i] = { ...n[i], duration_seconds: parseDuration(e.target.value) };
+                            setSets(n);
+                          }}
+                        />
+                      ) : (
+                        <Input
+                          type="number"
+                          className="flex-1 text-center text-sm font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                          value={s.reps ?? ""}
+                          onChange={(e) => {
+                            const n = [...sets];
+                            n[i] = { ...n[i], reps: e.target.value };
+                            setSets(n);
+                          }}
+                        />
+                      )}
+                      {showWeight && (
+                        <Input
+                          type="number"
+                          className="flex-1 text-center text-sm font-bold h-10 border-none bg-muted/30 focus-visible:ring-1"
+                          value={s.weight ?? ""}
+                          onChange={(e) => {
+                            const n = [...sets];
+                            n[i] = { ...n[i], weight: e.target.value };
+                            setSets(n);
+                          }}
+                        />
+                      )}
+                      {showRpe && (
+                        <Input
+                          type="number"
+                          min={1}
+                          max={10}
+                          placeholder="–"
+                          className={`w-14 text-center text-sm font-bold h-10 border-none bg-muted/30 focus-visible:ring-1 ${rpeColor(s.rpe)}`}
+                          value={s.rpe ?? ""}
+                          onChange={(e) => {
+                            const n = [...sets];
+                            const v = parseInt(e.target.value);
+                            n[i] = { ...n[i], rpe: isNaN(v) ? undefined : Math.min(10, Math.max(1, v)) };
+                            setSets(n);
+                          }}
+                        />
+                      )}
                       <button
                         onClick={() => {
                           if (sets.length > 1) {
@@ -1624,20 +1742,51 @@ function WorkoutPage() {
                     </div>
                   ))}
                 </div>
+
+                {kind === "isometric" && (
+                  <div className="mt-2 flex gap-2">
+                    {[5, 10, 30, 60].map((inc) => (
+                      <button
+                        key={inc}
+                        onClick={() => {
+                          const n = [...sets];
+                          const last = n.length - 1;
+                          n[last] = { ...n[last], duration_seconds: (n[last].duration_seconds ?? 0) + inc };
+                          setSets(n);
+                        }}
+                        className="flex-1 rounded-xl border border-border py-2 text-[11px] font-bold text-muted-foreground transition-colors hover:border-accent hover:bg-accent/10 hover:text-accent"
+                      >
+                        +{inc < 60 ? `${inc}s` : "1m"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <Button
                   variant="outline"
                   className="w-full mt-4 text-[11px] font-bold border-dashed border-border/50 rounded-xl h-10 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"
-                  onClick={() => setSets([...sets, { reps: "10", weight: sets[sets.length - 1].weight }])}
+                  onClick={() => {
+                    const prev = sets[sets.length - 1];
+                    setSets([
+                      ...sets,
+                      kind === "isometric"
+                        ? { duration_seconds: prev.duration_seconds ?? 30, weight: prev.weight, rpe: prev.rpe }
+                        : { reps: "10", weight: prev.weight, rpe: prev.rpe },
+                    ]);
+                  }}
                 >
                   <Plus className="mr-2 h-3 w-3" /> Add Set
                 </Button>
 
-                {currentBest1RM > 0 && (
-                  <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-accent/10 px-3 py-2 text-[11px] font-bold text-accent">
-                    <LineChart className="h-3.5 w-3.5" />
-                    Est. 1RM from these sets: {currentBest1RM} kg
-                  </div>
-                )}
+                {(() => {
+                  const summary = summarizeSets(kind, sets);
+                  return (
+                    <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-accent/10 px-3 py-2 text-[11px] font-bold text-accent">
+                      <LineChart className="h-3.5 w-3.5" />
+                      {summary.label}: {summary.value}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* ── Rest timer ── */}
