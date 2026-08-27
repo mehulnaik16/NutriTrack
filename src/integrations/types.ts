@@ -57,6 +57,10 @@ export type Database = {
           protein_g: number;
           fiber_g: number;
           quantity_g: number;
+          /** Unit the user typed in; grams stay the basis in quantity_g. */
+          unit: string;
+          /** The number they typed, in `unit`. Null on pre-unit rows. */
+          unit_quantity: number | null;
           user_id: string;
         };
         Insert: {
@@ -71,6 +75,8 @@ export type Database = {
           protein_g?: number;
           fiber_g?: number;
           quantity_g: number;
+          unit?: string;
+          unit_quantity?: number | null;
           user_id: string;
         };
         Update: {
@@ -85,6 +91,8 @@ export type Database = {
           protein_g?: number;
           fiber_g?: number;
           quantity_g?: number;
+          unit?: string;
+          unit_quantity?: number | null;
           user_id?: string;
         };
         Relationships: [];

@@ -1,11 +1,14 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
+  Barcode,
+  Camera,
   ChefHat,
   Heart,
   History,
   Loader2,
+  Mic,
   Plus,
   Search,
   Sparkles,
@@ -16,15 +19,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import {
   type IFCTItem,
+  KJ_PER_KCAL,
   defaultQtyFor,
-  kcal,
+  kcalOf,
   searchFoods,
   aiFoodSearch,
 } from "@/lib/foodDb";
+import { type Unit, defaultUnitFor, toGrams, unitsFor } from "@/lib/foodUnits";
+import {
+  VoiceFoodDialog,
+  type VoiceFoodItem,
+} from "@/components/VoiceFoodDialog";
+import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
+
+// Both carry a camera dependency — react-webcam here, @zxing/* via
+// BarcodeScanner — and neither renders until its button is tapped, so this page
+// never ships a barcode decoder to someone who only types ingredient names.
+const PhotoFoodDialog = lazy(() =>
+  import("@/components/PhotoFoodDialog").then((m) => ({
+    default: m.PhotoFoodDialog,
+  })),
+);
+const ScanFoodDialog = lazy(() =>
+  import("@/components/ScanFoodDialog").then((m) => ({
+    default: m.ScanFoodDialog,
+  })),
+);
 
 export const Route = createFileRoute("/meal-builder")({
   component: MealBuilderPage,
@@ -32,6 +63,12 @@ export const Route = createFileRoute("/meal-builder")({
 
 interface BuilderItem {
   name: string;
+  /** Catalog identity, so the unit converter can find piece weight and density. */
+  code: string;
+  grup: string;
+  /** What the user typed, and in which unit. quantity_g stays the basis. */
+  unit: Unit;
+  unit_qty: number;
   quantity_g: number;
   calories: number;
   protein_g: number;
@@ -45,6 +82,31 @@ interface BuilderItem {
   base_fiber_g: number;
 }
 
+/**
+ * Voice items quote absolute macros for their own quantity; ingredients store
+ * per-100 g bases so `rescale` can re-derive them, so divide the quantity back
+ * out. A quantity of 0 or less yields all-zero bases rather than Infinity — the
+ * row lands editable instead of rendering NaN and poisoning the totals.
+ *
+ * `code: "ai"` matches what the photo flow synthesises: no piece weight, so no
+ * `pcs` unit, and no density, so volume units behave as water.
+ */
+const voiceToItem = (v: VoiceFoodItem): IFCTItem => {
+  const per100 = v.quantity_g > 0 ? 100 / v.quantity_g : 0;
+  return {
+    code: "ai",
+    name: v.food_name,
+    scie: "",
+    lang: "",
+    grup: "AI",
+    enerc: v.calories * per100 * KJ_PER_KCAL,
+    protcnt: v.protein_g * per100,
+    fatce: v.fat_g * per100,
+    choavldf: v.carbs_g * per100,
+    fibtg: (v.fiber_g || 0) * per100,
+  };
+};
+
 function MealBuilderPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -57,6 +119,9 @@ function MealBuilderPage() {
   const [aiSearching, setAiSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -109,48 +174,67 @@ function MealBuilderPage() {
     }
   };
 
-  const addItem = (item: IFCTItem, grams = defaultQtyFor(item)) => {
+  /** Rescale one item's macros from its per-100 g bases and its entered amount. */
+  const rescale = (
+    item: BuilderItem,
+    unit: Unit,
+    unitQty: number | "",
+  ): BuilderItem => {
+    const grams = toGrams(+unitQty || 0, unit, item);
     const ratio = grams / 100;
-    setItems((prev) => [
-      ...prev,
-      {
-        name: item.name,
-        quantity_g: grams,
-        calories: +(kcal(item.enerc) * ratio).toFixed(1),
-        protein_g: +((item.protcnt ?? 0) * ratio).toFixed(1),
-        carbs_g: +((item.choavldf ?? 0) * ratio).toFixed(1),
-        fat_g: +((item.fatce ?? 0) * ratio).toFixed(1),
-        fiber_g: +((item.fibtg ?? 0) * ratio).toFixed(1),
-        base_calories: kcal(item.enerc),
-        base_protein_g: item.protcnt ?? 0,
-        base_carbs_g: item.choavldf ?? 0,
-        base_fat_g: item.fatce ?? 0,
-        base_fiber_g: item.fibtg ?? 0,
-      },
-    ]);
+    return {
+      ...item,
+      unit,
+      unit_qty: unitQty as number,
+      quantity_g: grams,
+      calories: +(item.base_calories * ratio).toFixed(1),
+      protein_g: +(item.base_protein_g * ratio).toFixed(1),
+      carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
+      fat_g: +(item.base_fat_g * ratio).toFixed(1),
+      fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
+    };
+  };
+
+  const addItem = (item: IFCTItem, grams = defaultQtyFor(item)) => {
+    const unit = defaultUnitFor(item);
+    const unitQty = unit === "pcs" ? 1 : grams;
+    const base: BuilderItem = {
+      name: item.name,
+      code: item.code,
+      grup: item.grup,
+      unit,
+      unit_qty: unitQty,
+      quantity_g: 0,
+      calories: 0,
+      protein_g: 0,
+      carbs_g: 0,
+      fat_g: 0,
+      fiber_g: 0,
+      base_calories: kcalOf(item),
+      base_protein_g: item.protcnt ?? 0,
+      base_carbs_g: item.choavldf ?? 0,
+      base_fat_g: item.fatce ?? 0,
+      base_fiber_g: item.fibtg ?? 0,
+    };
+    setItems((prev) => [...prev, rescale(base, unit, unitQty)]);
     setAiSuggestions([]);
     setQuery("");
   };
 
-  const updateQuantity = (i: number, raw: string) => {
-    const newQty = raw === "" ? ("" as unknown as number) : +raw;
-    const calcQty = +newQty || 0;
-    const ratio = calcQty / 100;
-    setItems((prev) => {
-      const copy = [...prev];
-      const item = copy[i];
-      copy[i] = {
-        ...item,
-        quantity_g: newQty,
-        calories: +(item.base_calories * ratio).toFixed(1),
-        protein_g: +(item.base_protein_g * ratio).toFixed(1),
-        carbs_g: +(item.base_carbs_g * ratio).toFixed(1),
-        fat_g: +(item.base_fat_g * ratio).toFixed(1),
-        fiber_g: +(item.base_fiber_g * ratio).toFixed(1),
-      };
-      return copy;
-    });
-  };
+  const updateQuantity = (i: number, raw: string) =>
+    setItems((prev) =>
+      prev.map((it, n) =>
+        n === i ? rescale(it, it.unit, raw === "" ? "" : +raw) : it,
+      ),
+    );
+
+  /** Re-default the amount on a unit change, as the food log dialog does. */
+  const updateUnit = (i: number, unit: Unit) =>
+    setItems((prev) =>
+      prev.map((it, n) =>
+        n === i ? rescale(it, unit, unit === "g" || unit === "ml" ? 100 : 1) : it,
+      ),
+    );
 
   const updateMacro = (
     i: number,
@@ -328,7 +412,7 @@ function MealBuilderPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground">
-                      {kcal(it.enerc).toFixed(0)} kcal/100g
+                      {kcalOf(it).toFixed(0)} kcal/100g
                     </span>
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20 text-accent">
                       <Plus className="h-3.5 w-3.5" />
@@ -338,6 +422,30 @@ function MealBuilderPage() {
               ))}
             </div>
           )}
+
+          {/* Same three quick-add flows as the Log Food screen; here each result
+              becomes an ingredient instead of a diary entry. */}
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                ["Photo", Camera, () => setPhotoOpen(true)],
+                ["Voice", Mic, () => setVoiceOpen(true)],
+                ["Scan", Barcode, () => setScanOpen(true)],
+              ] as const
+            ).map(([label, Icon, onClick]) => (
+              <Button
+                key={label}
+                variant="outline"
+                onClick={onClick}
+                className="h-12 flex-col gap-0.5 rounded-xl border-border bg-card px-2 hover:bg-muted hover:text-foreground"
+              >
+                <Icon className="text-accent" />
+                <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  {label}
+                </span>
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* ── Ingredients ── */}
@@ -371,13 +479,33 @@ function MealBuilderPage() {
                       <div className="flex shrink-0 items-center gap-1 rounded-md border border-accent/20 bg-accent/10 px-2 py-1">
                         <Input
                           type="number"
-                          value={item.quantity_g}
+                          inputMode="decimal"
+                          value={item.unit_qty}
                           onChange={(e) => updateQuantity(i, e.target.value)}
                           className="h-5 w-14 border-none bg-transparent px-0 py-0 text-center text-xs font-bold shadow-none focus-visible:ring-0"
                         />
-                        <span className="text-[10px] font-bold uppercase text-accent">
-                          g
-                        </span>
+                        <Select
+                          value={item.unit}
+                          onValueChange={(u) => updateUnit(i, u as Unit)}
+                        >
+                          <SelectTrigger
+                            aria-label="Unit"
+                            className="h-5 w-[52px] border-none bg-transparent px-1 py-0 text-[10px] font-bold uppercase text-accent shadow-none focus:ring-0"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {unitsFor(item).map((u) => (
+                              <SelectItem
+                                key={u}
+                                value={u}
+                                className="min-h-[44px]"
+                              >
+                                {u}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -448,6 +576,42 @@ function MealBuilderPage() {
           </div>
         )}
       </main>
+
+      {/* ── Quick add ── each result becomes an ingredient, nothing is logged. */}
+      {photoOpen && (
+        <Suspense fallback={null}>
+          <PhotoFoodDialog
+            open
+            onOpenChange={setPhotoOpen}
+            confirmLabel="Add this food"
+            onConfirm={({ item, grams }: PhotoFoodResult) => {
+              addItem(item, grams);
+              setPhotoOpen(false);
+            }}
+          />
+        </Suspense>
+      )}
+
+      <VoiceFoodDialog
+        open={voiceOpen}
+        onOpenChange={setVoiceOpen}
+        confirmVerb="Add"
+        onConfirm={(spoken) => {
+          // addItem uses a functional updater, so N calls in one handler all land.
+          spoken.forEach((v) => addItem(voiceToItem(v), v.quantity_g));
+          setVoiceOpen(false);
+        }}
+      />
+
+      {scanOpen && (
+        <Suspense fallback={null}>
+          <ScanFoodDialog
+            open
+            onOpenChange={setScanOpen}
+            onFound={(item) => addItem(item)}
+          />
+        </Suspense>
+      )}
 
       {/* ── Sticky totals + save bar ── */}
       <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl">

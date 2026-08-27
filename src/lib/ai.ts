@@ -18,7 +18,7 @@ import { requireSupabaseAuth } from "@/integrations/auth-middleware";
 
 const rateLimits = new Map<string, { count: number; expiresAt: number }>();
 
-function checkRateLimit(userId: string) {
+export function checkRateLimit(userId: string) {
   const now = Date.now();
   const record = rateLimits.get(userId);
 

@@ -4,8 +4,13 @@
  * The bundled IFCT 2017 dataset covers mostly raw ingredients; this file
  * fills the gap with cooked dishes, street food, beverages, and packaged
  * staples people actually log. Values are typical figures cross-checked
- * against standard nutrition references — portion hints are embedded in
- * the name so users can convert (e.g. "1 roti = 40g").
+ * against standard nutrition references.
+ *
+ * Portion hints used to be embedded in the name ("Roti / Chapati (1 medium =
+ * 40g)") so users could convert by hand. Countable foods now carry their piece
+ * weight in `PIECE_G` in `lib/foodUnits.ts` and are logged in pieces directly,
+ * so those names are plain. Rows that still spell a portion out are ones with
+ * no piece weight yet.
  *
  * enerc is stored in kJ (kcal × 4.184) to match the IFCT schema.
  */
@@ -36,7 +41,11 @@ const f = (
   c: number,
   fib: number,
 ): ExtraFoodItem => ({
-  code,
+  // Prefixed because IFCT already uses bare E-codes for fruits — its E004 is an
+  // apple, not an idli — and `ITEMS` merges both lists. A shared code makes the
+  // two rows indistinguishable to anything that looks a food up by code, which
+  // is how piece weights and densities are keyed.
+  code: `X${code}`,
   name,
   scie: "",
   lang: "",
@@ -53,33 +62,33 @@ export const EXTRA_FOODS: ExtraFoodItem[] = [
   f("E001", "Obbattu / Puran Poli (1 piece = 80g)", "Indian Sweets", 320, 7.2, 10.5, 49.3, 3.5),
   f("E002", "Idli and Chutney", "Combo Meals", 120, 3.5, 2.1, 21.0, 1.5),
   f("E003", "Rice and Sambar", "Combo Meals", 110, 3.0, 1.5, 20.0, 1.2),
-  f("E004", "Idli (1 medium = 50g)", "Breakfast", 90, 2.5, 0.2, 19.5, 0.8),
-  f("E005", "Dosa (1 medium = 100g)", "Breakfast", 160, 3.2, 3.5, 28.0, 1.2),
+  f("E004", "Idli", "Breakfast", 90, 2.5, 0.2, 19.5, 0.8),
+  f("E005", "Dosa", "Breakfast", 160, 3.2, 3.5, 28.0, 1.2),
   f("E006", "Parotta (1 piece = 100g)", "Breakfast", 320, 5.5, 14.5, 42.0, 1.5),
-  f("E007", "Whole Egg (1 large = 50g)", "Protein", 143, 12.6, 9.5, 0.7, 0),
+  f("E007", "Whole Egg", "Protein", 143, 12.6, 9.5, 0.7, 0),
 
   // ── Breakfast & tiffin ──────────────────────────────────────
   f("E010", "Poha (cooked)", "Breakfast", 130, 2.6, 3.5, 22, 1.2),
   f("E011", "Upma (cooked)", "Breakfast", 155, 3.5, 5.5, 22, 1.5),
   f("E012", "Vermicelli Upma / Sevai", "Breakfast", 140, 3.0, 4.0, 23, 1.2),
-  f("E013", "Masala Dosa (1 = 180g)", "Breakfast", 180, 3.5, 7.0, 25, 1.5),
+  f("E013", "Masala Dosa", "Breakfast", 180, 3.5, 7.0, 25, 1.5),
   f("E014", "Uttapam (1 = 120g)", "Breakfast", 160, 4.5, 4.5, 25, 1.5),
-  f("E015", "Aloo Paratha (1 = 120g)", "Breakfast", 250, 5.0, 10.0, 34, 2.5),
-  f("E016", "Plain Paratha (1 = 80g)", "Breakfast", 300, 6.0, 12.0, 42, 2.5),
+  f("E015", "Aloo Paratha", "Breakfast", 250, 5.0, 10.0, 34, 2.5),
+  f("E016", "Plain Paratha", "Breakfast", 300, 6.0, 12.0, 42, 2.5),
   f("E017", "Besan Chilla (1 = 60g)", "Breakfast", 180, 8.0, 8.0, 18, 3.0),
   f("E018", "Oats Porridge with Milk", "Breakfast", 100, 3.8, 3.0, 14, 1.5),
   f("E019", "Cornflakes with Milk", "Breakfast", 120, 3.5, 2.5, 21, 0.8),
   f("E020", "White Bread (1 slice = 25g)", "Breakfast", 265, 8.0, 3.5, 49, 2.5),
   f("E021", "Brown Bread (1 slice = 28g)", "Breakfast", 250, 9.0, 3.5, 43, 4.0),
   f("E022", "Bread Omelette (1 = 150g)", "Breakfast", 210, 9.5, 10.0, 20, 1.2),
-  f("E023", "Medu Vada (1 = 60g)", "Breakfast", 245, 7.5, 12.0, 27, 2.5),
+  f("E023", "Medu Vada", "Breakfast", 245, 7.5, 12.0, 27, 2.5),
 
   // ── Breads ──────────────────────────────────────────────────
-  f("E030", "Roti / Chapati (1 medium = 40g)", "Breads", 300, 9.0, 7.0, 48, 5.0),
-  f("E031", "Naan (1 = 90g)", "Breads", 310, 9.0, 9.0, 48, 2.0),
-  f("E032", "Butter Naan (1 = 100g)", "Breads", 340, 8.5, 12.0, 47, 2.0),
+  f("E030", "Roti / Chapati", "Breads", 300, 9.0, 7.0, 48, 5.0),
+  f("E031", "Naan", "Breads", 310, 9.0, 9.0, 48, 2.0),
+  f("E032", "Butter Naan", "Breads", 340, 8.5, 12.0, 47, 2.0),
   f("E033", "Tandoori Roti (1 = 55g)", "Breads", 280, 9.5, 3.5, 54, 4.5),
-  f("E034", "Puri (1 = 40g)", "Breads", 380, 6.5, 18.0, 46, 2.0),
+  f("E034", "Puri", "Breads", 380, 6.5, 18.0, 46, 2.0),
   f("E035", "Bhatura (1 = 90g)", "Breads", 330, 7.5, 14.0, 42, 1.8),
 
   // ── Rice & grains (cooked) ──────────────────────────────────
@@ -127,13 +136,13 @@ export const EXTRA_FOODS: ExtraFoodItem[] = [
   f("E090", "Tandoori Chicken (1 leg = 100g)", "Protein", 185, 24.0, 9.0, 2, 0.5),
 
   // ── Snacks & street food ────────────────────────────────────
-  f("E100", "Samosa (1 = 100g)", "Snacks", 308, 5.0, 17.0, 32, 2.5),
+  f("E100", "Samosa", "Snacks", 308, 5.0, 17.0, 32, 2.5),
   f("E101", "Vada Pav (1 = 130g)", "Snacks", 290, 6.0, 12.0, 39, 2.5),
   f("E102", "Pav Bhaji (1 plate ≈ 300g)", "Snacks", 130, 3.0, 6.0, 16, 2.2),
   f("E103", "Veg Pakora", "Snacks", 315, 7.0, 19.0, 29, 3.0),
   f("E104", "Dhokla", "Snacks", 160, 6.0, 5.0, 22, 1.8),
   f("E105", "Bhel Puri", "Snacks", 170, 4.0, 6.0, 25, 2.2),
-  f("E106", "Pani Puri (6 pcs = 90g)", "Snacks", 220, 4.0, 8.0, 32, 1.8),
+  f("E106", "Pani Puri / Gol Gappa", "Snacks", 220, 4.0, 8.0, 32, 1.8),
   f("E107", "Veg Momos (1 = 35g, steamed)", "Snacks", 100, 3.5, 2.5, 16, 1.0),
   f("E108", "Maggi Noodles (cooked, 1 pack ≈ 300g)", "Snacks", 135, 3.0, 5.0, 19, 0.8),
   f("E109", "Roasted Makhana", "Snacks", 350, 9.7, 0.5, 77, 7.6),
@@ -154,11 +163,11 @@ export const EXTRA_FOODS: ExtraFoodItem[] = [
   f("E125", "Chicken Shawarma Roll (1 = 180g)", "Fast Food", 200, 12.0, 8.0, 20, 1.5),
 
   // ── Sweets ──────────────────────────────────────────────────
-  f("E130", "Gulab Jamun (1 = 40g)", "Indian Sweets", 320, 4.0, 12.0, 48, 0.5),
+  f("E130", "Gulab Jamun", "Indian Sweets", 320, 4.0, 12.0, 48, 0.5),
   f("E131", "Jalebi", "Indian Sweets", 380, 3.0, 15.0, 58, 0.3),
   f("E132", "Rice Kheer", "Indian Sweets", 145, 3.5, 5.0, 21, 0.3),
   f("E133", "Besan Ladoo (1 = 30g)", "Indian Sweets", 450, 10.0, 22.0, 53, 3.0),
-  f("E134", "Rasgulla (1 = 40g)", "Indian Sweets", 186, 4.0, 1.5, 40, 0),
+  f("E134", "Rasgulla", "Indian Sweets", 186, 4.0, 1.5, 40, 0),
   f("E135", "Vanilla Ice Cream (1 scoop = 65g)", "Indian Sweets", 207, 3.5, 11.0, 24, 0.5),
 
   // ── Beverages (per 100 ml) ──────────────────────────────────
@@ -182,7 +191,7 @@ export const EXTRA_FOODS: ExtraFoodItem[] = [
   f("E163", "Cheese Slice (1 = 20g)", "Dairy & Fats", 310, 18.0, 25.0, 3.5, 0),
 
   // ── Fruits (with piece hints) ───────────────────────────────
-  f("E170", "Banana (1 medium = 120g)", "Fruits", 89, 1.1, 0.3, 23, 2.6),
+  f("E170", "Banana", "Fruits", 89, 1.1, 0.3, 23, 2.6),
   f("E171", "Apple (1 medium = 180g)", "Fruits", 52, 0.3, 0.2, 14, 2.4),
   f("E172", "Mango (1 cup cubes = 165g)", "Fruits", 60, 0.8, 0.4, 15, 1.6),
   f("E173", "Orange (1 = 130g)", "Fruits", 47, 0.9, 0.1, 12, 2.4),

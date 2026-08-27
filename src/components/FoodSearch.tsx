@@ -5,6 +5,8 @@ import {
   forwardRef,
   useImperativeHandle,
   useEffect,
+  lazy,
+  Suspense,
 } from "react";
 import {
   Search,
@@ -12,23 +14,13 @@ import {
   Loader2,
   Camera,
   Barcode,
-  X,
-  ScanLine,
   Mic,
-  MicOff,
   PenTool,
-  Flame,
-  ArrowRight,
   Heart,
-  Clock,
   Trash2,
-  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import Webcam from "react-webcam";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -46,134 +38,42 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
-import { serverGroqVision, serverGroqChat, serverAiFoodSearchInline } from "@/lib/ai";
+import { serverAiFoodSearchInline } from "@/lib/ai";
 import { toLocalISO } from "@/lib/dates";
 import {
   type IFCTItem,
   ITEMS,
   defaultQtyFor,
-  kcal,
+  kcalOf,
   KJ_PER_KCAL,
   rank,
 } from "@/lib/foodDb";
+import {
+  type Unit,
+  defaultUnitFor,
+  pieceGrams,
+  toGrams,
+  unitsFor,
+  validateQuantity,
+} from "@/lib/foodUnits";
+import {
+  VoiceFoodDialog,
+  type VoiceFoodItem,
+} from "@/components/VoiceFoodDialog";
+import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
 
-interface AIFoodResult {
-  food_name: string;
-  estimated_weight_g: number;
-  calories_per_100g: number;
-  protein_per_100g: number;
-  carbs_per_100g: number;
-  fat_per_100g: number;
-  fiber_per_100g?: number;
-  confidence: "high" | "medium" | "low";
-  notes: string;
-}
-
-interface VoiceFoodItem {
-  food_name: string;
-  quantity_g: number;
-  unit?: string;
-  unit_quantity?: number;
-  meal_type: string;
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  fiber_g: number;
-}
-
-// ── AI image recognition via Groq qwen/qwen3.6-27b vision ───────────────────
-async function recognizeFoodFromImage(
-  base64: string,
-  mimeType: "image/jpeg" | "image/png" | "image/webp",
-): Promise<AIFoodResult> {
-  const prompt = `You are a nutrition expert. Analyze this food photo and return ONLY valid JSON, no markdown:
-{
-  "food_name": "specific food name",
-  "estimated_weight_g": number,
-  "calories_per_100g": number,
-  "protein_per_100g": number,
-  "carbs_per_100g": number,
-  "fat_per_100g": number,
-  "fiber_per_100g": number,
-  "confidence": "high" or "medium" or "low",
-  "notes": "portion sizing assumptions"
-}
-A human palm is ~18cm — use it as a size reference if visible. Use accurate nutritional values for Indian foods.`;
-
-  const { result: raw } = await serverGroqVision({ data: { prompt, base64, mimeType } });
-  // Safety: strip any <think> tags + markdown fences
-  const clean = raw
-    .replace(/<think>[\s\S]*?<\/think>/g, "")
-    .replace(/```json|```/g, "")
-    .trim();
-  const jsonMatch = clean.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("AI did not return nutrition data. Please retry.");
-  return JSON.parse(jsonMatch[0]) as AIFoodResult;
-}
-
-// ── Voice food logging via Groq Whisper + Llama 4 Scout ──────────────────────
-async function parseVoiceFoodLog(
-  transcript: string,
-  mealType: string,
-): Promise<VoiceFoodItem[]> {
-  const prompt = `You are a nutrition expert. The user said: "${transcript}"
-Parse every food item mentioned and return ONLY a JSON array, no markdown:
-[
-  {
-    "food_name": "string",
-    "quantity_g": number,
-    "unit": "string (e.g. 'pieces', 'bowls', 'g')",
-    "unit_quantity": number,
-    "meal_type": "${mealType}",
-    "calories": number,
-    "protein_g": number,
-    "carbs_g": number,
-    "fat_g": number,
-    "fiber_g": number
-  }
-]
-Rules:
-- Use common portion sizes if not specified (1 roti = 40g, 1 bowl dal = 150g, 1 banana = 120g, 1 egg = 50g)
-- If user says "2 rotis", set unit="rotis", unit_quantity=2, quantity_g=80. If they just say grams, set unit="g", unit_quantity=100
-- Use accurate nutritional values for Indian foods
-- Each distinct food is a separate item in the array
-- Return empty array [] if no food is mentioned`;
-
-  const { result: raw } = await serverGroqChat({
-    data: {
-      prompt,
-      model: "openai/gpt-oss-120b",
-      max_tokens: 600,
-      temperature: 0.1,
-    },
-  });
-  const clean = raw.replace(/```json|```/g, "").trim();
-  return JSON.parse(clean) as VoiceFoodItem[];
-}
-
-// ── Barcode lookup via Open Food Facts ───────────────────────────────────────
-async function lookupBarcode(barcode: string): Promise<IFCTItem | null> {
-  const res = await fetch(
-    `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (data.status !== 1) return null;
-  const n = data.product.nutriments;
-  return {
-    code: barcode,
-    name: data.product.product_name ?? "Unknown product",
-    scie: "",
-    lang: "",
-    grup: "Packaged",
-    enerc: (n["energy-kcal_100g"] ?? 0) * KJ_PER_KCAL,
-    protcnt: n.proteins_100g ?? 0,
-    fatce: n.fat_100g ?? 0,
-    choavldf: n.carbohydrates_100g ?? 0,
-    fibtg: n.fiber_100g ?? 0,
-  };
-}
+// Both carry a camera dependency — react-webcam here, @zxing/* via
+// BarcodeScanner — and neither renders until its button is tapped.
+const PhotoFoodDialog = lazy(() =>
+  import("@/components/PhotoFoodDialog").then((m) => ({
+    default: m.PhotoFoodDialog,
+  })),
+);
+const ScanFoodDialog = lazy(() =>
+  import("@/components/ScanFoodDialog").then((m) => ({
+    default: m.ScanFoodDialog,
+  })),
+);
 
 export interface FoodSearchRef {
   editLog: (log: any) => void;
@@ -198,6 +98,7 @@ export const FoodSearch = forwardRef<
   const [selected, setSelected] = useState<IFCTItem | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [qty, setQty] = useState("100");
+  const [unit, setUnit] = useState<Unit>("g");
   const [meal, setMeal] = useState(() => {
     const cats = mealsProp && mealsProp.length > 0 ? mealsProp : ["Breakfast", "Lunch", "Dinner", "Snack"];
     const h = new Date().getHours();
@@ -207,6 +108,12 @@ export const FoodSearch = forwardRef<
     return cats[idx];
   });
   const [saving, setSaving] = useState(false);
+  /** Handed to the quick-add dialogs so they can render a meal picker. */
+  const mealPicker = {
+    value: meal,
+    options: mealCategories,
+    onChange: setMeal,
+  };
 
   const [isEditing, setIsEditing] = useState(false);
   const [editLogId, setEditLogId] = useState<string | null>(null);
@@ -289,9 +196,12 @@ export const FoodSearch = forwardRef<
         protcnt: baseP,
         choavldf: baseC,
         fatce: baseF,
-        fibtg: 0,
+        fibtg: ratio > 0 ? (log.fiber_g ?? 0) / ratio : 0,
       });
-      setQty(log.quantity_g.toString());
+      // Reopen on the unit it was entered in, so an entry logged as "2 pcs"
+      // does not come back as 80 g and lose the count the user typed.
+      setUnit((log.unit as Unit) ?? "g");
+      setQty(String(log.unit_quantity ?? log.quantity_g));
       setMeal(log.meal_type);
       setOpen(true);
     },
@@ -299,9 +209,12 @@ export const FoodSearch = forwardRef<
   }));
 
   // Custom Food
+  /** Identity of a hand-entered food — no piece weight, no density. */
+  const CUSTOM_FOOD = { code: "custom", grup: "Custom" };
   const [customFoodOpen, setCustomFoodOpen] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customQty, setCustomQty] = useState("100");
+  const [customUnit, setCustomUnit] = useState<Unit>("g");
   const [customCal, setCustomCal] = useState("");
   const [customP, setCustomP] = useState("");
   const [customC, setCustomC] = useState("");
@@ -315,27 +228,10 @@ export const FoodSearch = forwardRef<
     loadSavedMeals();
   }, [userId]);
 
-  // Camera / AI vision
+  // Quick add — each dialog owns the rest of its own state.
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [aiResult, setAiResult] = useState<AIFoodResult | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
-
-  // Barcode
   const [barcodeMode, setBarcodeMode] = useState(false);
-  const [barcodeVal, setBarcodeVal] = useState("");
-  const [lookingUp, setLookingUp] = useState(false);
-
-  // Voice logging
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [voiceItems, setVoiceItems] = useState<VoiceFoodItem[]>([]);
-  const [transcribing, setTranscribing] = useState(false);
-  const [parsingVoice, setParsingVoice] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
 
   // Recent foods (for quick re-logging)
   interface RecentFood {
@@ -415,12 +311,14 @@ export const FoodSearch = forwardRef<
     grams: number,
     mealType: string,
     overrides?: { cal: number; p: number; c: number; f: number; fib?: number },
+    /** What the user actually typed, when it was not grams. */
+    entered?: { unit: string; qty: number },
   ) => {
     setSaving(true);
     const ratio = grams / 100;
     const cal = overrides
       ? overrides.cal
-      : +(kcal(item.enerc) * ratio).toFixed(1);
+      : +(kcalOf(item) * ratio).toFixed(1);
     const p = overrides
       ? overrides.p
       : +((item.protcnt ?? 0) * ratio).toFixed(1);
@@ -440,6 +338,8 @@ export const FoodSearch = forwardRef<
         .update({
           meal_type: mealType,
           quantity_g: grams,
+          unit: entered?.unit ?? "g",
+          unit_quantity: entered?.qty ?? grams,
           calories: cal,
           protein_g: p,
           carbs_g: c,
@@ -455,6 +355,8 @@ export const FoodSearch = forwardRef<
         meal_type: mealType,
         food_name: item.name,
         quantity_g: grams,
+        unit: entered?.unit ?? "g",
+        unit_quantity: entered?.qty ?? grams,
         calories: cal,
         protein_g: p,
         carbs_g: c,
@@ -471,188 +373,69 @@ export const FoodSearch = forwardRef<
     return true;
   };
 
-  const logAiFood = async () => {
-    if (!aiResult) return;
-    const ok = await logFood(
-      {
-        code: "ai",
-        name: aiResult.food_name,
-        scie: "",
-        lang: "",
-        grup: "AI",
-        enerc: aiResult.calories_per_100g * KJ_PER_KCAL,
-        protcnt: aiResult.protein_per_100g,
-        fatce: aiResult.fat_per_100g,
-        choavldf: aiResult.carbs_per_100g,
-        fibtg: aiResult.fiber_per_100g || 0,
-      },
-      aiResult.estimated_weight_g,
-      meal,
-    );
+  const logPhotoFood = async ({ item, grams }: PhotoFoodResult) => {
+    const ok = await logFood(item, grams, meal);
     if (ok) {
-      toast.success(`${aiResult.food_name} logged!`);
+      toast.success(`${item.name} logged!`);
       setCameraOpen(false);
-      setAiResult(null);
-      setImagePreview(null);
       onLogged();
     }
   };
 
-  const logAllVoiceItems = async () => {
-    if (voiceItems.length === 0) return;
-    setSaving(true);
-    const rows = voiceItems.map((item) => ({
-      user_id: userId,
-      date,
-      meal_type: item.meal_type,
-      food_name: item.food_name,
-      quantity_g: item.quantity_g,
-      calories: item.calories,
-      protein_g: item.protein_g,
-      carbs_g: item.carbs_g,
-      fat_g: item.fat_g,
-      fiber_g: item.fiber_g || 0,
-    }));
-    const { error } = await supabase.from("food_logs").insert(rows);
-    setSaving(false);
+  /** The parser returns several foods at once, so this inserts rows directly. */
+  const logVoiceItems = async (items: VoiceFoodItem[]) => {
+    if (items.length === 0) return;
+    const { error } = await supabase.from("food_logs").insert(
+      items.map((item) => ({
+        user_id: userId,
+        date,
+        meal_type: item.meal_type,
+        food_name: item.food_name,
+        quantity_g: item.quantity_g,
+        // The parser has always worked these out ("two rotis" → 2 × 40 g); until
+        // food_logs had somewhere to put them they were dropped at insert.
+        unit: item.unit ?? "g",
+        unit_quantity: item.unit_quantity ?? item.quantity_g,
+        calories: item.calories,
+        protein_g: item.protein_g,
+        carbs_g: item.carbs_g,
+        fat_g: item.fat_g,
+        fiber_g: item.fiber_g || 0,
+      })),
+    );
+    // Throwing leaves the dialog open with its items intact so they can retry.
     if (error) {
       toast.error(error.message);
-      return;
+      throw new Error(error.message);
     }
     toast.success(
-      `${voiceItems.length} food item${voiceItems.length > 1 ? "s" : ""} logged!`,
+      `${items.length} food item${items.length > 1 ? "s" : ""} logged!`,
     );
     setVoiceOpen(false);
-    setTranscript("");
-    setVoiceItems([]);
     onLogged();
   };
 
-  // ── Camera ───────────────────────────────────────────────────────────────────
-  const webcamRef = useRef<Webcam>(null);
-
-  const captureAiPhoto = async () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (!imageSrc) return;
-
-    setImagePreview(imageSrc);
-    setAnalyzing(true);
-    try {
-      const base64 = imageSrc.split(",")[1];
-      const result = await recognizeFoodFromImage(base64, "image/jpeg");
-      setAiResult(result);
-    } catch (e: any) {
-      toast.error("Could not identify food: " + e.message);
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  // ── Barcode ──────────────────────────────────────────────────────────────────
-  // Detection lives in BarcodeScanner, which decodes the live video
-  // continuously rather than one screenshot per button press. It hands back a
-  // confirmed code; everything below this point is unchanged lookup logic.
-  const onBarcodeDetected = (code: string) => {
-    setBarcodeVal(code);
-    handleBarcode(code);
-  };
-
-  const handleBarcode = async (valToLookup = barcodeVal) => {
-    if (!valToLookup) return;
-    setLookingUp(true);
-    const item = await lookupBarcode(valToLookup.trim());
-    setLookingUp(false);
-    if (!item) {
-      toast.error("Product not found.");
-      return;
-    }
-    setSelected(item);
-    setQty(String(defaultQtyFor(item)));
-    setBarcodeMode(false);
-    setBarcodeVal("");
-    setOpen(true);
-  };
-
-  // ── Voice recording ───────────────────────────────────────────────────────────
-  const startRecording = async () => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      toast.error("Live speech recognition is not supported in this browser.");
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-
-      recognition.onstart = () => {
-        setRecording(true);
-        setTranscript("");
-      };
-
-      recognition.onresult = (event: any) => {
-        let currentTranscript = "";
-        for (let i = 0; i < event.results.length; ++i) {
-          currentTranscript += event.results[i][0].transcript;
-        }
-        setTranscript(currentTranscript);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        if (event.error !== "no-speech") {
-          toast.error("Speech recognition error: " + event.error);
-          setRecording(false);
-        }
-      };
-
-      recognition.start();
-      mediaRecorderRef.current = recognition as any;
-    } catch (e: any) {
-      toast.error("Microphone access denied or error: " + e.message);
-    }
-  };
-
-  const stopRecording = async () => {
-    if (mediaRecorderRef.current) {
-      (mediaRecorderRef.current as any).stop();
-    }
-    setRecording(false);
-
-    if (transcript.trim().length > 0) {
-      setParsingVoice(true);
-      try {
-        const items = await parseVoiceFoodLog(transcript, meal);
-        setVoiceItems(items);
-        if (items.length === 0) {
-          toast.info("No food items detected. Try again.");
-        }
-      } catch (e: any) {
-        toast.error("Parsing failed: " + e.message);
-      } finally {
-        setParsingVoice(false);
-      }
-    }
-  };
-
   const macrosFor = (item: IFCTItem, g: number) => ({
-    cal: +((kcal(item.enerc) * g) / 100).toFixed(0),
+    cal: +((kcalOf(item) * g) / 100).toFixed(0),
     p: +(((item.protcnt ?? 0) * g) / 100).toFixed(1),
     c: +(((item.choavldf ?? 0) * g) / 100).toFixed(1),
     f: +(((item.fatce ?? 0) * g) / 100).toFixed(1),
     fib: +(((item.fibtg ?? 0) * g) / 100).toFixed(1),
   });
-  const m = selected ? macrosFor(selected, +qty || 100) : null;
+  // Grams are what the macros scale on; the unit only decides how many of them
+  // the typed number means. An empty field is 0, not 100 — with units in play,
+  // silently defaulting would mean 100 *pieces*. The validator owns that case.
+  const grams = selected ? toGrams(+qty || 0, unit, selected) : 0;
+  const qv: ReturnType<typeof validateQuantity> = selected
+    ? validateQuantity(qty, unit, selected)
+    : { ok: false, error: "" };
+  const m = selected ? macrosFor(selected, grams) : null;
 
   const [overrideCal, setOverrideCal] = useState<string>("");
   const [overrideP, setOverrideP] = useState<string>("");
   const [overrideC, setOverrideC] = useState<string>("");
   const [overrideF, setOverrideF] = useState<string>("");
+  const [overrideFib, setOverrideFib] = useState<string>("");
 
   useEffect(() => {
     if (selected && m) {
@@ -660,26 +443,32 @@ export const FoodSearch = forwardRef<
       setOverrideP(m.p.toString());
       setOverrideC(m.c.toString());
       setOverrideF(m.f.toString());
+      setOverrideFib(m.fib.toString());
     }
-  }, [m?.cal, m?.p, m?.c, m?.f, selected]);
+  }, [m?.cal, m?.p, m?.c, m?.f, m?.fib, selected]);
 
-  const MacroGrid = ({
-    items,
-  }: {
-    items: { label: string; val: string }[];
-  }) => (
-    <div className="grid grid-cols-5 gap-2 text-center text-xs">
-      {items.map((s) => (
-        <div
-          key={s.label}
-          className="rounded-lg border border-border bg-muted/30 p-2"
-        >
-          <p className="text-muted-foreground">{s.label}</p>
-          <p className="font-semibold">{s.val}</p>
-        </div>
-      ))}
-    </div>
-  );
+  /**
+   * Open the log dialog on a food. Countable foods open in pieces at 1, so
+   * logging two idlis is two taps and no arithmetic.
+   */
+  const pickFood = (it: IFCTItem) => {
+    const u = defaultUnitFor(it);
+    setSelected(it);
+    setUnit(u);
+    setQty(u === "pcs" ? "1" : String(defaultQtyFor(it)));
+    setOpen(true);
+  };
+
+  /**
+   * Re-default the count rather than reinterpret or back-convert it. Keeping
+   * the number would turn 100 g into 100 pieces; converting it would freeze the
+   * macros and make the selector feel inert.
+   */
+  const changeUnit = (u: Unit) => {
+    setUnit(u);
+    if (!selected) return;
+    setQty(u === "g" || u === "ml" ? String(defaultQtyFor(selected)) : "1");
+  };
 
   const MealSelect = () => (
     <Select value={meal} onValueChange={setMeal}>
@@ -738,11 +527,9 @@ export const FoodSearch = forwardRef<
                 it.code === "ai-fallback" ? `${it.code}-${it.name}` : it.code
               }
               onClick={() => {
-                setSelected(it);
-                setQty(String(defaultQtyFor(it)));
+                pickFood(it);
                 setQ("");
                 setAiSuggestions([]);
-                setOpen(true);
               }}
               className="flex min-w-0 w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-b-0 text-left"
             >
@@ -755,7 +542,7 @@ export const FoodSearch = forwardRef<
                 )}
               </div>
               <span className="text-xs text-muted-foreground shrink-0">
-                {kcal(it.enerc).toFixed(0)} kcal/100g
+                {kcalOf(it).toFixed(0)} kcal/100g
               </span>
             </button>
           ))}
@@ -943,12 +730,35 @@ export const FoodSearch = forwardRef<
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Quantity (g)</Label>
-                <Input
-                  type="number"
-                  value={customQty}
-                  onChange={(e) => setCustomQty(e.target.value)}
-                />
+                <Label>Quantity</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    value={customQty}
+                    onChange={(e) => setCustomQty(e.target.value)}
+                    className="flex-1 min-w-0"
+                  />
+                  <Select
+                    value={customUnit}
+                    onValueChange={(u) => setCustomUnit(u as Unit)}
+                  >
+                    <SelectTrigger
+                      className="w-[78px] shrink-0"
+                      aria-label="Unit"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* A custom food has no piece weight, so no pcs. */}
+                      {unitsFor(CUSTOM_FOOD).map((u) => (
+                        <SelectItem key={u} value={u} className="min-h-[44px]">
+                          {u}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label>Meal</Label>
@@ -1018,24 +828,40 @@ export const FoodSearch = forwardRef<
                   return;
                 }
                 const customItem: IFCTItem = {
-                  code: "custom",
+                  ...CUSTOM_FOOD,
                   name: customName,
                   scie: "",
                   lang: "",
-                  grup: "Custom",
                   enerc: 0,
                   protcnt: 0,
                   fatce: 0,
                   choavldf: 0,
                   fibtg: 0,
                 };
-                const ok = await logFood(customItem, +customQty || 100, meal, {
-                  cal: +customCal,
-                  p: +customP || 0,
-                  c: +customC || 0,
-                  f: +customF || 0,
-                  fib: +customFib || 0,
-                });
+                // The macros here are absolute, not per-100 g, so the unit only
+                // decides how many grams get stored alongside them.
+                const cqv = validateQuantity(
+                  customQty,
+                  customUnit,
+                  CUSTOM_FOOD,
+                );
+                if (!cqv.ok) {
+                  toast.error(cqv.error);
+                  return;
+                }
+                const ok = await logFood(
+                  customItem,
+                  cqv.value,
+                  meal,
+                  {
+                    cal: +customCal,
+                    p: +customP || 0,
+                    c: +customC || 0,
+                    f: +customF || 0,
+                    fib: +customFib || 0,
+                  },
+                  { unit: customUnit, qty: +customQty },
+                );
 
                 if (ok && saveAsMeal) {
                   await saveFavoriteMeal({
@@ -1052,6 +878,8 @@ export const FoodSearch = forwardRef<
                   toast.success(`${customName} logged!`);
                   setCustomFoodOpen(false);
                   setCustomName("");
+                  setCustomQty("100");
+                  setCustomUnit("g");
                   setCustomCal("");
                   setCustomP("");
                   setCustomC("");
@@ -1083,6 +911,9 @@ export const FoodSearch = forwardRef<
             setSelected(null);
             setIsEditing(false);
             setEditLogId(null);
+            // Both reset, or a "2" left over from a pcs session reopens as 2 g.
+            setUnit("g");
+            setQty("100");
           }
         }}
       >
@@ -1164,30 +995,74 @@ export const FoodSearch = forwardRef<
                   <Label className="text-xs text-muted-foreground">
                     Fib (g)
                   </Label>
-                  <Input type="number" defaultValue={m.fib} id="overrideFib" />
+                  <Input
+                    type="number"
+                    value={overrideFib}
+                    onChange={(e) => setOverrideFib(e.target.value)}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label>Quantity (g)</Label>
-                  <Input
-                    type="number"
-                    value={qty}
-                    onChange={(e) => setQty(e.target.value)}
-                  />
+                  <Label>Quantity</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      value={qty}
+                      placeholder={unit === "pcs" ? "Enter count" : undefined}
+                      onChange={(e) => setQty(e.target.value)}
+                      className="flex-1 min-w-0"
+                    />
+                    <Select
+                      value={unit}
+                      onValueChange={(u) => changeUnit(u as Unit)}
+                    >
+                      <SelectTrigger
+                        className="w-[78px] shrink-0"
+                        aria-label="Unit"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {unitsFor(selected, unit).map((u) => (
+                          <SelectItem
+                            key={u}
+                            value={u}
+                            className="min-h-[44px]"
+                          >
+                            {u}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label>Meal</Label>
                   <MealSelect />
                 </div>
               </div>
+              {unit !== "g" && (
+                <p className="-mt-1 text-xs text-muted-foreground">
+                  {unit === "pcs" && `1 piece = ${pieceGrams(selected)} g · `}≈{" "}
+                  {grams} g
+                </p>
+              )}
+              {!qv.ok && qv.error && (
+                <p className="-mt-1 text-xs text-destructive">{qv.error}</p>
+              )}
               {/* Menu items come as a portion, so offer that portion directly —
                   the field still holds grams, which keeps one unit throughout. */}
               {selected?.serving_g && (
                 <div className="flex items-center gap-2 -mt-1">
                   <button
                     type="button"
-                    onClick={() => setQty(String(selected.serving_g))}
+                    onClick={() => {
+                      // The chip's contract is "this many grams".
+                      setUnit("g");
+                      setQty(String(selected.serving_g));
+                    }}
                     className="rounded-full border border-accent/40 px-3 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent/10"
                   >
                     1 serving
@@ -1201,22 +1076,21 @@ export const FoodSearch = forwardRef<
               )}
               <Button
                 onClick={async () => {
-                  const oFib = (
-                    document.getElementById("overrideFib") as HTMLInputElement
-                  ).value;
+                  if (!qv.ok) return;
                   const overrides = {
                     cal: +overrideCal,
                     p: +overrideP,
                     c: +overrideC,
                     f: +overrideF,
-                    fib: +oFib,
+                    fib: +overrideFib,
                   };
 
                   const ok = await logFood(
                     selected,
-                    +qty || 100,
+                    qv.value,
                     meal,
                     overrides,
+                    { unit, qty: +qty },
                   );
                   if (ok) {
                     if (saveAsMeal) {
@@ -1240,10 +1114,12 @@ export const FoodSearch = forwardRef<
                     setQ("");
                     setIsEditing(false);
                     setEditLogId(null);
+                    setUnit("g");
+                    setQty("100");
                     onLogged();
                   }
                 }}
-                disabled={saving}
+                disabled={saving || !qv.ok}
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
               >
                 {saving ? (
@@ -1260,422 +1136,31 @@ export const FoodSearch = forwardRef<
         </DialogContent>
       </Dialog>
 
-      {/* ── AI Camera dialog ── */}
-      <Dialog
-        open={cameraOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            setCameraOpen(false);
-            setAiResult(null);
-            setImagePreview(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Camera className="h-4 w-4" /> AI Food Recognition
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Place your hand next to the food for better portion accuracy, then
-              snap a photo.
-            </p>
-            {!imagePreview && (
-              <div className="relative overflow-hidden rounded-lg border-2 border-border bg-black min-h-[300px] flex items-center justify-center">
-                <Webcam
-                  audio={false}
-                  ref={webcamRef}
-                  screenshotFormat="image/jpeg"
-                  videoConstraints={{ facingMode: "environment" }}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-4 inset-x-0 flex justify-center">
-                  <button
-                    onClick={captureAiPhoto}
-                    className="h-16 w-16 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg"
-                  />
-                </div>
-              </div>
-            )}
-            {imagePreview && (
-              <div className="relative">
-                <img
-                  src={imagePreview}
-                  alt="food"
-                  className="w-full max-h-48 rounded-lg object-cover"
-                />
-                {analyzing && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/60">
-                    <Loader2 className="h-8 w-8 animate-spin text-white" />
-                    <p className="text-sm text-white">Analysing food…</p>
-                  </div>
-                )}
-              </div>
-            )}
-            {aiResult && !analyzing && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{aiResult.food_name}</h3>
-                  <Badge
-                    variant={
-                      aiResult.confidence === "high" ? "default" : "outline"
-                    }
-                    className="text-xs capitalize"
-                  >
-                    {aiResult.confidence} confidence
-                  </Badge>
-                </div>
-                <MacroGrid
-                  items={[
-                    {
-                      label: "Calories",
-                      val: `${Math.round((aiResult.calories_per_100g * aiResult.estimated_weight_g) / 100)} kcal`,
-                    },
-                    {
-                      label: "Protein",
-                      val: `${((aiResult.protein_per_100g * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
-                    },
-                    {
-                      label: "Carbs",
-                      val: `${((aiResult.carbs_per_100g * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
-                    },
-                    {
-                      label: "Fat",
-                      val: `${((aiResult.fat_per_100g * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
-                    },
-                    {
-                      label: "Fiber",
-                      val: `${(((aiResult.fiber_per_100g || 0) * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
-                    },
-                  ]}
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label>Weight (g)</Label>
-                    <Input
-                      type="number"
-                      value={aiResult.estimated_weight_g}
-                      onChange={(e) =>
-                        setAiResult({
-                          ...aiResult,
-                          estimated_weight_g: +e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Meal</Label>
-                    <MealSelect />
-                  </div>
-                </div>
-                {aiResult.notes && (
-                  <p className="text-xs text-muted-foreground italic">
-                    {aiResult.notes}
-                  </p>
-                )}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setAiResult(null);
-                      setImagePreview(null);
-                    }}
-                    className="gap-1"
-                  >
-                    <X className="h-3 w-3" /> Retake
-                  </Button>
-                  <Button
-                    onClick={logAiFood}
-                    disabled={saving}
-                    className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
-                  >
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="h-4 w-4" />
-                    )}{" "}
-                    Log this food
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Mounted only while open so react-webcam stays off the initial load. */}
+      {cameraOpen && (
+        <Suspense fallback={null}>
+          <PhotoFoodDialog
+            open
+            onOpenChange={setCameraOpen}
+            meal={mealPicker}
+            onConfirm={logPhotoFood}
+          />
+        </Suspense>
+      )}
 
-      {/* ── Voice logging dialog ── */}
-      <Dialog
+      <VoiceFoodDialog
         open={voiceOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            if (recording) stopRecording();
-            setVoiceOpen(false);
-            setTranscript("");
-            setVoiceItems([]);
-          }
-        }}
-      >
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Mic className="h-4 w-4" /> Voice Food Log
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <Label>Meal type</Label>
-              <MealSelect />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Say what you ate naturally — e.g.{" "}
-              <em>"I had 2 rotis, a bowl of dal, and a banana"</em>
-            </p>
+        onOpenChange={setVoiceOpen}
+        meal={mealPicker}
+        onConfirm={logVoiceItems}
+      />
 
-            {/* Record button */}
-            <div className="flex justify-center">
-              <button
-                onClick={recording ? stopRecording : startRecording}
-                disabled={transcribing || parsingVoice}
-                className={`flex h-20 w-20 items-center justify-center rounded-full border-4 transition-all ${
-                  recording
-                    ? "animate-pulse border-destructive bg-destructive/10"
-                    : "border-accent bg-accent/10 hover:bg-accent/20"
-                }`}
-              >
-                {recording ? (
-                  <MicOff className="h-8 w-8 text-destructive" />
-                ) : (
-                  <Mic className="h-8 w-8 text-accent" />
-                )}
-              </button>
-            </div>
-            <p className="text-center text-xs text-muted-foreground">
-              {recording ? "Recording… tap to stop" : "Tap to start recording"}
-            </p>
-
-            {/* Processing states */}
-            {transcribing && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Transcribing audio…
-              </div>
-            )}
-            {parsingVoice && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Parsing food items…
-              </div>
-            )}
-
-            {/* Transcript live/edit view */}
-            {transcript && (
-              <div className="rounded-lg border border-border bg-muted/30 p-3 mt-4 space-y-2">
-                <div className="flex justify-between items-center mb-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    You said (Tap to edit):
-                  </p>
-                  {!recording && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-6 text-xs px-2"
-                      onClick={() => {
-                        setParsingVoice(true);
-                        parseVoiceFoodLog(transcript, meal)
-                          .then((items) => {
-                            setVoiceItems(items);
-                            setParsingVoice(false);
-                          })
-                          .catch((e) => {
-                            toast.error("Parsing failed: " + e.message);
-                            setParsingVoice(false);
-                          });
-                      }}
-                      disabled={parsingVoice}
-                    >
-                      Re-parse
-                    </Button>
-                  )}
-                </div>
-                <Textarea
-                  value={transcript}
-                  onChange={(e: any) => setTranscript(e.target.value)}
-                  className="text-sm italic min-h-[60px] bg-background border-border resize-none"
-                  disabled={recording}
-                />
-              </div>
-            )}
-
-            {/* Parsed items */}
-            {voiceItems.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {voiceItems.length} item{voiceItems.length > 1 ? "s" : ""}{" "}
-                  detected
-                </p>
-                <div className="space-y-1">
-                  {voiceItems.map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
-                    >
-                      <div className="flex-1 mr-4">
-                        <span className="font-medium block text-base mb-1">
-                          {item.food_name}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            value={item.unit_quantity ?? item.quantity_g}
-                            onChange={(e) => {
-                              const newQty = parseInt(e.target.value) || 0;
-                              if (newQty < 0) return;
-                              const oldQty =
-                                (item.unit_quantity ?? item.quantity_g) || 1;
-                              const ratio = newQty / oldQty;
-
-                              const newItems = [...voiceItems];
-                              newItems[i] = {
-                                ...item,
-                                ...(item.unit_quantity !== undefined
-                                  ? { unit_quantity: newQty }
-                                  : {}),
-                                quantity_g: item.quantity_g * ratio,
-                                calories: item.calories * ratio,
-                                protein_g: item.protein_g * ratio,
-                                fat_g: item.fat_g * ratio,
-                                carbs_g: item.carbs_g * ratio,
-                                fiber_g: item.fiber_g * ratio,
-                              };
-                              setVoiceItems(newItems);
-                            }}
-                            className="w-20 h-8 text-sm bg-background"
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            {item.unit && item.unit !== "g" ? item.unit : "g"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            const newItems = [...voiceItems];
-                            newItems.splice(i, 1);
-                            setVoiceItems(newItems);
-                          }}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                          </svg>
-                        </Button>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
-                          {Math.round(item.calories)} kcal · P
-                          {item.protein_g.toFixed(0)} · F
-                          {(item.fiber_g || 0).toFixed(0)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setTranscript("");
-                      setVoiceItems([]);
-                    }}
-                  >
-                    Redo
-                  </Button>
-                  <Button
-                    onClick={logAllVoiceItems}
-                    disabled={saving}
-                    className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
-                  >
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="h-4 w-4" />
-                    )}
-                    Log all {voiceItems.length} items
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Barcode dialog ── */}
-      <Dialog
-        open={barcodeMode}
-        onOpenChange={(o) => {
-          if (!o) {
-            setBarcodeMode(false);
-            setBarcodeVal("");
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ScanLine className="h-4 w-4" /> Barcode Lookup
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              {barcodeMode && (
-                <BarcodeScanner onDetected={onBarcodeDetected} />
-              )}
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground font-bold">
-                  Or enter manually
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Input
-                placeholder="e.g. 8901030871221"
-                value={barcodeVal}
-                onChange={(e) => setBarcodeVal(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleBarcode()}
-                inputMode="numeric"
-              />
-              <Button
-                onClick={() => handleBarcode()}
-                disabled={lookingUp || !barcodeVal}
-                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
-              >
-                {lookingUp ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}{" "}
-                Look up product
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Mounted only while open so @zxing/* stays off the initial page load. */}
+      {barcodeMode && (
+        <Suspense fallback={null}>
+          <ScanFoodDialog open onOpenChange={setBarcodeMode} onFound={pickFood} />
+        </Suspense>
+      )}
     </div>
   );
 });

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { Header } from "@/components/Header";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { useAuth } from "@/lib/auth";
+import { formatQty } from "@/lib/foodUnits";
 import { supabase } from "@/integrations/client";
 import {
   Utensils,
@@ -251,7 +252,7 @@ function FoodPage() {
     const prevDate = shiftDate(selectedDate, -1);
     const { data: prev, error: fetchErr } = await supabase
       .from("food_logs")
-      .select("meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g")
+      .select("meal_type,food_name,quantity_g,unit,unit_quantity,calories,protein_g,carbs_g,fat_g,fiber_g")
       .eq("user_id", user.id)
       .eq("date", prevDate);
     if (fetchErr) {
@@ -285,6 +286,8 @@ function FoodPage() {
       meal_type: l.meal_type,
       food_name: l.food_name,
       quantity_g: l.quantity_g,
+      unit: l.unit ?? "g",
+      unit_quantity: l.unit_quantity ?? l.quantity_g,
       calories: l.calories,
       protein_g: l.protein_g,
       carbs_g: l.carbs_g,
@@ -547,7 +550,7 @@ function FoodPage() {
                                   </div>
                                   <div className="flex items-center gap-1 mt-1 flex-wrap">
                                     <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
-                                      {Math.round(l.quantity_g)}g
+                                      {formatQty(l.quantity_g, l.unit, l.unit_quantity)}
                                     </span>
                                     <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
                                       {Math.round(l.calories)} kcal

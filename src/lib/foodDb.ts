@@ -57,6 +57,18 @@ export const defaultQtyFor = (item: IFCTItem): number => item.serving_g ?? 100;
 /** kJ → kcal (IFCT stores energy in kJ). */
 export const kcal = (kj: number | null) => (kj == null ? 0 : kj / KJ_PER_KCAL);
 
+/**
+ * Energy for one item, in kcal per 100 g.
+ *
+ * Prefer the source's own figure, but fall back to Atwater when it has none:
+ * all 14 IFCT oils and fats report `enerc: 0` alongside `fatce: 100`, so
+ * reading `enerc` alone logs a tablespoon of oil as zero calories.
+ */
+export const kcalOf = (it: IFCTItem) =>
+  it.enerc
+    ? it.enerc / KJ_PER_KCAL
+    : 9 * (it.fatce ?? 0) + 4 * (it.protcnt ?? 0) + 4 * (it.choavldf ?? 0);
+
 /** Relevance rank for a search term — lower is better, 5 = no match. */
 export function rank(item: IFCTItem, q: string): number {
   const name = item.name.toLowerCase();

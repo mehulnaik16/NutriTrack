@@ -1338,14 +1338,25 @@ function SettingsPage({
     setDeleting(true);
     try {
       await serverDeleteAccount();
-
-      toast.success("Your account and data have been deleted");
-      setDeleteOpen(false);
-      await onSignOut();
     } catch (e: any) {
       toast.error(e.message ?? "Deletion failed — please email support@dombelz.app");
-    } finally {
       setDeleting(false);
+      return;
+    }
+
+    toast.success("Your account and data have been deleted");
+    setDeleteOpen(false);
+    setDeleteConfirm("");
+    setDeleting(false);
+
+    // Outside the try: the account is already gone, so signing out is cleanup.
+    // It calls /auth/v1/logout with a token whose user no longer exists, and a
+    // rejection there used to surface as "Deletion failed" right after the
+    // success toast.
+    try {
+      await onSignOut();
+    } catch {
+      // Session is dead either way; the redirect below is what matters.
     }
   };
 
@@ -1664,7 +1675,17 @@ function SettingsPage({
         </section>
 
         {/* Delete confirmation dialog */}
-        <Dialog open={deleteOpen} onOpenChange={(o) => !deleting && setDeleteOpen(o)}>
+        <Dialog
+          open={deleteOpen}
+          onOpenChange={(o) => {
+            if (deleting) return;
+            // Clear on every close, not just Cancel — otherwise dismissing with
+            // Escape reopens the dialog with DELETE still typed and the
+            // destructive button already armed.
+            if (!o) setDeleteConfirm("");
+            setDeleteOpen(o);
+          }}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-destructive">

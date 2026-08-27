@@ -68,6 +68,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { uploadWeightPhoto } from "@/services/storage";
 import { todayLocal, toLocalISO } from "@/lib/dates";
+import { formatQty } from "@/lib/foodUnits";
 import { calcBMR, calcTDEE, calcCalorieTarget, calcMacros } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
@@ -96,6 +97,8 @@ interface FoodLog {
   meal_type: string;
   food_name: string;
   quantity_g: number;
+  unit?: string | null;
+  unit_quantity?: number | null;
   calories: number;
   protein_g: number;
   carbs_g: number;
@@ -458,6 +461,8 @@ function Dashboard() {
       meal_type: l.meal_type,
       food_name: l.food_name,
       quantity_g: l.quantity_g,
+      unit: l.unit ?? "g",
+      unit_quantity: l.unit_quantity ?? l.quantity_g,
       calories: l.calories,
       protein_g: l.protein_g,
       carbs_g: l.carbs_g,
@@ -849,7 +854,7 @@ function Dashboard() {
                                       </div>
                                       <div className="flex items-center gap-1 mt-1 flex-wrap">
                                         <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
-                                          {Math.round(l.quantity_g)}g
+                                          {formatQty(l.quantity_g, l.unit, l.unit_quantity)}
                                         </span>
                                         <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
                                           {Math.round(l.calories)} kcal

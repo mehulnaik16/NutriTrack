@@ -199,7 +199,7 @@ Bring NutriTrack to a production-ready security baseline: no unresolved HIGH/MED
 |---|---|
 | `serverGroqChat` | **No input validation** — caller controls `prompt`, `model`, `max_tokens`, `temperature`. Pure LLM proxy. **HIGH** |
 | `serverGroqVision` | No base64 size limit, no MIME allowlist. **MEDIUM** |
-| `supabaseAdmin` | Exported, never imported anywhere outside `client.server.ts`. Dead export. Remove it. |
+| `supabaseAdmin` | **No longer dead.** `src/lib/delete-account.ts` imports it inside a `createServerFn` handler for account deletion. Do not remove. |
 | Password min length | `quiz.tsx:89` — `d.password.length >= 6`. Should be ≥ 8. **MEDIUM** |
 | Security headers | Zero HTTP security headers anywhere in the codebase. No `vercel.json`. **LOW** |
 | `weight-photos` bucket | Migration comment says `Public: true`. RLS policies exist but bucket is public — direct URL leaks photos without auth. **LOW** |
@@ -368,22 +368,19 @@ Also update the placeholder/hint text to say "at least 8 characters".
 
 ---
 
-### P2 — MEDIUM: Remove unused `supabaseAdmin`
+### ~~P2 — MEDIUM: Remove unused `supabaseAdmin`~~ — SUPERSEDED
 
-Currently `client.server.ts` exports `supabaseAdmin` (with service role key) but **no file imports it**. This is dead code that holds a dangerous key.
+This entry recommended deleting the service-role client as dead code. **Acting on it would now break account deletion.**
 
-#### [MODIFY] `src/integrations/client.server.ts`
+`src/lib/delete-account.ts` imports `supabaseAdmin` to call `auth.admin.deleteUser()`, which is the only way to remove a row from `auth.users` and fire the `ON DELETE CASCADE` chain across every user table. Account deletion is required by Google Play and App Store policy, so the client is load-bearing.
 
-Remove the entire `supabaseAdmin` export and `createSupabaseAdminClient` function. Keep the file (it contains useful imports) but strip the dead service-role client.
+The original concern — "if a developer accidentally imports it in a user-facing code path, all RLS protections are bypassed" — remains valid, and is what the safeguards are for:
 
-```diff
--function createSupabaseAdminClient() { ... }
--let _supabaseAdmin: ReturnType<typeof createSupabaseAdminClient> | undefined;
--export const supabaseAdmin = new Proxy(...);
-```
+1. The import is a **dynamic** `await import()` **inside** the `.handler()` body. TanStack Start replaces handler bodies with an RPC stub in the client build, so the module never enters the browser graph.
+2. `vite.config.ts` `importProtection` now globs `**/*.server.ts` as well as `**/server/**`, so a static top-level import of `client.server.ts` from client code fails the build. Previously only the directory glob was present, which did not match this file.
+3. The key is read via `process.env`, never `import.meta.env`, and carries no `VITE_` prefix — so even a leaked module body would contain a lookup, not a literal.
 
-> [!WARNING]
-> Before deleting, confirm with `grep -r "supabaseAdmin" src/` — currently only found in `client.server.ts` itself. If any future code adds it back, it must go through a proper review since it bypasses RLS.
+Verified against the built output: `dist/client/**` contains no match for `service_role`, `SERVICE_ROLE`, or `supabaseAdmin`, and the only JWT in the client bundle decodes to `role: anon`.
 
 ---
 

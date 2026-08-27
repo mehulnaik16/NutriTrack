@@ -37,7 +37,11 @@ export default defineConfig(({ command, mode }) => {
         importProtection: {
           behavior: "error",
           client: {
-            files: ["**/server/**"],
+            // `**/server/**` matches a directory segment, so it covers
+            // src/server/* but not the .server.ts *suffix* — which is where the
+            // service-role key lives. Both globs, or client.server.ts is guarded
+            // only by createServerFn stripping its handler.
+            files: ["**/server/**", "**/*.server.ts"],
             specifiers: ["server-only"],
           },
         },
