@@ -111,7 +111,11 @@ export function AchievementsPage({
 
       setStats({
         foodCount: foodRows.length,
-        foodStreak: computeFoodStreak(foodRows.map((r) => r.date)),
+        foodStreak: computeFoodStreak(
+          foodRows
+            .filter((r) => r.logged_at && toLocalISO(new Date(r.logged_at)) === r.date)
+            .map((r) => r.date)
+        ),
         workoutCount: workouts.count ?? 0,
         weightCount: (weights.data ?? []).length,
         photoCount: (weights.data ?? []).filter((w: any) => w.photo_url).length,

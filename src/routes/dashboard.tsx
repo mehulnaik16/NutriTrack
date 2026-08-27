@@ -221,16 +221,41 @@ function Dashboard() {
   const [streak, setStreak] = useState(0);
   const [userMeals, setUserMeals] = useState<string[]>(["Breakfast", "Lunch", "Dinner", "Snack"]);
 
-  // Load meal preferences from localStorage
+  // Load meal frequency from DB, fall back to localStorage
   useEffect(() => {
     if (!user) return;
-    const saved = localStorage.getItem(`meal_prefs_${user.id}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) setUserMeals(parsed);
-      } catch {}
-    }
+    (async () => {
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("meal_frequency")
+        .eq("id", user.id)
+        .maybeSingle();
+      const dbFreq = (data as any)?.meal_frequency as number | null;
+      if (dbFreq != null && dbFreq > 0) {
+        // Try localStorage for custom names matching this count
+        try {
+          const saved = localStorage.getItem(`meal_prefs_${user.id}`);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length === dbFreq) {
+              setUserMeals(parsed);
+              return;
+            }
+          }
+        } catch {}
+        const base = ["Breakfast", "Lunch", "Dinner", "Snack", "Meal 5", "Meal 6"];
+        setUserMeals(base.slice(0, dbFreq));
+      } else {
+        // Fall back to localStorage (legacy)
+        try {
+          const saved = localStorage.getItem(`meal_prefs_${user.id}`);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) setUserMeals(parsed);
+          }
+        } catch {}
+      }
+    })();
   }, [user]);
 
   // Weight logging state

@@ -769,9 +769,9 @@ export const FoodSearch = forwardRef<
           onClick={() => setCameraOpen(true)}
           title="Log food by photo"
           className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 56, height: 56, minWidth: 56 }}
+          style={{ width: 64, height: 64, minWidth: 64 }}
         >
-          <Camera style={{ width: 18, height: 18 }} />
+          <Camera style={{ width: 22, height: 22 }} />
           <span className="text-[8px] font-medium text-muted-foreground">
             Photo
           </span>
@@ -781,9 +781,9 @@ export const FoodSearch = forwardRef<
           onClick={() => setVoiceOpen(true)}
           title="Log food by voice"
           className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 56, height: 56, minWidth: 56 }}
+          style={{ width: 64, height: 64, minWidth: 64 }}
         >
-          <Mic style={{ width: 18, height: 18 }} />
+          <Mic style={{ width: 22, height: 22 }} />
           <span className="text-[8px] font-medium text-muted-foreground">
             Voice
           </span>
@@ -793,9 +793,9 @@ export const FoodSearch = forwardRef<
           onClick={() => setBarcodeMode(true)}
           title="Barcode lookup"
           className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 56, height: 56, minWidth: 56 }}
+          style={{ width: 64, height: 64, minWidth: 64 }}
         >
-          <Barcode style={{ width: 18, height: 18 }} />
+          <Barcode style={{ width: 22, height: 22 }} />
           <span className="text-[8px] font-medium text-muted-foreground">
             Scan
           </span>
@@ -808,22 +808,10 @@ export const FoodSearch = forwardRef<
           }}
           title="View Favourites"
           className="flex flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
-          style={{ width: 56, height: 56, minWidth: 56 }}
+          style={{ width: 64, height: 64, minWidth: 64 }}
         >
-          <Heart style={{ width: 18, height: 18 }} className="text-red-500" />
+          <Heart style={{ width: 22, height: 22 }} className="text-red-500" />
           <span className="text-[8px] font-medium text-red-500">Favourites</span>
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setCustomFoodOpen(true)}
-          title="Add a custom food with your own macros"
-          className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 56, height: 56, minWidth: 56 }}
-        >
-          <PenTool style={{ width: 18, height: 18 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">
-            Custom
-          </span>
         </Button>
       </div>
 

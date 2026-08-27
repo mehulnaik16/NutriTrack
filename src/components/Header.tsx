@@ -292,13 +292,19 @@ export function Header({
           .limit(400),
         supabase
           .from("food_logs")
-          .select("date")
+          .select("date, logged_at")
           .eq("user_id", user.id)
           .order("date", { ascending: false })
           .limit(400),
       ]);
       setWorkoutDates(new Set((wData ?? []).map((d: any) => d.date)));
-      setFoodDates(new Set((fData ?? []).map((d: any) => d.date)));
+      setFoodDates(
+        new Set(
+          (fData ?? [])
+            .filter((d: any) => d.logged_at && localISO(new Date(d.logged_at)) === d.date)
+            .map((d: any) => d.date)
+        )
+      );
     };
     fetchDates();
   }, [user, pathname]);

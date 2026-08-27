@@ -62,9 +62,14 @@ export function RankPage() {
     const workoutRows = (workouts.data ?? []) as any[];
     const weightRows = (weights.data ?? []) as any[];
 
+    // Only rows logged on their own day count toward streak and XP.
+    const todayLoggedFood = foodRows.filter(
+      (r) => r.logged_at && toLocalISO(new Date(r.logged_at)) === r.date
+    );
+
     const stats: Stats = {
       foodCount: foodRows.length,
-      foodStreak: computeFoodStreak(foodRows.map((r) => r.date)),
+      foodStreak: computeFoodStreak(todayLoggedFood.map((r) => r.date)),
       workoutCount: workoutRows.length,
       weightCount: weightRows.length,
       photoCount: weightRows.filter((w) => w.photo_url).length,
@@ -74,7 +79,8 @@ export function RankPage() {
     };
 
     // A "log" for XP = one food, workout, or weight entry. Water is excluded.
-    const logCount = foodRows.length + workoutRows.length + weightRows.length;
+    // Back-dated food logs (logged_at ≠ date) do not earn XP.
+    const logCount = todayLoggedFood.length + workoutRows.length + weightRows.length;
 
     // Streak badge counters: total 7-day streaks' worth of distinct logged days.
     setFoodBadges(Math.floor(new Set(foodRows.map((r) => r.date)).size / 7));
