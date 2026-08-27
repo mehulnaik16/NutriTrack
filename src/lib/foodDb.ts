@@ -4,6 +4,7 @@
  */
 
 import ifctData from "@/data/ifct2017.json";
+import restaurantData from "@/data/restaurantFoods.json";
 import { EXTRA_FOODS } from "@/data/extraFoods";
 import { serverAiFoodSearch } from "@/lib/ai";
 
@@ -18,15 +19,40 @@ export interface IFCTItem {
   fatce: number | null;
   choavldf: number | null;
   fibtg: number | null;
+  /**
+   * Weight of one serving, for items that come as a portion rather than an
+   * ingredient — a burger, a sub, a cup of a drink. Per 100 g remains the
+   * storage basis for every food; this only changes the quantity the UI starts
+   * on, so there is never a second set of numbers that can drift out of step.
+   * Absent on IFCT and curated rows, which are ingredients with no fixed
+   * portion.
+   */
+  serving_g?: number;
+  /** Display text for the serving, e.g. "1 serving (168 g)". */
+  serving_label?: string;
+  /**
+   * True when `serving_g` was estimated rather than published. Logging one
+   * serving still reproduces the source's own per-serving figures exactly —
+   * the estimate only affects the per-100 g view and hand-edited quantities.
+   */
+  serving_est?: boolean;
 }
 
 export const KJ_PER_KCAL = 4.184;
 
-/** Full searchable database: IFCT 2017 + curated prepared foods. */
+/** Full searchable database: IFCT 2017 + curated prepared foods + menu items. */
 export const ITEMS: IFCTItem[] = [
   ...(ifctData as IFCTItem[]),
   ...(EXTRA_FOODS as IFCTItem[]),
+  ...(restaurantData as IFCTItem[]),
 ];
+
+/**
+ * The quantity, in grams, that the UI should start on for an item. A menu item
+ * opens at one serving because nobody weighs a burger; an ingredient opens at
+ * 100 g, which is the basis its numbers are quoted on.
+ */
+export const defaultQtyFor = (item: IFCTItem): number => item.serving_g ?? 100;
 
 /** kJ → kcal (IFCT stores energy in kJ). */
 export const kcal = (kj: number | null) => (kj == null ? 0 : kj / KJ_PER_KCAL);

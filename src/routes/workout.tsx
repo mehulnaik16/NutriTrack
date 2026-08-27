@@ -1,4 +1,6 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { WorkoutGate } from "@/components/WorkoutGate";
+import { useGatedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
 import { useEffect, useState, useMemo } from "react";
 import { CardioPaceChart } from "@/components/CardioPaceChart";
 import {
@@ -72,7 +74,7 @@ interface WorkoutSearch {
 }
 
 export const Route = createFileRoute("/workout")({
-  component: WorkoutPage,
+  component: GatedWorkoutPage,
   validateSearch: (s: Record<string, unknown>): WorkoutSearch => ({
     tab: s.tab === "GYM" || s.tab === "HOME" || s.tab === "CARDIO" ? s.tab : undefined,
     muscle: typeof s.muscle === "string" ? s.muscle : undefined,
@@ -94,8 +96,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { todayLocal } from "@/lib/dates";
 import {
   type WorkoutPrefs as UserWorkoutPrefs,
-  getCachedWorkoutPrefs,
-  loadWorkoutPrefs,
   defaultLiftForExercise,
   isRecommendedCardio,
 } from "@/lib/workoutPrefs";
@@ -205,6 +205,18 @@ const estimate1RM = (weight: number, reps: number): number => {
   return Math.round(weight * (1 + reps / 30) * 10) / 10;
 };
 
+/**
+ * Gated: the whole page is tuned by the questionnaire — recommended cardio,
+ * default lift weights, the plan itself — so it stays locked until it exists.
+ */
+function GatedWorkoutPage() {
+  return (
+    <WorkoutGate>
+      <WorkoutPage />
+    </WorkoutGate>
+  );
+}
+
 function WorkoutPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -269,17 +281,11 @@ function WorkoutPage() {
   // Body weight for MET-based calorie estimates
   const [bodyWeight, setBodyWeight] = useState(70);
 
-  // Onboarding preferences (default lift weights, cardio recommendations)
-  const [prefs, setPrefs] = useState<UserWorkoutPrefs | null>(() =>
-    user ? getCachedWorkoutPrefs(user.id) : null,
-  );
-
-  useEffect(() => {
-    if (!user) return;
-    loadWorkoutPrefs(user.id).then((p) => {
-      if (p) setPrefs(p);
-    });
-  }, [user]);
+  // Onboarding preferences (default lift weights, cardio recommendations).
+  // WorkoutGate has already loaded and validated these — reading them from it
+  // avoids a second identical query on every mount, and guarantees the page
+  // never renders a "no preferences" state the gate has already ruled out.
+  const prefs = useGatedWorkoutPrefs() as UserWorkoutPrefs | null;
 
   // Collect all exercises flattened for searching
   const allExercises = useMemo(() => {
@@ -432,60 +438,29 @@ function WorkoutPage() {
 
   const renderPlanCard = () => {
     if (!plan) {
-      // Once workout_profile exists (prefs loaded), the user has already
-      // answered the questionnaire once — never send them back through the
-      // full /workout-setup flow from here again. Editing those answers now
-      // lives exclusively on Profile → Workout details; this page only
-      // offers building a new custom weekly plan.
-      if (prefs) {
-        return (
-          <button
-            onClick={() => navigate({ to: "/custom-plan" })}
-            className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
-          >
-            <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
-                <PencilRuler className="h-6 w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-display font-bold">Create a custom weekly plan</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Build your own day-by-day split — pick muscle groups for each day.
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
-            </div>
-          </button>
-        );
-      }
+      // WorkoutGate guarantees a workout_profile exists by the time this page
+      // renders, so the old "Set up my training" branch here is unreachable and
+      // has been removed. Editing those answers lives on Profile → Workout
+      // details; this page only offers building a new custom weekly plan.
       return (
-        <div className="space-y-2">
-          <button
-            onClick={() => navigate({ to: "/workout-setup" })}
-            className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
-          >
-            <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
-                <Sparkles className="h-6 w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-display font-bold">Set up my training</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  2-minute questionnaire — AI plan, library, or build your own.
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
+        <button
+          onClick={() => navigate({ to: "/custom-plan" })}
+          className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
+        >
+          <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
+              <PencilRuler className="h-6 w-6" />
             </div>
-          </button>
-          <button
-            onClick={() => navigate({ to: "/custom-plan" })}
-            className="w-full py-1 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-accent"
-          >
-            or create a custom weekly plan →
-          </button>
-        </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-display font-bold">Create a custom weekly plan</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Build your own day-by-day split — pick muscle groups for each day.
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
+          </div>
+        </button>
       );
     }
 

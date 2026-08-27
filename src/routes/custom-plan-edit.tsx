@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { WorkoutGate } from "@/components/WorkoutGate";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Loader2, PencilRuler, X } from "lucide-react";
 import { toast } from "sonner";
@@ -21,8 +22,17 @@ import {
 } from "@/lib/musclePlan";
 
 export const Route = createFileRoute("/custom-plan-edit")({
-  component: CustomPlanEditor,
+  component: GatedCustomPlanEditor,
 });
+
+/** Gated: reachable directly from the dashboard, so it needs the same lock. */
+function GatedCustomPlanEditor() {
+  return (
+    <WorkoutGate>
+      <CustomPlanEditor />
+    </WorkoutGate>
+  );
+}
 
 /**
  * Edit an existing custom plan one day at a time.

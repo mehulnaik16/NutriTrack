@@ -31,7 +31,7 @@ import {
   formatValues,
   imbalance,
   imbalanceLabel,
-  inRange,
+  inRangeMetric,
   latestFor,
   round1,
   step,
@@ -115,7 +115,7 @@ export function BodyMeasurementsPage({
   const outOfRange = useMemo(
     () =>
       METRICS.flatMap((m) =>
-        fieldKeys(m).filter((k) => k in staged && !inRange(m.id, staged[k])),
+        fieldKeys(m).filter((k) => k in staged && !inRangeMetric(m.id, staged[k])),
       ),
     [staged],
   );

@@ -22,7 +22,7 @@ import {
   formatValues,
   imbalance,
   imbalanceLabel,
-  inRange,
+  inRangeMetric,
   latestFor,
   step,
 } from "./measurements";
@@ -133,16 +133,16 @@ assert.equal(
 // An unsided metric has no sides to compare.
 assert.equal(imbalance(rows, "chest"), null);
 
-// ── inRange: the client mirror of the DB CHECK ────────────────────────────
-assert.equal(inRange("biceps", 35.5), true);
-assert.equal(inRange("biceps", 0), false);
-assert.equal(inRange("biceps", -5), false);
+// ── inRangeMetric: the client mirror of the DB CHECK ────────────────────────────
+assert.equal(inRangeMetric("biceps", 35.5), true);
+assert.equal(inRangeMetric("biceps", 0), false);
+assert.equal(inRangeMetric("biceps", -5), false);
 // Per-metric, not one global range: 100 cm is a plausible chest and an
 // implausible biceps.
-assert.equal(inRange("biceps", 100), false);
-assert.equal(inRange("chest", 100), true);
-assert.equal(inRange("biceps", NaN), false);
-assert.equal(inRange("nope", 35), false);
+assert.equal(inRangeMetric("biceps", 100), false);
+assert.equal(inRangeMetric("chest", 100), true);
+assert.equal(inRangeMetric("biceps", NaN), false);
+assert.equal(inRangeMetric("nope", 35), false);
 
 // ── step: cannot walk a value out of its own range ────────────────────────
 assert.equal(step("biceps", 35, 0.5), 35.5);
