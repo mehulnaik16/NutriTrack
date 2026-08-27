@@ -79,6 +79,7 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { serverDeleteAccount } from "@/lib/delete-account";
 import { AchievementsPage } from "@/components/Achievements";
 import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
@@ -1336,32 +1337,7 @@ function SettingsPage({
   const deleteAccount = async () => {
     setDeleting(true);
     try {
-      // 1. Remove progress photos from storage
-      const { data: entries } = await supabase
-        .from("weight_entries")
-        .select("photo_url")
-        .eq("user_id", userId)
-        .not("photo_url", "is", null);
-      const paths = (entries ?? [])
-        .map((e: any) => {
-          const tail = String(e.photo_url).split("/weight-photos/")[1];
-          return tail ? tail.split("?")[0] : null;
-        })
-        .filter(Boolean) as string[];
-      if (paths.length > 0) {
-        await supabase.storage.from("weight-photos").remove(paths);
-      }
-
-      // 2. Delete every row that belongs to the user
-      await Promise.all([
-        supabase.from("food_logs").delete().eq("user_id", userId),
-        supabase.from("workout_logs").delete().eq("user_id", userId),
-        supabase.from("water_logs").delete().eq("user_id", userId),
-        supabase.from("weight_entries").delete().eq("user_id", userId),
-        supabase.from("saved_meals" as any).delete().eq("user_id", userId),
-        supabase.from("workout_plans").delete().eq("user_id", userId),
-      ]);
-      await supabase.from("user_profiles").delete().eq("id", userId);
+      await serverDeleteAccount();
 
       toast.success("Your account and data have been deleted");
       setDeleteOpen(false);
@@ -1735,8 +1711,8 @@ function SettingsPage({
                 </Button>
               </div>
               <p className="text-center text-[11px] text-muted-foreground">
-                Your login credential is removed from our auth system within 30
-                days of this request.
+                Your account and all associated data are permanently deleted
+                immediately.
               </p>
             </div>
           </DialogContent>
