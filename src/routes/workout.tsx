@@ -31,7 +31,13 @@ import {
   Trash2,
   ChevronDown,
   PencilRuler,
+  Info,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { CustomPlanTable } from "@/components/CustomPlanTable";
@@ -1702,7 +1708,35 @@ function WorkoutPage() {
                     </div>
                   )}
                   {showRpe && (
-                    <div className="w-14 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-wider">RPE</div>
+                    <div className="w-14 inline-flex items-center justify-center gap-1 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                      RPE
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label="What is RPE?"
+                            className="text-muted-foreground transition-colors hover:text-accent"
+                          >
+                            <Info className="h-3 w-3" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-52 p-3">
+                          <p className="mb-1.5 text-[11px] font-bold normal-case tracking-normal text-foreground">
+                            RPE — how hard it felt
+                          </p>
+                          <ul className="space-y-0.5 text-[11px] normal-case tracking-normal text-muted-foreground">
+                            <li><span className="font-semibold text-foreground">1–4</span> Very Easy</li>
+                            <li><span className="font-semibold text-foreground">5–6</span> Easy</li>
+                            <li><span className="font-semibold text-foreground">7–8</span> Hard</li>
+                            <li><span className="font-semibold text-foreground">9</span> Very Hard</li>
+                            <li><span className="font-semibold text-foreground">10</span> Maximum</li>
+                          </ul>
+                          <p className="mt-2 border-t border-border/60 pt-2 text-[10px] normal-case font-normal tracking-normal leading-snug text-muted-foreground">
+                            RPE (Rate of Perceived Exertion) rates how hard a set felt — pick the number that matches your effort.
+                          </p>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   )}
                   <div className="w-8"></div>
                 </div>

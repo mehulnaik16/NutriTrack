@@ -580,6 +580,21 @@ export const COMPOUND_EXERCISES: string[] = [
   "Bench Dip",
   "Assisted Dip",
   "Ring Dip",
+  // Barbell / machine compounds — same names as their home groups, so each
+  // appears in BOTH its group and Compound (shared favorites/history/logging).
+  "Back Squat",
+  "Deadlift",
+  "Barbell Romanian Deadlift",
+  "Leg Press",
+  "Bulgarian Split Squat",
+  "Barbell Bench Press",
+  "Barbell Incline Bench Press",
+  "Dumbbell Bench Press",
+  "Barbell Shoulder Press",
+  "Barbell Row",
+  "Dumbbell Row",
+  "Cable Row",
+  "Kettlebell Swing",
 ];
 
 /**
