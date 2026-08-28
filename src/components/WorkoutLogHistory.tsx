@@ -33,7 +33,9 @@ import {
 } from "@/components/ui/dialog";
 import { EXERCISES_DB } from "@/lib/exercises";
 import { todayLocal } from "@/lib/dates";
-import { estimate1RM, formatSet, setsOf as readSets } from "@/lib/workoutSets";
+import { estimate1RM, formatSet, setsOf as readSets, setWeightIn } from "@/lib/workoutSets";
+import { getCachedWorkoutPrefs } from "@/lib/workoutPrefs";
+import { round1 } from "@/lib/units";
 
 /** exercise name (lowercased) → muscle-group key, built once from EXERCISES_DB. */
 const MUSCLE_OF = new Map<string, string>();
@@ -76,6 +78,10 @@ const computePace = (durationMin: number, distanceKm: number): string | null => 
 
 export function WorkoutLogHistory() {
   const { user } = useAuth();
+  // Lists show the CURRENT unit; the progress graph stays in the ORIGINAL unit.
+  const unitPrefs = user ? getCachedWorkoutPrefs(user.id) : null;
+  const weightUnit = unitPrefs?.weightUnit ?? "kg";
+  const origUnit = unitPrefs?.origWeightUnit ?? "kg";
   const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [picked, setPicked] = useState<string | null>(null);
@@ -138,15 +144,20 @@ export function WorkoutLogHistory() {
       .reverse()
       .map((l) => ({
         date: l.date.slice(5),
-        maxWeight: setsOf(l).reduce((m, s) => Math.max(m, num(s.weight)), 0),
-        e1rm: best1RM(l),
-        volume: setsOf(l).reduce((v, s) => {
-          const w = num(s.weight), r = num(s.reps);
-          if (!w || !r) return v;
-          return v + w * r;
-        }, 0),
+        // Graph stays in the original unit; normalize each set to it (handles legacy lbs logs).
+        maxWeight: round1(setsOf(l).reduce((m, s) => Math.max(m, setWeightIn(s, origUnit)), 0)),
+        e1rm: round1(
+          setsOf(l).reduce((b, s) => Math.max(b, estimate1RM(setWeightIn(s, origUnit), num(s.reps))), 0),
+        ),
+        volume: round1(
+          setsOf(l).reduce((v, s) => {
+            const w = setWeightIn(s, origUnit), r = num(s.reps);
+            if (!w || !r) return v;
+            return v + w * r;
+          }, 0),
+        ),
       }));
-  }, [chartFor, strengthLogs]);
+  }, [chartFor, strengthLogs, origUnit]);
 
   // ── Cardio Log ────────────────────────────────────────────────────
   const cardioLogs = useMemo(() => allLogs.filter(isCardio), [allLogs]);
@@ -251,10 +262,22 @@ export function WorkoutLogHistory() {
                 items.map((l, i) => {
                   const open = expanded === l.id;
                   const sets = setsOf(l);
-                  const unit = sets[0]?.unit ?? "kg";
-                  const volume = sets.reduce((v, s) => v + num(s.weight) * num(s.reps), 0);
+                  const unit = weightUnit; // list is shown in the current unit
+                  const volume = round1(
+                    sets.reduce((v, s) => v + setWeightIn(s, weightUnit) * num(s.reps), 0),
+                  );
+                  // PR comparison stays in the original/stored unit so it's stable.
                   const prThreshold = priorBest(l);
-                  const top = best1RM(l);
+                  const topOrig = sets.reduce(
+                    (b, s) => Math.max(b, estimate1RM(setWeightIn(s, origUnit), num(s.reps))),
+                    0,
+                  );
+                  const top = round1(
+                    sets.reduce(
+                      (b, s) => Math.max(b, estimate1RM(setWeightIn(s, weightUnit), num(s.reps))),
+                      0,
+                    ),
+                  );
                   return (
                     <div key={l.id} className="border-t border-border/60">
                       <div className="flex items-center gap-3 px-4 py-3.5">
@@ -297,8 +320,8 @@ export function WorkoutLogHistory() {
                               </p>
                             )}
                             {sets.map((s, si) => {
-                              const rm = estimate1RM(num(s.weight), num(s.reps));
-                              const isPR = rm > 0 && rm === top && rm > prThreshold;
+                              const rm = estimate1RM(setWeightIn(s, origUnit), num(s.reps));
+                              const isPR = rm > 0 && rm === topOrig && rm > prThreshold;
                               return (
                                 <div
                                   key={si}
@@ -497,7 +520,7 @@ export function WorkoutLogHistory() {
               {/* ── Strength Progress: maxWeight + e1RM ── */}
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Strength Progress
+                  Strength Progress ({origUnit})
                 </p>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
@@ -544,7 +567,7 @@ export function WorkoutLogHistory() {
               {/* ── Volume Over Time ── */}
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Volume over time
+                  Volume over time ({origUnit})
                 </p>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>

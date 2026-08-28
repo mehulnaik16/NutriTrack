@@ -20,6 +20,8 @@ import {
   WEIGHT_KG,
   validateMeasurement,
 } from "@/lib/measurements";
+import { getCachedWorkoutPrefs } from "@/lib/workoutPrefs";
+import { type WeightUnit, kgToWeight, weightToKg, round1 } from "@/lib/units";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,6 +95,14 @@ function WeightPage() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Body weight is stored canonically in kg (BMI/calorie math needs it). The page
+  // DISPLAYS the current unit; its chart plots the original unit. Helpers below.
+  const unitPrefs = user ? getCachedWorkoutPrefs(user.id) : null;
+  const weightUnit = unitPrefs?.weightUnit ?? "kg";
+  const origWeightUnit = unitPrefs?.origWeightUnit ?? "kg";
+  const disp = (kg: number) => round1(kgToWeight(kg, weightUnit)); // kg → shown value
+  const wu = weightUnit;
+
   const [profile, setProfile] = useState<Profile | null>(null);
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [weight, setWeight] = useState("");
@@ -133,8 +143,8 @@ function WeightPage() {
 
     setProfile(p as Profile);
     setEntries((e as WeightEntry[]) ?? []);
-    if (p?.weight_kg) setWeight(String(p.weight_kg));
-    if (p?.goal_weight_kg) setGoalWeight(String(p.goal_weight_kg));
+    if (p?.weight_kg) setWeight(String(disp(p.weight_kg)));
+    if (p?.goal_weight_kg) setGoalWeight(String(disp(p.goal_weight_kg)));
   }, [user, navigate]);
 
   useEffect(() => {
@@ -169,14 +179,15 @@ function WeightPage() {
   const logWeight = async () => {
     if (!user || !weight) return;
 
-    const w = validateMeasurement(weight, WEIGHT_KG);
+    // Inputs are in the display unit; validate + store in kg.
+    const w = validateMeasurement(String(weightToKg(parseFloat(weight) || 0, wu)), WEIGHT_KG);
     if (!w.ok) {
       toast.error(w.error);
       return;
     }
     // The goal field is optional here, but if it has been typed into it is
     // written by the same update below and has to clear the same bar.
-    const g = goalWeight ? validateMeasurement(goalWeight, GOAL_WEIGHT_KG) : null;
+    const g = goalWeight ? validateMeasurement(String(weightToKg(parseFloat(goalWeight) || 0, wu)), GOAL_WEIGHT_KG) : null;
     if (g && !g.ok) {
       toast.error(g.error);
       return;
@@ -308,7 +319,7 @@ function WeightPage() {
   const saveGoalWeight = async () => {
     if (!user || !goalWeight) return;
 
-    const g = validateMeasurement(goalWeight, GOAL_WEIGHT_KG);
+    const g = validateMeasurement(String(weightToKg(parseFloat(goalWeight) || 0, wu)), GOAL_WEIGHT_KG);
     if (!g.ok) {
       toast.error(g.error);
       return;
@@ -369,7 +380,7 @@ function WeightPage() {
 
   const chartData = entries.map((e) => ({
     date: e.date.slice(5),
-    weight: e.weight_kg,
+    weight: round1(kgToWeight(e.weight_kg, origWeightUnit)),
   }));
 
   // Photos with images for comparison
@@ -394,7 +405,7 @@ function WeightPage() {
                 <Scale className="h-4 w-4 text-accent" /> Current
               </div>
               <p className="font-display text-2xl font-bold">
-                {latest?.weight_kg ?? profile.weight_kg} kg
+                {disp(latest?.weight_kg ?? profile.weight_kg)} {wu}
               </p>
             </CardContent>
           </Card>
@@ -414,7 +425,7 @@ function WeightPage() {
                 className={`font-display text-2xl font-bold ${totalChange < 0 ? "text-[var(--energy)]" : totalChange > 0 ? "text-destructive" : ""}`}
               >
                 {totalChange > 0 ? "+" : ""}
-                {totalChange} kg
+                {round1(kgToWeight(totalChange, wu))} {wu}
               </p>
             </CardContent>
           </Card>
@@ -424,7 +435,7 @@ function WeightPage() {
                 <Target className="h-4 w-4 text-accent" /> To goal
               </div>
               <p className="font-display text-2xl font-bold">
-                {toGoal !== null ? `${toGoal} kg` : "—"}
+                {toGoal !== null ? `${round1(kgToWeight(toGoal, wu))} ${wu}` : "—"}
               </p>
             </CardContent>
           </Card>
@@ -447,7 +458,7 @@ function WeightPage() {
                   </div>
                   {healthyMin && healthyMax && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Healthy range for your height: {healthyMin}–{healthyMax} kg
+                      Healthy range for your height: {disp(healthyMin)}–{disp(healthyMax)} {wu}
                     </p>
                   )}
                 </div>
@@ -512,25 +523,25 @@ function WeightPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Weight (kg)</Label>
+                <Label>Weight ({wu})</Label>
                 <Input
                   type="number"
                   step="0.1"
-                  min={WEIGHT_KG.min}
-                  max={WEIGHT_KG.max}
+                  min={disp(WEIGHT_KG.min)}
+                  max={disp(WEIGHT_KG.max)}
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
                   placeholder="e.g. 82.5"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Goal weight (kg)</Label>
+                <Label>Goal weight ({wu})</Label>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
                     type="number"
                     step="0.1"
-                    min={GOAL_WEIGHT_KG.min}
-                    max={GOAL_WEIGHT_KG.max}
+                    min={disp(GOAL_WEIGHT_KG.min)}
+                    max={disp(GOAL_WEIGHT_KG.max)}
                     value={goalWeight}
                     onChange={(e) => setGoalWeight(e.target.value)}
                     placeholder="e.g. 75"
@@ -602,7 +613,7 @@ function WeightPage() {
         {entries.length > 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Progress chart</CardTitle>
+              <CardTitle>Progress chart ({origWeightUnit})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-64">
@@ -638,11 +649,11 @@ function WeightPage() {
                     />
                     {profile.goal_weight_kg && (
                       <ReferenceLine
-                        y={profile.goal_weight_kg}
+                        y={round1(kgToWeight(profile.goal_weight_kg, origWeightUnit))}
                         stroke="var(--energy)"
                         strokeDasharray="5 5"
                         label={{
-                          value: "Goal",
+                          value: `Goal (${origWeightUnit})`,
                           fill: "var(--energy)",
                           fontSize: 11,
                         }}
@@ -697,7 +708,7 @@ function WeightPage() {
                           className="w-full rounded-lg object-cover aspect-[3/4]"
                         />
                         <p className="text-center text-xs text-muted-foreground">
-                          {entry.date} · {entry.weight_kg} kg
+                          {entry.date} · {disp(entry.weight_kg)} {wu}
                         </p>
                       </div>
                     ),
@@ -737,7 +748,7 @@ function WeightPage() {
                         
                         {/* 3. Weight (Mobile: TR, Desktop: Col 3) */}
                         <div className="font-bold text-right col-start-2 row-start-1 sm:col-start-3 sm:row-start-1">
-                          {e.weight_kg} kg
+                          {disp(e.weight_kg)} {wu}
                         </div>
                         
                         {/* 4. View Button (Mobile: BR, Desktop: Col 4) */}
@@ -761,11 +772,12 @@ function WeightPage() {
         )}
 
         {/* ── View / Edit Entry Modal ── */}
-        <WeightEntryModal 
-          entry={selectedEntry} 
-          onClose={() => setSelectedEntry(null)} 
+        <WeightEntryModal
+          entry={selectedEntry}
+          onClose={() => setSelectedEntry(null)}
           onSave={handleSaveModal}
           onDelete={handleDeleteModal}
+          weightUnit={weightUnit}
         />
       </main>
     </div>
@@ -776,13 +788,16 @@ function WeightEntryModal({
   entry,
   onClose,
   onSave,
-  onDelete
+  onDelete,
+  weightUnit,
 }: {
   entry: WeightEntry | null;
   onClose: () => void;
   onSave: (updated: WeightEntry, newPhoto: File | null) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  weightUnit: WeightUnit;
 }) {
+  const disp = (kg: number) => round1(kgToWeight(kg, weightUnit));
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editDate, setEditDate] = useState("");
@@ -795,7 +810,7 @@ function WeightEntryModal({
   useEffect(() => {
     if (entry) {
       setEditDate(entry.date);
-      setEditWeight(entry.weight_kg.toString());
+      setEditWeight(String(disp(entry.weight_kg)));
       setEditNote(entry.note || "");
       setEditPhotoPreview(entry.photo_url);
       setEditPhotoFile(null);
@@ -809,7 +824,7 @@ function WeightEntryModal({
 
   const hasChanged = entry && (
     editDate !== entry.date ||
-    editWeight !== entry.weight_kg.toString() ||
+    editWeight !== String(disp(entry.weight_kg)) ||
     editNote !== (entry.note || "") ||
     editPhotoPreview !== entry.photo_url ||
     editPhotoFile !== null
@@ -822,7 +837,7 @@ function WeightEntryModal({
       await onSave({
         ...entry,
         date: editDate,
-        weight_kg: Number(editWeight),
+        weight_kg: round1(weightToKg(Number(editWeight) || 0, weightUnit)),
         note: editNote,
         photo_url: editPhotoPreview
       }, editPhotoFile);
@@ -955,10 +970,10 @@ function WeightEntryModal({
                       onChange={(e) => setEditWeight(e.target.value)}
                       className="w-[5ch] bg-transparent text-center font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary rounded px-0.5 mx-1 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
-                    ] kg
+                    ] {weightUnit}
                   </span>
                 ) : (
-                  <span className="font-semibold text-foreground">{entry.weight_kg} kg</span>
+                  <span className="font-semibold text-foreground">{disp(entry.weight_kg)} {weightUnit}</span>
                 )}
               </div>
             </div>

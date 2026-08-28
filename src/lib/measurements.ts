@@ -8,9 +8,10 @@
  * The keys are flat because the CHECK constraint on that column rejects nested
  * objects — see the 20260826140000_body_measurements migration.
  *
- * Centimetres are the only unit. This app has no metric/imperial preference
- * anywhere and stores metric throughout (weight_kg, height_cm), so there is
- * nothing to convert against.
+ * Body-part circumferences here are always centimetres. Body WEIGHT, however,
+ * follows the user's weight-unit preference (see src/lib/units.ts and
+ * workout_profile.weight_unit): it is stored canonically in kg (weight_kg) and
+ * converted for display/entry. Height stays centimetres.
  *
  * ─── Profile / weight validation ────────────────────────────────────────────
  *

@@ -131,23 +131,35 @@ import {
   getCachedWorkoutPrefs,
 } from "@/lib/workoutPrefs";
 import { resolvePlanTypeLabel } from "@/lib/planType";
+import {
+  type WeightUnit,
+  type DistanceUnit,
+  weightToKg,
+  kgToWeight,
+  round1,
+} from "@/lib/units";
 
 /** WorkoutPrefs -> the profile page's wp* draft-field values (edit form + cache seed). */
 function wpFieldValues(p: WorkoutPrefs) {
+  // Lifts are stored in kg; edit them in the user's chosen weight unit.
+  const wu = p.weightUnit ?? "kg";
+  const w = (kg: number | null) => (kg ? String(round1(kgToWeight(kg, wu))) : "");
   return {
     level: p.fitnessLevel,
     goal: p.fitnessGoal,
-    benchW: p.strongestLifts.benchPress.weight ? String(p.strongestLifts.benchPress.weight) : "",
+    benchW: w(p.strongestLifts.benchPress.weight),
     benchR: p.strongestLifts.benchPress.reps ? String(p.strongestLifts.benchPress.reps) : "",
-    squatW: p.strongestLifts.squat.weight ? String(p.strongestLifts.squat.weight) : "",
+    squatW: w(p.strongestLifts.squat.weight),
     squatR: p.strongestLifts.squat.reps ? String(p.strongestLifts.squat.reps) : "",
-    deadliftW: p.strongestLifts.deadlift.weight ? String(p.strongestLifts.deadlift.weight) : "",
+    deadliftW: w(p.strongestLifts.deadlift.weight),
     deadliftR: p.strongestLifts.deadlift.reps ? String(p.strongestLifts.deadlift.reps) : "",
     days: p.trainingDaysPerWeek,
     cardio: p.cardioActivities.join(", "),
     muscles: p.musclesPerWorkout,
     duration: p.preferredWorkoutTime,
     planChoice: p.preferredTrainingPlan,
+    weightUnit: p.weightUnit ?? "kg",
+    distanceUnit: p.distanceUnit ?? "km",
   };
 }
 
@@ -275,6 +287,8 @@ function Profile() {
   const [wpDuration, setWpDuration] = useState(wpInit?.duration ?? 60);
   const [wpPlanChoice, setWpPlanChoice] =
     useState<WorkoutPrefs["preferredTrainingPlan"]>(wpInit?.planChoice ?? "ai_generated");
+  const [wpWeightUnit, setWpWeightUnit] = useState<WeightUnit>(wpInit?.weightUnit ?? "kg");
+  const [wpDistanceUnit, setWpDistanceUnit] = useState<DistanceUnit>(wpInit?.distanceUnit ?? "km");
 
   useEffect(() => {
     setTheme(localStorage.getItem("theme") || "dark");
@@ -371,6 +385,8 @@ function Profile() {
       setWpMuscles(f.muscles);
       setWpDuration(f.duration);
       setWpPlanChoice(f.planChoice);
+      setWpWeightUnit(f.weightUnit);
+      setWpDistanceUnit(f.distanceUnit);
     });
   }, [user]);
 
@@ -456,7 +472,11 @@ function Profile() {
   const updateWorkoutProfile = async () => {
     if (!user) return;
     setSavingWp(true);
-    const lift = (w: string, r: string) => ({ weight: w ? +w : null, reps: r ? +r : null });
+    // Inputs are in the chosen unit; store lifts canonically in kg.
+    const lift = (w: string, r: string) => ({
+      weight: w ? round1(weightToKg(+w, wpWeightUnit)) : null,
+      reps: r ? +r : null,
+    });
     const prefs: WorkoutPrefs = {
       fitnessLevel: wpLevel,
       fitnessGoal: wpGoal,
@@ -470,6 +490,11 @@ function Profile() {
       musclesPerWorkout: wpMuscles,
       preferredWorkoutTime: wpDuration,
       preferredTrainingPlan: wpPlanChoice,
+      weightUnit: wpWeightUnit,
+      distanceUnit: wpDistanceUnit,
+      // Original unit is set once at first setup — never changed from here.
+      origWeightUnit: wp?.origWeightUnit ?? "kg",
+      origDistanceUnit: wp?.origDistanceUnit ?? "km",
     };
     const { dbSaved } = await saveWorkoutPrefs(user.id, prefs);
     setSavingWp(false);
@@ -960,6 +985,26 @@ function Profile() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Weight unit</Label>
+                        <Select value={wpWeightUnit} onValueChange={(v) => setWpWeightUnit(v as WeightUnit)}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                            <SelectItem value="lbs">Pounds (lbs)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-muted-foreground">Cardio distance</Label>
+                        <Select value={wpDistanceUnit} onValueChange={(v) => setWpDistanceUnit(v as DistanceUnit)}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="km">Kilometres (km)</SelectItem>
+                            <SelectItem value="mile">Miles</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="flex flex-col gap-1 col-span-2">
                         <Label className="text-xs text-muted-foreground">Plan type</Label>
                         <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
@@ -998,6 +1043,10 @@ function Profile() {
                         value={wp.musclesPerWorkout === "not_sure" ? "Not sure" : String(wp.musclesPerWorkout)}
                       />
                       <InfoRow label="Plan type" value={planTypeLabel} />
+                      <div className="grid grid-cols-2 divide-x divide-border">
+                        <InfoCell label="Weight unit" value={wpWeightUnit} />
+                        <InfoCell label="Cardio distance" value={wpDistanceUnit} />
+                      </div>
                       <InfoRow label="Cardio" value={wp.cardioActivities.length ? wp.cardioActivities.join(", ") : "None set"} />
                     </>
                   )}
@@ -1013,7 +1062,7 @@ function Profile() {
                   {isEditingWp ? (
                     <div className="p-4 grid grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Bench (kg)</Label>
+                        <Label className="text-xs text-muted-foreground">Bench ({wpWeightUnit})</Label>
                         <Input type="number" value={wpBenchW} onChange={(e) => setWpBenchW(e.target.value)} className="h-9" />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1021,7 +1070,7 @@ function Profile() {
                         <Input type="number" value={wpBenchR} onChange={(e) => setWpBenchR(e.target.value)} className="h-9" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Squat (kg)</Label>
+                        <Label className="text-xs text-muted-foreground">Squat ({wpWeightUnit})</Label>
                         <Input type="number" value={wpSquatW} onChange={(e) => setWpSquatW(e.target.value)} className="h-9" />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1029,7 +1078,7 @@ function Profile() {
                         <Input type="number" value={wpSquatR} onChange={(e) => setWpSquatR(e.target.value)} className="h-9" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Deadlift (kg)</Label>
+                        <Label className="text-xs text-muted-foreground">Deadlift ({wpWeightUnit})</Label>
                         <Input type="number" value={wpDeadliftW} onChange={(e) => setWpDeadliftW(e.target.value)} className="h-9" />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1042,16 +1091,16 @@ function Profile() {
                       <div className="grid grid-cols-2 divide-x divide-border">
                         <InfoCell
                           label="Bench"
-                          value={wp.strongestLifts.benchPress.weight ? `${wp.strongestLifts.benchPress.weight}kg × ${wp.strongestLifts.benchPress.reps ?? "?"}` : "Not set"}
+                          value={wp.strongestLifts.benchPress.weight ? `${round1(kgToWeight(wp.strongestLifts.benchPress.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.benchPress.reps ?? "?"}` : "Not set"}
                         />
                         <InfoCell
                           label="Squat"
-                          value={wp.strongestLifts.squat.weight ? `${wp.strongestLifts.squat.weight}kg × ${wp.strongestLifts.squat.reps ?? "?"}` : "Not set"}
+                          value={wp.strongestLifts.squat.weight ? `${round1(kgToWeight(wp.strongestLifts.squat.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.squat.reps ?? "?"}` : "Not set"}
                         />
                       </div>
                       <InfoCell
                         label="Deadlift"
-                        value={wp.strongestLifts.deadlift.weight ? `${wp.strongestLifts.deadlift.weight}kg × ${wp.strongestLifts.deadlift.reps ?? "?"}` : "Not set"}
+                        value={wp.strongestLifts.deadlift.weight ? `${round1(kgToWeight(wp.strongestLifts.deadlift.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.deadlift.reps ?? "?"}` : "Not set"}
                       />
                     </>
                   )}

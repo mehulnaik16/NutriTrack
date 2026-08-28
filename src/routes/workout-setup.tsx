@@ -21,6 +21,13 @@ import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/lib/auth";
 import { generateAiPlan } from "@/lib/aiPlan";
 import {
+  type WeightUnit,
+  type DistanceUnit,
+  weightToKg,
+  kgToWeight,
+  round1,
+} from "@/lib/units";
+import {
   type WorkoutPrefs,
   FITNESS_LEVELS,
   FITNESS_GOALS,
@@ -34,15 +41,16 @@ export const Route = createFileRoute("/workout-setup")({
   component: WorkoutSetup,
   validateSearch: (s: Record<string, unknown>): { step?: number } => {
     const n = Number(s.step);
-    return Number.isInteger(n) && n >= 1 && n <= 8 ? { step: n } : {};
+    return Number.isInteger(n) && n >= 1 && n <= 9 ? { step: n } : {};
   },
 });
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 const STEP_TITLES = [
   "Your fitness level",
   "Your primary goal",
+  "Measurement units",
   "Strongest lifts",
   "Training frequency",
   "Cardio you enjoy",
@@ -93,10 +101,12 @@ function LiftRow({
   label,
   value,
   onChange,
+  unit = "kg",
 }: {
   label: string;
   value: LiftDraft;
   onChange: (v: LiftDraft) => void;
+  unit?: WeightUnit;
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
@@ -105,7 +115,7 @@ function LiftRow({
       </p>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Weight (kg)</Label>
+          <Label className="text-xs text-muted-foreground">Weight ({unit})</Label>
           <Input
             type="number"
             inputMode="decimal"
@@ -157,6 +167,12 @@ function WorkoutSetup() {
   const [duration, setDuration] = useState(60);
   const [planChoice, setPlanChoice] =
     useState<WorkoutPrefs["preferredTrainingPlan"]>("ai_generated");
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>("kg");
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>("km");
+  // The original unit is fixed at the FIRST setup. Capture what's already stored
+  // (if any) so redoing setup never rewrites it — only a true first-timer sets it.
+  const [loadedOrigWeight, setLoadedOrigWeight] = useState<WeightUnit | null>(null);
+  const [loadedOrigDistance, setLoadedOrigDistance] = useState<DistanceUnit | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -174,8 +190,14 @@ function WorkoutSetup() {
       setMuscles(p.musclesPerWorkout ?? "not_sure");
       setDuration(p.preferredWorkoutTime || 60);
       setPlanChoice(p.preferredTrainingPlan || "ai_generated");
+      setWeightUnit(p.weightUnit ?? "kg");
+      setDistanceUnit(p.distanceUnit ?? "km");
+      setLoadedOrigWeight(p.origWeightUnit ?? "kg");
+      setLoadedOrigDistance(p.origDistanceUnit ?? "km");
+      // Lifts are stored in kg; show them in the user's chosen weight unit.
+      const wu = p.weightUnit ?? "kg";
       const d = (l: { weight: number | null; reps: number | null }) => ({
-        weight: l?.weight ? String(l.weight) : "",
+        weight: l?.weight ? String(round1(kgToWeight(l.weight, wu))) : "",
         reps: l?.reps ? String(l.reps) : "",
       });
       if (p.strongestLifts) {
@@ -187,8 +209,9 @@ function WorkoutSetup() {
   }, [user]);
 
   const buildPrefs = (): WorkoutPrefs => {
+    // Lift weights are entered in the chosen unit but stored canonically in kg.
     const lift = (l: LiftDraft) => ({
-      weight: l.weight ? +l.weight : null,
+      weight: l.weight ? round1(weightToKg(+l.weight, weightUnit)) : null,
       reps: l.reps ? +l.reps : null,
     });
     return {
@@ -204,6 +227,11 @@ function WorkoutSetup() {
       musclesPerWorkout: muscles,
       preferredWorkoutTime: duration,
       preferredTrainingPlan: planChoice,
+      weightUnit,
+      distanceUnit,
+      // First-timer: the chosen unit becomes the original. Existing rows keep theirs.
+      origWeightUnit: loadedOrigWeight ?? weightUnit,
+      origDistanceUnit: loadedOrigDistance ?? distanceUnit,
     };
   };
 
@@ -323,8 +351,52 @@ function WorkoutSetup() {
             </div>
           )}
 
-          {/* ── 3. Strongest lifts ── */}
+          {/* ── 3. Measurement units ── */}
           {step === 3 && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  How do you want to track weight? This applies to logging and your
+                  charts.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {(["kg", "lbs"] as const).map((u) => (
+                    <OptionCard
+                      key={u}
+                      active={weightUnit === u}
+                      onClick={() => setWeightUnit(u)}
+                    >
+                      <span className="text-sm font-semibold uppercase">{u}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {u === "kg" ? "Kilograms" : "Pounds"}
+                      </span>
+                    </OptionCard>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  And cardio distance?
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {(["km", "mile"] as const).map((u) => (
+                    <OptionCard
+                      key={u}
+                      active={distanceUnit === u}
+                      onClick={() => setDistanceUnit(u)}
+                    >
+                      <span className="text-sm font-semibold">
+                        {u === "km" ? "Kilometres" : "Miles"}
+                      </span>
+                    </OptionCard>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── 4. Strongest lifts ── */}
+          {step === 4 && (
             <div className="space-y-3">
               <p className="mb-1 text-sm text-muted-foreground">
                 We'll pre-fill these weights when you log matching exercises.
@@ -332,14 +404,14 @@ function WorkoutSetup() {
               <p className="mb-4 text-xs font-bold uppercase tracking-wider text-accent">
                 Optional — skip if unsure
               </p>
-              <LiftRow label="Bench Press" value={bench} onChange={setBench} />
-              <LiftRow label="Back Squat" value={squat} onChange={setSquat} />
-              <LiftRow label="Deadlift" value={deadlift} onChange={setDeadlift} />
+              <LiftRow label="Bench Press" value={bench} onChange={setBench} unit={weightUnit} />
+              <LiftRow label="Back Squat" value={squat} onChange={setSquat} unit={weightUnit} />
+              <LiftRow label="Deadlift" value={deadlift} onChange={setDeadlift} unit={weightUnit} />
             </div>
           )}
 
-          {/* ── 4. Training days ── */}
-          {step === 4 && (
+          {/* ── 5. Training days ── */}
+          {step === 5 && (
             <div className="space-y-3">
               <p className="mb-5 text-sm text-muted-foreground">
                 This decides your weekly split —{" "}
@@ -369,8 +441,8 @@ function WorkoutSetup() {
             </div>
           )}
 
-          {/* ── 5. Cardio multi-select ── */}
-          {step === 5 && (() => {
+          {/* ── 6. Cardio multi-select ── */}
+          {step === 6 && (() => {
             const CARDIO_EMOJI: Record<string, string> = {
               "Treadmill running": "🏃",
               "Outdoor walk": "🚶",
@@ -482,8 +554,8 @@ function WorkoutSetup() {
             );
           })()}
 
-          {/* ── 6. Muscles per workout ── */}
-          {step === 6 && (
+          {/* ── 7. Muscles per workout ── */}
+          {step === 7 && (
             <div className="space-y-3">
               <p className="mb-5 text-sm text-muted-foreground">
                 How many muscle groups do you usually hit in one session?
@@ -510,8 +582,8 @@ function WorkoutSetup() {
             </div>
           )}
 
-          {/* ── 7. Duration slider ── */}
-          {step === 7 && (
+          {/* ── 8. Duration slider ── */}
+          {step === 8 && (
             <div className="space-y-8">
               <p className="text-sm text-muted-foreground">
                 How long is a typical session for you?
@@ -546,8 +618,8 @@ function WorkoutSetup() {
             </div>
           )}
 
-          {/* ── 8. Plan choice ── */}
-          {step === 8 && (
+          {/* ── 9. Plan choice ── */}
+          {step === 9 && (
             <div className="space-y-3">
               <p className="mb-5 text-sm text-muted-foreground">
                 How do you want your training plan?

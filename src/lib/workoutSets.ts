@@ -14,6 +14,7 @@
  * written before this module existed carry no kind at all.
  */
 import type { ExerciseKind } from "./exerciseKind.ts";
+import { type WeightUnit, convWeight, round1 } from "@/lib/units";
 
 export interface LoggedSet {
   /** weighted, bodyweight, assisted */
@@ -42,6 +43,14 @@ export const setsOf = (raw: unknown): LoggedSet[] => {
   );
 };
 
+/**
+ * A logged set's weight converted into `to`. The set stores its own unit (legacy
+ * logs may be lbs; absent → kg); this normalizes any set to the requested unit so
+ * charts/lists never mix units.
+ */
+export const setWeightIn = (s: LoggedSet, to: WeightUnit): number =>
+  convWeight(num(s.weight), s.unit ?? "kg", to);
+
 /** Epley formula — estimated one-rep max. */
 export const estimate1RM = (weight: number, reps: number): number => {
   if (!weight || !reps) return 0;
@@ -61,22 +70,24 @@ export const parseDuration = (text: string): number => {
   return Math.max(0, Math.floor(num(m) * 60 + num(s)));
 };
 
-/** One history row, rendered per kind. */
-export const formatSet = (s: LoggedSet, fallbackUnit = "kg"): string => {
-  const unit = s.unit ?? fallbackUnit;
+/** One history row, rendered per kind, with weights shown in `displayUnit`. */
+export const formatSet = (s: LoggedSet, displayUnit: WeightUnit = "kg"): string => {
+  const unit = displayUnit;
+  const w = round1(setWeightIn(s, unit));
   const rpe = s.rpe ? ` · RPE ${s.rpe}` : "";
   if (s.kind === "isometric" || (!s.reps && s.duration_seconds))
-    return `${formatDuration(s.duration_seconds ?? 0)}${s.weight ? ` +${s.weight}${unit}` : ""}${rpe}`;
-  if (s.kind === "assisted") return `${num(s.reps)} reps · −${num(s.weight)}${unit} assist`;
+    return `${formatDuration(s.duration_seconds ?? 0)}${s.weight ? ` +${w}${unit}` : ""}${rpe}`;
+  if (s.kind === "assisted") return `${num(s.reps)} reps · −${w}${unit} assist`;
   if (s.kind === "bodyweight")
-    return `${num(s.reps)} reps${s.weight ? ` +${s.weight}${unit}` : ""}${rpe}`;
-  return `${num(s.reps)} reps @ ${num(s.weight)} ${unit}`;
+    return `${num(s.reps)} reps${s.weight ? ` +${w}${unit}` : ""}${rpe}`;
+  return `${num(s.reps)} reps @ ${w} ${unit}`;
 };
 
 /** The stats line under the set table, and the Analytics summary card. */
 export const summarizeSets = (
   kind: ExerciseKind,
   sets: LoggedSet[],
+  displayUnit: WeightUnit = "kg",
 ): { label: string; value: string } => {
   if (kind === "isometric") {
     const total = sets.reduce((t, s) => t + (s.duration_seconds ?? 0), 0);
@@ -86,6 +97,9 @@ export const summarizeSets = (
     const total = sets.reduce((t, s) => t + num(s.reps), 0);
     return { label: "Total reps", value: `${total} reps` };
   }
-  const best = sets.reduce((b, s) => Math.max(b, estimate1RM(num(s.weight), num(s.reps))), 0);
-  return { label: "Est. 1RM from these sets", value: `${best} ${sets[0]?.unit ?? "kg"}` };
+  const best = sets.reduce(
+    (b, s) => Math.max(b, estimate1RM(setWeightIn(s, displayUnit), num(s.reps))),
+    0,
+  );
+  return { label: "Est. 1RM from these sets", value: `${round1(best)} ${displayUnit}` };
 };

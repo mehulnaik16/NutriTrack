@@ -11,6 +11,7 @@ import {
   formatSet,
   parseDuration,
   setsOf,
+  setWeightIn,
   summarizeSets,
 } from "./workoutSets.ts";
 
@@ -65,8 +66,20 @@ assert.equal(
   formatSet({ reps: "8", weight: "20", unit: "kg", kind: "assisted" }),
   "8 reps · −20kg assist",
 );
-// Logs written before this feature have no kind — they must still read.
-assert.equal(formatSet({ reps: "8", weight: "60" }, "lbs"), "8 reps @ 60 lbs");
+// Logs written before this feature have no kind/unit — they read as kg by default.
+assert.equal(formatSet({ reps: "8", weight: "60" }), "8 reps @ 60 kg");
+// The second arg is now the DISPLAY unit: a kg-stored set shown in lbs converts (×2.2).
+assert.equal(
+  formatSet({ reps: "8", weight: "60", unit: "kg" }, "lbs"),
+  "8 reps @ 132 lbs",
+);
+
+// ── setWeightIn: normalize a set's stored unit into any target unit ─────
+const r1 = (n: number) => Math.round(n * 10) / 10;
+assert.equal(r1(setWeightIn({ weight: "22", unit: "kg" }, "lbs")), 48.4); // 22 × 2.2
+assert.equal(setWeightIn({ weight: "22", unit: "lbs" }, "lbs"), 22); // identity
+assert.equal(r1(setWeightIn({ weight: "22", unit: "lbs" }, "kg")), 10); // 22 ÷ 2.2
+assert.equal(setWeightIn({ weight: "10" }, "kg"), 10); // absent unit → kg
 
 // ── summarizeSets: the stats line under the table ───────────────────────
 assert.equal(

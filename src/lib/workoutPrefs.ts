@@ -10,6 +10,7 @@
  */
 
 import { supabase } from "@/integrations/client";
+import type { WeightUnit, DistanceUnit } from "@/lib/units";
 
 export interface LiftEntry {
   weight: number | null;
@@ -29,6 +30,13 @@ export interface WorkoutPrefs {
   musclesPerWorkout: 1 | 2 | 3 | "not_sure";
   preferredWorkoutTime: number; // minutes
   preferredTrainingPlan: "ai_generated" | "library" | "custom" | "skip" | "none";
+  /** Current display unit (editable in Profile → Workout details). */
+  weightUnit: WeightUnit;
+  distanceUnit: DistanceUnit;
+  /** Original unit chosen at first setup — what the DB stores in and graphs plot
+   *  in. Immutable after first setup. */
+  origWeightUnit: WeightUnit;
+  origDistanceUnit: DistanceUnit;
   completedAt?: string;
 }
 
@@ -95,6 +103,10 @@ function toRow(userId: string, prefs: WorkoutPrefs) {
     muscles_per_workout: String(prefs.musclesPerWorkout),
     preferred_workout_time_min: prefs.preferredWorkoutTime,
     preferred_training_plan: prefs.preferredTrainingPlan,
+    weight_unit: prefs.weightUnit,
+    distance_unit: prefs.distanceUnit,
+    orig_weight_unit: prefs.origWeightUnit,
+    orig_distance_unit: prefs.origDistanceUnit,
     updated_at: new Date().toISOString(),
   };
 }
@@ -116,6 +128,10 @@ function fromRow(row: any): WorkoutPrefs {
     musclesPerWorkout: muscles === "not_sure" ? "not_sure" : (Number(muscles) as 1 | 2 | 3),
     preferredWorkoutTime: row.preferred_workout_time_min,
     preferredTrainingPlan: row.preferred_training_plan,
+    weightUnit: row.weight_unit ?? "kg",
+    distanceUnit: row.distance_unit ?? "km",
+    origWeightUnit: row.orig_weight_unit ?? "kg",
+    origDistanceUnit: row.orig_distance_unit ?? "km",
     completedAt: row.completed_at,
   };
 }

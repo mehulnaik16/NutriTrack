@@ -101,9 +101,11 @@ import {
   formatSet,
   parseDuration,
   setsOf as readSets,
+  setWeightIn,
   summarizeSets,
   type LoggedSet,
 } from "@/lib/workoutSets";
+import { convWeight, kgToWeight, convDist, round1 } from "@/lib/units";
 import {
   type WorkoutPrefs as UserWorkoutPrefs,
   defaultLiftForExercise,
@@ -1151,6 +1153,8 @@ function WorkoutPage() {
   // --- Render Modals ---
 
   const CardioModal = () => {
+    const distanceUnit = prefs?.distanceUnit ?? "km";
+    const origDistanceUnit = prefs?.origDistanceUnit ?? "km";
     const [duration, setDuration] = useState("30");
     const [kcal, setKcal] = useState(() =>
       String(estimateCardioKcal(selectedCardio, 30, bodyWeight)),
@@ -1210,7 +1214,7 @@ function WorkoutPage() {
         workout_name: selectedCardio || "",
         duration_min: parseInt(duration) || 30,
         calories_burned: parseInt(kcal) || 0,
-        exercises_done: { bpm: parseInt(bpm) || null, distance: parseFloat(distance) || null },
+        exercises_done: { bpm: parseInt(bpm) || null, distance: distance ? convDist(parseFloat(distance) || 0, distanceUnit, origDistanceUnit) : null },
       });
       if (error) {
         toast.error(`Failed to log: ${error.message}`, { id: t });
@@ -1298,7 +1302,7 @@ function WorkoutPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
-                  <span>Distance (km)</span>
+                  <span>Distance ({distanceUnit})</span>
                   <span className="text-muted-foreground/50">Optional</span>
                 </Label>
                 <Input
@@ -1326,7 +1330,7 @@ function WorkoutPage() {
             {showPace && (
               <div className="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
                 <span className="rounded-full bg-accent/10 px-3 py-1 text-accent">
-                  Est. pace: {paceDisplay} min/km
+                  Est. pace: {paceDisplay} min/{distanceUnit}
                 </span>
               </div>
             )}
@@ -1335,7 +1339,7 @@ function WorkoutPage() {
                 {met} METs
               </span>
               <span className="rounded-full bg-muted px-3 py-1">
-                ~{Math.round(met * bodyWeight * (1 / 60))} kcal / min at {bodyWeight} kg
+                ~{Math.round(met * bodyWeight * (1 / 60))} kcal / min at {round1(kgToWeight(bodyWeight, prefs?.weightUnit ?? "kg"))} {prefs?.weightUnit ?? "kg"}
               </span>
             </div>
             <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
@@ -1355,7 +1359,8 @@ function WorkoutPage() {
                     dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
                     
                     const ex = log.exercises_done || {};
-                    const dist = ex.distance ? parseFloat(ex.distance) : null;
+                    // Stored in the original unit; show in the current unit.
+                    const dist = ex.distance ? round1(convDist(parseFloat(ex.distance), origDistanceUnit, distanceUnit)) : null;
                     const logBpm = ex.bpm ? parseInt(ex.bpm) : null;
                     
                     let paceDisplay = null;
@@ -1397,7 +1402,7 @@ function WorkoutPage() {
                           {dist !== null && (
                             <div className="flex justify-between text-sm">
                               <span className="font-semibold text-muted-foreground">Distance</span>
-                              <span className="font-bold">{dist} km</span>
+                              <span className="font-bold">{dist} {distanceUnit}</span>
                             </div>
                           )}
                           {logBpm !== null && (
@@ -1409,7 +1414,7 @@ function WorkoutPage() {
                           {paceDisplay !== null && (
                             <div className="flex justify-between text-sm">
                               <span className="font-semibold text-muted-foreground">Est. Pace</span>
-                              <span className="font-bold">{paceDisplay} min/km</span>
+                              <span className="font-bold">{paceDisplay} min/{distanceUnit}</span>
                             </div>
                           )}
                         </div>
@@ -1436,8 +1441,10 @@ function WorkoutPage() {
   };
 
   const GymLogModal = () => {
+    // Current display unit (editable) and the original unit the DB stores in.
+    const weightUnit = prefs?.weightUnit ?? "kg";
+    const origUnit = prefs?.origWeightUnit ?? "kg";
     const [sets, setSets] = useState<LoggedSet[]>([{ reps: "10", weight: "20" }]);
-    const [currentUnit, setCurrentUnit] = useState<'kg' | 'lbs'>('kg');
     const [history, setHistory] = useState<any[]>([]);
     const [videos, setVideos] = useState<any[]>([]);
     const [loadingMedia, setLoadingMedia] = useState(false);
@@ -1473,16 +1480,6 @@ function WorkoutPage() {
 
     const showWeight = kind === "weighted" || kind === "assisted" || (canAddWeight && addWeight);
     const showRpe = canAddWeight;
-
-    const toggleUnit = (toUnit: 'kg' | 'lbs') => {
-      if (toUnit === currentUnit) return;
-      setSets(prev => prev.map(s => {
-        const w = parseFloat(s.weight ?? "") || 0;
-        const converted = toUnit === 'lbs' ? Math.round(w * 2.2) : Math.round(w / 2.2);
-        return { ...s, weight: String(converted) };
-      }));
-      setCurrentUnit(toUnit);
-    };
 
     // Rest timer
     const [restLeft, setRestLeft] = useState(0);
@@ -1526,11 +1523,6 @@ function WorkoutPage() {
       setRestTotal(seconds + Math.random()); // unique value re-triggers effect
     };
 
-    const best1RMForLog = (log: any): number =>
-      readSets(log?.exercises_done).reduce((best: number, s) => {
-        const rm = estimate1RM(parseFloat(s.weight ?? "") || 0, parseInt(s.reps ?? "") || 0);
-        return rm > best ? rm : best;
-      }, 0);
 
     const fetchHistory = () => {
       if (!selectedExercise || !user) return;
@@ -1548,7 +1540,17 @@ function WorkoutPage() {
           // would leave the duration input empty.
           const prior = readSets(data?.[0]?.exercises_done);
           if (prior.length > 0) {
-            setSets(prior.map((s) => ({ ...s })));
+            // Prior sets are stored in their own unit; show them in the current unit.
+            setSets(
+              prior.map((s) => ({
+                ...s,
+                unit: undefined,
+                weight:
+                  s.weight != null && s.weight !== ""
+                    ? String(round1(setWeightIn(s, weightUnit)))
+                    : s.weight,
+              })),
+            );
           } else if (kind === "isometric") {
             setSets([{ duration_seconds: 30 }]);
           } else if (kind === "bodyweight") {
@@ -1556,9 +1558,10 @@ function WorkoutPage() {
           } else {
             const lift = defaultLiftForExercise(selectedExercise, prefs);
             if (lift?.weight) {
-              setSets([{ reps: String(lift.reps ?? 8), weight: String(lift.weight) }]);
+              // defaultLiftForExercise returns kg — show in the current unit.
+              setSets([{ reps: String(lift.reps ?? 8), weight: String(round1(kgToWeight(lift.weight, weightUnit))) }]);
             } else {
-              setSets([{ reps: "10", weight: currentUnit === "lbs" ? "45" : "20" }]);
+              setSets([{ reps: "10", weight: weightUnit === "lbs" ? "45" : "20" }]);
             }
           }
         });
@@ -1598,7 +1601,10 @@ function WorkoutPage() {
         ...(kind === "isometric"
           ? { duration_seconds: s.duration_seconds ?? 0 }
           : { reps: s.reps }),
-        ...(showWeight && s.weight ? { weight: s.weight, unit: currentUnit } : {}),
+        // Store in the original unit (what the DB + graphs use); input is current unit.
+        ...(showWeight && s.weight
+          ? { weight: String(round1(convWeight(parseFloat(s.weight) || 0, weightUnit, origUnit))), unit: origUnit }
+          : {}),
         ...(showRpe && s.rpe ? { rpe: s.rpe } : {}),
         kind,
       }));
@@ -1683,22 +1689,8 @@ function WorkoutPage() {
                   </div>
                   {showWeight && (
                     <div className="flex-1 flex flex-col justify-center">
-                      <div className="flex justify-center">
-                        <div className="flex bg-muted/50 rounded-md p-0.5 gap-0.5">
-                          {(['kg', 'lbs'] as const).map(u => (
-                            <button
-                              key={u}
-                              onClick={() => toggleUnit(u)}
-                              className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase transition-all ${
-                                currentUnit === u
-                                  ? 'bg-accent text-accent-foreground shadow-sm'
-                                  : 'text-muted-foreground hover:text-foreground'
-                              }`}
-                            >
-                              {u}
-                            </button>
-                          ))}
-                        </div>
+                      <div className="text-center text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                        Weight ({weightUnit})
                       </div>
                       {/* Without this the number reads as load, when it is the
                           opposite — assistance that makes the rep easier. */}
@@ -1823,7 +1815,13 @@ function WorkoutPage() {
                 </Button>
 
                 {(() => {
-                  const summary = summarizeSets(kind, sets);
+                  // Working sets are already in the current unit; stamp it so the
+                  // reader treats the numbers as-is (not as kg).
+                  const summary = summarizeSets(
+                    kind,
+                    sets.map((s) => ({ ...s, unit: weightUnit })),
+                    weightUnit,
+                  );
                   return (
                     <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-accent/10 px-3 py-2 text-[11px] font-bold text-accent">
                       <LineChart className="h-3.5 w-3.5" />
@@ -1894,18 +1892,28 @@ function WorkoutPage() {
                 <div className="space-y-3">
                   {history.map((log, idx) => {
                     const logSets = readSets(log.exercises_done);
-                    const logUnit = logSets[0]?.unit ?? currentUnit;
+                    // History list is shown in the CURRENT unit.
+                    const logUnit = weightUnit;
                     const dateObj = new Date(log.date);
                     dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
 
                     // Volume and 1RM only mean anything when the weight is load.
                     // On an assisted machine it is the opposite, so both stay hidden.
                     const showLoadStats = kind === "weighted";
-                    const rm = showLoadStats ? best1RMForLog(log) : 0;
+                    const rm = showLoadStats
+                      ? round1(
+                          logSets.reduce(
+                            (b, s) => Math.max(b, estimate1RM(setWeightIn(s, weightUnit), parseInt(s.reps ?? "") || 0)),
+                            0,
+                          ),
+                        )
+                      : 0;
                     const vol = showLoadStats
-                      ? logSets.reduce(
-                          (acc, s) => acc + (parseFloat(s.weight ?? "") || 0) * (parseInt(s.reps ?? "") || 0),
-                          0,
+                      ? round1(
+                          logSets.reduce(
+                            (acc, s) => acc + setWeightIn(s, weightUnit) * (parseInt(s.reps ?? "") || 0),
+                            0,
+                          ),
                         )
                       : 0;
 
@@ -1960,7 +1968,9 @@ function WorkoutPage() {
                    barbell, more reps for a push-up, longer for a plank. */
                 const isLoad = kind === "weighted";
                 const repsOf = (s: LoggedSet) => parseInt(s.reps ?? "") || 0;
-                const weightOf = (s: LoggedSet) => parseFloat(s.weight ?? "") || 0;
+                // Graphs stay in the ORIGINAL unit so the axis is stable when the
+                // user switches their display unit; each set is normalized to it.
+                const weightOf = (s: LoggedSet) => setWeightIn(s, origUnit);
 
                 const strengthData = chronological.map((log) => {
                   const sets = readSets(log.exercises_done);
@@ -1985,7 +1995,7 @@ function WorkoutPage() {
                 });
 
                 const allSets = chronological.flatMap((log) => readSets(log.exercises_done));
-                const unit = allSets.find((s) => s.unit)?.unit ?? currentUnit;
+                const unit = origUnit;
                 const peakE1RM = Math.max(
                   0,
                   ...strengthData.map((d) => ("e1rm" in d ? (d.e1rm ?? 0) : 0)),
@@ -2028,11 +2038,11 @@ function WorkoutPage() {
                             />
                             {isLoad ? (
                               <>
-                                <Line type="monotone" dataKey="maxWeight" name="Max Weight" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
-                                <Line type="monotone" dataKey="e1rm" name="Est. 1RM" stroke="var(--muted-foreground)" strokeDasharray="5 4" strokeWidth={2} dot={false} />
+                                <Line type="monotone" dataKey="maxWeight" name="Max Weight" stroke="var(--accent)" strokeWidth={2.5} dot={{ r: 2.5 }} />
+                                <Line type="monotone" dataKey="e1rm" name="Est. 1RM" stroke="var(--muted-foreground)" strokeDasharray="5 4" strokeWidth={2} dot={{ r: 2.5 }} />
                               </>
                             ) : (
-                              <Line type="monotone" dataKey="best" name={kind === "isometric" ? "Longest Hold" : "Best Set"} stroke="var(--accent)" strokeWidth={2.5} dot={false} />
+                              <Line type="monotone" dataKey="best" name={kind === "isometric" ? "Longest Hold" : "Best Set"} stroke="var(--accent)" strokeWidth={2.5} dot={{ r: 2.5 }} />
                             )}
                           </RechartsLineChart>
                         </ResponsiveContainer>
@@ -2072,7 +2082,7 @@ function WorkoutPage() {
                                 isLoad ? 'Volume' : kind === "isometric" ? 'Total Time' : 'Total Reps',
                               ]}
                             />
-                            <Line type="monotone" dataKey="volume" name="Volume" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
+                            <Line type="monotone" dataKey="volume" name="Volume" stroke="var(--accent)" strokeWidth={2.5} dot={{ r: 2.5 }} />
                           </RechartsLineChart>
                         </ResponsiveContainer>
                       </div>
