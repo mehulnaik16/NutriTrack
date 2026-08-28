@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Ban,
   Check,
   Dumbbell,
   Library,
@@ -18,8 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/client";
-import { serverGroqChat } from "@/lib/ai";
+import { generateAiPlan } from "@/lib/aiPlan";
 import {
   type WorkoutPrefs,
   FITNESS_LEVELS,
@@ -207,81 +207,6 @@ function WorkoutSetup() {
     };
   };
 
-  const generateAiPlan = async (prefs: WorkoutPrefs) => {
-    if (!user) return;
-    const goalLabel =
-      FITNESS_GOALS.find((g) => g.value === prefs.fitnessGoal)?.label ??
-      prefs.fitnessGoal;
-    const lifts: string[] = [];
-    const { benchPress, squat: sq, deadlift: dl } = prefs.strongestLifts;
-    if (benchPress.weight)
-      lifts.push(`Bench Press ${benchPress.weight}kg × ${benchPress.reps ?? "?"} reps`);
-    if (sq.weight) lifts.push(`Back Squat ${sq.weight}kg × ${sq.reps ?? "?"} reps`);
-    if (dl.weight) lifts.push(`Deadlift ${dl.weight}kg × ${dl.reps ?? "?"} reps`);
-
-    const prompt = `You are an expert strength & conditioning coach. Create a ${prefs.trainingDaysPerWeek}-day-per-week gym workout plan.
-User profile:
-- Experience: ${prefs.fitnessLevel}
-- Primary goal: ${goalLabel}
-- Session length: about ${prefs.preferredWorkoutTime} minutes
-- Prefers training ${prefs.musclesPerWorkout === "not_sure" ? "a coach-recommended number of" : prefs.musclesPerWorkout} muscle group(s) per session
-- Enjoys cardio: ${prefs.cardioActivities.length ? prefs.cardioActivities.join(", ") : "none specified"}
-${lifts.length ? `- Current strength: ${lifts.join("; ")}` : ""}
-Return ONLY valid JSON, no markdown, in exactly this shape:
-{
-  "goal": "${goalLabel}",
-  "days_per_week": ${prefs.trainingDaysPerWeek},
-  "days": [
-    {
-      "day": "Day 1",
-      "name": "Push Day",
-      "focus": "Chest, Shoulders & Triceps",
-      "exercises": [{ "name": "Barbell Bench Press", "sets": 4, "reps": "8-10" }]
-    }
-  ]
-}
-Rules:
-- Exactly ${prefs.trainingDaysPerWeek} entries in "days", labelled "Day 1" … "Day ${prefs.trainingDaysPerWeek}".
-- Use this split: ${SPLIT_GUIDE[prefs.trainingDaysPerWeek] ?? "a sensible split"}.
-- ${prefs.preferredWorkoutTime <= 40 ? "4-5" : prefs.preferredWorkoutTime <= 70 ? "5-7" : "6-8"} exercises per day, matched to the session length.
-- If the user enjoys cardio, finish appropriate days with one of their preferred cardio activities as an exercise (e.g. { "name": "Running", "sets": 1, "reps": "15 min" }).
-- Use well-known gym exercise names only.
-- "reps" is a string like "8-12", "5", or "30 sec".
-- Scale intensity to a ${prefs.fitnessLevel} lifter.`;
-
-    const { result: raw } = await serverGroqChat({
-      data: {
-        prompt,
-        model: "openai/gpt-oss-120b",
-        max_tokens: 2500,
-        temperature: 0.4,
-        response_format_json: true,
-      },
-    });
-    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    if (!parsed?.days || !Array.isArray(parsed.days) || parsed.days.length === 0) {
-      throw new Error("The AI returned an invalid plan. Please try again.");
-    }
-
-    // Replace any previous plan
-    const { data: old } = await supabase
-      .from("workout_plans")
-      .select("id")
-      .eq("user_id", user.id);
-    if (old && old.length > 0) {
-      await supabase
-        .from("workout_plans")
-        .delete()
-        .in("id", old.map((o: any) => o.id));
-    }
-    const { error } = await supabase.from("workout_plans").insert({
-      user_id: user.id,
-      goal: goalLabel, // NOT NULL column in workout_plans
-      plan_json: parsed,
-    } as any);
-    if (error) throw error;
-  };
-
   const finish = async () => {
     if (!user) return;
     setBusy(true);
@@ -290,14 +215,13 @@ Rules:
       await saveWorkoutPrefs(user.id, prefs);
 
       if (planChoice === "ai_generated") {
-        await generateAiPlan(prefs);
+        await generateAiPlan(user.id, prefs);
         toast.success("Your personalized plan is ready! 💪");
         navigate({ to: "/workout" });
       } else if (planChoice === "library") {
-        sessionStorage.setItem("workout_initial_tab", "HOME");
         toast.success("Preferences saved — browse the library!");
-        navigate({ to: "/workout" });
-      } else if (planChoice === "skip") {
+        navigate({ to: "/workout-library" });
+      } else if (planChoice === "skip" || planChoice === "none") {
         toast.success("Preferences saved!");
         navigate({ to: "/workout" });
       } else {
@@ -675,6 +599,17 @@ Rules:
                 </span>
                 <span className="mt-1 block text-xs text-muted-foreground">
                   Just save my answers — I'll set up a plan later.
+                </span>
+              </OptionCard>
+              <OptionCard
+                active={planChoice === "none"}
+                onClick={() => setPlanChoice("none")}
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <Ban className="h-4 w-4 text-accent" /> No plan
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Go straight to the workout page — no plan yet.
                 </span>
               </OptionCard>
             </div>

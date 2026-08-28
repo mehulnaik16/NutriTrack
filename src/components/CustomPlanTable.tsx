@@ -1,13 +1,13 @@
 import { Fragment } from "react";
 import { Pencil } from "lucide-react";
 import {
-  MUSCLE_EMOJI,
   type StandardMuscle,
   type CustomPlan,
   activeMuscles,
   isRestDay,
   tableColumnCount,
 } from "@/lib/musclePlan";
+import { MuscleIcon } from "@/components/MuscleIcon";
 
 /**
  * The custom plan as a dynamic-column table — view only by default.
@@ -71,15 +71,15 @@ export function CustomPlanTable({
                     <td key={c} className="px-3 py-2.5">
                       {rest ? (
                         c === 0 ? (
-                          <span className="italic text-muted-foreground">
-                            {MUSCLE_EMOJI["Rest Day"]} Rest Day
+                          <span className="inline-flex items-center gap-1.5 italic text-muted-foreground">
+                            <MuscleIcon muscle="Rest Day" className="h-4 w-4" /> Rest Day
                           </span>
                         ) : (
                           <span className="text-muted-foreground/40">-</span>
                         )
                       ) : act[c] ? (
-                        <span className="font-medium">
-                          {MUSCLE_EMOJI[act[c] as StandardMuscle] ?? ""} {act[c]}
+                        <span className="inline-flex items-center gap-1.5 font-medium">
+                          <MuscleIcon muscle={act[c] as StandardMuscle} className="h-4 w-4" /> {act[c]}
                         </span>
                       ) : (
                         <span className="text-muted-foreground/40">-</span>

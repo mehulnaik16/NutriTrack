@@ -42,6 +42,8 @@ export interface Metric {
   id: string;
   label: string;
   emoji: string;
+  /** Anatomy reference image (small icon). Falls back to `emoji` when absent. */
+  img?: string;
   /** Plausible range in cm, shared by both sides. Mirrors, more tightly, the
    *  0 < value <= 400 CHECK that the database enforces. */
   min: number;
@@ -51,13 +53,14 @@ export interface Metric {
 }
 
 export const METRICS: readonly Metric[] = [
-  { id: "biceps", label: "Biceps", emoji: "💪", min: 15, max: 70, sided: true },
-  { id: "chest", label: "Chest", emoji: "🫁", min: 50, max: 200, sided: false },
-  { id: "thigh", label: "Thigh", emoji: "🦵", min: 30, max: 120, sided: true },
+  { id: "biceps", label: "Biceps", emoji: "💪", img: "/images/biceps%20final.png", min: 15, max: 70, sided: true },
+  { id: "chest", label: "Chest", emoji: "🫁", img: "/images/chestfinal.png", min: 50, max: 200, sided: false },
+  { id: "thigh", label: "Thigh", emoji: "🦵", img: "/images/legs.png", min: 30, max: 120, sided: true },
   {
     id: "abdomen",
     label: "Abdomen",
     emoji: "🧍",
+    img: "/images/corefinal.png",
     min: 40,
     max: 200,
     sided: false,

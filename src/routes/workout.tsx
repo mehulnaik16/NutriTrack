@@ -117,8 +117,8 @@ import {
   cycleDayIndex,
   gridIdsForMuscles,
   updatePlanDay,
-  MUSCLE_EMOJI,
 } from "@/lib/musclePlan";
+import { MuscleIcon } from "@/components/MuscleIcon";
 
 // ── AI Workout Plan types ─────────────────────────────────────
 interface PlanExercise {
@@ -308,6 +308,18 @@ function WorkoutPage() {
     return Array.from(new Set(all));
   }, []);
 
+  // Exercises in the user's active plan — pinned to the top of every muscle-group
+  // list as "recommended" (matched case-insensitively to tolerate name casing).
+  const planExercises = useMemo(
+    () =>
+      new Set(
+        (plan?.days ?? []).flatMap(
+          (d) => d.exercises?.map((e) => e.name.toLowerCase()) ?? [],
+        ),
+      ),
+    [plan],
+  );
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -458,22 +470,14 @@ function WorkoutPage() {
       // details; this page only offers building a new custom weekly plan.
       return (
         <button
-          onClick={() => navigate({ to: "/custom-plan" })}
-          className="card-lift group relative w-full overflow-hidden rounded-2xl border border-accent/30 bg-card p-5 text-left"
+          onClick={() => navigate({ to: "/choose-plan" })}
+          className="card-lift group flex w-full items-center gap-2.5 rounded-xl border border-accent/30 bg-card px-4 py-3 text-left"
         >
-          <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
-              <PencilRuler className="h-6 w-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-display font-bold">Create a custom weekly plan</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Build your own day-by-day split — pick muscle groups for each day.
-              </p>
-            </div>
-            <ChevronRight className="h-5 w-5 shrink-0 text-accent" />
-          </div>
+          <PencilRuler className="h-4 w-4 shrink-0 text-accent" />
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+            Choose your workout plan
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-accent" />
         </button>
       );
     }
@@ -560,16 +564,16 @@ function WorkoutPage() {
                   Today:
                 </span>
                 {todayRest ? (
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
-                    {MUSCLE_EMOJI["Rest Day"]} Rest Day — recover well
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                    <MuscleIcon muscle="Rest Day" className="h-4 w-4" /> Rest Day — recover well
                   </span>
                 ) : (
                   todayMuscles.map((m) => (
                     <span
                       key={m}
-                      className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-accent-foreground glow-accent-sm"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-accent-foreground glow-accent-sm"
                     >
-                      {MUSCLE_EMOJI[m]} {m}
+                      <MuscleIcon muscle={m} className="h-4 w-4" /> {m}
                     </span>
                   ))
                 )}
@@ -629,15 +633,35 @@ function WorkoutPage() {
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              title="Delete plan"
-              onClick={deletePlan}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  title="Delete plan"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete plan?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete your workout plan. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={deletePlan}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -742,6 +766,12 @@ function WorkoutPage() {
 
     if (searchQuery) {
       searchResults.sort((a, b) => {
+        // 0. Recommended (in the active plan)
+        const aPlanned = planExercises.has(a.toLowerCase());
+        const bPlanned = planExercises.has(b.toLowerCase());
+        if (aPlanned && !bPlanned) return -1;
+        if (!aPlanned && bPlanned) return 1;
+
         // 1. Favorites
         const aFav = favorites.includes(a);
         const bFav = favorites.includes(b);
@@ -1000,6 +1030,12 @@ function WorkoutPage() {
 
     // Sort: favorites first, then logged today, then recent, then alphabetical
     const sorted = [...exercises].sort((a, b) => {
+      // 0. Recommended (in the active plan)
+      const aPlanned = planExercises.has(a.toLowerCase());
+      const bPlanned = planExercises.has(b.toLowerCase());
+      if (aPlanned && !bPlanned) return -1;
+      if (!aPlanned && bPlanned) return 1;
+
       // 1. Favorites
       const aFav = favorites.includes(a);
       const bFav = favorites.includes(b);
@@ -1070,6 +1106,7 @@ function WorkoutPage() {
           {sorted.map((ex, i) => {
             const isFav = favorites.includes(ex);
             const isLogged = loggedToday.includes(ex);
+            const isPlanned = planExercises.has(ex.toLowerCase());
             return (
               <div
                 key={ex}
@@ -1081,6 +1118,11 @@ function WorkoutPage() {
                     {i + 1}.
                   </span>
                   <span className="font-semibold text-sm group-hover:text-accent transition-colors">{ex}</span>
+                  {isPlanned && !isLogged && (
+                    <span className="text-[9px] uppercase font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded">
+                      In plan
+                    </span>
+                  )}
                   {isLogged && (
                     <span className="text-[9px] uppercase font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded">
                       Logged

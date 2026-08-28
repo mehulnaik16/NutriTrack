@@ -46,6 +46,19 @@ const rpc = (fn: string, args?: Record<string, unknown>) =>
 const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
+/** Small metric icon: anatomy image when available, else the emoji. */
+function MetricIcon({ metric, className = "h-5 w-5" }: { metric: Metric; className?: string }) {
+  if (!metric.img) return <span aria-hidden>{metric.emoji}</span>;
+  return (
+    <img
+      src={metric.img}
+      alt=""
+      aria-hidden
+      className={`shrink-0 rounded object-cover ${className}`}
+    />
+  );
+}
+
 export function BodyMeasurementsPage({
   userId,
   onBack,
@@ -170,7 +183,7 @@ export function BodyMeasurementsPage({
                     : "border-border bg-card text-muted-foreground hover:border-accent/50"
                 }`}
               >
-                <span aria-hidden>{m.emoji}</span>
+                <MetricIcon metric={m} className="h-5 w-5" />
                 {m.label}
                 {hasStaged && (
                   <span
@@ -185,7 +198,7 @@ export function BodyMeasurementsPage({
         {/* ── The value card ────────────────────────────────────────── */}
         <section className="rounded-2xl border border-border bg-card p-5">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold">
-            <span aria-hidden>{metric.emoji}</span> {metric.label}
+            <MetricIcon metric={metric} className="h-5 w-5" /> {metric.label}
           </h2>
 
           {metric.sided ? (
@@ -349,8 +362,8 @@ export function BodyMeasurementsPage({
                           key={m.id}
                           className="flex items-center justify-between text-sm"
                         >
-                          <span className="text-muted-foreground">
-                            <span aria-hidden>{m.emoji}</span> {m.label}
+                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <MetricIcon metric={m} className="h-4 w-4" /> {m.label}
                           </span>
                           <span className="font-display font-semibold">
                             {values} cm

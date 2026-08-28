@@ -16,7 +16,6 @@ import { supabase } from "@/integrations/client";
 import { todayLocal } from "@/lib/dates";
 import {
   STANDARD_MUSCLE_GROUPS,
-  MUSCLE_EMOJI,
   MAX_MUSCLES_PER_DAY,
   type StandardMuscle,
   buildCustomPlan,
@@ -24,6 +23,7 @@ import {
   activeMuscles,
   tableColumnCount,
 } from "@/lib/musclePlan";
+import { MuscleIcon } from "@/components/MuscleIcon";
 
 export const Route = createFileRoute("/custom-plan")({
   component: GatedCustomPlanBuilder,
@@ -336,7 +336,7 @@ function CustomPlanBuilder() {
                         : "border-border bg-card hover:border-muted-foreground/40"
                   } ${isRestOption ? "col-span-2" : ""}`}
                 >
-                  <span className="text-lg">{MUSCLE_EMOJI[m]}</span>
+                  <MuscleIcon muscle={m} className="h-7 w-7" />
                   <span
                     className={`min-w-0 flex-1 truncate text-sm font-semibold ${
                       selected ? "text-accent" : ""

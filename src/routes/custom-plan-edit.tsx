@@ -13,13 +13,13 @@ import {
   type CustomPlan,
   type StandardMuscle,
   STANDARD_MUSCLE_GROUPS,
-  MUSCLE_EMOJI,
   MAX_MUSCLES_PER_DAY,
   isCustomPlan,
   cycleDayIndex,
   updatePlanDay,
   activeMuscles,
 } from "@/lib/musclePlan";
+import { MuscleIcon } from "@/components/MuscleIcon";
 
 export const Route = createFileRoute("/custom-plan-edit")({
   component: GatedCustomPlanEditor,
@@ -238,7 +238,7 @@ function CustomPlanEditor() {
                               : "border-border bg-card hover:border-muted-foreground/40"
                         } ${isRestOption ? "col-span-2" : ""}`}
                       >
-                        <span className="text-base">{MUSCLE_EMOJI[m]}</span>
+                        <MuscleIcon muscle={m} className="h-6 w-6" />
                         <span className={`min-w-0 flex-1 truncate font-semibold ${selected ? "text-accent" : ""}`}>
                           {m}
                         </span>

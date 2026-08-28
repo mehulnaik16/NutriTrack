@@ -28,7 +28,7 @@ export interface WorkoutPrefs {
   cardioActivities: string[]; // "Running" | "Cycling" | "Swimming"
   musclesPerWorkout: 1 | 2 | 3 | "not_sure";
   preferredWorkoutTime: number; // minutes
-  preferredTrainingPlan: "ai_generated" | "library" | "custom" | "skip";
+  preferredTrainingPlan: "ai_generated" | "library" | "custom" | "skip" | "none";
   completedAt?: string;
 }
 

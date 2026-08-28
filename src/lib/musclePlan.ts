@@ -38,6 +38,22 @@ export const MUSCLE_EMOJI: Record<StandardMuscle, string> = {
 };
 
 /**
+ * Anatomy reference image per muscle — rendered as a small emoji-sized icon so
+ * each group is recognisable (the same assets the Workout muscle grid uses).
+ * Rest Day has no image and falls back to its emoji.
+ */
+export const MUSCLE_IMG: Partial<Record<StandardMuscle, string>> = {
+  Biceps: "/images/biceps%20final.png",
+  Triceps: "/images/tricepsfinal.png",
+  Back: "/images/backfinal.png",
+  Legs: "/images/legs.png",
+  "Compound Exercise": "/images/compoundfinal.png",
+  Chest: "/images/chestfinal.png",
+  Core: "/images/corefinal.png",
+  Shoulder: "/images/shouldersfinal.png",
+};
+
+/**
  * Maps each standard group to the muscle-grid ids on the Workout page
  * (keys of EXERCISES_DB) so today's targets can be auto-highlighted.
  */

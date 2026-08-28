@@ -131,6 +131,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Push Up",
     "Wide Push Up",
     "Push Up on Knees",
+    "Plyometric Push-ups",
     "Dumbbell Squeeze Press",
     "Incline Dumbbell Squeeze Press",
     "Incline Svend Press",
@@ -192,7 +193,8 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Loop Band Overhead Press",
     "Pike Push Up",
     "Rope Slam",
-    "TRX Rear Delt Fly"
+    "TRX Rear Delt Fly",
+    "Handstand Push-ups (assisted)"
   ],
   triceps: [
     "Assisted Dip",
@@ -283,7 +285,8 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "V Sit",
     "V Up",
     "Vertical Knee Raise",
-    "Vertical Leg Raise"
+    "Vertical Leg Raise",
+    "Medicine Ball Slams"
   ],
   glutes: [
     "Barbell Glute Bridge",

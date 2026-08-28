@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkoutSetupRouteImport } from './routes/workout-setup'
+import { Route as WorkoutLibraryRouteImport } from './routes/workout-library'
 import { Route as WorkoutRouteImport } from './routes/workout'
 import { Route as WeightRouteImport } from './routes/weight'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -25,12 +26,18 @@ import { Route as FoodRouteImport } from './routes/food'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CustomPlanEditRouteImport } from './routes/custom-plan-edit'
 import { Route as CustomPlanRouteImport } from './routes/custom-plan'
+import { Route as ChoosePlanRouteImport } from './routes/choose-plan'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
 const WorkoutSetupRoute = WorkoutSetupRouteImport.update({
   id: '/workout-setup',
   path: '/workout-setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutLibraryRoute = WorkoutLibraryRouteImport.update({
+  id: '/workout-library',
+  path: '/workout-library',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkoutRoute = WorkoutRouteImport.update({
@@ -108,6 +115,11 @@ const CustomPlanRoute = CustomPlanRouteImport.update({
   path: '/custom-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChoosePlanRoute = ChoosePlanRouteImport.update({
+  id: '/choose-plan',
+  path: '/choose-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -121,6 +133,7 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/choose-plan': typeof ChoosePlanRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
@@ -136,11 +149,13 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/workout': typeof WorkoutRoute
+  '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/choose-plan': typeof ChoosePlanRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
@@ -156,12 +171,14 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/workout': typeof WorkoutRoute
+  '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/choose-plan': typeof ChoosePlanRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
@@ -177,6 +194,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/workout': typeof WorkoutRoute
+  '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
@@ -184,6 +202,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/choose-plan'
     | '/custom-plan'
     | '/custom-plan-edit'
     | '/dashboard'
@@ -199,11 +218,13 @@ export interface FileRouteTypes {
     | '/terms'
     | '/weight'
     | '/workout'
+    | '/workout-library'
     | '/workout-setup'
     | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/choose-plan'
     | '/custom-plan'
     | '/custom-plan-edit'
     | '/dashboard'
@@ -219,11 +240,13 @@ export interface FileRouteTypes {
     | '/terms'
     | '/weight'
     | '/workout'
+    | '/workout-library'
     | '/workout-setup'
     | '/auth/callback'
   id:
     | '__root__'
     | '/'
+    | '/choose-plan'
     | '/custom-plan'
     | '/custom-plan-edit'
     | '/dashboard'
@@ -239,12 +262,14 @@ export interface FileRouteTypes {
     | '/terms'
     | '/weight'
     | '/workout'
+    | '/workout-library'
     | '/workout-setup'
     | '/auth/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChoosePlanRoute: typeof ChoosePlanRoute
   CustomPlanRoute: typeof CustomPlanRoute
   CustomPlanEditRoute: typeof CustomPlanEditRoute
   DashboardRoute: typeof DashboardRoute
@@ -260,6 +285,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WeightRoute: typeof WeightRoute
   WorkoutRoute: typeof WorkoutRoute
+  WorkoutLibraryRoute: typeof WorkoutLibraryRoute
   WorkoutSetupRoute: typeof WorkoutSetupRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
@@ -271,6 +297,13 @@ declare module '@tanstack/react-router' {
       path: '/workout-setup'
       fullPath: '/workout-setup'
       preLoaderRoute: typeof WorkoutSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workout-library': {
+      id: '/workout-library'
+      path: '/workout-library'
+      fullPath: '/workout-library'
+      preLoaderRoute: typeof WorkoutLibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workout': {
@@ -378,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomPlanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/choose-plan': {
+      id: '/choose-plan'
+      path: '/choose-plan'
+      fullPath: '/choose-plan'
+      preLoaderRoute: typeof ChoosePlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -397,6 +437,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChoosePlanRoute: ChoosePlanRoute,
   CustomPlanRoute: CustomPlanRoute,
   CustomPlanEditRoute: CustomPlanEditRoute,
   DashboardRoute: DashboardRoute,
@@ -412,6 +453,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WeightRoute: WeightRoute,
   WorkoutRoute: WorkoutRoute,
+  WorkoutLibraryRoute: WorkoutLibraryRoute,
   WorkoutSetupRoute: WorkoutSetupRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 }

@@ -63,6 +63,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -119,6 +130,7 @@ import {
   loadWorkoutPrefs,
   getCachedWorkoutPrefs,
 } from "@/lib/workoutPrefs";
+import { resolvePlanTypeLabel } from "@/lib/planType";
 
 /** WorkoutPrefs -> the profile page's wp* draft-field values (edit form + cache seed). */
 function wpFieldValues(p: WorkoutPrefs) {
@@ -243,6 +255,10 @@ function Profile() {
     user ? getCachedWorkoutPrefs(user.id) : null,
   );
   const wpInit = wp ? wpFieldValues(wp) : null;
+  // Plan type is DERIVED from the real workout_plans row (not the stored
+  // preference), so deleting a plan on the Workout page shows here as "No
+  // plan" with no manual edit. Read-only — the gym Workout page owns it.
+  const [planTypeLabel, setPlanTypeLabel] = useState("No plan");
   const [isEditingWp, setIsEditingWp] = useState(false);
   const [savingWp, setSavingWp] = useState(false);
   const [wpLevel, setWpLevel] = useState<WorkoutPrefs["fitnessLevel"]>(wpInit?.level ?? "beginner");
@@ -357,6 +373,16 @@ function Profile() {
       setWpPlanChoice(f.planChoice);
     });
   }, [user]);
+
+  // Refresh the derived plan-type label whenever the workout-details page
+  // opens, so a plan deleted elsewhere (e.g. the Workout page) is reflected on
+  // return without a manual edit.
+  useEffect(() => {
+    if (!user || page !== "workout-details") return;
+    resolvePlanTypeLabel(user.id, wp?.preferredTrainingPlan ?? "none").then(
+      setPlanTypeLabel,
+    );
+  }, [user, page, wp]);
 
   const updateProfile = async () => {
     if (!user || !profile) return;
@@ -935,21 +961,14 @@ function Profile() {
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1 col-span-2">
-                        <Label className="text-xs text-muted-foreground">Preferred plan type</Label>
-                        <Select value={wpPlanChoice} onValueChange={(v) => setWpPlanChoice(v as WorkoutPrefs["preferredTrainingPlan"])}>
-                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ai_generated">Let AI pick for me</SelectItem>
-                            <SelectItem value="library">Workout library</SelectItem>
-                            <SelectItem value="custom">Build my own</SelectItem>
-                            <SelectItem value="skip">Skip for now</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label className="text-xs text-muted-foreground">Plan type</Label>
+                        <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                          {planTypeLabel}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Synced with your Workout page — change it there.
+                        </p>
                       </div>
-                      <p className="col-span-2 text-xs text-muted-foreground">
-                        Changing these won't update a plan you've already generated — build a new
-                        one from the Workout page if you want it to match.
-                      </p>
                       <div className="flex flex-col gap-1 col-span-2">
                         <Label className="text-xs text-muted-foreground">Cardio you enjoy (comma-separated)</Label>
                         <Input
@@ -978,18 +997,7 @@ function Profile() {
                         label="Muscles/session"
                         value={wp.musclesPerWorkout === "not_sure" ? "Not sure" : String(wp.musclesPerWorkout)}
                       />
-                      <InfoRow
-                        label="Plan type"
-                        value={
-                          wp.preferredTrainingPlan === "ai_generated"
-                            ? "Let AI pick for me"
-                            : wp.preferredTrainingPlan === "library"
-                              ? "Workout library"
-                              : wp.preferredTrainingPlan === "skip"
-                                ? "Skipped for now"
-                                : "Build my own"
-                        }
-                      />
+                      <InfoRow label="Plan type" value={planTypeLabel} />
                       <InfoRow label="Cardio" value={wp.cardioActivities.length ? wp.cardioActivities.join(", ") : "None set"} />
                     </>
                   )}
@@ -1108,16 +1116,35 @@ function Profile() {
         </div>
 
         {/* Sign out */}
-        <Button
-          variant="outline"
-          className="mt-6 h-12 w-full gap-2 rounded-2xl font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={async () => {
-            await signOut();
-            navigate({ to: "/login", replace: true });
-          }}
-        >
-          <LogOut className="h-4 w-4" /> Sign out
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="mt-6 h-12 w-full gap-2 rounded-2xl font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4" /> Sign out
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Log out?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You'll need to sign in again to get back to your account.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  await signOut();
+                  navigate({ to: "/login", replace: true });
+                }}
+              >
+                Log out
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Social icons */}
         <div className="mt-8 flex items-center justify-center gap-6">
@@ -1639,13 +1666,30 @@ function SettingsPage({
           <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Account
           </p>
-          <Button
-            variant="outline"
-            className="h-12 w-full gap-2 rounded-2xl font-semibold"
-            onClick={onSignOut}
-          >
-            <LogOut className="h-4 w-4" /> Sign out
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-12 w-full gap-2 rounded-2xl font-semibold"
+              >
+                <LogOut className="h-4 w-4" /> Sign out
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Log out?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You'll need to sign in again to get back to your account.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onSignOut}>
+                  Log out
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </section>
 
         {/* Danger zone */}
