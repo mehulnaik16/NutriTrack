@@ -1662,7 +1662,7 @@ function WorkoutPage() {
               {/* Bodyweight and isometric work has no load by default. The
                   toggle opts into an ADDED weight — a vest, a belt, a dumbbell. */}
               {canAddWeight && (
-                <div className="-mb-2 flex items-center justify-end gap-2">
+                <div className="-mb-1 flex items-center justify-end gap-2">
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider ${
                       addWeight ? "text-accent" : "text-muted-foreground"
@@ -1675,13 +1675,15 @@ function WorkoutPage() {
                     aria-checked={addWeight}
                     aria-label="Add weight"
                     onClick={() => setAddWeight((v) => !v)}
-                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                      addWeight ? "bg-accent" : "bg-muted"
+                    className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors ${
+                      addWeight
+                        ? "justify-end bg-accent"
+                        : "justify-start bg-background ring-1 ring-inset ring-border"
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${
-                        addWeight ? "translate-x-[22px]" : "translate-x-0.5"
+                      className={`h-5 w-5 rounded-full shadow ${
+                        addWeight ? "bg-background" : "bg-muted-foreground/60"
                       }`}
                     />
                   </button>
