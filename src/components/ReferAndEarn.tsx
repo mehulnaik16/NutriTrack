@@ -14,9 +14,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowDown,
   Check,
+  ChevronRight,
   Copy,
   Gift,
   Link2,
@@ -481,6 +483,24 @@ export function ReferAndEarnPage({
             </AccordionContent>
           </AccordionItem>
         </Accordion>
+
+        {/* ── Full-page explainer + legal ───────────────────────────── */}
+        <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+          <Link
+            to="/refer-how-it-works"
+            className="flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-accent/5"
+          >
+            How Refer &amp; Earn Works
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+          <Link
+            to="/refer-terms"
+            className="flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-accent/5"
+          >
+            Terms &amp; Conditions
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
       </main>
 
       {/* ── The Gift Composer ───────────────────────────────────────── */}

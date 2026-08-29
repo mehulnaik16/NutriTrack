@@ -332,6 +332,18 @@ function Dashboard() {
       return;
     }
 
+    // Compulsory-once onboarding screens, in order: benefits/features intro, then
+    // the Refer & Earn intro. Each is forced on every landing until the user
+    // dismisses it (which sets its flag), so they survive logout / app-close.
+    if (!(p as any).has_seen_benefits_features_page) {
+      navigate({ to: "/welcome", replace: true });
+      return;
+    }
+    if (!(p as any).has_seen_refer_intro) {
+      navigate({ to: "/refer-intro", replace: true });
+      return;
+    }
+
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);
     setMonthLogs((m as FoodLog[]) ?? []);

@@ -33,7 +33,7 @@ function Plans() {
       return;
     }
     toast.success("Free trial started!");
-    navigate({ to: "/dashboard", replace: true });
+    navigate({ to: "/welcome", replace: true });
   };
 
   return (

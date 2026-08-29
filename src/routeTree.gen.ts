@@ -12,9 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkoutSetupRouteImport } from './routes/workout-setup'
 import { Route as WorkoutLibraryRouteImport } from './routes/workout-library'
 import { Route as WorkoutRouteImport } from './routes/workout'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as WeightRouteImport } from './routes/weight'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReferTermsRouteImport } from './routes/refer-terms'
+import { Route as ReferIntroRouteImport } from './routes/refer-intro'
+import { Route as ReferHowItWorksRouteImport } from './routes/refer-how-it-works'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -45,6 +49,11 @@ const WorkoutRoute = WorkoutRouteImport.update({
   path: '/workout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WeightRoute = WeightRouteImport.update({
   id: '/weight',
   path: '/weight',
@@ -58,6 +67,21 @@ const TermsRoute = TermsRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferTermsRoute = ReferTermsRouteImport.update({
+  id: '/refer-terms',
+  path: '/refer-terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferIntroRoute = ReferIntroRouteImport.update({
+  id: '/refer-intro',
+  path: '/refer-intro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferHowItWorksRoute = ReferHowItWorksRouteImport.update({
+  id: '/refer-how-it-works',
+  path: '/refer-how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuizRoute = QuizRouteImport.update({
@@ -145,9 +169,13 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/quiz': typeof QuizRoute
+  '/refer-how-it-works': typeof ReferHowItWorksRoute
+  '/refer-intro': typeof ReferIntroRoute
+  '/refer-terms': typeof ReferTermsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
+  '/welcome': typeof WelcomeRoute
   '/workout': typeof WorkoutRoute
   '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
@@ -167,9 +195,13 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/quiz': typeof QuizRoute
+  '/refer-how-it-works': typeof ReferHowItWorksRoute
+  '/refer-intro': typeof ReferIntroRoute
+  '/refer-terms': typeof ReferTermsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
+  '/welcome': typeof WelcomeRoute
   '/workout': typeof WorkoutRoute
   '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
@@ -190,9 +222,13 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/quiz': typeof QuizRoute
+  '/refer-how-it-works': typeof ReferHowItWorksRoute
+  '/refer-intro': typeof ReferIntroRoute
+  '/refer-terms': typeof ReferTermsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
+  '/welcome': typeof WelcomeRoute
   '/workout': typeof WorkoutRoute
   '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
@@ -214,9 +250,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/quiz'
+    | '/refer-how-it-works'
+    | '/refer-intro'
+    | '/refer-terms'
     | '/reset-password'
     | '/terms'
     | '/weight'
+    | '/welcome'
     | '/workout'
     | '/workout-library'
     | '/workout-setup'
@@ -236,9 +276,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/quiz'
+    | '/refer-how-it-works'
+    | '/refer-intro'
+    | '/refer-terms'
     | '/reset-password'
     | '/terms'
     | '/weight'
+    | '/welcome'
     | '/workout'
     | '/workout-library'
     | '/workout-setup'
@@ -258,9 +302,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/quiz'
+    | '/refer-how-it-works'
+    | '/refer-intro'
+    | '/refer-terms'
     | '/reset-password'
     | '/terms'
     | '/weight'
+    | '/welcome'
     | '/workout'
     | '/workout-library'
     | '/workout-setup'
@@ -281,9 +329,13 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   QuizRoute: typeof QuizRoute
+  ReferHowItWorksRoute: typeof ReferHowItWorksRoute
+  ReferIntroRoute: typeof ReferIntroRoute
+  ReferTermsRoute: typeof ReferTermsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
   WeightRoute: typeof WeightRoute
+  WelcomeRoute: typeof WelcomeRoute
   WorkoutRoute: typeof WorkoutRoute
   WorkoutLibraryRoute: typeof WorkoutLibraryRoute
   WorkoutSetupRoute: typeof WorkoutSetupRoute
@@ -313,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/weight': {
       id: '/weight'
       path: '/weight'
@@ -332,6 +391,27 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refer-terms': {
+      id: '/refer-terms'
+      path: '/refer-terms'
+      fullPath: '/refer-terms'
+      preLoaderRoute: typeof ReferTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refer-intro': {
+      id: '/refer-intro'
+      path: '/refer-intro'
+      fullPath: '/refer-intro'
+      preLoaderRoute: typeof ReferIntroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refer-how-it-works': {
+      id: '/refer-how-it-works'
+      path: '/refer-how-it-works'
+      fullPath: '/refer-how-it-works'
+      preLoaderRoute: typeof ReferHowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quiz': {
@@ -449,9 +529,13 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   QuizRoute: QuizRoute,
+  ReferHowItWorksRoute: ReferHowItWorksRoute,
+  ReferIntroRoute: ReferIntroRoute,
+  ReferTermsRoute: ReferTermsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
   WeightRoute: WeightRoute,
+  WelcomeRoute: WelcomeRoute,
   WorkoutRoute: WorkoutRoute,
   WorkoutLibraryRoute: WorkoutLibraryRoute,
   WorkoutSetupRoute: WorkoutSetupRoute,

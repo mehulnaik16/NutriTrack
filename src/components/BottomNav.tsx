@@ -1,6 +1,16 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Activity, Dumbbell, Scale, Utensils } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+
+// Full-screen onboarding routes where the nav must stay hidden — showing it
+// would let the user bypass the /welcome scroll gate by tapping a tab.
+const HIDDEN_ON = new Set([
+  "/plans",
+  "/welcome",
+  "/refer-intro",
+  "/refer-how-it-works",
+  "/refer-terms",
+]);
 
 function HubIcon({ className }: { className?: string }) {
   return (
@@ -29,9 +39,11 @@ function HubIcon({ className }: { className?: string }) {
 
 export function BottomNav() {
   const { user, hasProfile } = useAuth();
+  const { pathname } = useLocation();
   // Hidden until onboarding is finished — every tab below is profile-gated, so
   // showing them mid-quiz just offers a way to land on a loading spinner.
   if (!user || hasProfile !== true) return null;
+  if (HIDDEN_ON.has(pathname)) return null;
 
   const navItems = [
     { to: "/dashboard", icon: Activity, label: "Home" },

@@ -122,6 +122,8 @@ export type Database = {
           username: string | null;
           referral_code: string;
           bonus_trial_days: number;
+          has_seen_benefits_features_page: boolean;
+          has_seen_refer_intro: boolean;
         };
         Insert: {
           activity_level?: string | null;
@@ -148,6 +150,8 @@ export type Database = {
           // Assigned by a BEFORE INSERT trigger; never supplied by the client.
           referral_code?: string;
           bonus_trial_days?: number;
+          has_seen_benefits_features_page?: boolean;
+          has_seen_refer_intro?: boolean;
         };
         Update: {
           activity_level?: string | null;
@@ -173,6 +177,8 @@ export type Database = {
           username?: string | null;
           referral_code?: string;
           bonus_trial_days?: number;
+          has_seen_benefits_features_page?: boolean;
+          has_seen_refer_intro?: boolean;
         };
         Relationships: [];
       };

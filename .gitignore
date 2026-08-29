@@ -36,6 +36,8 @@ dist-ssr
 # MCP Configs (contain DB credentials — never commit)
 mcp-config.json
 .gemini/
+.claude/
+*.stackdump
 
 # Debug/audit scripts — local only, not needed for production
 scratch/
