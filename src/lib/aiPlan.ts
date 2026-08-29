@@ -1,6 +1,35 @@
 import { supabase } from "@/integrations/client";
 import { serverGroqChat } from "@/lib/ai";
 import { FITNESS_GOALS, SPLIT_GUIDE, type WorkoutPrefs } from "@/lib/workoutPrefs";
+import { EXERCISES_DB } from "@/lib/exercises";
+import { AI_CATALOG_GROUPS } from "@/lib/aiExerciseCatalog";
+import { decomposeGoalKey } from "@/lib/nutrition";
+
+/** Human phrase for the user's nutrition goal, for the workout prompt. */
+const GOAL_PHRASE: Record<string, string> = {
+  lose: "losing fat (calorie deficit)",
+  maintain: "maintaining weight / body recomposition",
+  gain: "gaining muscle (calorie surplus)",
+};
+
+/** Lowercased name → canonical spelling, so we can reconcile the AI's output
+ *  back to the app's exact names (same reconciliation library plans get). Built
+ *  from the FULL EXERCISES_DB, so any catalog exercise resolves. */
+const CANONICAL_BY_LOWER = new Map<string, string>();
+for (const names of Object.values(EXERCISES_DB)) {
+  for (const n of names) CANONICAL_BY_LOWER.set(n.toLowerCase(), n);
+}
+
+/** The curated "best ~12 per muscle & subcategory" catalog, rendered for the
+ *  "choose only from this list" constraint. Each name is filtered against
+ *  EXERCISES_DB so a stray typo can never reach the prompt as a non-canonical
+ *  name; validation keeps every group full in practice. */
+const EXERCISE_CATALOG = AI_CATALOG_GROUPS.map(
+  (g) =>
+    `${g.group}: ${g.exercises
+      .filter((n) => CANONICAL_BY_LOWER.has(n.toLowerCase()))
+      .join(", ")}`,
+).join("\n");
 
 /**
  * Generate an AI workout plan from the user's saved workout preferences and
@@ -22,13 +51,40 @@ export async function generateAiPlan(
   if (sq.weight) lifts.push(`Back Squat ${sq.weight}kg × ${sq.reps ?? "?"} reps`);
   if (dl.weight) lifts.push(`Deadlift ${dl.weight}kg × ${dl.reps ?? "?"} reps`);
 
+  // Fix 1: give the AI the physical/goal context that actually changes
+  // programming — age, sex, bodyweight, and the nutrition goal. Only these
+  // four; height/activity add little the training frequency doesn't already say.
+  const { data: up } = await supabase
+    .from("user_profiles")
+    .select("age, gender, weight_kg, goal")
+    .eq("id", userId)
+    .maybeSingle();
+  const physical: string[] = [];
+  if ((up as any)?.age) physical.push(`- Age: ${(up as any).age} years`);
+  if ((up as any)?.gender) physical.push(`- Sex: ${(up as any).gender}`);
+  if ((up as any)?.weight_kg) physical.push(`- Bodyweight: ${(up as any).weight_kg} kg`);
+  const goalPrimary = (up as any)?.goal
+    ? decomposeGoalKey((up as any).goal).primary
+    : null;
+  if (goalPrimary && GOAL_PHRASE[goalPrimary])
+    physical.push(`- Nutrition goal: ${GOAL_PHRASE[goalPrimary]}`);
+
+  // Fix 3: the weekly split (by training days) is the single authority for
+  // structure. Muscle-focus is a soft preference that defers to it, so the two
+  // no longer contradict.
+  const muscleNote =
+    prefs.musclesPerWorkout === "not_sure"
+      ? "no strong preference — follow the split below"
+      : `leans toward ${prefs.musclesPerWorkout} muscle group(s) per session, but the weekly split below takes precedence`;
+
   const prompt = `You are an expert strength & conditioning coach. Create a ${prefs.trainingDaysPerWeek}-day-per-week gym workout plan.
 User profile:
 - Experience: ${prefs.fitnessLevel}
-- Primary goal: ${goalLabel}
+- Training goal: ${goalLabel}
 - Session length: about ${prefs.preferredWorkoutTime} minutes
-- Prefers training ${prefs.musclesPerWorkout === "not_sure" ? "a coach-recommended number of" : prefs.musclesPerWorkout} muscle group(s) per session
+- Muscle-focus preference: ${muscleNote}
 - Enjoys cardio: ${prefs.cardioActivities.length ? prefs.cardioActivities.join(", ") : "none specified"}
+${physical.join("\n")}
 ${lifts.length ? `- Current strength: ${lifts.join("; ")}` : ""}
 Return ONLY valid JSON, no markdown. FORMAT EXAMPLE ONLY (shows the shape — do NOT
 copy its exercises, day name, or focus; build the real plan from the user profile
@@ -47,11 +103,12 @@ above):
 }
 Hard requirements (this plan MUST reflect the user profile above):
 - Exactly ${prefs.trainingDaysPerWeek} entries in "days", labelled "Day 1" … "Day ${prefs.trainingDaysPerWeek}" — not more, not fewer.
-- Use this split for a ${prefs.trainingDaysPerWeek}-day week: ${SPLIT_GUIDE[prefs.trainingDaysPerWeek] ?? "a sensible split"}.
-- Tailor exercise selection and volume to a ${prefs.fitnessLevel} lifter whose goal is "${goalLabel}".
+- Use this split for a ${prefs.trainingDaysPerWeek}-day week: ${SPLIT_GUIDE[prefs.trainingDaysPerWeek] ?? "a sensible split"}. This split is the authority for the weekly structure.
+- Tailor exercise selection, volume and intensity to a ${prefs.fitnessLevel} lifter${physical.length ? " with the physical profile and nutrition goal above" : ""} whose training goal is "${goalLabel}".
 - ${prefs.preferredWorkoutTime <= 40 ? "4-5" : prefs.preferredWorkoutTime <= 70 ? "5-7" : "6-8"} exercises per day, matched to the ${prefs.preferredWorkoutTime}-minute session length.
 - ${prefs.cardioActivities.length ? `The user enjoys ${prefs.cardioActivities.join(", ")} — finish appropriate days with one of these as an exercise (e.g. { "name": "Running", "sets": 1, "reps": "15 min" }).` : "No cardio preference given — keep it strength-focused."}
-- Use well-known gym exercise names only.
+- Choose every exercise ONLY from this catalog, copying the name EXACTLY (case included). Do not invent names or use any that are not listed. Pick the ones best matching each day's focus:
+${EXERCISE_CATALOG}
 - "reps" is a string like "8-12", "5", or "30 sec".`;
 
   const { result: raw } = await serverGroqChat({
@@ -66,6 +123,17 @@ Hard requirements (this plan MUST reflect the user profile above):
   const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
   if (!parsed?.days || !Array.isArray(parsed.days) || parsed.days.length === 0) {
     throw new Error("The AI returned an invalid plan. Please try again.");
+  }
+
+  // Reconcile exercise names back to the app's canonical spelling (case-only
+  // drift), so AI plans pin/favorite/log against EXERCISES_DB like library
+  // plans do. Names not in the catalog are left untouched, never dropped.
+  for (const day of parsed.days) {
+    for (const ex of day?.exercises ?? []) {
+      if (ex?.name) {
+        ex.name = CANONICAL_BY_LOWER.get(String(ex.name).toLowerCase()) ?? ex.name;
+      }
+    }
   }
 
   // Replace any previous plan

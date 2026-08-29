@@ -202,6 +202,9 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
 const ALLOWED_CHAT_MODELS = ["openai/gpt-oss-120b"] as const;
 
 const ChatInput = z.object({
+  // Sized to the app's real callers — the largest is the workout-plan prompt
+  // (~6k chars: a trimmed exercise catalog + profile). Bounded to keep the
+  // generic endpoint from being used as an open LLM proxy.
   prompt: z.string().min(1).max(12_000),
   model: z.enum(ALLOWED_CHAT_MODELS).optional(),
   max_tokens: z.number().int().min(1).max(3000).optional(),
