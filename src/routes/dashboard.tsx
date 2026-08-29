@@ -66,6 +66,7 @@ import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { loadMealNames } from "@/lib/meals";
 import { uploadWeightPhoto } from "@/services/storage";
 import { todayLocal, toLocalISO } from "@/lib/dates";
 import { formatQty } from "@/lib/foodUnits";
@@ -224,41 +225,12 @@ function Dashboard() {
   const [streak, setStreak] = useState(0);
   const [userMeals, setUserMeals] = useState<string[]>(["Breakfast", "Lunch", "Dinner", "Snack"]);
 
-  // Load meal frequency from DB, fall back to localStorage
+  // Meal names: DB-first (survives cache/session clear), then localStorage.
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("meal_frequency")
-        .eq("id", user.id)
-        .maybeSingle();
-      const dbFreq = (data as any)?.meal_frequency as number | null;
-      if (dbFreq != null && dbFreq > 0) {
-        // Try localStorage for custom names matching this count
-        try {
-          const saved = localStorage.getItem(`meal_prefs_${user.id}`);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.length === dbFreq) {
-              setUserMeals(parsed);
-              return;
-            }
-          }
-        } catch {}
-        const base = ["Breakfast", "Lunch", "Dinner", "Snack", "Meal 5", "Meal 6"];
-        setUserMeals(base.slice(0, dbFreq));
-      } else {
-        // Fall back to localStorage (legacy)
-        try {
-          const saved = localStorage.getItem(`meal_prefs_${user.id}`);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.length > 0) setUserMeals(parsed);
-          }
-        } catch {}
-      }
-    })();
+    loadMealNames(user.id).then((names) => {
+      if (names) setUserMeals(names);
+    });
   }, [user]);
 
   // Weight logging state

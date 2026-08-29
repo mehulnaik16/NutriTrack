@@ -358,7 +358,7 @@ function WorkoutPage() {
       .from("workout_logs")
       .select("workout_name")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
+      .order("logged_at", { ascending: false })
       .limit(100);
 
     if (recentLogs) {

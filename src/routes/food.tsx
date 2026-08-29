@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
+import { DEFAULT_MEALS, loadMealNames, saveMealNames } from "@/lib/meals";
 import { supabase } from "@/integrations/client";
 import {
   Utensils,
@@ -90,18 +91,6 @@ const formatDateDisplay = (dateStr: string) => {
   });
 };
 
-const DEFAULT_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"];
-
-function getMealPrefsKey(userId: string) {
-  return `meal_prefs_${userId}`;
-}
-
-/** Build default meal names for a given count */
-function defaultMealsForCount(n: number): string[] {
-  const base = ["Breakfast", "Lunch", "Dinner", "Snack", "Meal 5", "Meal 6"];
-  return base.slice(0, n);
-}
-
 function FoodPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -121,58 +110,19 @@ function FoodPage() {
 
 
 
-  // Load meal frequency from DB, fall back to localStorage
+  // Meal names: DB-first (survives cache/session clear), then localStorage
+  // (legacy), then the setup questionnaire for a truly first-time user.
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      // 1. Try DB first (survives device/browser changes)
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("meal_frequency")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      const dbFreq = (data as any)?.meal_frequency as number | null;
-
-      if (dbFreq != null && dbFreq > 0) {
-        // DB has a saved frequency — use it
-        const names = (() => {
-          // Try localStorage for custom names
-          try {
-            const saved = localStorage.getItem(getMealPrefsKey(user.id));
-            if (saved) {
-              const parsed = JSON.parse(saved);
-              if (Array.isArray(parsed) && parsed.length === dbFreq) return parsed;
-            }
-          } catch {}
-          return defaultMealsForCount(dbFreq);
-        })();
-        setMealCount(dbFreq);
+    loadMealNames(user.id).then((names) => {
+      if (names) {
+        setMealCount(names.length);
         setMealNames(names);
         setUserMeals(names);
       } else {
-        // 2. Fall back to localStorage (legacy data)
-        const saved = localStorage.getItem(getMealPrefsKey(user.id));
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setUserMeals(parsed);
-              setMealNames(parsed);
-              setMealCount(parsed.length);
-              // Backfill DB so it persists going forward
-              await supabase
-                .from("user_profiles")
-                .update({ meal_frequency: parsed.length } as any)
-                .eq("id", user.id);
-              return;
-            }
-          } catch {}
-        }
-        // 3. Truly first-time user — show setup
         setShowMealSetup(true);
       }
-    })();
+    });
   }, [user]);
 
   useEffect(() => {
@@ -361,14 +311,9 @@ function FoodPage() {
       toast.error("Add at least one meal");
       return;
     }
-    // Persist count to DB (survives browser/device changes)
-    supabase
-      .from("user_profiles")
-      .update({ meal_frequency: trimmed.length } as any)
-      .eq("id", user.id)
-      .then();
-    // Names stay in localStorage (local preference)
-    localStorage.setItem(getMealPrefsKey(user.id), JSON.stringify(trimmed));
+    // Names + count persist to the DB (and localStorage) so they survive a
+    // cache clear and follow the user across devices.
+    saveMealNames(user.id, trimmed);
     setUserMeals(trimmed);
     setShowMealSetup(false);
     toast.success("Meal categories saved!");

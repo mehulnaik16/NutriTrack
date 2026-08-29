@@ -124,6 +124,7 @@ export type Database = {
           bonus_trial_days: number;
           has_seen_benefits_features_page: boolean;
           has_seen_refer_intro: boolean;
+          meal_names: string[];
         };
         Insert: {
           activity_level?: string | null;
@@ -152,6 +153,7 @@ export type Database = {
           bonus_trial_days?: number;
           has_seen_benefits_features_page?: boolean;
           has_seen_refer_intro?: boolean;
+          meal_names?: string[];
         };
         Update: {
           activity_level?: string | null;
@@ -179,6 +181,7 @@ export type Database = {
           bonus_trial_days?: number;
           has_seen_benefits_features_page?: boolean;
           has_seen_refer_intro?: boolean;
+          meal_names?: string[];
         };
         Relationships: [];
       };

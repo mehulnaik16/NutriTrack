@@ -90,6 +90,7 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { loadMealNames, saveMealNames } from "@/lib/meals";
 import { serverDeleteAccount } from "@/lib/delete-account";
 import { AchievementsPage } from "@/components/Achievements";
 import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
@@ -1371,28 +1372,11 @@ function SettingsPage({
   });
 
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("meal_frequency")
-        .eq("id", userId)
-        .maybeSingle();
-      const dbFreq = (data as any)?.meal_frequency as number | null;
-      if (dbFreq != null && dbFreq > 0) {
-        try {
-          const saved = localStorage.getItem(`meal_prefs_${userId}`);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.length === dbFreq) {
-              setMeals(parsed);
-              return;
-            }
-          }
-        } catch {}
-        const base = ["Breakfast", "Lunch", "Dinner", "Snack", "Meal 5", "Meal 6"];
-        setMeals(base.slice(0, dbFreq));
-      }
-    })();
+    // DB-first so custom names survive a cache clear; falls back to the
+    // localStorage-seeded initial state above for a brand-new user.
+    loadMealNames(userId).then((names) => {
+      if (names) setMeals(names);
+    });
   }, [userId]);
 
   // Water prefs (shared with the WaterStreak widget)
@@ -1442,12 +1426,7 @@ function SettingsPage({
       toast.error("Keep at least one meal");
       return;
     }
-    supabase
-      .from("user_profiles")
-      .update({ meal_frequency: clean.length } as any)
-      .eq("id", userId)
-      .then();
-    localStorage.setItem(`meal_prefs_${userId}`, JSON.stringify(clean));
+    saveMealNames(userId, clean);
     setMeals(clean);
     toast.success("Meal categories saved");
   };
