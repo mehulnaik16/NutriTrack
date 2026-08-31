@@ -760,7 +760,7 @@ function Dashboard() {
         {/* ── PRIMARY LOGGING (FOOD & WORKOUT) ── */}
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Left/Top Column: Food & Water */}
-          <div className="lg:col-span-7 space-y-6 flex flex-col">
+          <div className="lg:col-span-7 min-w-0 space-y-6 flex flex-col">
             {/* Food Logging */}
             <Card className="border-accent/10 shadow-sm flex-1">
               <CardHeader className="pb-3 border-b bg-muted/5">
@@ -933,7 +933,7 @@ function Dashboard() {
           </div>
 
           {/* Right/Bottom Column: Workout & Weight */}
-          <div className="lg:col-span-5 space-y-6 flex flex-col">
+          <div className="lg:col-span-5 min-w-0 space-y-6 flex flex-col">
             {/* Workout Plan */}
             <Card className="border-accent/10 shadow-sm overflow-hidden">
               <div className="flex flex-col gap-3 border-b border-accent/10 bg-accent/5 p-5 sm:flex-row sm:items-center sm:justify-between">

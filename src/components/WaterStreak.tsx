@@ -294,14 +294,14 @@ export function WaterStreak({ userId, streak }: Props) {
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Amount display */}
-          <div className="flex items-end justify-between">
-            <div>
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0">
               <span className="text-3xl font-bold">{water}</span>
               <span className="ml-1 text-sm text-muted-foreground">
                 / {dailyGoalMl} ml
               </span>
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="shrink-0 text-sm text-muted-foreground">
               {glasses} glasses
             </span>
           </div>

@@ -152,17 +152,17 @@ export function WeeklyReport({ userId, profile }: Props) {
   return (
     <Card className="border-[var(--navy)]/20">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-[var(--warn)]" />
-            Weekly AI Report
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4 shrink-0 text-[var(--warn)]" />
+            <span className="truncate">Weekly AI Report</span>
             {isSunday && (
-              <span className="rounded-full bg-[var(--warn)]/20 px-2 py-0.5 text-xs font-medium text-[var(--warn)]">
+              <span className="shrink-0 rounded-full bg-[var(--warn)]/20 px-2 py-0.5 text-xs font-medium text-[var(--warn)]">
                 Today
               </span>
             )}
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
