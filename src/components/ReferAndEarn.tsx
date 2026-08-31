@@ -431,58 +431,7 @@ export function ReferAndEarnPage({
           </div>
         </section>
 
-        {/* ── How it works / Terms ──────────────────────────────────── */}
-        <Accordion
-          type="single"
-          collapsible
-          className="rounded-2xl border border-border bg-card px-4"
-        >
-          <AccordionItem value="how" className="border-b-0">
-            <AccordionTrigger className="text-sm font-semibold">
-              How it works
-            </AccordionTrigger>
-            <AccordionContent className="space-y-3 text-sm text-muted-foreground">
-              {[
-                "Send your permanent invite ID to a friend as a gift.",
-                "They sign up, finish the quiz, and start their free trial.",
-                `That's when it counts — you get +${DAYS_PER_REFERRAL} free trial days, up to ${MAX_FREE_DAYS}.`,
-                `If they pick the ${yearly?.name ?? "Yearly"} plan, you get ${PREMIUM_DAYS_PER_SUBSCRIPTION} premium days and they save ₹${REFEREE_DISCOUNT_RUPEES}.`,
-              ].map((s, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent">
-                    {i + 1}
-                  </span>
-                  <p>{s}</p>
-                </div>
-              ))}
-            </AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="terms" className="border-t border-border">
-            <AccordionTrigger className="text-sm font-semibold">
-              Terms &amp; conditions
-            </AccordionTrigger>
-            <AccordionContent className="space-y-2 text-sm text-muted-foreground">
-              <p>
-                ₹{REFEREE_DISCOUNT_RUPEES} off applies to the{" "}
-                {yearly?.name ?? "Yearly"} plan only — not to the monthly or
-                quarterly plans.
-              </p>
-              <p>
-                A referral counts once your friend completes signup and either
-                starts a free trial or subscribes. Creating an account alone
-                does not qualify.
-              </p>
-              <p>
-                Free trial days accumulate to a maximum of {MAX_FREE_DAYS}.
-                Premium days from subscriptions are not capped.
-              </p>
-              <p>
-                One referral per new account, verified at signup. Your invite ID
-                is permanent and can be shared any number of times.
-              </p>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+
 
         {/* ── Full-page explainer + legal ───────────────────────────── */}
         <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">

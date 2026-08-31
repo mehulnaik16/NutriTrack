@@ -91,6 +91,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { loadMealNames, saveMealNames } from "@/lib/meals";
+import { loadWaterPrefs, saveWaterPrefs } from "@/lib/water";
 import { serverDeleteAccount } from "@/lib/delete-account";
 import { AchievementsPage } from "@/components/Achievements";
 import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
@@ -1379,13 +1380,16 @@ function SettingsPage({
     });
   }, [userId]);
 
-  // Water prefs (shared with the WaterStreak widget)
-  const [waterGoal, setWaterGoal] = useState(
-    () => localStorage.getItem("waterDailyGoal") || "2500",
-  );
-  const [cupSize, setCupSize] = useState(
-    () => localStorage.getItem("waterStep") || "250",
-  );
+  // Water prefs (shared with the WaterStreak widget via src/lib/water.ts)
+  const [waterGoal, setWaterGoal] = useState("2500");
+  const [cupSize, setCupSize] = useState("250");
+
+  useEffect(() => {
+    loadWaterPrefs(userId).then((p) => {
+      setWaterGoal(String(p.goalMl));
+      setCupSize(String(p.cupMl));
+    });
+  }, [userId]);
 
   const [exporting, setExporting] = useState<"json" | "csv" | null>(null);
 
@@ -1431,7 +1435,7 @@ function SettingsPage({
     toast.success("Meal categories saved");
   };
 
-  const saveWater = () => {
+  const saveWater = async () => {
     const goal = parseInt(waterGoal, 10);
     const cup = parseInt(cupSize, 10);
     if (!Number.isFinite(goal) || goal < 1500) {
@@ -1442,8 +1446,7 @@ function SettingsPage({
       toast.error("Cup size must be at least 25 ml");
       return;
     }
-    localStorage.setItem("waterDailyGoal", String(goal));
-    localStorage.setItem("waterStep", String(cup));
+    await saveWaterPrefs(userId, { goalMl: goal, cupMl: cup });
     toast.success("Water preferences saved");
   };
 

@@ -141,6 +141,9 @@ export function PhotoFoodDialog({
   const [analyzing, setAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Keep weight as a string so the field can be fully cleared (number state
+  // collapses "" → 0, which then renders as "0" and can't be removed).
+  const [weightInput, setWeightInput] = useState("");
 
   const capture = async () => {
     const imageSrc = webcamRef.current?.getScreenshot();
@@ -150,7 +153,9 @@ export function PhotoFoodDialog({
     setAnalyzing(true);
     try {
       const base64 = imageSrc.split(",")[1];
-      setAiResult(await recognizeFoodFromImage(base64, "image/jpeg"));
+      const result = await recognizeFoodFromImage(base64, "image/jpeg");
+      setAiResult(result);
+      setWeightInput(String(result.estimated_weight_g ?? ""));
     } catch (e) {
       toast.error(
         "Could not identify food: " + (e instanceof Error ? e.message : e),
@@ -162,11 +167,16 @@ export function PhotoFoodDialog({
 
   const confirm = async () => {
     if (!aiResult) return;
+    const grams = parseFloat(weightInput);
+    if (!weightInput || isNaN(grams) || grams <= 0) {
+      toast.error("Please enter a valid weight greater than 0 g.");
+      return;
+    }
     setBusy(true);
     try {
       await onConfirm({
         item: toItem(aiResult),
-        grams: aiResult.estimated_weight_g,
+        grams,
       });
     } finally {
       setBusy(false);
@@ -176,6 +186,7 @@ export function PhotoFoodDialog({
   const retake = () => {
     setAiResult(null);
     setImagePreview(null);
+    setWeightInput("");
   };
 
   return (
@@ -238,28 +249,31 @@ export function PhotoFoodDialog({
                 </Badge>
               </div>
               <MacroGrid
-                items={[
-                  {
-                    label: "Calories",
-                    val: `${Math.round((aiResult.calories_per_100g * aiResult.estimated_weight_g) / 100)} kcal`,
-                  },
-                  {
-                    label: "Protein",
-                    val: `${((aiResult.protein_per_100g * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
-                  },
-                  {
-                    label: "Carbs",
-                    val: `${((aiResult.carbs_per_100g * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
-                  },
-                  {
-                    label: "Fat",
-                    val: `${((aiResult.fat_per_100g * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
-                  },
-                  {
-                    label: "Fiber",
-                    val: `${(((aiResult.fiber_per_100g || 0) * aiResult.estimated_weight_g) / 100).toFixed(1)}g`,
-                  },
-                ]}
+                items={(() => {
+                  const w = Math.max(0, parseFloat(weightInput) || 0);
+                  return [
+                    {
+                      label: "Calories",
+                      val: `${Math.round((aiResult.calories_per_100g * w) / 100)} kcal`,
+                    },
+                    {
+                      label: "Protein",
+                      val: `${((aiResult.protein_per_100g * w) / 100).toFixed(1)}g`,
+                    },
+                    {
+                      label: "Carbs",
+                      val: `${((aiResult.carbs_per_100g * w) / 100).toFixed(1)}g`,
+                    },
+                    {
+                      label: "Fat",
+                      val: `${((aiResult.fat_per_100g * w) / 100).toFixed(1)}g`,
+                    },
+                    {
+                      label: "Fiber",
+                      val: `${(((aiResult.fiber_per_100g || 0) * w) / 100).toFixed(1)}g`,
+                    },
+                  ];
+                })()}
               />
               <div className={meal ? "grid grid-cols-2 gap-3" : "space-y-1"}>
                 <div className="space-y-1">
@@ -267,13 +281,10 @@ export function PhotoFoodDialog({
                   <Input
                     type="number"
                     inputMode="decimal"
-                    value={aiResult.estimated_weight_g}
-                    onChange={(e) =>
-                      setAiResult({
-                        ...aiResult,
-                        estimated_weight_g: +e.target.value,
-                      })
-                    }
+                    min={1}
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    placeholder="e.g. 150"
                   />
                 </div>
                 {meal && (

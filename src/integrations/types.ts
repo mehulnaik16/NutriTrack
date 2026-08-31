@@ -125,6 +125,8 @@ export type Database = {
           has_seen_benefits_features_page: boolean;
           has_seen_refer_intro: boolean;
           meal_names: string[];
+          water_goal_ml: number | null;
+          water_cup_ml: number | null;
         };
         Insert: {
           activity_level?: string | null;
@@ -154,6 +156,8 @@ export type Database = {
           has_seen_benefits_features_page?: boolean;
           has_seen_refer_intro?: boolean;
           meal_names?: string[];
+          water_goal_ml?: number | null;
+          water_cup_ml?: number | null;
         };
         Update: {
           activity_level?: string | null;
@@ -182,6 +186,8 @@ export type Database = {
           has_seen_benefits_features_page?: boolean;
           has_seen_refer_intro?: boolean;
           meal_names?: string[];
+          water_goal_ml?: number | null;
+          water_cup_ml?: number | null;
         };
         Relationships: [];
       };

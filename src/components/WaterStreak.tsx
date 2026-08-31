@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/client";
 import { todayLocal } from "@/lib/dates";
+import { loadWaterPrefs, saveWaterPrefs } from "@/lib/water";
 import {
   Dialog,
   DialogContent,
@@ -25,18 +26,17 @@ export function WaterStreak({ userId, streak }: Props) {
   const [water, setWater] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // ── Settings state ────────────────────────────────────────────────────────
-  const [dailyGoalMl, setDailyGoalMl] = useState(() => {
-    const saved = localStorage.getItem("waterDailyGoal");
-    const val = saved ? parseInt(saved, 10) : 2500;
-    return val >= 1500 ? val : 2500; // enforce minimum on load
-  });
-  const [stepMl, setStepMl] = useState(() => {
-    const saved = localStorage.getItem("waterStep");
-    const val = saved ? parseInt(saved, 10) : 250;
-    return val >= 25 ? val : 250; // enforce minimum on load
-  });
+  // ── Settings state (local-first; DB-backed via src/lib/water.ts) ──────────
+  const [dailyGoalMl, setDailyGoalMl] = useState(2500);
+  const [stepMl, setStepMl] = useState(250);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    loadWaterPrefs(userId).then((p) => {
+      setDailyGoalMl(p.goalMl);
+      setStepMl(p.cupMl);
+    });
+  }, [userId]);
 
   // ── Controlled string inputs (allow truly empty while typing) ─────────────
   const [goalInput, setGoalInput] = useState("");
@@ -88,7 +88,7 @@ export function WaterStreak({ userId, streak }: Props) {
   };
 
   // ── Save settings with full validation ────────────────────────────────────
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     // Re-run full validation before saving
     const goalVal = goalInput.trim();
     const stepVal = stepInput.trim();
@@ -135,8 +135,12 @@ export function WaterStreak({ userId, streak }: Props) {
 
     setDailyGoalMl(newGoal);
     setStepMl(newStep);
-    localStorage.setItem("waterDailyGoal", newGoal.toString());
-    localStorage.setItem("waterStep", newStep.toString());
+    try {
+      await saveWaterPrefs(userId, { goalMl: newGoal, cupMl: newStep });
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to save water preferences");
+      return;
+    }
     setIsSettingsOpen(false);
     toast.success("Water preferences saved");
   };

@@ -2185,7 +2185,7 @@ function WorkoutPage() {
         {/* Custom Tabs */}
         {!selectedMuscle && (
           <div className="flex gap-2 p-1.5 bg-muted/40 rounded-2xl border border-border/50 backdrop-blur-sm">
-            {(["GYM", "HOME", "CARDIO"] as const).map((tab) => (
+            {(["GYM", "CARDIO"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
