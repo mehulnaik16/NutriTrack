@@ -462,8 +462,8 @@ export function Header({
         </div>
       </div>
       {user && (
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-3 pb-2 text-xs text-muted-foreground lg:hidden">
-          <span className="truncate font-medium">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-3 pb-2 text-xs text-muted-foreground lg:hidden overflow-hidden">
+          <span className="truncate font-medium min-w-0 mr-2">
             {name ? (pathname === "/hub" ? `Welcome to Hub, ${name} 🙏` : `Hey, ${name} 👋`) : "Welcome back"}
           </span>
           <span className="shrink-0">{today}</span>

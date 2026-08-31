@@ -595,7 +595,7 @@ function Dashboard() {
   const todaysDay = workoutPlan?.days?.[planDayIdx];
 
   return (
-    <div className="min-h-screen bg-muted/10 pb-24 overflow-x-hidden">
+    <div className="min-h-screen bg-muted/10 pb-24">
       <Header name={firstName} />
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
