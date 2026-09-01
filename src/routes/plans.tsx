@@ -1,11 +1,20 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Check, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/client";
+import {
+  getBillingSummary,
+  isTier,
+  startTrial,
+  subscribe,
+  type BillingSummary,
+} from "@/lib/billing";
+import { isNativeApp } from "@/lib/platform";
+import { invalidateAccess } from "@/hooks/useAccessGate";
 import { todayLocal } from "@/lib/dates";
 import { PLANS, PLAN_FEATURES, monthlyRate, periodLabel } from "@/lib/plans";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
@@ -15,25 +24,73 @@ export const Route = createFileRoute("/plans")({ component: Plans });
 function Plans() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [summary, setSummary] = useState<BillingSummary | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const native = isNativeApp();
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getBillingSummary()
+      .then((s) => {
+        if (!cancelled) setSummary(s);
+      })
+      .catch(() => {
+        /* the trial button is still correct without it */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // One trial per account, ever — so once trial_start_date exists the card
+  // offers the paid plan instead of a button that would silently do nothing.
+  const trialUsed = !!summary?.trial_start_date;
+
+  /**
+   * Buy. The tier is all the browser sends: amount, plan id and whether the
+   * ₹150 referral gift applies are decided server-side, and no day of access
+   * is granted here — the webhook does that when Razorpay confirms the charge.
+   */
+  const buy = async (planId: string) => {
+    if (!user) {
+      navigate({ to: "/login", replace: true });
+      return;
+    }
+    if (!isTier(planId)) return;
+    setBusy(planId);
+    try {
+      await subscribe(planId);
+      invalidateAccess(user.id);
+      toast.success("Payment received. Your access updates within a minute.");
+      navigate({ to: "/dashboard" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg !== "Checkout closed") toast.error(msg);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const start = async (planId: string) => {
     if (!user) {
       navigate({ to: "/login", replace: true });
       return;
     }
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({
-        selected_plan: planId,
-        trial_start_date: todayLocal(),
-      })
-      .eq("id", user.id);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      // One trial per account, ever. start_trial() writes trial_start_date only
+      // when it is still null, so clicking this again after the trial lapses
+      // re-points the plan without granting a second trial.
+      const state = await startTrial(planId, user.id);
+      toast.success(
+        state.trial_start_date === todayLocal()
+          ? "Free trial started!"
+          : "Plan updated.",
+      );
+      navigate({ to: "/welcome", replace: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
-    toast.success("Free trial started!");
-    navigate({ to: "/welcome", replace: true });
   };
 
   return (
@@ -43,11 +100,12 @@ function Plans() {
       <div className="relative mx-auto max-w-6xl">
         <div className="mb-8 rounded-2xl border border-accent/30 bg-accent/10 p-5 text-center">
           <div className="mb-1 inline-flex items-center gap-2 text-sm font-bold text-accent">
-            <Sparkles className="h-4 w-4" /> Try any plan FREE for {BASE_TRIAL_DAYS} days
+            <Sparkles className="h-4 w-4" /> Try any plan FREE for{" "}
+            {BASE_TRIAL_DAYS} days
           </div>
           <p className="text-sm text-muted-foreground">
-            No credit card required. After {BASE_TRIAL_DAYS} days, choose a plan to
-            continue.
+            No credit card required. After {BASE_TRIAL_DAYS} days, choose a plan
+            to continue.
           </p>
         </div>
         <div className="mb-10 text-center">
@@ -92,13 +150,34 @@ function Plans() {
                     </li>
                   ))}
                 </ul>
-                <Button
-                  onClick={() => start(p.id)}
-                  className={`mt-6 w-full rounded-full font-bold ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-                  variant={p.popular ? "default" : "outline"}
-                >
-                  Start Free Trial
-                </Button>
+                {!trialUsed ? (
+                  <Button
+                    onClick={() => start(p.id)}
+                    className={`mt-6 w-full rounded-full font-bold ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                    variant={p.popular ? "default" : "outline"}
+                  >
+                    Start Free Trial
+                  </Button>
+                ) : native ? (
+                  // No third-party checkout in the native shell. Entitlement
+                  // bought on the website applies here the moment it lands.
+                  <p className="mt-6 rounded-full border border-border px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">
+                    Manage your plan on the Dombelz website
+                  </p>
+                ) : (
+                  <Button
+                    onClick={() => buy(p.id)}
+                    disabled={busy !== null}
+                    className={`mt-6 w-full rounded-full font-bold ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                    variant={p.popular ? "default" : "outline"}
+                  >
+                    {busy === p.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      `Subscribe · ₹${p.price}`
+                    )}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}

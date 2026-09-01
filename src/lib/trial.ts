@@ -6,15 +6,17 @@
  * constant and both the billing page and the Refer & Earn page need the same
  * answer.
  *
- * Note: nothing in the app currently gates features on the trial being active —
- * it only changes a badge's text. Extending the trial makes the displayed
- * number correct; feature-gating is separate work.
+ * Gating reads user_profiles.access_until, not these functions. This module is
+ * for display: the badge, the plans page, the billing panel. The two can only
+ * agree if BASE_TRIAL_DAYS matches the base interval inside recompute_access()
+ * (20260901120000_billing_lockdown.sql) — the SQL is the authority, and a
+ * mismatch shows the user one number while gating on another.
  */
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-/** Trial length before any referral bonus. */
-export const BASE_TRIAL_DAYS = 2;
+/** Trial length before any referral bonus. Mirrors recompute_access()'s base. */
+export const BASE_TRIAL_DAYS = 7;
 
 /** Total trial length for a user holding `bonusDays` earned from referrals. */
 export function trialLengthDays(bonusDays = 0): number {

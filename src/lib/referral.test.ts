@@ -16,11 +16,13 @@ import {
   DAYS_PER_REFERRAL,
   FALLBACK_PREFIX,
   MAX_FREE_DAYS,
+  MAX_PREMIUM_DAYS,
   PREMIUM_DAYS_PER_SUBSCRIPTION,
   codePrefix,
   freeDaysEarned,
   giftMessage,
   isValidCode,
+  isPremiumProcessing,
   premiumDaysEarned,
 } from "./referral";
 import { BASE_TRIAL_DAYS, isTrialActive, trialDaysLeft } from "./trial";
@@ -72,11 +74,32 @@ assert.equal(
 );
 assert.equal(MAX_FREE_DAYS / DAYS_PER_REFERRAL, 12);
 
-// ── Paid track: 60 premium days each, no cap ──────────────────────────────
+// ── Paid track: 60 premium days each, capped at 480 lifetime ──────────────
+// The cap was added with the billing work; before it, this track was unbounded.
+// It mirrors `limit 8` in public.premium_grants(). See entitlement.test.ts for
+// how the days are then spent.
 assert.equal(premiumDaysEarned(0), 0);
 assert.equal(premiumDaysEarned(1), PREMIUM_DAYS_PER_SUBSCRIPTION);
 assert.equal(premiumDaysEarned(4), 240);
-assert.equal(premiumDaysEarned(50), 3000, "the paid track has no ceiling");
+assert.equal(premiumDaysEarned(8), MAX_PREMIUM_DAYS);
+assert.equal(premiumDaysEarned(50), MAX_PREMIUM_DAYS, "the paid track is capped");
+
+// ── The 3-day hold ────────────────────────────────────────────────────────
+// The referrer must see "processing", not a number, until the hold elapses —
+// a friend who buys and refunds inside the 2-day window credits nobody.
+const paidAt = "2026-08-25T10:00:00Z";
+const twoDaysLater = new Date("2026-08-27T10:00:00Z");
+const fourDaysLater = new Date("2026-08-29T10:00:00Z");
+assert.equal(isPremiumProcessing(paidAt, twoDaysLater), true);
+assert.equal(isPremiumProcessing(paidAt, fourDaysLater), false);
+// Exactly on the boundary the hold is over, matching `charged_at + 3 days`.
+assert.equal(
+  isPremiumProcessing(paidAt, new Date("2026-08-28T10:00:00Z")),
+  false,
+);
+// Unknown or unparseable dates fail closed — never promise days we cannot back.
+assert.equal(isPremiumProcessing(null), true);
+assert.equal(isPremiumProcessing("not a date"), true);
 
 // ── Trial length grows with earned bonus days ─────────────────────────────
 const start = "2026-08-25";

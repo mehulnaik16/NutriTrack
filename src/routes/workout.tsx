@@ -127,6 +127,7 @@ import {
   updatePlanDay,
 } from "@/lib/musclePlan";
 import { MuscleIcon } from "@/components/MuscleIcon";
+import { PremiumGate } from "@/components/PremiumGate";
 
 // ── AI Workout Plan types ─────────────────────────────────────
 interface PlanExercise {
@@ -1432,7 +1433,17 @@ function WorkoutPage() {
             </TabsContent>
 
             <TabsContent value="analytics" className="pt-4">
-              {selectedCardio && <CardioPaceChart activityName={selectedCardio} />}
+              {/* Locked for lapsed users. The chart component is not mounted,
+                  so its pace query never runs. Logging stays free. */}
+              <PremiumGate
+                variant="inline"
+                title="Analytics are premium"
+                message="Logging cardio stays free. Pick a plan to see your pace trend over time."
+              >
+                {selectedCardio && (
+                  <CardioPaceChart activityName={selectedCardio} />
+                )}
+              </PremiumGate>
             </TabsContent>
 
             <TabsContent value="timer" className="pt-4">
@@ -1992,6 +2003,11 @@ function WorkoutPage() {
             </TabsContent>
 
             <TabsContent value="analytics" className="space-y-4 pt-4">
+              <PremiumGate
+                variant="inline"
+                title="Analytics are premium"
+                message="Logging sets stays free. Pick a plan to see your strength progress charts and all-time bests."
+              >
               {history.length < 2 ? (
                 <div className="text-center py-8 text-muted-foreground font-semibold">
                   Log this exercise at least twice to see progress.
@@ -2132,6 +2148,7 @@ function WorkoutPage() {
                   </div>
                 );
               })()}
+              </PremiumGate>
             </TabsContent>
 
             <TabsContent value="video" className="space-y-4 pt-4">

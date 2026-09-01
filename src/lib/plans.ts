@@ -29,6 +29,13 @@ export const REFERRAL_DISCOUNT_PLAN_ID = "yearly";
 /**
  * Every plan unlocks the whole app — they differ only in billing period, so the
  * feature list is shared rather than tiered.
+ *
+ * What differs is paid versus lapsed, not plan versus plan. Once access_until
+ * is in the past the dashboard and the food page (history included) are locked,
+ * progress photos and the workout Analytics tabs are locked, and every AI call
+ * is refused server-side; logging a weight and logging a workout stay open.
+ * src/components/PremiumGate.tsx and src/lib/access-middleware.ts are where
+ * that line is actually drawn — keep this paragraph in step with them.
  */
 export const PLAN_FEATURES: readonly string[] = [
   "Unlimited food logging with AI photo scan",

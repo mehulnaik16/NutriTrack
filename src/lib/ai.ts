@@ -10,7 +10,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/auth-middleware";
+import { requireAccess } from "@/lib/access-middleware";
 
 // ── Rate Limiter (30 requests/min per user, in-memory) ───────────────────────
 // Resets per Vercel serverless instance lifecycle — free, zero deps, stops
@@ -131,7 +131,7 @@ function validateFoodResponse(
 // ── AI Food Search ───────────────────────────────────────────────────────────
 
 export const serverAiFoodSearch = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAccess])
   .inputValidator((d: string) => d)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
@@ -164,7 +164,7 @@ export const serverAiFoodSearch = createServerFn({ method: "POST" })
 // ── AI Food Search (inline, for FoodSearch component) ────────────────────────
 
 export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAccess])
   .inputValidator((d: string) => d)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
@@ -213,7 +213,7 @@ const ChatInput = z.object({
 });
 
 export const serverGroqChat = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAccess])
   .inputValidator(ChatInput)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
@@ -251,7 +251,7 @@ const VisionInput = z.object({
 });
 
 export const serverGroqVision = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAccess])
   .inputValidator(VisionInput)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);

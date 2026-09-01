@@ -9,7 +9,12 @@
  *           qualified referral. Referring itself is never capped; further
  *           referrals simply add no more days.
  *   Paid  — a referred friend buying the 12-month plan gives the referrer 60
- *           premium days (uncapped) and the friend ₹150 off.
+ *           premium days and the friend ₹150 off. Accrual stops at 480 days
+ *           ever granted, i.e. at the 8th friend who buys yearly, and the days
+ *           only land after a three-day hold.
+ *
+ * The two pools are counted and displayed separately but spend as one queue —
+ * see src/lib/entitlement.ts and public.recompute_access().
  */
 
 import { REFERRAL_DISCOUNT_PLAN_ID } from "./plans";
@@ -18,6 +23,14 @@ export const DAYS_PER_REFERRAL = 5;
 /** Accrual ceiling. Reached at the 12th qualified referral (12 × 5). */
 export const MAX_FREE_DAYS = 60;
 export const PREMIUM_DAYS_PER_SUBSCRIPTION = 60;
+/** Lifetime ceiling on premium days ever granted. Reached at the 8th (8 × 60). */
+export const MAX_PREMIUM_DAYS = 480;
+/**
+ * Days a paid referral reward waits before it counts. The refund window is 2
+ * days, so holding for 3 means a friend who buys and immediately refunds never
+ * credits anyone. Until it elapses the referrer sees "processing", not a number.
+ */
+export const PREMIUM_HOLD_DAYS = 3;
 export const REFEREE_DISCOUNT_RUPEES = 150;
 
 /**
@@ -74,9 +87,40 @@ export function freeDaysEarned(qualifiedCount: number): number {
   );
 }
 
-/** Premium days earned from friends who subscribed. No cap. */
+/**
+ * Premium days earned from friends who subscribed, capped at MAX_PREMIUM_DAYS.
+ *
+ * The cap mirrors `limit 8` in public.premium_grants() — the SQL expresses it as
+ * a row count so the timeline stays honest, and this returns the same total.
+ * Referring is still uncapped; past the 8th it simply adds no more days.
+ */
 export function premiumDaysEarned(subscribedCount: number): number {
-  return Math.max(subscribedCount, 0) * PREMIUM_DAYS_PER_SUBSCRIPTION;
+  return Math.min(
+    Math.max(subscribedCount, 0) * PREMIUM_DAYS_PER_SUBSCRIPTION,
+    MAX_PREMIUM_DAYS,
+  );
+}
+
+/**
+ * Is a paid referral still inside its 3-day hold?
+ *
+ * Mirrors `effective_at = charged_at + interval '3 day'` in
+ * public.premium_grants(). A grant inside its hold contributes nothing to
+ * access_until, so the referrer must be shown "processing" rather than a
+ * number they do not have yet — and rather than one that could still be
+ * clawed back by a refund.
+ *
+ * A missing date counts as processing: the row says subscribed but we cannot
+ * prove the hold elapsed, and promising days we cannot back is the worse error.
+ */
+export function isPremiumProcessing(
+  subscribedAt: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!subscribedAt) return true;
+  const at = new Date(subscribedAt);
+  if (Number.isNaN(at.getTime())) return true;
+  return now.getTime() < at.getTime() + PREMIUM_HOLD_DAYS * 86_400_000;
 }
 
 /** The share link a friend opens — the quiz reads `ref` and applies the gift. */

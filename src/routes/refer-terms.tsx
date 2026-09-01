@@ -3,7 +3,9 @@ import { ArrowLeft, ScrollText } from "lucide-react";
 import {
   DAYS_PER_REFERRAL,
   MAX_FREE_DAYS,
+  MAX_PREMIUM_DAYS,
   PREMIUM_DAYS_PER_SUBSCRIPTION,
+  PREMIUM_HOLD_DAYS,
   REFEREE_DISCOUNT_RUPEES,
 } from "@/lib/referral";
 import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
@@ -15,6 +17,7 @@ const SUPPORT_EMAIL = "support@dombelz.app";
 const yearly = findPlan(REFERRAL_DISCOUNT_PLAN_ID);
 const discounted = yearly ? yearly.price - REFEREE_DISCOUNT_RUPEES : null;
 const capReferral = MAX_FREE_DAYS / DAYS_PER_REFERRAL;
+const capPremium = MAX_PREMIUM_DAYS / PREMIUM_DAYS_PER_SUBSCRIPTION;
 
 function Section({
   n,
@@ -120,10 +123,23 @@ function ReferTerms() {
           </p>
           <p>
             b. There is no upper limit to the number of paid referrals a user can
-            make.
+            make. Premium days accrue up to a lifetime maximum of{" "}
+            {MAX_PREMIUM_DAYS} days ever granted (equivalent to {capPremium}{" "}
+            paid referrals); referring beyond that adds no further days.
           </p>
           <p>
-            c. The Referee receives an instant ₹{REFEREE_DISCOUNT_RUPEES} discount
+            c. Premium days are credited {PREMIUM_HOLD_DAYS} days after the
+            Referee's payment. Until then the Referrer sees the reward as
+            "processing". If the Referee's payment is refunded or a refund is
+            requested within that period, the days are not credited at all.
+          </p>
+          <p>
+            d. If a Referee's payment is refunded or their subscription is
+            cancelled after the days have been credited, only the portion not yet
+            used is withdrawn. Days already consumed are never taken back.
+          </p>
+          <p>
+            e. The Referee receives an instant ₹{REFEREE_DISCOUNT_RUPEES} discount
             on the Yearly plan
             {yearly && discounted ? `, making the final price ₹${discounted}` : ""}.
             This discount is applied at checkout, is valid on the Yearly plan
@@ -153,6 +169,8 @@ function ReferTerms() {
           <p>
             b. Free Premium days earned (Component 2) are added to the user's
             subscription and are consumed after the current paid period ends.
+            Trial days, paid periods and Premium days are consumed one after the
+            other and never at the same time, so no earned day is lost.
           </p>
         </Section>
 

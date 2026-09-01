@@ -107,11 +107,11 @@ function Terms() {
 
         <Section title="5. Plans, trials & payments">
           <p>
-            Dombelz offers subscription plans with a 2-day free trial. No
-            payment method is required for the trial. Online payments are not
-            yet enabled; when they launch, pricing, billing cycles, and refund
-            terms will be shown at checkout before you pay. Prices are listed
-            in Indian Rupees (₹).
+            Dombelz offers subscription plans with a 7-day free trial, one per
+            account. No payment method is required for the trial. Paid plans are
+            billed up front for the chosen period through Razorpay; a payment can
+            be refunded within 2 days of the charge, after which only unused days
+            are considered. Prices are listed in Indian Rupees (₹).
           </p>
         </Section>
 

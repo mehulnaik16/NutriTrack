@@ -47,6 +47,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { uploadWeightPhoto, deleteWeightPhoto, replaceWeightPhoto } from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
+import { PremiumGate } from "@/components/PremiumGate";
 import { todayLocal } from "@/lib/dates";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
@@ -562,7 +563,24 @@ function WeightPage() {
               />
             </div>
 
-            {/* Photo upload */}
+            {/* Photo upload — the one locked control on this page. Logging a
+                weight stays free; the progress-photo pipeline does not. */}
+            <PremiumGate
+              variant="inline"
+              title="Progress photos are premium"
+              message="Logging your weight stays free. Pick a plan to add progress photos and compare them over time."
+              placeholder={
+                <div className="space-y-2">
+                  <Label>Progress photo (optional)</Label>
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6">
+                    <Camera className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Tap to add a progress photo
+                    </p>
+                  </div>
+                </div>
+              }
+            >
             <div className="space-y-2">
               <Label>Progress photo (optional)</Label>
               <div
@@ -593,6 +611,7 @@ function WeightPage() {
                 onChange={handlePhoto}
               />
             </div>
+            </PremiumGate>
 
             <Button
               onClick={logWeight}

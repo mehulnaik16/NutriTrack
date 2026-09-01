@@ -93,6 +93,15 @@ import { supabase } from "@/integrations/client";
 import { loadMealNames, saveMealNames } from "@/lib/meals";
 import { loadWaterPrefs, saveWaterPrefs } from "@/lib/water";
 import { serverDeleteAccount } from "@/lib/delete-account";
+import {
+  cancelSubscription,
+  getBillingSummary,
+  requestRefund,
+  startTrial,
+  type BillingCharge,
+  type BillingSummary,
+} from "@/lib/billing";
+import { invalidateAccess } from "@/hooks/useAccessGate";
 import { AchievementsPage } from "@/components/Achievements";
 import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
@@ -315,24 +324,22 @@ function Profile() {
       navigate({ to: "/login", replace: true });
       return;
     }
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({
-        selected_plan: planId,
-        trial_start_date: todayLocal(),
-      })
-      .eq("id", user.id);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      // One trial per account, ever — see startTrial(). The returned state is
+      // the row as it truly is, so a second visit here re-points the plan and
+      // leaves trial_start_date on its original date rather than optimistically
+      // showing today's.
+      const state = await startTrial(planId, user.id);
+      toast.success(
+        state.trial_start_date === todayLocal()
+          ? "Free trial started!"
+          : "Plan updated.",
+      );
+      setProfile({ ...profile, ...state });
+      goBack();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
-    toast.success("Free trial started!");
-    setProfile((p: any) => ({
-      ...p,
-      selected_plan: planId,
-      trial_start_date: todayLocal(),
-    }));
-    goBack();
   };
 
   useEffect(() => {
@@ -1238,6 +1245,78 @@ function TransactionsPage({
   const daysLeft = trialDaysLeft(profile.trial_start_date, bonusDays);
   const trialActive = isTrialActive(profile.trial_start_date, bonusDays);
 
+  // Everything below the trial card comes from get_billing_summary(), which
+  // recomputes access before returning — so opening this page is also what
+  // makes a referral bonus whose 3-day hold has elapsed appear.
+  const [summary, setSummary] = useState<BillingSummary | null>(null);
+  const [loadingBilling, setLoadingBilling] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [refundFor, setRefundFor] = useState<BillingCharge | null>(null);
+  const [refundReason, setRefundReason] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingBilling(true);
+    getBillingSummary()
+      .then((s) => {
+        if (!cancelled) setSummary(s);
+      })
+      .catch((e) => {
+        if (!cancelled)
+          toast.error(
+            e instanceof Error ? e.message : "Could not load billing",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingBilling(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  const sub = summary?.subscription ?? null;
+  const subLive =
+    !!sub &&
+    !sub.cancelled_at &&
+    ["authenticated", "active", "pending", "halted"].includes(sub.status);
+  const hasAccessNow = summary?.has_access ?? trialActive;
+
+  async function doCancel() {
+    setBusy(true);
+    try {
+      await cancelSubscription();
+      // Access is not shortened. The days already paid for keep counting.
+      toast.success("Subscription cancelled. Your paid days stay yours.");
+      invalidateAccess(profile.id);
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not cancel");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doRefund() {
+    if (!refundFor) return;
+    setBusy(true);
+    try {
+      await requestRefund(refundFor.id, refundReason);
+      toast.success("Refund request sent. We'll email you once it's settled.");
+      setRefundFor(null);
+      setRefundReason("");
+      invalidateAccess(profile.id);
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not request a refund",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <SubHeader title="Plan & billing" onBack={onBack} />
@@ -1256,12 +1335,16 @@ function TransactionsPage({
                     <h3 className="font-display text-xl font-bold">{plan.name}</h3>
                     <Badge
                       className={
-                        trialActive
+                        hasAccessNow
                           ? "bg-accent text-accent-foreground"
                           : "bg-warn/20 text-warn"
                       }
                     >
-                      {trialActive ? "Trial active" : "Trial ended"}
+                      {hasAccessNow
+                        ? trialActive
+                          ? "Trial active"
+                          : "Active"
+                        : "Ended"}
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -1301,6 +1384,24 @@ function TransactionsPage({
                 </div>
               </div>
 
+              {summary?.access_until && (
+                <div className="mt-3 rounded-xl border border-border bg-muted/20 p-3">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    {hasAccessNow ? "Access until" : "Access ended"}
+                  </div>
+                  <p className="mt-1 text-sm font-semibold">
+                    {formatBillingDate(summary.access_until)}
+                  </p>
+                  {summary.bonus_premium_days > 0 && (
+                    <p className="mt-0.5 text-[11px] font-medium text-accent">
+                      includes {summary.bonus_premium_days} premium days from
+                      referrals
+                    </p>
+                  )}
+                </div>
+              )}
+
               <Button
                 variant="outline"
                 className="mt-4 w-full rounded-xl font-semibold"
@@ -1314,7 +1415,8 @@ function TransactionsPage({
               <Tag className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
               <p className="font-semibold">No plan selected yet</p>
               <p className="mx-auto mt-1 max-w-[240px] text-sm text-muted-foreground">
-                Start a free 2-day trial — no credit card required.
+                Start a free {BASE_TRIAL_DAYS}-day trial — no credit card
+                required.
               </p>
               <Button
                 className="mt-4 rounded-full bg-accent px-6 font-bold text-accent-foreground hover:bg-accent/90"
@@ -1326,23 +1428,186 @@ function TransactionsPage({
           )}
         </section>
 
+        {/* Subscription */}
+        {subLive && (
+          <section>
+            <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Subscription
+            </p>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold capitalize">{sub!.tier} plan</p>
+                  <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+                    {sub!.status} · started {formatBillingDate(sub!.created_at)}
+                  </p>
+                </div>
+                <Badge className="bg-accent/15 text-accent">Renews</Badge>
+              </div>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    className="mt-4 w-full rounded-xl font-semibold"
+                  >
+                    Cancel subscription
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      It stops renewing. The days you have already paid for stay
+                      yours until{" "}
+                      {formatBillingDate(summary?.access_until ?? null)} — nothing
+                      is cut short.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep it</AlertDialogCancel>
+                    <AlertDialogAction onClick={doCancel}>
+                      Cancel subscription
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </section>
+        )}
+
         {/* Payment history */}
         <section>
           <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Payment history
           </p>
-          <div className="rounded-2xl border border-border bg-card p-8 text-center">
-            <ListOrdered className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-            <p className="text-sm font-semibold">No payments yet</p>
-            <p className="mx-auto mt-1 max-w-[260px] text-xs text-muted-foreground">
-              Online payments are coming soon. You're on the free trial — enjoy
-              full access meanwhile.
-            </p>
-          </div>
+
+          {loadingBilling ? (
+            <div className="flex justify-center rounded-2xl border border-border bg-card p-8">
+              <Loader2 className="h-5 w-5 animate-spin text-accent" />
+            </div>
+          ) : !summary?.charges.length ? (
+            <div className="rounded-2xl border border-border bg-card p-8 text-center">
+              <ListOrdered className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm font-semibold">No payments yet</p>
+              <p className="mx-auto mt-1 max-w-[260px] text-xs text-muted-foreground">
+                You're on the free trial — enjoy full access meanwhile.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {summary.charges.map((c) => {
+                const open = summary.refund_requests.find(
+                  (r) => r.charge_id === c.id && r.status === "open",
+                );
+                return (
+                  <div
+                    key={c.id}
+                    className="rounded-2xl border border-border bg-card p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">
+                          {formatRupees(c.amount_paise)}{" "}
+                          <span className="text-xs font-medium capitalize text-muted-foreground">
+                            · {c.tier}
+                          </span>
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {formatBillingDate(c.charged_at)} · {c.period_days}{" "}
+                          days
+                        </p>
+                      </div>
+                      {c.refunded_at ? (
+                        <Badge className="bg-muted text-muted-foreground">
+                          Refunded
+                        </Badge>
+                      ) : open ? (
+                        <Badge className="bg-warn/20 text-warn">
+                          Refund requested
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    {/* refundable is computed in SQL, by the same rules
+                        request_refund() re-checks — so the button and the
+                        guard behind it cannot drift apart. */}
+                    {c.refundable && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => {
+                          setRefundFor(c);
+                          setRefundReason("");
+                        }}
+                        className="mt-3 w-full rounded-xl font-semibold"
+                      >
+                        Request refund
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+              <p className="px-1 pt-1 text-[11px] text-muted-foreground">
+                Refunds can be requested within 2 days of a payment.
+              </p>
+            </div>
+          )}
         </section>
       </main>
+
+      <Dialog
+        open={!!refundFor}
+        onOpenChange={(o) => {
+          if (!o) setRefundFor(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request a refund</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {refundFor && formatRupees(refundFor.amount_paise)} paid on{" "}
+            {refundFor && formatBillingDate(refundFor.charged_at)}. Tell us what
+            went wrong and we'll take it from there.
+          </p>
+          <Input
+            value={refundReason}
+            onChange={(e) => setRefundReason(e.target.value)}
+            placeholder="Reason (optional)"
+            maxLength={300}
+          />
+          <Button
+            onClick={doRefund}
+            disabled={busy}
+            className="w-full rounded-xl bg-accent font-bold text-accent-foreground hover:bg-accent/90"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send request"}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+/** ₹ with Indian digit grouping, from the paise the charge row stores. */
+function formatRupees(paise: number): string {
+  return `₹${(paise / 100).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatBillingDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 /* ═══════════════════════════════════════════════════

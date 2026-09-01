@@ -19,6 +19,7 @@ import {
   ArrowDown,
   Check,
   ChevronRight,
+  Clock,
   Copy,
   Gift,
   Link2,
@@ -56,15 +57,19 @@ import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
 import {
   DAYS_PER_REFERRAL,
   MAX_FREE_DAYS,
+  MAX_PREMIUM_DAYS,
   MILESTONES,
   PREMIUM_DAYS_PER_SUBSCRIPTION,
+  PREMIUM_HOLD_DAYS,
   REFEREE_DISCOUNT_RUPEES,
   freeDaysEarned,
   giftMessage,
+  isPremiumProcessing,
   premiumDaysEarned,
   referralUrl,
   type ReferralRow,
 } from "@/lib/referral";
+import { getBillingSummary } from "@/lib/billing";
 
 /** RPCs are untyped in this repo — types.ts leaves Functions empty. Same
  *  escape hatch as FriendsPanel.tsx and RankPage.tsx. */
@@ -91,6 +96,8 @@ export function ReferAndEarnPage({
   /** Which tile the user came in on, so the composer opens on their choice. */
   const [platform, setPlatform] = useState<Platform>("whatsapp");
   const [editing, setEditing] = useState(false);
+  /** bonus_premium_days as the fold computed it. null until the read lands. */
+  const [creditedDays, setCreditedDays] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +115,15 @@ export function ReferAndEarnPage({
       setFullName(profile.data?.full_name ?? null);
       // An error here is not fatal — the page still shows the code to share.
       setRows((summary.data as ReferralRow[]) ?? []);
+      // Separate call on purpose: get_billing_summary() recomputes first, which
+      // is what makes a hold that quietly elapsed show up here without a cron.
+      getBillingSummary()
+        .then((b) => {
+          if (!cancelled) setCreditedDays(b.bonus_premium_days);
+        })
+        .catch(() => {
+          /* the tracker falls back to the row count */
+        });
     };
     load();
     return () => {
@@ -133,7 +149,17 @@ export function ReferAndEarnPage({
       .length ?? 0;
   const subscribed = rows?.filter((r) => r.status === "subscribed") ?? [];
   const freeDays = freeDaysEarned(qualified);
-  const premiumDays = premiumDaysEarned(subscribed.length);
+  // Three states, not two. A friend who just bought is "processing" until the
+  // 3-day hold elapses — the days are real but not yet spendable, and a refund
+  // inside the window means they never land at all.
+  const processing = subscribed.filter((r) =>
+    isPremiumProcessing(r.subscribed_at),
+  );
+  const cleared = subscribed.filter((r) => !isPremiumProcessing(r.subscribed_at));
+  // What the fold actually granted, clawbacks and holds included. The count
+  // above is what the rows imply; this is what the database says, and the
+  // database is the authority.
+  const premiumDays = creditedDays ?? premiumDaysEarned(cleared.length);
 
   const copy = useCallback(async (text: string, msg: string) => {
     try {
@@ -390,13 +416,26 @@ export function ReferAndEarnPage({
               </span>
             </div>
             <Progress
-              value={subscribed.length ? 100 : 0}
+              value={Math.min(
+                100,
+                (premiumDays / MAX_PREMIUM_DAYS) * 100,
+              )}
               className="mt-2 h-2 bg-muted"
               indicatorClassName="bg-[var(--fat)]"
             />
             <p className="mt-2 text-xs text-muted-foreground">
               Premium days earned: {premiumDays}
+              {premiumDays >= MAX_PREMIUM_DAYS && " (maximum reached)"}
             </p>
+            {processing.length > 0 && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-warn">
+                <Clock className="h-3.5 w-3.5" />
+                {processing.length === 1
+                  ? `${PREMIUM_DAYS_PER_SUBSCRIPTION} days processing`
+                  : `${processing.length * PREMIUM_DAYS_PER_SUBSCRIPTION} days processing`}{" "}
+                — they land {PREMIUM_HOLD_DAYS} days after your friend pays.
+              </p>
+            )}
           </div>
 
           <div className="mt-4">
@@ -421,9 +460,15 @@ export function ReferAndEarnPage({
                     <span className="flex-1 truncate text-sm font-medium">
                       {r.referee_name ?? "A friend"}
                     </span>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {r.subscribed_at?.slice(0, 10) ?? "Subscribed"}
-                    </Badge>
+                    {isPremiumProcessing(r.subscribed_at) ? (
+                      <Badge className="bg-warn/20 text-[10px] text-warn">
+                        Processing
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {r.subscribed_at?.slice(0, 10) ?? "Subscribed"}
+                      </Badge>
+                    )}
                   </li>
                 ))}
               </ul>

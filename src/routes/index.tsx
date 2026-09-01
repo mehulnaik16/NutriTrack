@@ -24,6 +24,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useAuth } from "@/lib/auth";
+// The landing page used to carry its own Starter/Pro/Elite array at prices the
+// product no longer sells. Pricing has one definition now.
+import {
+  PLANS,
+  PLAN_FEATURES,
+  monthlyRate,
+  periodLabel,
+} from "@/lib/plans";
+import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export const Route = createFileRoute("/")({ component: Landing });
 
@@ -78,37 +87,6 @@ const STEPS = [
   },
 ];
 
-const PLANS = [
-  {
-    name: "Starter",
-    price: 299,
-    popular: false,
-    features: ["Food logging (3 meals/day)", "Calorie tracking", "Basic charts"],
-  },
-  {
-    name: "Pro",
-    price: 599,
-    popular: true,
-    features: [
-      "Unlimited food logging",
-      "Macro tracking & AI logging",
-      "Monthly progress graphs",
-      "Meal history & favorites",
-    ],
-  },
-  {
-    name: "Elite",
-    price: 999,
-    popular: false,
-    features: [
-      "Everything in Pro",
-      "AI meal suggestions",
-      "Priority support",
-      "Export data as PDF",
-    ],
-  },
-];
-
 const FAQS = [
   {
     q: "Is Dombelz accurate for Indian food?",
@@ -116,7 +94,7 @@ const FAQS = [
   },
   {
     q: "Do I need a credit card to start?",
-    a: "No. Every plan starts with a 2-day free trial, no card required. Take the quiz, get your targets, and start logging immediately.",
+    a: "No. Every plan starts with a 7-day free trial, no card required. Take the quiz, get your targets, and start logging immediately.",
   },
   {
     q: "How does AI photo logging work?",
@@ -227,7 +205,7 @@ function Landing() {
             </div>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-accent" /> 2-day free trial
+                <Check className="h-3.5 w-3.5 text-accent" /> {`${BASE_TRIAL_DAYS}-day free trial`}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-accent" /> No credit card
@@ -412,13 +390,14 @@ function Landing() {
             Simple plans. Serious results.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Try any plan free for 2 days — no credit card required.
+            Try any plan free for {BASE_TRIAL_DAYS} days — no credit card
+            required.
           </p>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {PLANS.map((p) => (
             <div
-              key={p.name}
+              key={p.id}
               className={`relative rounded-2xl border bg-card p-7 ${
                 p.popular
                   ? "border-accent shadow-xl glow-accent-sm md:-translate-y-2"
@@ -433,10 +412,17 @@ function Landing() {
               <h3 className="font-display text-lg font-bold">{p.name}</h3>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="font-display text-4xl font-bold">₹{p.price}</span>
-                <span className="text-sm text-muted-foreground">/month</span>
+                <span className="text-sm text-muted-foreground">
+                  {periodLabel(p.months)}
+                </span>
               </div>
+              {p.months > 1 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Works out to ₹{monthlyRate(p)}/month
+                </p>
+              )}
               <ul className="mt-6 space-y-3 text-sm">
-                {p.features.map((f) => (
+                {PLAN_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2.5">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                     <span className="text-muted-foreground">{f}</span>

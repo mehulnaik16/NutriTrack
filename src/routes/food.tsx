@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Header } from "@/components/Header";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
+import { PremiumGate } from "@/components/PremiumGate";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
 import { DEFAULT_MEALS, loadMealNames, saveMealNames } from "@/lib/meals";
@@ -42,7 +43,18 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/food")({ component: FoodPage });
+// Route-level lock, history included. FoodPage never mounts while access has
+// lapsed, so no log — today's or older — is fetched into a lapsed client.
+export const Route = createFileRoute("/food")({
+  component: () => (
+    <PremiumGate
+      title="Food logging is locked"
+      message="Your trial has ended. Pick a plan to log meals and open your history again — nothing you logged has been deleted."
+    >
+      <FoodPage />
+    </PremiumGate>
+  ),
+});
 
 const today = () => {
   const d = new Date();

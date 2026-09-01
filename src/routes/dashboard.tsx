@@ -64,6 +64,7 @@ import { Badge } from "@/components/ui/badge";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
+import { PremiumGate } from "@/components/PremiumGate";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { loadMealNames } from "@/lib/meals";
@@ -72,7 +73,18 @@ import { todayLocal, toLocalISO } from "@/lib/dates";
 import { formatQty } from "@/lib/foodUnits";
 import { calcBMR, calcTDEE, calcCalorieTarget, calcMacros } from "@/lib/nutrition";
 
-export const Route = createFileRoute("/dashboard")({ component: Dashboard });
+// Route-level lock. Dashboard is not mounted while access has lapsed, so none
+// of its reads fire — the blur is over filler, not over the user's own data.
+export const Route = createFileRoute("/dashboard")({
+  component: () => (
+    <PremiumGate
+      title="Your dashboard is locked"
+      message="Your trial has ended. Pick a plan to get your daily targets, streak and reports back — everything you logged is still here."
+    >
+      <Dashboard />
+    </PremiumGate>
+  ),
+});
 
 interface Profile {
   full_name: string | null;

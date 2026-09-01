@@ -122,12 +122,19 @@ export type Database = {
           username: string | null;
           referral_code: string;
           bonus_trial_days: number;
+          bonus_premium_days: number;
+          access_until: string | null;
           has_seen_benefits_features_page: boolean;
           has_seen_refer_intro: boolean;
           meal_names: string[];
           water_goal_ml: number | null;
           water_cup_ml: number | null;
         };
+        // Insert and Update deliberately omit selected_plan, trial_start_date,
+        // referral_code, bonus_trial_days, bonus_premium_days and access_until.
+        // 20260901120000_billing_lockdown.sql revoked the client's grant on all
+        // six, so a write to any of them fails with 42501 at runtime. Leaving
+        // them out means it fails at compile time instead.
         Insert: {
           activity_level?: string | null;
           age?: number | null;
@@ -144,15 +151,10 @@ export type Database = {
           id: string;
           protein_target_g?: number | null;
           fiber_target_g?: number | null;
-          selected_plan?: string | null;
           tdee?: number | null;
-          trial_start_date?: string | null;
           weight_kg?: number | null;
           goal_weight_kg?: number | null;
           username?: string | null;
-          // Assigned by a BEFORE INSERT trigger; never supplied by the client.
-          referral_code?: string;
-          bonus_trial_days?: number;
           has_seen_benefits_features_page?: boolean;
           has_seen_refer_intro?: boolean;
           meal_names?: string[];
@@ -175,14 +177,10 @@ export type Database = {
           id?: string;
           protein_target_g?: number | null;
           fiber_target_g?: number | null;
-          selected_plan?: string | null;
           tdee?: number | null;
-          trial_start_date?: string | null;
           weight_kg?: number | null;
           goal_weight_kg?: number | null;
           username?: string | null;
-          referral_code?: string;
-          bonus_trial_days?: number;
           has_seen_benefits_features_page?: boolean;
           has_seen_refer_intro?: boolean;
           meal_names?: string[];
@@ -404,6 +402,84 @@ export type Database = {
           created_at: string;
           qualified_at: string | null;
           subscribed_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      // ── Billing ──────────────────────────────────────────────────────────
+      //
+      // All four are read-only from the client, and three of them are only
+      // readable at all. RLS grants SELECT on the owner's own rows and there is
+      // deliberately no write policy: every write goes through the
+      // register_subscription / handle_razorpay_event / request_refund definer
+      // functions. `Insert: never` and `Update: never` make that a compile
+      // error rather than a runtime 42501.
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          provider: "razorpay" | "google_play" | "apple";
+          provider_subscription_id: string;
+          tier: "monthly" | "quarterly" | "yearly";
+          status:
+            | "created"
+            | "authenticated"
+            | "active"
+            | "pending"
+            | "halted"
+            | "cancelled"
+            | "completed"
+            | "expired";
+          created_at: string;
+          updated_at: string;
+          cancelled_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      subscription_charges: {
+        Row: {
+          id: string;
+          subscription_id: string;
+          user_id: string;
+          provider_payment_id: string;
+          amount_paise: number;
+          tier: "monthly" | "quarterly" | "yearly";
+          period_days: number;
+          charged_at: string;
+          refunded_at: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      refund_requests: {
+        Row: {
+          id: string;
+          charge_id: string;
+          user_id: string;
+          reason: string;
+          status: "open" | "approved" | "rejected" | "processed";
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      // Service-role only. RLS denies every client in both directions and the
+      // table privileges are revoked; it is typed here purely so the admin
+      // client can reference it.
+      webhook_events: {
+        Row: {
+          id: string;
+          provider: string;
+          event_id: string;
+          event_type: string;
+          received_at: string;
         };
         Insert: never;
         Update: never;

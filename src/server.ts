@@ -79,9 +79,28 @@ async function normalizeCatastrophicSsrResponse(
   return brandedErrorResponse();
 }
 
+/**
+ * The Razorpay webhook is handled here rather than as a route file: this
+ * version of @tanstack/react-start has no `server` option on route options, and
+ * the entry already sees every request. It is intercepted before the router so
+ * an unauthenticated POST never touches SSR — Razorpay carries no Supabase JWT,
+ * and the HMAC inside the handler is the authentication.
+ *
+ * Dynamically imported so the module, and its reads of the Razorpay secrets,
+ * only load on an actual webhook request.
+ */
+const RAZORPAY_WEBHOOK_PATH = "/api/razorpay-webhook";
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      if (new URL(request.url).pathname === RAZORPAY_WEBHOOK_PATH) {
+        const { handleRazorpayWebhook } = await import(
+          "./server/razorpay-webhook"
+        );
+        return await handleRazorpayWebhook(request);
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
