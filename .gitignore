@@ -51,5 +51,6 @@ apitest.md
 # src/data/restaurantFoods.json belongs in the repo.
 /food data.txt
 /zenin-nutrition-scraper-main.zip
-# Playwright CLI output (may contain credentials)
+# Playwright CLI output (may contain credentials) and browser profile
 .playwright-cli/
+.playwright/
