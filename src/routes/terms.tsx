@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, ArrowLeft, ScrollText } from "lucide-react";
+import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export const Route = createFileRoute("/terms")({ component: Terms });
 
@@ -107,11 +108,12 @@ function Terms() {
 
         <Section title="5. Plans, trials & payments">
           <p>
-            Dombelz offers subscription plans with a 7-day free trial, one per
-            account. No payment method is required for the trial. Paid plans are
-            billed up front for the chosen period through Razorpay; a payment can
-            be refunded within 2 days of the charge, after which only unused days
-            are considered. Prices are listed in Indian Rupees (₹).
+            Dombelz offers subscription plans with a {BASE_TRIAL_DAYS}-day free
+            trial, one per account. No payment method is required for the trial.
+            Paid plans are billed up front for the chosen period through
+            Razorpay; a payment can be refunded within 2 days of the charge,
+            after which only unused days are considered. Prices are listed in
+            Indian Rupees (₹).
           </p>
         </Section>
 

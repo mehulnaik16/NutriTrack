@@ -94,7 +94,7 @@ const FAQS = [
   },
   {
     q: "Do I need a credit card to start?",
-    a: "No. Every plan starts with a 7-day free trial, no card required. Take the quiz, get your targets, and start logging immediately.",
+    a: `No. Every plan starts with a ${BASE_TRIAL_DAYS}-day free trial, no card required. Take the quiz, get your targets, and start logging immediately.`,
   },
   {
     q: "How does AI photo logging work?",

@@ -20,8 +20,6 @@ import {
   Linkedin,
   Facebook,
   Twitter,
-  Check,
-  Sparkles,
   HelpCircle,
   LogOut,
   Download,
@@ -80,7 +78,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -97,7 +94,6 @@ import {
   cancelSubscription,
   getBillingSummary,
   requestRefund,
-  startTrial,
   type BillingCharge,
   type BillingSummary,
 } from "@/lib/billing";
@@ -106,14 +102,8 @@ import { AchievementsPage } from "@/components/Achievements";
 import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
 import { SubHeader } from "@/components/SubHeader";
-import { todayLocal } from "@/lib/dates";
-import {
-  PLANS,
-  PLAN_FEATURES,
-  findPlan,
-  monthlyRate,
-  periodLabel,
-} from "@/lib/plans";
+import { PricingPlans } from "@/components/PricingPlans";
+import { findPlan, periodLabel } from "@/lib/plans";
 import {
   BASE_TRIAL_DAYS,
   isTrialActive,
@@ -316,29 +306,6 @@ function Profile() {
     );
     if (newTheme !== "light") {
       document.documentElement.classList.add(newTheme);
-    }
-  };
-
-  const startPlan = async (planId: string) => {
-    if (!user) {
-      navigate({ to: "/login", replace: true });
-      return;
-    }
-    try {
-      // One trial per account, ever — see startTrial(). The returned state is
-      // the row as it truly is, so a second visit here re-points the plan and
-      // leaves trial_start_date on its original date rather than optimistically
-      // showing today's.
-      const state = await startTrial(planId, user.id);
-      toast.success(
-        state.trial_start_date === todayLocal()
-          ? "Free trial started!"
-          : "Plan updated.",
-      );
-      setProfile({ ...profile, ...state });
-      goBack();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -573,67 +540,17 @@ function Profile() {
           }
         />
         <main className="mx-auto max-w-6xl px-4 py-8">
-          <div className="mb-8 rounded-2xl bg-accent text-accent-foreground p-5 text-center shadow-lg glow-accent-sm">
-            <div className="mb-1 flex items-center justify-center gap-2 text-base font-bold">
-              <Sparkles className="h-5 w-5" /> Try any plan FREE for{" "}
-              {BASE_TRIAL_DAYS} days
-            </div>
-            <p className="text-sm font-medium opacity-90">
-              No credit card required. After {BASE_TRIAL_DAYS} days, choose a plan
-              to continue.
-            </p>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {PLANS.map((p) => (
-              <Card
-                key={p.id}
-                className={`card-lift relative border-border/60 ${p.popular ? "border-accent shadow-xl glow-accent-sm" : ""}`}
-              >
-                {p.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent font-bold uppercase tracking-wider text-accent-foreground">
-                    Most Popular
-                  </Badge>
-                )}
-                {profile.selected_plan === p.id && (
-                  <Badge className="absolute -top-3 right-4 bg-foreground text-background">
-                    Current
-                  </Badge>
-                )}
-                <CardContent className="p-6">
-                  <h3 className="font-display text-xl font-bold">{p.name}</h3>
-                  <div className="mt-3 flex items-baseline gap-1">
-                    <span className="font-display text-4xl font-bold">₹{p.price}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {periodLabel(p.months)}
-                    </span>
-                  </div>
-                  {p.months > 1 && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Works out to ₹{monthlyRate(p)}/month
-                    </p>
-                  )}
-                  <ul className="mt-6 space-y-3 text-sm">
-                    {PLAN_FEATURES.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                        <span className="text-muted-foreground">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    onClick={() => startPlan(p.id)}
-                    className={`mt-6 w-full rounded-full font-bold ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-                    variant={p.popular ? "default" : "outline"}
-                    disabled={profile.selected_plan === p.id}
-                  >
-                    {profile.selected_plan === p.id
-                      ? "Your current plan"
-                      : "Start Free Trial"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <PricingPlans
+            // The trial is spent whether it is running or lapsed, so from here
+            // on the cards sell the plan instead of offering a second trial.
+            trialUsed={!!profile.trial_start_date}
+            selectedPlan={profile.selected_plan}
+            onTrialStarted={(state) => {
+              setProfile({ ...profile, ...state });
+              goBack();
+            }}
+            onBought={goBack}
+          />
         </main>
       </div>
     );
@@ -1349,7 +1266,8 @@ function TransactionsPage({
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     ₹{plan.price}
-                    {periodLabel(plan.months)} after trial
+                    {periodLabel(plan.months)}
+                    {trialActive ? " after trial" : ""}
                   </p>
                 </div>
                 <BadgeCheck className="h-6 w-6 text-accent" />
@@ -1407,7 +1325,9 @@ function TransactionsPage({
                 className="mt-4 w-full rounded-xl font-semibold"
                 onClick={onPricing}
               >
-                Change plan
+                {/* Once access has lapsed the only useful move is paying, so
+                    the button says that rather than "change plan". */}
+                {hasAccessNow ? "Change plan" : `Buy · ₹${plan.price}`}
               </Button>
             </div>
           ) : (
@@ -1415,8 +1335,9 @@ function TransactionsPage({
               <Tag className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
               <p className="font-semibold">No plan selected yet</p>
               <p className="mx-auto mt-1 max-w-[240px] text-sm text-muted-foreground">
-                Start a free {BASE_TRIAL_DAYS}-day trial — no credit card
-                required.
+                {profile.trial_start_date
+                  ? "Your free trial is over. Choose a plan to keep going."
+                  : `Start a free ${BASE_TRIAL_DAYS}-day trial — no credit card required.`}
               </p>
               <Button
                 className="mt-4 rounded-full bg-accent px-6 font-bold text-accent-foreground hover:bg-accent/90"

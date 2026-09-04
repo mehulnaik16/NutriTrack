@@ -2,9 +2,11 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Activity, Dumbbell, Scale, Utensils } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
-// Full-screen onboarding routes where the nav must stay hidden — showing it
-// would let the user bypass the /welcome scroll gate by tapping a tab.
+// Full-screen routes where the nav must stay hidden — during onboarding showing
+// it would let the user bypass the /welcome scroll gate by tapping a tab, and
+// /profile plus all its ?page= sub-pages carry their own back arrow instead.
 const HIDDEN_ON = new Set([
+  "/profile",
   "/plans",
   "/welcome",
   "/refer-intro",

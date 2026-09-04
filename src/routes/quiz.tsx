@@ -19,6 +19,7 @@ import { Slider } from "@/components/ui/slider";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
+import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
 import { isValidCode, REFEREE_DISCOUNT_RUPEES } from "@/lib/referral";
 import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
 import {
@@ -245,7 +246,11 @@ function Quiz() {
       toast.success("Account created!");
       navigate({ to: "/plans" });
     } catch (e: any) {
-      toast.error(e.message ?? "Signup failed");
+      const raw = e?.message as string | undefined;
+      toast.error(authErrorMessage(raw));
+      // An existing account can't be created again, and the quiz has no way
+      // forward from here — the login screen does, including Google.
+      if (isAlreadyRegistered(raw)) navigate({ to: "/login" });
     } finally {
       setSubmitting(false);
     }

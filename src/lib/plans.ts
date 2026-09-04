@@ -60,3 +60,41 @@ export function periodLabel(months: number): string {
 export function monthlyRate(plan: Plan): number {
   return Math.round(plan.price / plan.months);
 }
+
+/** What the button on a plan card offers. See planCta(). */
+export type PlanCta = "trial" | "current" | "buy" | "native";
+
+/**
+ * Which call to action a plan card shows.
+ *
+ * A trial is offered once per account, ever (start_trial() writes
+ * trial_start_date write-once), so the moment a trial exists — running or
+ * lapsed — every card must offer the paid plan instead. That includes the plan
+ * the user is already on: after the trial ends, buying that same plan is
+ * exactly what they came to do, so it is not disabled as "current".
+ *
+ * The native shell has no third-party checkout, so there it points at the
+ * website rather than opening Razorpay.
+ */
+export function planCta(opts: {
+  planId: string;
+  trialUsed: boolean;
+  selectedPlan?: string | null;
+  native?: boolean;
+}): PlanCta {
+  if (!opts.trialUsed) {
+    return opts.selectedPlan === opts.planId ? "current" : "trial";
+  }
+  return opts.native ? "native" : "buy";
+}
+
+/**
+ * Whether to show the "try any plan free for N days" banner.
+ *
+ * Same input as planCta, and deliberately the same condition: a page offering
+ * "Buy · ₹249" must not also promise a free trial the account can no longer
+ * get.
+ */
+export function showsTrialBanner(trialUsed: boolean): boolean {
+  return !trialUsed;
+}

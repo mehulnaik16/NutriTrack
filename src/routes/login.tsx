@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { authErrorMessage } from "@/lib/authErrors";
 import { supabase } from "@/integrations/client";
 
 export const Route = createFileRoute("/login")({ component: Login });
@@ -43,7 +44,7 @@ function Login() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(authErrorMessage(error.message));
       return;
     }
     toast.success("Welcome back!");
