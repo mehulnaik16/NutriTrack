@@ -128,61 +128,73 @@ function stageContext(): string {
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
-/**
- * Which provider backs the agent.
- *
- * Groq's free tier allows 8,000 tokens per minute per model, per organisation —
- * measured, not assumed — and the app's own AI features draw on the same
- * budget. So a busy conversation competes with users trying to log a meal.
- *
- * GitHub Models is an OpenAI-compatible endpoint that costs nothing and does
- * support function calling, which is what makes it a real alternative here.
- * Setting GITHUB_MODELS_TOKEN switches the agent over and leaves the app's
- * food, photo and voice features on Groq, so the two stop competing.
- *
- * Nothing else changes: the tool catalog, the retry logic, the finalize node
- * and the prompt are all provider-agnostic.
- */
-function providerKeys(): {
-  keys: readonly string[];
+interface Credential {
   provider: "github" | "groq";
-} {
+  key: string;
+  label: string;
+}
+
+/**
+ * Every credential the agent may use, in the order it should try them.
+ *
+ * GitHub Models first when its token is set, then the Groq keys. A chain rather
+ * than an either/or, because the goal is for ops questions to stop competing
+ * with the app's own AI features for Groq's 8,000 tokens/minute — while still
+ * answering when the preferred provider is unavailable.
+ *
+ * That fallback is not hypothetical. As of September 2026 GitHub Models answers
+ * every model with HTTP 410 `github_models_retirement_brownout`: the service is
+ * being retired, and brownouts are the scheduled outages that precede it. With
+ * the chain, a set-but-dead token costs one failed request and falls through to
+ * Groq. Leave it configured and the agent moves across on its own if the
+ * service returns; remove it and nothing changes.
+ */
+function credentials(): Credential[] {
+  const chain: Credential[] = [];
+
   const gh = (process.env.GITHUB_MODELS_TOKEN ?? "").trim();
-  if (gh) return { keys: [gh], provider: "github" };
-  return { keys: groqKeys(), provider: "groq" };
+  if (gh) chain.push({ provider: "github", key: gh, label: "github-models" });
+
+  groqKeys().forEach((key, i) =>
+    chain.push({ provider: "groq", key, label: `GROQ_API_KEY_${i + 1}` }),
+  );
+
+  return chain;
 }
 
-export function activeProvider(): "github" | "groq" {
-  return providerKeys().provider;
+/**
+ * A provider that is gone rather than merely busy: retired, withdrawn, or
+ * missing. Distinct from a rate limit because waiting cannot help — the only
+ * useful response is to move to the next credential immediately.
+ */
+function isUnavailable(e: unknown): boolean {
+  const message = e instanceof Error ? e.message : String(e);
+  return /\b(404|410)\b|retirement|brownout|deprecat/i.test(message);
 }
 
-function model(keyIndex = 0) {
-  const { keys, provider } = providerKeys();
-  if (keys.length === 0) {
-    throw new Error(
-      "No LLM credentials configured (GROQ_API_KEY_1 or GITHUB_MODELS_TOKEN)",
-    );
-  }
-  if (keyIndex >= keys.length) {
-    throw new Error(`All ${keys.length} ${provider} credentials were rejected`);
-  }
-
-  if (provider === "github") {
+function model(cred: Credential) {
+  if (cred.provider === "github") {
     return new ChatOpenAI({
-      apiKey: keys[keyIndex],
+      apiKey: cred.key,
       model: process.env.GITHUB_MODELS_MODEL?.trim() || "openai/gpt-4o-mini",
       configuration: { baseURL: "https://models.github.ai/inference" },
       temperature: 0.2,
       maxTokens: 1200,
+      // Fail fast. The SDK retries with backoff by default, which on a retired
+      // service means every call waits out several pointless attempts before
+      // the chain can fall through to Groq — inside a serverless function with
+      // its own timeout. Our chain is the retry; the SDK's is duplicated cost.
+      maxRetries: 0,
+      timeout: 10_000,
     });
   }
 
   // ChatGroq owns its own HTTP requests, so it cannot share groqFetch's
-  // rotation. It takes the key list instead of hardcoding the first one —
-  // hardcoding is what silently took the agent down when key 1 was revoked
-  // while key 2 was healthy the whole time.
+  // rotation. It takes a credential from the chain rather than hardcoding the
+  // first key — hardcoding is what silently took the agent down when key 1 was
+  // revoked while key 2 was healthy the whole time.
   return new ChatGroq({
-    apiKey: keys[keyIndex],
+    apiKey: cred.key,
     model: "openai/gpt-oss-120b",
     temperature: 0.2,
     maxTokens: 1200,
@@ -240,39 +252,43 @@ async function invoke(
   messages: BaseMessage[],
   withTools: boolean,
 ): Promise<AIMessage> {
-  // Two recoverable failures, handled differently:
+  // Three recoverable failures, handled differently:
   //
-  //   401/403 — the key is unusable. Move to the next one immediately.
-  //   429     — the key's per-minute token budget is spent. Another key has its
-  //             own budget, so try that first; waiting is the fallback when
-  //             there is no other key, which is the situation whenever only one
-  //             key is configured or the rest have been revoked.
+  //   404/410 — the provider is gone, not busy. Move on at once; waiting on a
+  //             retired service never helps.
+  //   401/403 — the credential is unusable. Move on at once.
+  //   429     — this credential's budget is spent. A later one has its own, so
+  //             prefer switching; waiting is the fallback on the last link.
   //
-  // Anything else is a real error that a different key would only repeat.
-  const { keys, provider } = providerKeys();
+  // Anything else is a real error that another credential would only repeat.
+  const chain = credentials();
   let lastRecoverable: unknown;
 
   const run = (i: number) => {
-    const m = model(i);
+    const m = model(chain[i]);
     return (withTools ? m.bindTools(TOOL_SPECS) : m).invoke(messages);
   };
 
-  for (let i = 0; i < keys.length; i++) {
+  for (let i = 0; i < chain.length; i++) {
+    const { label } = chain[i];
     try {
       return (await run(i)) as AIMessage;
     } catch (e) {
+      if (isUnavailable(e)) {
+        lastRecoverable = e;
+        console.warn(`[ops-agent] ${label} unavailable, falling through`);
+        continue;
+      }
       if (isAuthError(e)) {
         lastRecoverable = e;
-        console.warn(
-          `[ops-agent] ${provider} credential ${i + 1} rejected, trying next`,
-        );
+        console.warn(`[ops-agent] ${label} rejected, trying next`);
         continue;
       }
       if (isRateLimit(e)) {
         lastRecoverable = e;
         // Another key has its own budget, so prefer switching over waiting.
         // On the last key there is nothing left to switch to, so wait it out.
-        const isLastKey = i === keys.length - 1;
+        const isLastKey = i === chain.length - 1;
         if (isLastKey) {
           const wait = retryAfterMs(e);
           console.warn(`[ops-agent] rate limited, waiting ${wait}ms`);
@@ -283,9 +299,7 @@ async function invoke(
             lastRecoverable = retryError;
           }
         } else {
-          console.warn(
-            `[ops-agent] ${provider} credential ${i + 1} rate limited, trying next`,
-          );
+          console.warn(`[ops-agent] ${label} rate limited, trying next`);
         }
         continue;
       }
@@ -298,8 +312,8 @@ async function invoke(
       severity: "warning",
       title: "Ops agent hit the Groq rate limit",
       detail: {
-        keys: keys.length,
-        provider,
+        credentials: chain.length,
+        tried: chain.map((c) => c.label).join(", "),
         hint: "Groq free tier is 8,000 tokens/minute per organisation — extra keys on the same account share it. Set GITHUB_MODELS_TOKEN to move the agent off the budget the app's own AI features use.",
       },
       throttleKey: "ops-agent-rate-limited",
