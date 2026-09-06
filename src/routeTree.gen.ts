@@ -32,6 +32,7 @@ import { Route as CustomPlanEditRouteImport } from './routes/custom-plan-edit'
 import { Route as CustomPlanRouteImport } from './routes/custom-plan'
 import { Route as ChoosePlanRouteImport } from './routes/choose-plan'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DebugNotificationsRouteImport } from './routes/debug.notifications'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
 const WorkoutSetupRoute = WorkoutSetupRouteImport.update({
@@ -149,6 +150,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DebugNotificationsRoute = DebugNotificationsRouteImport.update({
+  id: '/debug/notifications',
+  path: '/debug/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/debug/notifications': typeof DebugNotificationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/debug/notifications': typeof DebugNotificationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/workout-library': typeof WorkoutLibraryRoute
   '/workout-setup': typeof WorkoutSetupRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/debug/notifications': typeof DebugNotificationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/workout-library'
     | '/workout-setup'
     | '/auth/callback'
+    | '/debug/notifications'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/workout-library'
     | '/workout-setup'
     | '/auth/callback'
+    | '/debug/notifications'
   id:
     | '__root__'
     | '/'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/workout-library'
     | '/workout-setup'
     | '/auth/callback'
+    | '/debug/notifications'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -340,6 +352,7 @@ export interface RootRouteChildren {
   WorkoutLibraryRoute: typeof WorkoutLibraryRoute
   WorkoutSetupRoute: typeof WorkoutSetupRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  DebugNotificationsRoute: typeof DebugNotificationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -505,6 +518,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/debug/notifications': {
+      id: '/debug/notifications'
+      path: '/debug/notifications'
+      fullPath: '/debug/notifications'
+      preLoaderRoute: typeof DebugNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -540,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorkoutLibraryRoute: WorkoutLibraryRoute,
   WorkoutSetupRoute: WorkoutSetupRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  DebugNotificationsRoute: DebugNotificationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -14,6 +14,8 @@
  * through them automatically on rate limit (429) or server errors (5xx).
  */
 
+import { sendAlert } from "./telegram";
+
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 
 // ── Load all keys from server-side env ────────────────────────────────────────
@@ -38,11 +40,19 @@ const KEYS = loadKeys();
 // Track which keys are currently rate-limited and when they reset
 const rateLimitedUntil: Record<number, number> = {};
 
-function getAvailableKey(): { key: string; index: number } | null {
+function getAvailableKey(): {
+  key: string;
+  index: number;
+  /** True when every key is inside its cooldown — the capacity ceiling. */
+  allLimited: boolean;
+  /** Seconds until the soonest key frees up. Only meaningful when allLimited. */
+  resetsInSeconds: number;
+} | null {
   const now = Date.now();
   for (let i = 0; i < KEYS.length; i++) {
     const resetAt = rateLimitedUntil[i] ?? 0;
-    if (now >= resetAt) return { key: KEYS[i], index: i };
+    if (now >= resetAt)
+      return { key: KEYS[i], index: i, allLimited: false, resetsInSeconds: 0 };
   }
   // All keys rate-limited — find the one that resets soonest
   let soonest = 0;
@@ -53,10 +63,16 @@ function getAvailableKey(): { key: string; index: number } | null {
       soonest = i;
     }
   }
+  const resetsInSeconds = Math.ceil((soonestReset - now) / 1000);
   console.warn(
-    `[groq] All ${KEYS.length} keys rate-limited. Using key ${soonest + 1}, resets in ${Math.ceil((soonestReset - now) / 1000)}s`,
+    `[groq] All ${KEYS.length} keys rate-limited. Using key ${soonest + 1}, resets in ${resetsInSeconds}s`,
   );
-  return { key: KEYS[soonest], index: soonest };
+  return {
+    key: KEYS[soonest],
+    index: soonest,
+    allLimited: true,
+    resetsInSeconds,
+  };
 }
 
 function markRateLimited(index: number, retryAfterSeconds = 60) {
@@ -82,6 +98,23 @@ async function groqFetch(opts: GroqRequestOptions): Promise<Response> {
     if (!available) throw new Error("No Groq keys available.");
 
     const { key, index } = available;
+
+    // Every key inside its cooldown means the daily or per-minute quota is the
+    // thing now limiting how many users the app can serve — not a bug, but the
+    // ceiling being reached, and the signal that the Groq tier needs raising.
+    if (available.allLimited) {
+      await sendAlert({
+        severity: "warning",
+        title: "All Groq keys rate-limited",
+        detail: {
+          keys: KEYS.length,
+          "resets in": `${available.resetsInSeconds}s`,
+          endpoint: opts.endpoint,
+        },
+        throttleKey: "groq-all-limited",
+      });
+    }
+
     if (triedKeys.has(index) && triedKeys.size >= KEYS.length) break;
     triedKeys.add(index);
 
@@ -113,6 +146,13 @@ async function groqFetch(opts: GroqRequestOptions): Promise<Response> {
     return res; // success (or a 4xx that isn't 429 — let caller handle)
   }
 
+  // Past warning: users are now seeing AI features fail outright.
+  await sendAlert({
+    severity: "critical",
+    title: "Groq keys exhausted — AI features failing",
+    detail: { keys: KEYS.length, endpoint: opts.endpoint },
+    throttleKey: "groq-exhausted",
+  });
   throw new Error(`All ${KEYS.length} Groq keys exhausted or rate-limited.`);
 }
 

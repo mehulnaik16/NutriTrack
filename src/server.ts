@@ -91,14 +91,39 @@ async function normalizeCatastrophicSsrResponse(
  */
 const RAZORPAY_WEBHOOK_PATH = "/api/razorpay-webhook";
 
+/**
+ * The ops agent's inbound webhook. Intercepted here for the same reason as
+ * Razorpay: Telegram carries no Supabase JWT, and the secret-token header
+ * inside the handler is the authentication.
+ */
+const TELEGRAM_WEBHOOK_PATH = "/api/telegram-webhook";
+
+/**
+ * The daily digest, driven by Vercel Cron. Authenticated by CRON_SECRET inside
+ * the handler rather than here, so the route stays a plain dispatch.
+ */
+const OPS_DIGEST_PATH = "/api/ops-digest";
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
-      if (new URL(request.url).pathname === RAZORPAY_WEBHOOK_PATH) {
-        const { handleRazorpayWebhook } = await import(
-          "./server/razorpay-webhook"
-        );
+      const { pathname } = new URL(request.url);
+
+      if (pathname === RAZORPAY_WEBHOOK_PATH) {
+        const { handleRazorpayWebhook } =
+          await import("./server/razorpay-webhook");
         return await handleRazorpayWebhook(request);
+      }
+
+      if (pathname === TELEGRAM_WEBHOOK_PATH) {
+        const { handleTelegramWebhook } =
+          await import("./server/telegram-webhook");
+        return await handleTelegramWebhook(request);
+      }
+
+      if (pathname === OPS_DIGEST_PATH) {
+        const { handleOpsDigest } = await import("./server/ops-digest");
+        return await handleOpsDigest(request);
       }
 
       const handler = await getServerEntry();

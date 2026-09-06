@@ -498,7 +498,12 @@ export const FoodSearch = forwardRef<
             setQ(e.target.value);
             if (aiSuggestions.length > 0) setAiSuggestions([]);
           }}
-          onKeyDown={(e) => e.key === "Enter" && handleAiFallback()}
+          onKeyDown={(e) => {
+            // Only reach for the AI when the local database came up empty —
+            // Enter is a typing habit, and firing it over a list of local
+            // matches spends a metered Groq call on an answered query.
+            if (e.key === "Enter" && suggestions.length === 0) handleAiFallback();
+          }}
           className="pl-9"
         />
         {q.length >= 2 && suggestions.length === 0 && !searching && (

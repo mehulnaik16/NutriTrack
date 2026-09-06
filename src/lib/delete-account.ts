@@ -46,9 +46,29 @@ export const serverDeleteAccount = createServerFn({ method: "POST" })
 
     // 2. Delete auth user — CASCADE handles all public tables
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    const { sendAlert } = await import("@/server/telegram");
+
     if (error) {
+      // Half-deleted: the photos are gone but the account is not. Worth a page,
+      // because the user has been told their data was removed and it was not.
+      await sendAlert({
+        severity: "critical",
+        title: "Account deletion failed after photos were removed",
+        detail: { user: userId, photos: paths.length, error: error.message },
+        throttleKey: "delete-account-failed",
+      });
       throw new Error(`Account deletion failed: ${error.message}`);
     }
+
+    // Churn signal. Not throttled by user, so two deletions in a day still read
+    // as two — the volume is low enough that each one is worth seeing.
+    await sendAlert({
+      severity: "warning",
+      title: "Account deleted",
+      detail: { user: userId, photos: paths.length },
+      throttleKey: `account-deleted:${userId}`,
+    });
 
     return { success: true };
   });

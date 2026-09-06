@@ -16,6 +16,7 @@
  */
 
 import { verifyWebhookSignature } from "./razorpay";
+import { sendAlert } from "./telegram";
 
 /** Events worth acting on. Anything else is acknowledged and dropped. */
 const HANDLED = new Set([
@@ -122,7 +123,9 @@ export async function handleRazorpayWebhook(
       : pick(body, "payload", "payment", "entity", "id"),
   );
   const amountPaise = int(pick(body, "payload", "payment", "entity", "amount"));
-  const rawStatus = str(pick(body, "payload", "subscription", "entity", "status"));
+  const rawStatus = str(
+    pick(body, "payload", "subscription", "entity", "status"),
+  );
   const status = rawStatus && STATUSES.has(rawStatus) ? rawStatus : null;
 
   if (!subscriptionId && !paymentId) {
@@ -154,7 +157,62 @@ export async function handleRazorpayWebhook(
     // A 500 here is correct: Razorpay retries, and a transient database error
     // should be retried. The message is logged, the payload is not.
     console.error("[razorpay-webhook] apply failed:", error.message);
+    // Money did not land. Throttled on the event type rather than the event id,
+    // so Razorpay's retry schedule produces one message and not one per attempt.
+    await sendAlert({
+      severity: "critical",
+      title: "Razorpay webhook failed to apply",
+      detail: {
+        event: eventType,
+        subscription: subscriptionId,
+        payment: paymentId,
+        error: error.message,
+      },
+      throttleKey: `webhook-apply-failed:${eventType}`,
+    });
     return new Response("Processing failed", { status: 500 });
+  }
+
+  // Revenue signals. Throttled per event type, so a burst of renewals on the
+  // same day summarises rather than floods.
+  if (
+    eventType === "subscription.activated" ||
+    eventType === "subscription.charged"
+  ) {
+    await sendAlert({
+      severity: "info",
+      title:
+        eventType === "subscription.activated"
+          ? "New subscription activated"
+          : "Subscription renewed",
+      detail: {
+        amount:
+          amountPaise === null ? null : `₹${(amountPaise / 100).toFixed(2)}`,
+        subscription: subscriptionId,
+      },
+      throttleKey: `revenue:${eventType}`,
+    });
+  } else if (isRefund) {
+    await sendAlert({
+      severity: "warning",
+      title: "Refund processed",
+      detail: {
+        amount:
+          amountPaise === null ? null : `₹${(amountPaise / 100).toFixed(2)}`,
+        payment: paymentId,
+      },
+      throttleKey: "revenue:refund",
+    });
+  } else if (
+    eventType === "subscription.halted" ||
+    eventType === "subscription.cancelled"
+  ) {
+    await sendAlert({
+      severity: "warning",
+      title: `Subscription ${eventType.split(".")[1]}`,
+      detail: { subscription: subscriptionId },
+      throttleKey: `revenue:${eventType}`,
+    });
   }
 
   return ok({ result: "ok", detail: data });

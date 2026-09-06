@@ -6,6 +6,18 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+/** Mirrors the notification_type_known CHECK on public.notification_logs. */
+export type NotificationType = "morning_motivation" | "custom_reminder";
+
+/** Mirrors the notification_status_known CHECK on public.notification_logs. */
+export type NotificationStatus =
+  | "pending"
+  | "delivered"
+  | "snoozed"
+  | "dismissed"
+  | "opened"
+  | "archived";
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -40,6 +52,46 @@ export type Database = {
           measured_at?: string;
           measurements?: Json;
           note?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      custom_reminders: {
+        Row: {
+          created_at: string;
+          /** Notification title. 1-20 chars, enforced by a CHECK. */
+          label: string;
+          /** Notification body. Null means the client generates one from the label. */
+          note: string | null;
+          /** Local wall-clock time, "HH:MM:SS". Interpreted in user_profiles.timezone. */
+          remind_at: string;
+          enabled: boolean;
+          id: string;
+          /** Display order in settings. Not a scheduling concern. */
+          sort_order: number;
+          user_id: string;
+        };
+        // A BEFORE INSERT trigger caps this at 10 rows per user (spec §9.1), so
+        // an insert past the limit fails at runtime with check_violation however
+        // it is typed here.
+        Insert: {
+          created_at?: string;
+          label: string;
+          note?: string | null;
+          remind_at: string;
+          enabled?: boolean;
+          id?: string;
+          sort_order?: number;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          label?: string;
+          note?: string | null;
+          remind_at?: string;
+          enabled?: boolean;
+          id?: string;
+          sort_order?: number;
           user_id?: string;
         };
         Relationships: [];
@@ -97,6 +149,125 @@ export type Database = {
         };
         Relationships: [];
       };
+      notification_logs: {
+        Row: {
+          current_scheduled_at: string;
+          id: string;
+          last_action_at: string | null;
+          max_snooze_allowed: number;
+          /** The integer id handed to the OS scheduler. Null once it has fired. */
+          os_notification_id: number | null;
+          original_scheduled_at: string;
+          quiet_hours_override: boolean;
+          /** Set for custom_reminder rows only. */
+          reminder_id: string | null;
+          snooze_count: number;
+          status: NotificationStatus;
+          type: NotificationType;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          current_scheduled_at: string;
+          id?: string;
+          last_action_at?: string | null;
+          max_snooze_allowed?: number;
+          os_notification_id?: number | null;
+          original_scheduled_at: string;
+          quiet_hours_override?: boolean;
+          reminder_id?: string | null;
+          snooze_count?: number;
+          status?: NotificationStatus;
+          type: NotificationType;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          current_scheduled_at?: string;
+          id?: string;
+          last_action_at?: string | null;
+          max_snooze_allowed?: number;
+          os_notification_id?: number | null;
+          original_scheduled_at?: string;
+          quiet_hours_override?: boolean;
+          reminder_id?: string | null;
+          snooze_count?: number;
+          status?: NotificationStatus;
+          type?: NotificationType;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      ops_agent_threads: {
+        Row: {
+          /** Telegram chat id. Negative for groups, hence a bigint. */
+          chat_id: number;
+          /** Array of {role, content}, oldest first. Trimmed by the agent. */
+          messages: Json;
+          turn_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          chat_id: number;
+          messages?: Json;
+          turn_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          chat_id?: number;
+          messages?: Json;
+          turn_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_notification_preferences: {
+        Row: {
+          allow_snooze: boolean;
+          /** Master switch for the custom reminder section. */
+          custom_enabled: boolean;
+          max_snooze_cycles: number;
+          morning_enabled: boolean;
+          /** Local wall-clock time, "HH:MM:SS". */
+          morning_time: string;
+          /** Never applies to morning motivation — see the migration. */
+          quiet_from: string;
+          quiet_hours_on: boolean;
+          quiet_to: string;
+          /** Seconds. Constrained to a subset of [600, 1800, 3600]. */
+          snooze_intervals: number[];
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          allow_snooze?: boolean;
+          custom_enabled?: boolean;
+          max_snooze_cycles?: number;
+          morning_enabled?: boolean;
+          morning_time?: string;
+          quiet_from?: string;
+          quiet_hours_on?: boolean;
+          quiet_to?: string;
+          snooze_intervals?: number[];
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          allow_snooze?: boolean;
+          custom_enabled?: boolean;
+          max_snooze_cycles?: number;
+          morning_enabled?: boolean;
+          morning_time?: string;
+          quiet_from?: string;
+          quiet_hours_on?: boolean;
+          quiet_to?: string;
+          snooze_intervals?: number[];
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       user_profiles: {
         Row: {
           activity_level: string | null;
@@ -129,6 +300,8 @@ export type Database = {
           meal_names: string[];
           water_goal_ml: number | null;
           water_cup_ml: number | null;
+          timezone: string;
+          motivation_seed: number;
         };
         // Insert and Update deliberately omit selected_plan, trial_start_date,
         // referral_code, bonus_trial_days, bonus_premium_days and access_until.
@@ -160,6 +333,7 @@ export type Database = {
           meal_names?: string[];
           water_goal_ml?: number | null;
           water_cup_ml?: number | null;
+          timezone?: string;
         };
         Update: {
           activity_level?: string | null;
@@ -186,6 +360,7 @@ export type Database = {
           meal_names?: string[];
           water_goal_ml?: number | null;
           water_cup_ml?: number | null;
+          timezone?: string;
         };
         Relationships: [];
       };

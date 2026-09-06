@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/client";
+import { syncTimezone } from "@/lib/timezone";
 
 interface AuthCtx {
   user: User | null;
@@ -47,12 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const { data, error } = await supabase
       .from("user_profiles")
-      .select("id")
+      .select("id, timezone")
       .eq("id", userId)
       .maybeSingle();
     // On error leave it undetermined rather than asserting "no profile" — a
     // transient failure must not bounce a fully onboarded user into the quiz.
     setHasProfile(error ? null : !!data);
+
+    // Piggy-backs on the read above so a device that has moved zones costs one
+    // write and no extra round trip. Deliberately not awaited: notification
+    // scheduling can run a launch behind, and sign-in must not wait on it.
+    if (data) void syncTimezone(userId, data.timezone);
   }, [userId]);
 
   useEffect(() => {
