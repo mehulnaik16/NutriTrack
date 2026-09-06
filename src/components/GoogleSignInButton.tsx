@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/client";
+import { isNativeApp, signInWithGoogleNative } from "@/lib/native-auth";
 
 function GoogleMark() {
   return (
@@ -32,6 +33,22 @@ export function GoogleSignInButton({ label = "Continue with Google" }) {
 
   const signIn = async () => {
     setLoading(true);
+
+    // In the app the web flow completes in Chrome and the session lands there
+    // instead of here, so the user watches the website sign in and comes back
+    // to a login screen. See src/lib/native-auth.ts.
+    if (isNativeApp()) {
+      const result = await signInWithGoogleNative();
+      setLoading(false);
+      if (result.ok) {
+        // onAuthStateChange in lib/auth.tsx picks the session up; the route
+        // guards do the rest, so there is nothing to navigate here.
+        return;
+      }
+      if (!result.cancelled) toast.error(result.error ?? "Sign-in failed.");
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -50,11 +67,7 @@ export function GoogleSignInButton({ label = "Continue with Google" }) {
       disabled={loading}
       className="h-12 w-full gap-2 rounded-xl font-semibold"
     >
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <GoogleMark />
-      )}
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleMark />}
       {label}
     </Button>
   );

@@ -21,6 +21,8 @@
     "mobile:ios": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/browser": "^7.0.5",
     "@capacitor/local-notifications": "^7.0.7",
     "@langchain/core": "^1.2.9",
     "@langchain/google-genai": "^2.3.0",

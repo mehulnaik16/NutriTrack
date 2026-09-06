@@ -22,6 +22,31 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+                OAuth callback.
+
+                Without this the Google sign-in redirect lands on the site's
+                HTTPS origin, which Chrome owns: the website signs in, the app
+                hears nothing, and the user is returned to a login screen with
+                no error to explain it.
+
+                The scheme must match AUTH_REDIRECT in src/lib/native-auth.ts
+                and be listed under Authentication > URL Configuration in the
+                Supabase dashboard. Supabase refuses redirects it has not been
+                told about, and that refusal is only visible in the browser tab
+                the user is about to lose.
+
+                launchMode="singleTask" on the activity above is what makes the
+                callback resume the running app rather than start a second copy
+                with no PKCE verifier in its WebView.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="app.dombelz.mobile" android:host="auth" />
+            </intent-filter>
+
         </activity>
 
         <provider
