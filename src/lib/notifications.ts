@@ -69,6 +69,22 @@ export interface PermissionState {
  * separately from a plain absence of permission — the UI has to say different
  * things in those two cases.
  */
+/**
+ * The OS permission state, without asking for anything.
+ *
+ * Separate from requestPermission because a diagnostic that changes what it is
+ * measuring is not a diagnostic.
+ */
+export async function checkPermissionState(): Promise<string> {
+  if (!isNative()) return "not native";
+  try {
+    const { display } = await LocalNotifications.checkPermissions();
+    return display;
+  } catch (e) {
+    return `check failed: ${e instanceof Error ? e.message : String(e)}`;
+  }
+}
+
 export async function requestPermission(): Promise<PermissionState> {
   if (!isNative()) return { granted: false, blocked: false };
 

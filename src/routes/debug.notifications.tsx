@@ -41,6 +41,7 @@ import { NOTIFICATION_BODY_BUDGET } from "@/data/motivationQuotes";
 import { deviceTimezone } from "@/lib/timezone";
 import {
   cancelAll,
+  checkPermissionState,
   isNative,
   pending as pendingNotifications,
   registerActionTypes,
@@ -52,6 +53,9 @@ import {
 export const Route = createFileRoute("/debug/notifications")({
   component: NotificationDebug,
 });
+
+/** Written as a constant because inline escapes keep getting mangled by tooling. */
+const NEWLINE = String.fromCharCode(10);
 
 type Permission = "default" | "granted" | "denied" | "unsupported";
 
@@ -190,64 +194,115 @@ function NotificationDebug() {
     }
   }, []);
 
-  const nativePermission = async () => {
-    const { granted, blocked } = await requestPermission();
-    if (granted) await registerActionTypes();
-    setNativeStatus(
-      granted
+  /**
+   * Every native handler goes through this.
+   *
+   * The plugin rejects rather than returning an error, so an unwrapped handler
+   * leaves the status line untouched and the failure is indistinguishable from
+   * the button doing nothing — which is exactly how this page failed to explain
+   * itself the first time notifications did not arrive.
+   */
+  const run = async (label: string, fn: () => Promise<string>) => {
+    try {
+      setNativeStatus(await fn());
+    } catch (e) {
+      setNativeStatus(
+        `${label} failed: ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}`,
+      );
+    }
+  };
+
+  const nativePermission = () =>
+    run("Permission", async () => {
+      const { granted, blocked } = await requestPermission();
+      if (granted) await registerActionTypes();
+      return granted
         ? "Permission granted, action types registered."
         : blocked
-          ? "Blocked. iOS only asks once — enable it in Settings > Notifications."
-          : "Not granted.",
-    );
-  };
+          ? "Blocked. Enable notifications for this app in system settings."
+          : "Not granted.";
+    });
 
-  const nativeTest = async () => {
-    const { granted } = await requestPermission();
-    if (!granted) return setNativeStatus("Permission not granted.");
-    await registerActionTypes();
-    await scheduleTestNotification(15);
-    setNativeStatus("Scheduled for 15s. Background the app now.");
-  };
+  const nativeTest = () =>
+    run("Test notification", async () => {
+      const { granted, blocked } = await requestPermission();
+      if (!granted) {
+        return blocked
+          ? "Blocked in system settings — notifications are off for this app."
+          : "Permission not granted.";
+      }
+      await registerActionTypes();
+      const id = await scheduleTestNotification(15);
+      const after = await pendingNotifications();
+      // Confirm the OS actually accepted it. schedule() resolving proves the
+      // call was made, not that anything is queued.
+      return after.some((n) => n.id === id)
+        ? `Scheduled id ${id} for 15s and the OS confirms it is pending. Background the app now.`
+        : `schedule() returned but the OS reports nothing pending. Notifications are probably disabled for this app.`;
+    });
 
-  const nativeReconcile = async () => {
-    if (!profile || !user) return setNativeStatus("Profile not loaded.");
-    const { granted } = await requestPermission();
-    if (!granted) return setNativeStatus("Permission not granted.");
-    await registerActionTypes();
-    await cancelAll();
-    const { scheduled, skippedPast } = await scheduleMotivation(
-      {
-        id: user.id,
-        createdAt: profile.created_at,
-        timezone: profile.timezone,
-        motivationSeed: profile.motivation_seed,
-      },
-      "07:00",
-    );
-    setNativeStatus(
-      `Scheduled ${scheduled}. Skipped ${skippedPast} already past today.`,
-    );
-  };
+  const nativeReconcile = () =>
+    run("Reconcile", async () => {
+      if (!profile || !user) return "Profile not loaded.";
+      const { granted } = await requestPermission();
+      if (!granted) return "Permission not granted.";
+      await registerActionTypes();
+      await cancelAll();
+      const { scheduled, skippedPast } = await scheduleMotivation(
+        {
+          id: user.id,
+          createdAt: profile.created_at,
+          timezone: profile.timezone,
+          motivationSeed: profile.motivation_seed,
+        },
+        "07:00",
+      );
+      return `Scheduled ${scheduled}. Skipped ${skippedPast} already past today.`;
+    });
 
-  const nativeCancel = async () => {
-    await cancelAll();
-    setNativeStatus("Cancelled everything pending.");
-  };
+  const nativeCancel = () =>
+    run("Cancel", async () => {
+      await cancelAll();
+      return "Cancelled everything pending.";
+    });
 
-  const nativePending = async () => {
-    const list = await pendingNotifications();
-    if (list.length === 0) {
-      setNativeStatus("Nothing pending.");
-      return;
-    }
-    const lines = [
-      `${list.length} pending:`,
-      ...list.slice(0, 8).map((n) => `  ${n.id}  ${n.title}`),
-    ];
-    if (list.length > 8) lines.push(`  … ${list.length - 8} more`);
-    setNativeStatus(lines.join("\n"));
-  };
+  const nativePending = () =>
+    run("Pending", async () => {
+      const list = await pendingNotifications();
+      if (list.length === 0) return "Nothing pending.";
+      const lines = [
+        `${list.length} pending:`,
+        ...list.slice(0, 8).map((n) => `  ${n.id}  ${n.title}`),
+      ];
+      if (list.length > 8) lines.push(`  … ${list.length - 8} more`);
+      return lines.join(NEWLINE);
+    });
+
+  const nativeDiagnose = () =>
+    run("Diagnose", async () => {
+      const w = window as unknown as {
+        Capacitor?: {
+          isNativePlatform?: () => boolean;
+          getPlatform?: () => string;
+          Plugins?: Record<string, unknown>;
+        };
+      };
+      const bridge = w.Capacitor;
+      const lines = [
+        `window.Capacitor present : ${Boolean(bridge)}`,
+        `isNativePlatform()       : ${bridge?.isNativePlatform?.() ?? "n/a"}`,
+        `getPlatform()            : ${bridge?.getPlatform?.() ?? "n/a"}`,
+        `imported isNative()      : ${isNative()}`,
+        `LocalNotifications bound : ${Boolean(bridge?.Plugins?.LocalNotifications)}`,
+      ];
+      if (isNative()) {
+        const perms = await checkPermissionState();
+        lines.push(`permission state         : ${perms}`);
+        const list = await pendingNotifications();
+        lines.push(`pending count            : ${list.length}`);
+      }
+      return lines.join(NEWLINE);
+    });
 
   if (loading) return <p className="p-6 text-muted-foreground">Loading…</p>;
   if (!user) return <p className="p-6">Sign in to preview notifications.</p>;
@@ -333,46 +388,51 @@ function NotificationDebug() {
         )}
       </Card>
 
-      {/* Native scheduling. Hidden entirely on web, where the plugin does not
-          exist and every button would be a no-op that looks broken. */}
-      {native && (
-        <Card className="flex flex-col gap-3 p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Smartphone className="h-4 w-4" />
-            On-device scheduling
-          </div>
+      {/* Always rendered, including on the web. Hiding this behind `native`
+          meant the single most useful failure — the Capacitor bridge not being
+          detected at all — displayed nothing whatsoever. */}
+      <Card className="flex flex-col gap-3 p-4">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Smartphone className="h-4 w-4" />
+          On-device scheduling
+          <span className="ml-auto font-mono text-xs font-normal text-muted-foreground">
+            {native ? "native" : "web — plugin unavailable"}
+          </span>
+        </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={nativePermission}>
-              Request permission
-            </Button>
-            <Button size="sm" variant="secondary" onClick={nativeTest}>
-              Fire in 15s
-            </Button>
-            <Button size="sm" variant="secondary" onClick={nativeReconcile}>
-              Schedule {MOTIVATION_WINDOW_DAYS} days
-            </Button>
-            <Button size="sm" variant="ghost" onClick={nativeCancel}>
-              Cancel all
-            </Button>
-            <Button size="sm" variant="ghost" onClick={nativePending}>
-              Show pending
-            </Button>
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={nativePermission}>
+            Request permission
+          </Button>
+          <Button size="sm" variant="secondary" onClick={nativeTest}>
+            Fire in 15s
+          </Button>
+          <Button size="sm" variant="secondary" onClick={nativeReconcile}>
+            Schedule {MOTIVATION_WINDOW_DAYS} days
+          </Button>
+          <Button size="sm" variant="ghost" onClick={nativeCancel}>
+            Cancel all
+          </Button>
+          <Button size="sm" variant="ghost" onClick={nativePending}>
+            Show pending
+          </Button>
+          <Button size="sm" variant="ghost" onClick={nativeDiagnose}>
+            Diagnose
+          </Button>
+        </div>
 
-          {nativeStatus && (
-            <p className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-              {nativeStatus}
-            </p>
-          )}
-
-          <p className="text-xs text-muted-foreground">
-            &ldquo;Fire in 15s&rdquo; is the real test: background the app after
-            tapping it and the notification should arrive on the lock screen
-            with snooze buttons.
+        {nativeStatus && (
+          <p className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
+            {nativeStatus}
           </p>
-        </Card>
-      )}
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          {native
+            ? "“Fire in 15s” is the real test: background the app after tapping it, and the notification should reach the lock screen with snooze buttons. “Diagnose” reports the bridge and permission state without changing either."
+            : "These need the Capacitor bridge, so they do nothing in a browser. Open this page inside the app."}
+        </p>
+      </Card>
 
       <div className="flex flex-col gap-2">
         {days.map((d) => {
