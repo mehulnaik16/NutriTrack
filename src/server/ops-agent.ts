@@ -28,12 +28,14 @@
  * them, and the system prompt below is what keeps user-typed values treated as
  * data rather than instructions.
  *
- * Provider-agnostic: Groq by default, GitHub Models when GITHUB_MODELS_TOKEN is
- * set. Server-only — holds the credentials and runs as service_role.
+ * Provider-agnostic. Credentials are tried in order: Gemini, GitHub Models,
+ * then each Groq key — see credentials(). Server-only: holds the credentials
+ * and runs as service_role.
  */
 
 import { ChatGroq } from "@langchain/groq";
 import { ChatOpenAI } from "@langchain/openai";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import {
   AIMessage,
   HumanMessage,
@@ -129,7 +131,7 @@ function stageContext(): string {
 // ── Model ────────────────────────────────────────────────────────────────────
 
 interface Credential {
-  provider: "github" | "groq";
+  provider: "gemini" | "github" | "groq";
   key: string;
   label: string;
 }
@@ -152,6 +154,12 @@ interface Credential {
 function credentials(): Credential[] {
   const chain: Credential[] = [];
 
+  // Gemini first when configured: its free tier is far more generous than
+  // Groq's 8,000 tokens/minute, and putting the agent there means ops questions
+  // stop spending the budget users need to log a meal.
+  const gemini = (process.env.GEMINI_API_KEY ?? "").trim();
+  if (gemini) chain.push({ provider: "gemini", key: gemini, label: "gemini" });
+
   const gh = (process.env.GITHUB_MODELS_TOKEN ?? "").trim();
   if (gh) chain.push({ provider: "github", key: gh, label: "github-models" });
 
@@ -173,6 +181,18 @@ function isUnavailable(e: unknown): boolean {
 }
 
 function model(cred: Credential) {
+  if (cred.provider === "gemini") {
+    return new ChatGoogleGenerativeAI({
+      apiKey: cred.key,
+      model: process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash",
+      temperature: 0.2,
+      maxOutputTokens: 1200,
+      // Same reasoning as the GitHub client: the chain is the retry, and an
+      // SDK retrying underneath it just spends the serverless timeout twice.
+      maxRetries: 0,
+    });
+  }
+
   if (cred.provider === "github") {
     return new ChatOpenAI({
       apiKey: cred.key,
