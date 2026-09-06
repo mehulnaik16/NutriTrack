@@ -16,12 +16,14 @@
  * and loop, otherwise we are done. State is LangGraph's MessagesAnnotation.
  *
  * SAFETY. The agent's power is bounded entirely by the catalog it is given:
- * every tool is a named, parameterised, read-only, aggregate-only Postgres
- * function. It cannot write, cannot see the schema, cannot compose SQL, and
- * cannot name a user. Those properties come from metrics.ts and the migration
- * behind it — nothing in this file may relax them.
+ * every tool is a named, parameterised, read-only Postgres function. It cannot
+ * write, cannot see the schema, and cannot compose SQL. Three of the tools can
+ * identify a user; the rest are aggregates. Those properties come from
+ * metrics.ts and the migrations behind it — nothing in this file may relax
+ * them, and the system prompt below is what keeps user-typed values treated as
+ * data rather than instructions.
  *
- * Server-only. Holds the Groq key and runs as service_role.
+ * Server-only. Holds the Groq keys and runs as service_role.
  */
 
 import { ChatGroq } from "@langchain/groq";
@@ -39,6 +41,7 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 import { METRIC_TOOLS, runMetricTool, TOOL_SPECS } from "./metrics";
+import { groqKeys } from "./groq";
 
 /** Turns kept per chat. Enough for follow-ups, short enough to stay cheap. */
 const HISTORY_LIMIT = 20;
@@ -81,31 +84,50 @@ Currency is rupees. Today's numbers are small — the app has a few dozen users 
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
-function model() {
-  const apiKey = (process.env.GROQ_API_KEY_1 ?? "").trim();
-  if (!apiKey) throw new Error("GROQ_API_KEY_1 is not set");
+function model(keyIndex = 0) {
+  const keys = groqKeys();
+  if (keys.length === 0) throw new Error("No Groq API keys configured");
+  if (keyIndex >= keys.length) {
+    throw new Error(`All ${keys.length} Groq keys were rejected`);
+  }
 
-  // Deliberately not routed through server/groq.ts: that module's rotation is
-  // built around raw fetch, while ChatGroq wants to own the request. The ops
-  // agent is a handful of calls a day, so it uses the first key and accepts
-  // that it has no rotation.
+  // ChatGroq owns its own HTTP requests, so it cannot share groqFetch's
+  // rotation. It takes the key list instead of hardcoding the first one —
+  // hardcoding is what silently took the agent down when key 1 was revoked
+  // while key 2 was healthy the whole time.
   return new ChatGroq({
-    apiKey,
+    apiKey: keys[keyIndex],
     model: "openai/gpt-oss-120b",
     temperature: 0.2,
     maxTokens: 1200,
   });
 }
 
+/** A rejected key, as opposed to any other model failure. */
+function isAuthError(e: unknown): boolean {
+  const message = e instanceof Error ? e.message : String(e);
+  return /\b401\b|\b403\b|invalid[_ ]api[_ ]key|unauthorized/i.test(message);
+}
+
 // ── Graph ────────────────────────────────────────────────────────────────────
 
 async function callModel(state: typeof MessagesAnnotation.State) {
-  const bound = model().bindTools(TOOL_SPECS);
-  const response = await bound.invoke([
-    new SystemMessage(SYSTEM_PROMPT),
-    ...state.messages,
-  ]);
-  return { messages: [response] };
+  const messages = [new SystemMessage(SYSTEM_PROMPT), ...state.messages];
+
+  // Walk the key list on auth failures only. Any other error is a real problem
+  // that retrying with a different key would just repeat more slowly.
+  let lastAuthError: unknown;
+  for (let i = 0; i < groqKeys().length; i++) {
+    try {
+      const bound = model(i).bindTools(TOOL_SPECS);
+      return { messages: [await bound.invoke(messages)] };
+    } catch (e) {
+      if (!isAuthError(e)) throw e;
+      lastAuthError = e;
+      console.warn(`[ops-agent] GROQ_API_KEY_${i + 1} rejected, trying next`);
+    }
+  }
+  throw lastAuthError ?? new Error("No Groq API keys configured");
 }
 
 /**

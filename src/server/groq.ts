@@ -37,6 +37,17 @@ function loadKeys(): string[] {
 
 const KEYS = loadKeys();
 
+/**
+ * The configured keys, in order.
+ *
+ * Exported for the ops agent, which uses the Groq SDK through LangChain and so
+ * cannot share groqFetch's rotation — but must not hardcode key 1 either, since
+ * that is exactly what left it dead in the water when key 1 was revoked.
+ */
+export function groqKeys(): readonly string[] {
+  return KEYS;
+}
+
 // Track which keys are currently rate-limited and when they reset
 const rateLimitedUntil: Record<number, number> = {};
 
@@ -132,6 +143,29 @@ async function groqFetch(opts: GroqRequestOptions): Promise<Response> {
     if (res.status === 429) {
       const retryAfter = parseInt(res.headers.get("retry-after") ?? "60", 10);
       markRateLimited(index, retryAfter);
+      continue; // try next key
+    }
+
+    // A revoked, expired or mistyped key. Previously this fell through to the
+    // caller, which threw — so one dead key took down every AI feature in the
+    // app even while the other keys were healthy, because key 1 is always tried
+    // first. Rotate past it like any other unusable key.
+    //
+    // Cooled for an hour rather than permanently: a 401 can also mean a
+    // transient auth outage at Groq, and a process that never retries would
+    // stay degraded until the next deploy.
+    if (res.status === 401 || res.status === 403) {
+      markRateLimited(index, 3600);
+      await sendAlert({
+        severity: "critical",
+        title: "Groq key rejected",
+        detail: {
+          key: `GROQ_API_KEY_${index + 1}`,
+          status: res.status,
+          remaining: KEYS.length - 1,
+        },
+        throttleKey: `groq-key-rejected:${index}`,
+      });
       continue; // try next key
     }
 
