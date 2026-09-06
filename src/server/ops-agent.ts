@@ -184,21 +184,29 @@ function model(cred: Credential) {
   if (cred.provider === "gemini") {
     return new ChatGoogleGenerativeAI({
       apiKey: cred.key,
+      // Deliberately hardcoded rather than read from the environment. The model
+      // id is a correctness constraint, not a preference: a stale value in one
+      // deployment's env vars 404s and falls silently through to Groq, which is
+      // exactly the failure that took three rounds to spot. Changing it should
+      // require a commit that can be reviewed and rolled back.
+      //
       // flash-lite, not flash. Measured on this account for the same question:
-      // gemini-3.6-flash took 19.6s and once 42s end to end, because the 3.x
-      // models reason before answering. flash-lite took 925ms and called the
-      // same tool. Vercel functions time out at 10s on Hobby, so the larger
-      // model is not merely slower here — it fails.
+      // gemini-3.6-flash took 19.6s, and 42s end to end on a two-tool question,
+      // because the 3.x models reason before answering. flash-lite took 925ms
+      // and called the same tool. Vercel functions time out at 10s on Hobby, so
+      // the larger model does not merely feel slower here — it fails.
       //
       // Pinned rather than gemini-flash-lite-latest: an alias that moves under
       // you changes tool-calling behaviour with no deploy, and that behaviour
       // is this agent's whole job.
       //
-      // Note Google retires model ids for *new* keys while existing ones keep
+      // Google retires model ids for *new* keys while existing ones keep
       // working — gemini-2.5-flash answers "no longer available to new users"
-      // with a 404. A model id that works on one account can fail on another,
-      // so re-check this when rotating keys.
-      model: process.env.GEMINI_MODEL?.trim() || "gemini-3.1-flash-lite",
+      // with a 404 — so a model that works on one account can fail on another.
+      // Re-check this when rotating the key, and watch for the "unavailable,
+      // falling through" line in the logs, which now carries Google's own
+      // message naming the replacement.
+      model: "gemini-3.1-flash-lite",
       temperature: 0.2,
       maxOutputTokens: 1200,
       // Same reasoning as the GitHub client: the chain is the retry, and an
