@@ -82,6 +82,28 @@ WHAT YOU CANNOT DO
 
 Currency is rupees. Today's numbers are small — the app has a few dozen users — so speak in absolute counts rather than percentages where a percentage would be misleading.`;
 
+/**
+ * Stage context appended to the prompt.
+ *
+ * Without this the agent reports the unregistered Razorpay webhook and the ₹0
+ * test charges as faults in every single conversation — correct readings of the
+ * data, wrong conclusions, and repeated often enough to train the reader to
+ * skim past them. That is the same reasoning behind the LAUNCH_STAGE gate in
+ * ops-digest.ts; the agent needs it too or the two disagree about the same
+ * numbers.
+ *
+ * Set LAUNCH_STAGE=live when switching to live Razorpay keys.
+ */
+function stageContext(): string {
+  const live = (process.env.LAUNCH_STAGE ?? "").trim().toLowerCase() === "live";
+  return live
+    ? `\n\nSTAGE: LIVE. Real customers are paying. A webhook failure or a zero-amount charge means someone paid and may not have received access — treat those as urgent.`
+    : `\n\nSTAGE: PRE-LAUNCH. Razorpay is in test mode, the webhook is deliberately not registered yet, and the accounts belong to the founder and testers rather than real users. So:
+- An empty webhook_events table and zero-amount charges are EXPECTED. Mention them only if asked directly, and say they are expected pre-launch rather than presenting them as faults.
+- Do not draw conclusions about activation, retention or conversion from these users. Their behaviour says nothing about real demand. If asked, give the numbers and note that they are test accounts.
+- The one thing genuinely worth flagging: the webhook must be registered before live keys, or a paying customer would be charged and receive nothing.`;
+}
+
 // ── Model ────────────────────────────────────────────────────────────────────
 
 function model(keyIndex = 0) {
@@ -112,7 +134,10 @@ function isAuthError(e: unknown): boolean {
 // ── Graph ────────────────────────────────────────────────────────────────────
 
 async function callModel(state: typeof MessagesAnnotation.State) {
-  const messages = [new SystemMessage(SYSTEM_PROMPT), ...state.messages];
+  const messages = [
+    new SystemMessage(SYSTEM_PROMPT + stageContext()),
+    ...state.messages,
+  ];
 
   // Walk the key list on auth failures only. Any other error is a real problem
   // that retrying with a different key would just repeat more slowly.

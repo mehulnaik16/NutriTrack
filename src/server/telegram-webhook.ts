@@ -17,15 +17,17 @@
  *      that message reaches this endpoint with a perfectly valid secret token.
  *      Only TELEGRAM_CHAT_ID is answered.
  *
- *   3. The catalog. Even a fully authorised caller can only reach seven
- *      read-only aggregate functions. There is no path from here to a write or
- *      to a single user's data.
+ *   3. The catalog. Even a fully authorised caller can only reach the named,
+ *      parameterised, read-only functions in metrics.ts. There is no path from
+ *      here to a write, and none to arbitrary SQL. Three of those tools can
+ *      identify a user, which is why layer 2 matters as much as layer 1.
  *
  * Unauthorised requests get 200 and silence, never an error message. A refusal
  * that explains itself confirms the endpoint is real and worth more attention.
  */
 
 import { askOpsAgent, availableTools, clearHistory } from "./ops-agent";
+import { sendAlert } from "./telegram";
 
 /**
  * Telegram retries non-2xx deliveries, so almost everything answers 200 —
@@ -79,9 +81,10 @@ Try:
 • why did signups drop?
 • where are people dropping out of the funnel?
 • is anything broken right now?
-• how many trials converted to paid?
+• list the users who haven't logged anything
+• what's going on with <name>'s account?
 
-I read aggregates only. I can't see individual users, and I can't change anything.
+I can read metrics and look up individual accounts, but I can't change anything — no writes, no refunds, no access grants. Those stay in the Supabase and Razorpay dashboards.
 
 /reset clears this conversation's memory.`;
 
@@ -125,9 +128,35 @@ export async function handleTelegramWebhook(
   // ── Layer 2: the chat allowlist ────────────────────────────────────────────
   const allowed = (process.env.TELEGRAM_CHAT_ID ?? "").trim();
   if (!allowed || String(chatId) !== allowed) {
-    // Silent. No reply at all — an unknown chat learns nothing about whether
-    // this bot does anything.
+    // No reply to the sender: an unknown chat learns nothing about whether this
+    // bot exists or does anything.
     console.warn("[telegram-webhook] ignored message from unallowed chat");
+
+    // But tell the *configured* chat once, because the failure is otherwise
+    // invisible in the worst possible way. A mismatched TELEGRAM_CHAT_ID makes
+    // the handler return 200, so Telegram reports successful delivery and no
+    // errors while the bot sits silent — everything looks healthy and nothing
+    // is. That cost an hour to diagnose the first time it happened.
+    //
+    // Throttled per offending chat, so a stranger messaging the bot repeatedly
+    // cannot use this to flood the ops channel.
+    await sendAlert({
+      severity: "warning",
+      title: allowed
+        ? "Message from a chat that is not allowlisted"
+        : "TELEGRAM_CHAT_ID is not set",
+      detail: allowed
+        ? {
+            from_chat: chatId,
+            configured: allowed,
+            hint: "If this is your group, TELEGRAM_CHAT_ID in the deployment does not match it — check for a dropped minus sign or a Preview/Production scope mismatch.",
+          }
+        : {
+            from_chat: chatId,
+            hint: "Every message will be ignored until it is set.",
+          },
+      throttleKey: `unallowed-chat:${chatId}`,
+    });
     return ack("ignored: chat not allowed");
   }
 
