@@ -14,12 +14,20 @@
  * The fix is a redirect target only the app can answer: a custom scheme,
  * registered in AndroidManifest.xml, which Android routes back to us.
  *
- * PKCE is what makes the rest work. supabase-js defaults to it, so
- * signInWithOAuth stores a code verifier in this WebView's localStorage and the
- * callback carries a short-lived `code`. Because the exchange happens back
- * here — in the WebView that holds the verifier — the session lands in the
- * right place. An implicit-flow token in the URL would have been readable by
- * the browser too; this cannot be completed anywhere but inside the app.
+ * BOTH OAUTH FLOWS ARE HANDLED, because which one arrives is a client setting
+ * that can change without this file being touched:
+ *
+ *   - implicit (supabase-js 2.x default): the callback carries access_token and
+ *     refresh_token in the URL fragment, and we hand them to setSession.
+ *   - pkce (opt in with flowType: 'pkce'): the callback carries a short-lived
+ *     `code`, exchanged here in the WebView that holds the verifier.
+ *
+ * PKCE is the better fit for a mobile app — an implicit-flow token travels
+ * inside an Android intent, and any app registering the same custom scheme
+ * could in principle receive it, whereas a code is useless without the verifier
+ * held privately in this WebView. Switching means setting flowType on the
+ * client in src/integrations/client.ts, which also changes the web flow, so it
+ * is a deliberate change rather than something to slip in here.
  *
  * SETUP THIS DEPENDS ON, in both places or sign-in fails:
  *   - AndroidManifest.xml: an intent-filter for the AUTH_REDIRECT scheme.
@@ -91,26 +99,53 @@ export async function signInWithGoogleNative(): Promise<NativeAuthResult> {
     const urlListener = App.addListener("appUrlOpen", async ({ url }) => {
       if (!url.startsWith(AUTH_REDIRECT)) return;
 
-      // Supabase can answer on either side of the '#', so parse both rather
-      // than assuming. An error here is usually a redirect URL missing from the
-      // Supabase allowlist, and saying so beats a generic failure.
+      // Merge both sides of the URL rather than picking one: implicit puts the
+      // tokens after '#', pkce puts a code after '?', and an error can arrive
+      // on either. Merging removes the dependency on which flow is configured.
       const parsed = new URL(url);
-      const params = new URLSearchParams(
-        parsed.search.slice(1) || parsed.hash.slice(1),
+      const params = new URLSearchParams(parsed.search.slice(1));
+      new URLSearchParams(parsed.hash.slice(1)).forEach((v, k) =>
+        params.set(k, v),
       );
 
       const oauthError = params.get("error_description") ?? params.get("error");
       if (oauthError) return finish({ ok: false, error: oauthError });
 
+      // PKCE.
       const code = params.get("code");
-      if (!code) return finish({ ok: false, error: "No authorization code." });
-
-      const { error: exchangeError } =
-        await supabase.auth.exchangeCodeForSession(code);
-      if (exchangeError) {
-        return finish({ ok: false, error: exchangeError.message });
+      if (code) {
+        const { error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code);
+        return finish(
+          exchangeError
+            ? { ok: false, error: exchangeError.message }
+            : { ok: true },
+        );
       }
-      finish({ ok: true });
+
+      // Implicit — the supabase-js 2.x default, and what actually arrives here.
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (access_token && refresh_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+        return finish(
+          sessionError
+            ? { ok: false, error: sessionError.message }
+            : { ok: true },
+        );
+      }
+
+      // Neither shape. Naming the keys that did arrive turns "sign-in failed"
+      // into something diagnosable without a USB cable and logcat.
+      finish({
+        ok: false,
+        error: `Callback had no code or tokens. Received: ${
+          [...params.keys()].join(", ") || "nothing"
+        }`,
+      });
     });
 
     // Fires when the user dismisses the Custom Tab. Harmless after a successful
