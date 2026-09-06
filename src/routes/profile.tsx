@@ -1,4 +1,9 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Moon,
@@ -43,6 +48,7 @@ import {
   Ruler,
   AlertTriangle,
   Trash2,
+  Bell,
 } from "lucide-react";
 import {
   Dialog,
@@ -51,6 +57,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { isNativeApp } from "@/lib/platform";
 import {
   AGE_YEARS,
   HEIGHT_CM,
@@ -1089,6 +1096,21 @@ function Profile() {
             </button>
           ))}
         </div>
+
+        {/* Notification diagnostics.
+            Temporary, and only inside the app. The native shell has no address
+            bar, so without a link there is no way to reach /debug/notifications
+            on a device — which is the only place the notification plugin can
+            actually be tested. Delete this together with the debug route once
+            the real notification settings screen ships. */}
+        {isNativeApp() && (
+          <Link
+            to="/debug/notifications"
+            className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border/60 text-sm font-semibold text-muted-foreground hover:bg-muted/40"
+          >
+            <Bell className="h-4 w-4" /> Notification diagnostics
+          </Link>
+        )}
 
         {/* Sign out */}
         <AlertDialog>
