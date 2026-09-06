@@ -10,10 +10,15 @@
  *
  * The graph is deliberately small:
  *
- *     START → agent ⇄ tools → END
+ *     START → agent ⇄ tools
+ *              │  └─ over the round budget → finalize → END
+ *              └─ no tool calls → END
  *
  * `agent` is the model with tools bound; if it emitted tool calls we run them
- * and loop, otherwise we are done. State is LangGraph's MessagesAnnotation.
+ * and loop, otherwise we are done. `finalize` exists because ending on a
+ * tool-call message leaves no prose for the reader — it re-asks without tools
+ * so the model has to answer from what it already gathered. State is
+ * LangGraph's MessagesAnnotation.
  *
  * SAFETY. The agent's power is bounded entirely by the catalog it is given:
  * every tool is a named, parameterised, read-only Postgres function. It cannot
@@ -162,24 +167,35 @@ function isRateLimit(e: unknown): boolean {
  * wait long enough to matter should surface as an error the founder can read
  * rather than a request that dies silently.
  */
-function retryAfterMs(e: unknown, cap = 6000): number | null {
+function retryAfterMs(e: unknown, cap = 8000): number {
   const message = e instanceof Error ? e.message : String(e);
-  const m = message.match(/try again in ([\d.]+)\s*s/i);
-  if (!m) return null;
-  const ms = Math.ceil(parseFloat(m[1]) * 1000) + 250; // small cushion
-  return ms > cap ? null : ms;
+  const m = message.match(/try again in ([\d.]+)\s*(m?s)\b/i);
+
+  // No parseable hint: back off a flat two seconds rather than giving up.
+  // Returning null here meant a 429 whose wording did not match — or whose wait
+  // exceeded the cap — failed the question outright, which is exactly what the
+  // retry exists to prevent.
+  if (!m) return 2000;
+
+  const raw = parseFloat(m[1]);
+  const ms = Math.ceil(m[2].toLowerCase() === "ms" ? raw : raw * 1000) + 250;
+  return Math.min(Math.max(ms, 500), cap);
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ── Graph ────────────────────────────────────────────────────────────────────
 
-async function callModel(state: typeof MessagesAnnotation.State) {
-  const messages = [
-    new SystemMessage(SYSTEM_PROMPT + stageContext()),
-    ...state.messages,
-  ];
-
+/**
+ * One model call, walking the key list on recoverable failures.
+ *
+ * `withTools` is false only for the finalise step, where the model must produce
+ * prose from what it already has rather than reaching for another tool.
+ */
+async function invoke(
+  messages: BaseMessage[],
+  withTools: boolean,
+): Promise<AIMessage> {
   // Two recoverable failures, handled differently:
   //
   //   401/403 — the key is unusable. Move to the next one immediately.
@@ -192,11 +208,14 @@ async function callModel(state: typeof MessagesAnnotation.State) {
   const keys = groqKeys();
   let lastRecoverable: unknown;
 
+  const run = (i: number) => {
+    const m = model(i);
+    return (withTools ? m.bindTools(TOOL_SPECS) : m).invoke(messages);
+  };
+
   for (let i = 0; i < keys.length; i++) {
     try {
-      return {
-        messages: [await model(i).bindTools(TOOL_SPECS).invoke(messages)],
-      };
+      return (await run(i)) as AIMessage;
     } catch (e) {
       if (isAuthError(e)) {
         lastRecoverable = e;
@@ -205,15 +224,15 @@ async function callModel(state: typeof MessagesAnnotation.State) {
       }
       if (isRateLimit(e)) {
         lastRecoverable = e;
+        // Another key has its own budget, so prefer switching over waiting.
+        // On the last key there is nothing left to switch to, so wait it out.
         const isLastKey = i === keys.length - 1;
-        const wait = isLastKey ? retryAfterMs(e) : null;
-        if (wait !== null) {
+        if (isLastKey) {
+          const wait = retryAfterMs(e);
           console.warn(`[ops-agent] rate limited, waiting ${wait}ms`);
           await sleep(wait);
           try {
-            return {
-              messages: [await model(i).bindTools(TOOL_SPECS).invoke(messages)],
-            };
+            return (await run(i)) as AIMessage;
           } catch (retryError) {
             lastRecoverable = retryError;
           }
@@ -244,6 +263,45 @@ async function callModel(state: typeof MessagesAnnotation.State) {
   }
 
   throw lastRecoverable ?? new Error("No Groq API keys configured");
+}
+
+async function callModel(state: typeof MessagesAnnotation.State) {
+  return {
+    messages: [
+      await invoke(
+        [new SystemMessage(SYSTEM_PROMPT + stageContext()), ...state.messages],
+        true,
+      ),
+    ],
+  };
+}
+
+/**
+ * Force a written answer once the tool budget is spent.
+ *
+ * Without this the graph ends on the model's last tool-call message, which
+ * carries no prose — so the reply came out as the "could not produce an answer"
+ * fallback even though several tools had returned useful data. Seen for real
+ * when a tool's Postgres function was missing: the model retried it every round
+ * until the ceiling, then said nothing at all.
+ *
+ * Tools are deliberately not bound here. The model has to answer from what it
+ * already has, including explaining that something failed.
+ */
+async function finalize(state: typeof MessagesAnnotation.State) {
+  const instruction = `\n\nYou have used your tool budget for this question. Answer now in plain prose using only what the tool results above already gave you. If a tool returned an error, say plainly which information you could not retrieve and why, rather than apologising or staying silent. Do not request any more tools.`;
+
+  return {
+    messages: [
+      await invoke(
+        [
+          new SystemMessage(SYSTEM_PROMPT + stageContext() + instruction),
+          ...state.messages,
+        ],
+        false,
+      ),
+    ],
+  };
 }
 
 /**
@@ -295,15 +353,23 @@ function shouldContinue(state: typeof MessagesAnnotation.State) {
   const rounds = state.messages.filter(
     (m) => m.getType() === "ai" && (m as AIMessage).tool_calls?.length,
   ).length;
-  return rounds > MAX_TOOL_ROUNDS ? END : "tools";
+  // Over budget, hand to finalize rather than END: ending here would leave the
+  // tool-call message as the last one, and it has no prose for the user.
+  return rounds > MAX_TOOL_ROUNDS ? "finalize" : "tools";
 }
 
 const graph = new StateGraph(MessagesAnnotation)
   .addNode("agent", callModel)
   .addNode("tools", callTools)
+  .addNode("finalize", finalize)
   .addEdge(START, "agent")
-  .addConditionalEdges("agent", shouldContinue, { tools: "tools", [END]: END })
+  .addConditionalEdges("agent", shouldContinue, {
+    tools: "tools",
+    finalize: "finalize",
+    [END]: END,
+  })
   .addEdge("tools", "agent")
+  .addEdge("finalize", END)
   .compile();
 
 // ── Persistence ──────────────────────────────────────────────────────────────
