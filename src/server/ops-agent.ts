@@ -42,9 +42,21 @@ import {
 } from "@langchain/langgraph";
 import { METRIC_TOOLS, runMetricTool, TOOL_SPECS } from "./metrics";
 import { groqKeys } from "./groq";
+import { sendAlert } from "./telegram";
 
-/** Turns kept per chat. Enough for follow-ups, short enough to stay cheap. */
-const HISTORY_LIMIT = 20;
+/**
+ * Turns kept per chat.
+ *
+ * Every stored turn is replayed into every request, and the free Groq tier
+ * allows 8,000 tokens per minute across the whole organisation — a budget the
+ * app's own AI features are also drawing on. Twenty turns plus ten tool
+ * definitions plus tool results was enough to spend a third of a minute's
+ * allowance on a single question and start returning 429s.
+ *
+ * Eight covers the follow-ups that actually happen ("and last month?") without
+ * carrying an hour-old conversation into an unrelated one.
+ */
+const HISTORY_LIMIT = 8;
 
 /**
  * Tool-call rounds allowed before we force an answer.
@@ -54,6 +66,9 @@ const HISTORY_LIMIT = 20;
  * real question needs.
  */
 const MAX_TOOL_ROUNDS = 4;
+
+/** Characters of a single tool result carried forward. Roughly 1,000 tokens. */
+const TOOL_RESULT_CHAR_LIMIT = 4000;
 
 const SYSTEM_PROMPT = `You are the ops assistant for Dombelz, an Indian nutrition and fitness tracking app. You answer questions about the live production system for the founder, in a Telegram chat.
 
@@ -131,6 +146,32 @@ function isAuthError(e: unknown): boolean {
   return /\b401\b|\b403\b|invalid[_ ]api[_ ]key|unauthorized/i.test(message);
 }
 
+function isRateLimit(e: unknown): boolean {
+  const message = e instanceof Error ? e.message : String(e);
+  return /\b429\b|rate_limit_exceeded|rate limit reached/i.test(message);
+}
+
+/**
+ * Groq puts the exact wait in the 429 body: "Please try again in 1.0275s".
+ *
+ * Honouring it beats a fixed backoff — the free tier's per-minute window means
+ * the real wait is usually about a second, and guessing longer wastes the
+ * user's time while guessing shorter just earns another 429.
+ *
+ * Capped: this runs inside a serverless function with its own timeout, and a
+ * wait long enough to matter should surface as an error the founder can read
+ * rather than a request that dies silently.
+ */
+function retryAfterMs(e: unknown, cap = 6000): number | null {
+  const message = e instanceof Error ? e.message : String(e);
+  const m = message.match(/try again in ([\d.]+)\s*s/i);
+  if (!m) return null;
+  const ms = Math.ceil(parseFloat(m[1]) * 1000) + 250; // small cushion
+  return ms > cap ? null : ms;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 // ── Graph ────────────────────────────────────────────────────────────────────
 
 async function callModel(state: typeof MessagesAnnotation.State) {
@@ -139,20 +180,70 @@ async function callModel(state: typeof MessagesAnnotation.State) {
     ...state.messages,
   ];
 
-  // Walk the key list on auth failures only. Any other error is a real problem
-  // that retrying with a different key would just repeat more slowly.
-  let lastAuthError: unknown;
-  for (let i = 0; i < groqKeys().length; i++) {
+  // Two recoverable failures, handled differently:
+  //
+  //   401/403 — the key is unusable. Move to the next one immediately.
+  //   429     — the key's per-minute token budget is spent. Another key has its
+  //             own budget, so try that first; waiting is the fallback when
+  //             there is no other key, which is the situation whenever only one
+  //             key is configured or the rest have been revoked.
+  //
+  // Anything else is a real error that a different key would only repeat.
+  const keys = groqKeys();
+  let lastRecoverable: unknown;
+
+  for (let i = 0; i < keys.length; i++) {
     try {
-      const bound = model(i).bindTools(TOOL_SPECS);
-      return { messages: [await bound.invoke(messages)] };
+      return {
+        messages: [await model(i).bindTools(TOOL_SPECS).invoke(messages)],
+      };
     } catch (e) {
-      if (!isAuthError(e)) throw e;
-      lastAuthError = e;
-      console.warn(`[ops-agent] GROQ_API_KEY_${i + 1} rejected, trying next`);
+      if (isAuthError(e)) {
+        lastRecoverable = e;
+        console.warn(`[ops-agent] GROQ_API_KEY_${i + 1} rejected, trying next`);
+        continue;
+      }
+      if (isRateLimit(e)) {
+        lastRecoverable = e;
+        const isLastKey = i === keys.length - 1;
+        const wait = isLastKey ? retryAfterMs(e) : null;
+        if (wait !== null) {
+          console.warn(`[ops-agent] rate limited, waiting ${wait}ms`);
+          await sleep(wait);
+          try {
+            return {
+              messages: [await model(i).bindTools(TOOL_SPECS).invoke(messages)],
+            };
+          } catch (retryError) {
+            lastRecoverable = retryError;
+          }
+        } else {
+          console.warn(
+            `[ops-agent] GROQ_API_KEY_${i + 1} rate limited, trying next`,
+          );
+        }
+        continue;
+      }
+      throw e;
     }
   }
-  throw lastAuthError ?? new Error("No Groq API keys configured");
+
+  if (isRateLimit(lastRecoverable)) {
+    await sendAlert({
+      severity: "warning",
+      title: "Ops agent hit the Groq rate limit",
+      detail: {
+        keys: keys.length,
+        hint: "Free tier is 8,000 tokens/minute per organisation. Extra keys on the same account share it — only a paid tier or a smaller prompt actually helps.",
+      },
+      throttleKey: "ops-agent-rate-limited",
+    });
+    throw new Error(
+      "Groq rate limit reached and the retry did not clear it. Free tier allows 8,000 tokens per minute. Try again in a moment.",
+    );
+  }
+
+  throw lastRecoverable ?? new Error("No Groq API keys configured");
 }
 
 /**
@@ -169,12 +260,25 @@ async function callTools(state: typeof MessagesAnnotation.State) {
   const results = await Promise.all(
     calls.map(async (call) => {
       const result = await runMetricTool(call.name, call.args);
+      let content = JSON.stringify(
+        result.ok ? result.data : { error: result.error },
+      );
+
+      // Tool output is replayed on every subsequent round, so one oversized
+      // result is charged against the token budget several times over. A 50-row
+      // list_users or a 90-day growth series can run to thousands of tokens on
+      // its own, which on the free tier's 8,000/minute is most of a question's
+      // allowance spent on data the model has already read once.
+      if (content.length > TOOL_RESULT_CHAR_LIMIT) {
+        content =
+          content.slice(0, TOOL_RESULT_CHAR_LIMIT) +
+          `… [truncated — ask for a smaller period or limit for the full set]`;
+      }
+
       return new ToolMessage({
         tool_call_id: call.id ?? call.name,
         name: call.name,
-        content: JSON.stringify(
-          result.ok ? result.data : { error: result.error },
-        ),
+        content,
       });
     }),
   );
