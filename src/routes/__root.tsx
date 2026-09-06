@@ -86,7 +86,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest');if(t!=='light')c.add(t)}catch(e){}`,
+            // Theme, then the native-shell marker. Both run before first paint
+            // on purpose: applying the safe-area class from a React effect
+            // instead would render the header under the status bar for a frame
+            // and then jump, which is more noticeable than the overlap itself.
+            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest');if(t!=='light')c.add(t)}catch(e){}try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}`,
           }}
         />
       </head>

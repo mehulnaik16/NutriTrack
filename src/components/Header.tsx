@@ -342,8 +342,13 @@ export function Header({
         ? "border-accent/40 text-accent"
         : "text-muted-foreground";
 
+  // pt-safe keeps the logo clear of the system status bar in the Capacitor
+  // shell. Android 15 forces edge-to-edge for targetSdk 35, so the WebView
+  // starts at y=0 behind the clock and battery and the app has to inset itself
+  // — BottomNav already does the same with pb-safe. On the web the inset is 0
+  // and nothing moves.
   return (
-    <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+    <header className="pt-safe sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
         <div className="flex items-center gap-5">
           <Link to="/dashboard" className="flex items-center gap-2">

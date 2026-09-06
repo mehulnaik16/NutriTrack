@@ -229,6 +229,23 @@
     padding-top: env(safe-area-inset-top);
   }
 
+  /* Android 15 forces edge-to-edge for targetSdk 35, so the WebView starts
+     behind the status bar — but Android WebView often reports 0 for
+     safe-area-inset-top even with viewport-fit=cover, which leaves the header
+     sitting under the clock and battery icons.
+
+     max() rather than a sum: a device that does report a real inset (a tall
+     notch, a punch-hole) keeps its own larger value, and one that reports
+     nothing still clears the 24dp status bar. Scoped to .native-shell so the
+     website is untouched. */
+  .native-shell .pt-safe {
+    padding-top: max(env(safe-area-inset-top), 26px);
+  }
+
+  .native-shell .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+  }
+
   .font-display {
     font-family: var(--font-display);
   }
