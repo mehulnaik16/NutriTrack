@@ -304,7 +304,12 @@ function NotificationDebug() {
         `imported isNative()      : ${isNative()}`,
         `LocalNotifications bound : ${Boolean(bridge?.Plugins?.LocalNotifications)}`,
         `origin                   : ${window.location.origin}`,
-        `href                     : ${window.location.href.slice(0, 80)}`,
+        // Android System WebView puts "; wv)" in its user agent; Chrome and
+        // Custom Tabs do not. This is the only reliable way from JS to tell the
+        // app's own WebView apart from a browser showing the same URL — and
+        // those two produce identical Capacitor readings otherwise.
+        `is android WebView       : ${/;\s*wv\)/.test(navigator.userAgent)}`,
+        `UA tail                  : ${navigator.userAgent.slice(-60)}`,
       ];
       if (isNative()) {
         const perms = await checkPermissionState();
