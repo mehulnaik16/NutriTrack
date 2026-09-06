@@ -35,6 +35,26 @@ const ICON: Record<Severity, string> = {
 const num = (v: unknown, fallback = 0): number =>
   typeof v === "number" && Number.isFinite(v) ? v : fallback;
 
+/**
+ * Whether the app is taking real money yet.
+ *
+ * Pre-launch, several checks below are guaranteed to fire and guaranteed to be
+ * uninteresting: Razorpay is in test mode so charges land at ₹0, the webhook is
+ * not registered so webhook_events is empty, and the users are the founder's
+ * own test accounts so the funnel says nothing about real behaviour.
+ *
+ * Left un-gated, the digest would open every morning with two red criticals
+ * that are both correct and both already known — which is how a person learns
+ * to skim past the channel, including on the day something real appears in it.
+ * So these are downgraded to info and labelled, rather than suppressed: still
+ * visible, no longer shouting.
+ *
+ * Set LAUNCH_STAGE=live in the deployment when switching to live Razorpay keys.
+ * That is the moment these stop being expected and start being incidents.
+ */
+const isLive = (): boolean =>
+  (process.env.LAUNCH_STAGE ?? "").trim().toLowerCase() === "live";
+
 interface DayPoint {
   date: string;
   signups: number;
@@ -59,29 +79,49 @@ function findings(s: Record<string, unknown>): Finding[] {
 
   // ── Money ──────────────────────────────────────────────────────────────────
 
-  // A charge with a payment id but no amount is a capture bug, not free access.
+  const live = isLive();
+
+  // A charge with a payment id but no amount is a capture bug once real money
+  // is moving. In test mode it is just what test mode does.
   const zeroCharges = num(revenue.zero_amount_charges);
   if (zeroCharges > 0) {
-    out.push({
-      severity: "critical",
-      title: "Charges recorded at ₹0",
-      detail: `${zeroCharges} charge(s) have a payment id but amount_paise = 0. Revenue is being under-recorded — subscription.activated payloads carry no payment entity, so the amount read returns null.`,
-    });
+    out.push(
+      live
+        ? {
+            severity: "critical",
+            title: "Charges recorded at ₹0",
+            detail: `${zeroCharges} charge(s) have a payment id but amount_paise = 0. Revenue is being under-recorded — subscription.activated payloads carry no payment entity, so the amount read returns null.`,
+          }
+        : {
+            severity: "info",
+            title: "Test charges at ₹0",
+            detail: `${zeroCharges} test charge(s). Expected pre-launch. Worth fixing the amount read before going live — subscription.activated carries no payment entity.`,
+          },
+    );
   }
 
   // The webhook is the only thing that can grant access. An empty table with
   // subscriptions present means it has never been delivered successfully.
   if (num(health.webhook_events_total) === 0 && num(revenue.subs_total) > 0) {
-    out.push({
-      severity: "critical",
-      title: "Razorpay webhook has never fired",
-      detail: `${num(revenue.subs_total)} subscription(s) exist but webhook_events is empty. Check the endpoint is registered in the Razorpay dashboard and points at /api/razorpay-webhook. A real payment would not grant access.`,
-    });
+    out.push(
+      live
+        ? {
+            severity: "critical",
+            title: "Razorpay webhook has never fired",
+            detail: `${num(revenue.subs_total)} subscription(s) exist but webhook_events is empty. A real payment is not granting access right now. Check the endpoint is registered and points at /api/razorpay-webhook.`,
+          }
+        : {
+            severity: "info",
+            title: "Razorpay webhook not registered yet",
+            detail:
+              "Expected pre-launch. Must be registered before live keys, or a paying customer gets charged and receives nothing.",
+          },
+    );
   }
 
-  // Only meaningful once money has ever moved.
+  // Only meaningful once money is genuinely expected to move.
   const hoursSinceCharge = num(health.hours_since_charge, -1);
-  if (hoursSinceCharge > 72) {
+  if (live && hoursSinceCharge > 72) {
     out.push({
       severity: "warning",
       title: "No charge in 3 days",
@@ -101,9 +141,12 @@ function findings(s: Record<string, unknown>): Finding[] {
 
   // The step people actually fall out of. Reported as a finding rather than a
   // line in the digest because at these rates it is the headline.
+  // Only meaningful once the accounts belong to strangers. Test users poking at
+  // a build abandon it for reasons that say nothing about the product, so
+  // reading an activation problem into them would be reading noise.
   const signedUp = num(funnel.signed_up);
   const loggedOnce = num(funnel.logged_once);
-  if (signedUp >= 10 && loggedOnce / signedUp < 0.5) {
+  if (live && signedUp >= 10 && loggedOnce / signedUp < 0.5) {
     const never = signedUp - loggedOnce;
     out.push({
       severity: "warning",
@@ -185,7 +228,7 @@ function render(s: Record<string, unknown>, found: Finding[]): string {
   }).format(new Date());
 
   const lines = [
-    `📊 Dombelz · ${date}`,
+    `📊 Dombelz · ${date}${isLive() ? "" : "  (pre-launch)"}`,
     ``,
     `Users        ${num(users.users_total)}  (+${num(users.users_new)} this week)`,
     `Active 7d    ${num(users.active_users)}`,
