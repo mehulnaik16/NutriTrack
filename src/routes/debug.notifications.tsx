@@ -1,24 +1,31 @@
 /**
  * Notification preview — /debug/notifications
  *
- * The native shell does not exist yet, so nothing here schedules anything with
- * an OS. What it does is make the two things that are hard to eyeball testable
- * today, before a store release is in the way:
+ * Three things, each testable before the real settings screen exists:
  *
- *   1. Exactly which quote lands on which date, with the day counter and the
- *      cycle number, for the same 30-day window the reconciler will hand to the
- *      OS. Off-by-ones and timezone slips are visible here and nowhere else.
- *   2. What a notification actually looks like, via the Web Notifications API.
- *      That is a different transport from @capacitor/local-notifications, but
- *      the title, body and truncation behaviour are the browser's own — which is
- *      the part worth checking before committing 100 quotes to a store build.
+ *   1. Exactly which quote lands on which date, with the day counter and cycle
+ *      number, for the same window the reconciler hands to the OS. Off-by-ones
+ *      and timezone slips are visible here and nowhere else.
+ *   2. On a browser: what a notification looks like, via the Web Notifications
+ *      API. A different transport from the plugin, but the title, body and
+ *      truncation are the platform's own — worth checking before committing
+ *      100 quotes to a store build.
+ *   3. On a device: the real thing. Permission, action types, the rolling
+ *      window, and a 15-second test notification that proves scheduling works
+ *      with the app closed. This is the P1 exit condition.
  *
  * Signed-in only, and it reads nothing but the caller's own profile. Safe to
- * leave deployed; delete it once the real settings screen exists in P2.
+ * leave deployed; delete it once the real settings screen exists in P3.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, BellOff, CalendarClock, TriangleAlert } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  CalendarClock,
+  Smartphone,
+  TriangleAlert,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { Button } from "@/components/ui/button";
@@ -32,6 +39,15 @@ import {
 } from "@/lib/motivation";
 import { NOTIFICATION_BODY_BUDGET } from "@/data/motivationQuotes";
 import { deviceTimezone } from "@/lib/timezone";
+import {
+  cancelAll,
+  isNative,
+  pending as pendingNotifications,
+  registerActionTypes,
+  requestPermission,
+  scheduleMotivation,
+  scheduleTestNotification,
+} from "@/lib/notifications";
 
 export const Route = createFileRoute("/debug/notifications")({
   component: NotificationDebug,
@@ -59,6 +75,8 @@ function NotificationDebug() {
     ok: boolean;
     message: string;
   } | null>(null);
+  const [nativeStatus, setNativeStatus] = useState<string>("");
+  const native = isNative();
 
   useEffect(() => setPermission(readPermission()), []);
 
@@ -172,6 +190,65 @@ function NotificationDebug() {
     }
   }, []);
 
+  const nativePermission = async () => {
+    const { granted, blocked } = await requestPermission();
+    if (granted) await registerActionTypes();
+    setNativeStatus(
+      granted
+        ? "Permission granted, action types registered."
+        : blocked
+          ? "Blocked. iOS only asks once — enable it in Settings > Notifications."
+          : "Not granted.",
+    );
+  };
+
+  const nativeTest = async () => {
+    const { granted } = await requestPermission();
+    if (!granted) return setNativeStatus("Permission not granted.");
+    await registerActionTypes();
+    await scheduleTestNotification(15);
+    setNativeStatus("Scheduled for 15s. Background the app now.");
+  };
+
+  const nativeReconcile = async () => {
+    if (!profile || !user) return setNativeStatus("Profile not loaded.");
+    const { granted } = await requestPermission();
+    if (!granted) return setNativeStatus("Permission not granted.");
+    await registerActionTypes();
+    await cancelAll();
+    const { scheduled, skippedPast } = await scheduleMotivation(
+      {
+        id: user.id,
+        createdAt: profile.created_at,
+        timezone: profile.timezone,
+        motivationSeed: profile.motivation_seed,
+      },
+      "07:00",
+    );
+    setNativeStatus(
+      `Scheduled ${scheduled}. Skipped ${skippedPast} already past today.`,
+    );
+  };
+
+  const nativeCancel = async () => {
+    await cancelAll();
+    setNativeStatus("Cancelled everything pending.");
+  };
+
+  const nativePending = async () => {
+    const list = await pendingNotifications();
+    if (list.length === 0) {
+      setNativeStatus("Nothing pending.");
+      return;
+    }
+    const lines = [
+      `${list.length} pending:`,
+      ...list.slice(0, 8).map((n) => `  ${n.id}  ${n.title}`),
+    ];
+    if (list.length > 8) lines.push(`  … ${list.length - 8} more`);
+    setNativeStatus(lines.join("\n"));
+  };
+
   if (loading) return <p className="p-6 text-muted-foreground">Loading…</p>;
   if (!user) return <p className="p-6">Sign in to preview notifications.</p>;
 
@@ -255,6 +332,47 @@ function NotificationDebug() {
           </p>
         )}
       </Card>
+
+      {/* Native scheduling. Hidden entirely on web, where the plugin does not
+          exist and every button would be a no-op that looks broken. */}
+      {native && (
+        <Card className="flex flex-col gap-3 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Smartphone className="h-4 w-4" />
+            On-device scheduling
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={nativePermission}>
+              Request permission
+            </Button>
+            <Button size="sm" variant="secondary" onClick={nativeTest}>
+              Fire in 15s
+            </Button>
+            <Button size="sm" variant="secondary" onClick={nativeReconcile}>
+              Schedule {MOTIVATION_WINDOW_DAYS} days
+            </Button>
+            <Button size="sm" variant="ghost" onClick={nativeCancel}>
+              Cancel all
+            </Button>
+            <Button size="sm" variant="ghost" onClick={nativePending}>
+              Show pending
+            </Button>
+          </div>
+
+          {nativeStatus && (
+            <p className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
+              {nativeStatus}
+            </p>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            &ldquo;Fire in 15s&rdquo; is the real test: background the app after
+            tapping it and the notification should arrive on the lock screen
+            with snooze buttons.
+          </p>
+        </Card>
+      )}
 
       <div className="flex flex-col gap-2">
         {days.map((d) => {
