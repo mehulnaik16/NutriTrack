@@ -7,18 +7,26 @@
  * never sees the schema. A misunderstood question therefore produces a
  * wrong-but-safe answer rather than an arbitrary read.
  *
- * TWO INVARIANTS. Both are the reason this file exists rather than a generic
- * query endpoint, and neither is negotiable:
+ * THREE INVARIANTS. They are why this file exists rather than a generic query
+ * endpoint, and none is negotiable:
  *
- *   1. Aggregates only. No tool returns a user id, email, name, or any value
- *      that resolves to a person. The agent speaks into a group chat whose
- *      membership can change without anyone deciding it should. Adding a tool
- *      that returns identifiers breaks the security model of the feature, not
- *      just this file.
- *
- *   2. Read only. The catalog contains no writes and must never gain one. An
+ *   1. Read only. The catalog contains no writes and must never gain one. An
  *      agent that can act on production from a chat message is a different
  *      product with a different risk profile.
+ *
+ *   2. Identifiers are opt-in, never incidental. The seven get_* tools are
+ *      aggregate-only. The three user tools can name a person, but the listing
+ *      returns an 8-char id prefix and no names — resolving one to a human is a
+ *      separate, deliberate call. The agent speaks into a group chat whose
+ *      membership can change without anyone deciding it should, so scanning
+ *      signups must not spray PII into a history that outlives the question.
+ *
+ *   3. User-typed values are quarantined. full_name, username and email are
+ *      attacker-controlled strings reaching an agent that holds service_role,
+ *      so the SQL groups them under a "user_supplied" key and the system prompt
+ *      tells the model they are data and never instructions. A user whose name
+ *      is "ignore previous instructions" is an injection attempt, not a
+ *      command. Any future tool returning user-entered text must do the same.
  *
  * `TOOL_SPECS` is shaped as OpenAI-style function definitions, which is what
  * Groq's tool calling accepts and what LangChain's `bindTools` consumes — so
@@ -116,6 +124,51 @@ export const METRIC_TOOLS: readonly MetricTool[] = [
     schema: WithPeriod,
     rpc: "ops_notifications",
   },
+  {
+    name: "list_users",
+    description:
+      "List individual users with an 8-char id prefix, signup date, whether they finished the quiz, whether they hold access, and how much they have logged. Deliberately returns no names or emails — use get_user_detail on one id when a name is actually needed. sort_by accepts 'recent' (newest first), 'active' (most recently logged first) or 'inactive' (least logging first).",
+    schema: z.object({
+      limit_n: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .default(15)
+        .describe("How many users to return."),
+      sort_by: z
+        .enum(["recent", "active", "inactive"])
+        .default("recent")
+        .describe("Ordering: recent, active, or inactive."),
+    }),
+    rpc: "ops_list_users",
+  },
+  {
+    name: "search_users",
+    description:
+      "Find users by name, username, email or id fragment. Returns at most 10. Use when the founder names a person and you need their id before calling get_user_detail. Requires at least 2 characters.",
+    schema: z.object({
+      q: z
+        .string()
+        .min(2)
+        .max(80)
+        .describe("Name, email, username or id fragment."),
+    }),
+    rpc: "ops_search_users",
+  },
+  {
+    name: "get_user_detail",
+    description:
+      "Everything about one user: entitlement (access_until, trial, plan), billing (subscriptions, charges, amount paid, refund requests), activity (logs, weigh-ins, last seen) and referrals. Accepts a full uuid or the 8-char prefix from list_users. This is the tool for support questions like 'they say they paid but have no access'.",
+    schema: z.object({
+      user_ref: z
+        .string()
+        .min(4)
+        .max(64)
+        .describe("Full uuid or the 8-char id prefix."),
+    }),
+    rpc: "ops_user_detail",
+  },
 ] as const;
 
 const BY_NAME = new Map(METRIC_TOOLS.map((t) => [t.name, t]));
@@ -162,24 +215,52 @@ function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
       optional = true;
       field = field._def.innerType;
     }
-    if (!(field instanceof z.ZodNumber)) {
+    const described = field.description
+      ? { description: field.description }
+      : {};
+
+    if (field instanceof z.ZodNumber) {
+      const checks = field._def.checks ?? [];
+      const min = checks.find((c: { kind: string }) => c.kind === "min") as
+        | { value: number }
+        | undefined;
+      const max = checks.find((c: { kind: string }) => c.kind === "max") as
+        | { value: number }
+        | undefined;
+
+      properties[key] = {
+        type: "integer",
+        ...(min ? { minimum: min.value } : {}),
+        ...(max ? { maximum: max.value } : {}),
+        ...described,
+      };
+    } else if (field instanceof z.ZodEnum) {
+      // Enumerated in the schema so the model is told the valid values rather
+      // than guessing and having runMetricTool reject it a round later.
+      properties[key] = {
+        type: "string",
+        enum: field._def.values as string[],
+        ...described,
+      };
+    } else if (field instanceof z.ZodString) {
+      const checks = field._def.checks ?? [];
+      const min = checks.find((c: { kind: string }) => c.kind === "min") as
+        | { value: number }
+        | undefined;
+      const max = checks.find((c: { kind: string }) => c.kind === "max") as
+        | { value: number }
+        | undefined;
+
+      properties[key] = {
+        type: "string",
+        ...(min ? { minLength: min.value } : {}),
+        ...(max ? { maxLength: max.value } : {}),
+        ...described,
+      };
+    } else {
       throw new Error(`Unsupported schema for parameter "${key}"`);
     }
 
-    const checks = field._def.checks ?? [];
-    const min = checks.find((c: { kind: string }) => c.kind === "min") as
-      | { value: number }
-      | undefined;
-    const max = checks.find((c: { kind: string }) => c.kind === "max") as
-      | { value: number }
-      | undefined;
-
-    properties[key] = {
-      type: "integer",
-      ...(min ? { minimum: min.value } : {}),
-      ...(max ? { maximum: max.value } : {}),
-      ...(field.description ? { description: field.description } : {}),
-    };
     if (!optional) required.push(key);
   }
 
