@@ -36,11 +36,22 @@ function readEnv() {
   return env;
 }
 
+/**
+ * Marked error so main() can print it plainly and set a failing exit code.
+ *
+ * Deliberately not process.exit(): Node's fetch keeps a connection pool alive,
+ * and exiting out from under it makes libuv abort with
+ * "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)" — printed after the
+ * real output, which makes a successful run look broken. Returning normally
+ * instead lets the pool drain, which takes about half a second.
+ */
+class SetupError extends Error {}
+
 function fail(message) {
-  console.error(`\n  ✗ ${message}\n`);
-  process.exit(1);
+  throw new SetupError(message);
 }
 
+async function main() {
 const env = readEnv();
 const token = env.TELEGRAM_TOKEN;
 const secret = env.TELEGRAM_WEBHOOK_SECRET;
@@ -103,13 +114,13 @@ if (arg === "--info") {
   console.log(
     "  and the bot re-added to the group afterwards, or plain questions never arrive.\n",
   );
-  process.exit(0);
+  return;
 }
 
 if (arg === "--delete") {
   await call("deleteWebhook", { drop_pending_updates: true });
   console.log("\n  ✓ Webhook removed. getUpdates polling works again.\n");
-  process.exit(0);
+  return;
 }
 
 if (!arg || !arg.startsWith("https://")) {
@@ -144,3 +155,14 @@ console.log(
 console.log(
   `  otherwise every delivery is refused with 403 and the bot goes silent.\n`,
 );
+}
+
+try {
+  await main();
+} catch (e) {
+  console.error(`
+  ✗ ${e.message}
+`);
+  // exitCode rather than exit(): see SetupError above.
+  process.exitCode = 1;
+}
