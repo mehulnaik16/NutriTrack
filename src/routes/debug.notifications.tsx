@@ -286,14 +286,25 @@ function NotificationDebug() {
           getPlatform?: () => string;
           Plugins?: Record<string, unknown>;
         };
+        androidBridge?: unknown;
+        webkit?: { messageHandlers?: unknown };
       };
       const bridge = w.Capacitor;
+      // androidBridge is the thing Capacitor actually keys off. Android injects
+      // it with addJavascriptInterface, and only into pages whose origin the
+      // native shell is configured for — so a redirect to a different hostname
+      // loses it, and every plugin call quietly falls back to a web
+      // implementation that cannot schedule anything.
       const lines = [
         `window.Capacitor present : ${Boolean(bridge)}`,
+        `androidBridge present    : ${Boolean(w.androidBridge)}`,
+        `webkit bridge present    : ${Boolean(w.webkit?.messageHandlers)}`,
         `isNativePlatform()       : ${bridge?.isNativePlatform?.() ?? "n/a"}`,
         `getPlatform()            : ${bridge?.getPlatform?.() ?? "n/a"}`,
         `imported isNative()      : ${isNative()}`,
         `LocalNotifications bound : ${Boolean(bridge?.Plugins?.LocalNotifications)}`,
+        `origin                   : ${window.location.origin}`,
+        `href                     : ${window.location.href.slice(0, 80)}`,
       ];
       if (isNative()) {
         const perms = await checkPermissionState();
