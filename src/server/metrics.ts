@@ -78,56 +78,56 @@ export const METRIC_TOOLS: readonly MetricTool[] = [
   {
     name: "get_users_overview",
     description:
-      "Total and new users, how many are active, how many started a trial, and how many currently hold access. Includes the previous equivalent period so growth can be compared. Use for questions about signups, user counts, or growth.",
+      "User counts: total, new, active, trials, holding access. Includes the previous period for comparison. For signups, totals and growth.",
     schema: WithPeriod,
     rpc: "ops_users_overview",
   },
   {
     name: "get_growth_daily",
     description:
-      "Day-by-day series of signups, active users and food logs. Use when the question is about a trend, a change over time, or when something started or stopped happening — not for a single total.",
+      "Per-day signups, active users and food logs. For trends and when something changed, not for a single total.",
     schema: WithDays,
     rpc: "ops_growth_daily",
   },
   {
     name: "get_revenue",
     description:
-      "Charges, gross rupees, refunds, subscription counts by tier, and trial-to-paid conversion over a period. Also reports how many charges were recorded with a zero amount, which indicates a payment-capture problem rather than free access.",
+      "Charges, gross rupees, refunds, subs by tier, trial-to-paid conversion, and any zero-amount charges.",
     schema: z.object({ period_days: PeriodDays.default(30) }),
     rpc: "ops_revenue",
   },
   {
     name: "get_engagement",
     description:
-      "How much people are logging: food, workouts, weigh-ins, water, saved meals. Includes logs per active user and the median number of distinct days each active user logged on, which separates one heavy day from a real habit.",
+      "Logging volume by type, logs per active user, and median days logged (separates one heavy day from a habit).",
     schema: WithPeriod,
     rpc: "ops_engagement",
   },
   {
     name: "get_funnel",
     description:
-      "The signup-to-retention funnel: signed up, completed the quiz, started a trial, logged food once, logged on three days, still active at day seven, subscribed. Use to find which step people stop at. Usually more informative than totals.",
+      "Funnel: signed up, quiz, trial, logged once, logged 3 days, active at day 7, subscribed. For where people stop.",
     schema: NoArgs,
     rpc: "ops_funnel",
   },
   {
     name: "get_system_health",
     description:
-      "Operational signals: webhook delivery counts, hours since the last charge, zero-amount charges, open refund requests, notification backlog, and data-quality checks. Use for 'is anything broken' and before concluding a metric moved for product reasons.",
+      'Webhook flow, hours since last charge, refund requests, notification backlog, data quality. For "is anything broken", and before blaming a metric on user behaviour.',
     schema: NoArgs,
     rpc: "ops_system_health",
   },
   {
     name: "get_notifications",
     description:
-      "Notification delivery and snooze behaviour, broken down by status and type. Returns empty objects until the notification feature ships, which is expected and not a fault.",
+      "Notification delivery and snooze stats. Empty until the feature ships; that is expected.",
     schema: WithPeriod,
     rpc: "ops_notifications",
   },
   {
     name: "list_users",
     description:
-      "List individual users with an 8-char id prefix, signup date, whether they finished the quiz, whether they hold access, and how much they have logged. Deliberately returns no names or emails — use get_user_detail on one id when a name is actually needed. sort_by accepts 'recent' (newest first), 'active' (most recently logged first) or 'inactive' (least logging first).",
+      "Users as id prefix, signup date, quiz done, access, log counts. No names. sort_by: recent, active, inactive.",
     schema: z.object({
       limit_n: z
         .number()
@@ -146,7 +146,7 @@ export const METRIC_TOOLS: readonly MetricTool[] = [
   {
     name: "search_users",
     description:
-      "Find users by name, username, email or id fragment. Returns at most 10. Use when the founder names a person and you need their id before calling get_user_detail. Requires at least 2 characters.",
+      "Find users by name, email, username or id fragment. Max 10. Use to get an id before get_user_detail.",
     schema: z.object({
       q: z
         .string()
@@ -159,7 +159,7 @@ export const METRIC_TOOLS: readonly MetricTool[] = [
   {
     name: "get_user_detail",
     description:
-      "Everything about one user: entitlement (access_until, trial, plan), billing (subscriptions, charges, amount paid, refund requests), activity (logs, weigh-ins, last seen) and referrals. Accepts a full uuid or the 8-char prefix from list_users. This is the tool for support questions like 'they say they paid but have no access'.",
+      "One user's entitlement, billing, activity and referrals. Takes a uuid or 8-char prefix. For support questions.",
     schema: z.object({
       user_ref: z
         .string()

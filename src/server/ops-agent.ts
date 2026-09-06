@@ -28,10 +28,12 @@
  * them, and the system prompt below is what keeps user-typed values treated as
  * data rather than instructions.
  *
- * Server-only. Holds the Groq keys and runs as service_role.
+ * Provider-agnostic: Groq by default, GitHub Models when GITHUB_MODELS_TOKEN is
+ * set. Server-only — holds the credentials and runs as service_role.
  */
 
 import { ChatGroq } from "@langchain/groq";
+import { ChatOpenAI } from "@langchain/openai";
 import {
   AIMessage,
   HumanMessage,
@@ -126,11 +128,53 @@ function stageContext(): string {
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
+/**
+ * Which provider backs the agent.
+ *
+ * Groq's free tier allows 8,000 tokens per minute per model, per organisation —
+ * measured, not assumed — and the app's own AI features draw on the same
+ * budget. So a busy conversation competes with users trying to log a meal.
+ *
+ * GitHub Models is an OpenAI-compatible endpoint that costs nothing and does
+ * support function calling, which is what makes it a real alternative here.
+ * Setting GITHUB_MODELS_TOKEN switches the agent over and leaves the app's
+ * food, photo and voice features on Groq, so the two stop competing.
+ *
+ * Nothing else changes: the tool catalog, the retry logic, the finalize node
+ * and the prompt are all provider-agnostic.
+ */
+function providerKeys(): {
+  keys: readonly string[];
+  provider: "github" | "groq";
+} {
+  const gh = (process.env.GITHUB_MODELS_TOKEN ?? "").trim();
+  if (gh) return { keys: [gh], provider: "github" };
+  return { keys: groqKeys(), provider: "groq" };
+}
+
+export function activeProvider(): "github" | "groq" {
+  return providerKeys().provider;
+}
+
 function model(keyIndex = 0) {
-  const keys = groqKeys();
-  if (keys.length === 0) throw new Error("No Groq API keys configured");
+  const { keys, provider } = providerKeys();
+  if (keys.length === 0) {
+    throw new Error(
+      "No LLM credentials configured (GROQ_API_KEY_1 or GITHUB_MODELS_TOKEN)",
+    );
+  }
   if (keyIndex >= keys.length) {
-    throw new Error(`All ${keys.length} Groq keys were rejected`);
+    throw new Error(`All ${keys.length} ${provider} credentials were rejected`);
+  }
+
+  if (provider === "github") {
+    return new ChatOpenAI({
+      apiKey: keys[keyIndex],
+      model: process.env.GITHUB_MODELS_MODEL?.trim() || "openai/gpt-4o-mini",
+      configuration: { baseURL: "https://models.github.ai/inference" },
+      temperature: 0.2,
+      maxTokens: 1200,
+    });
   }
 
   // ChatGroq owns its own HTTP requests, so it cannot share groqFetch's
@@ -205,7 +249,7 @@ async function invoke(
   //             key is configured or the rest have been revoked.
   //
   // Anything else is a real error that a different key would only repeat.
-  const keys = groqKeys();
+  const { keys, provider } = providerKeys();
   let lastRecoverable: unknown;
 
   const run = (i: number) => {
@@ -219,7 +263,9 @@ async function invoke(
     } catch (e) {
       if (isAuthError(e)) {
         lastRecoverable = e;
-        console.warn(`[ops-agent] GROQ_API_KEY_${i + 1} rejected, trying next`);
+        console.warn(
+          `[ops-agent] ${provider} credential ${i + 1} rejected, trying next`,
+        );
         continue;
       }
       if (isRateLimit(e)) {
@@ -238,7 +284,7 @@ async function invoke(
           }
         } else {
           console.warn(
-            `[ops-agent] GROQ_API_KEY_${i + 1} rate limited, trying next`,
+            `[ops-agent] ${provider} credential ${i + 1} rate limited, trying next`,
           );
         }
         continue;
@@ -253,7 +299,8 @@ async function invoke(
       title: "Ops agent hit the Groq rate limit",
       detail: {
         keys: keys.length,
-        hint: "Free tier is 8,000 tokens/minute per organisation. Extra keys on the same account share it — only a paid tier or a smaller prompt actually helps.",
+        provider,
+        hint: "Groq free tier is 8,000 tokens/minute per organisation — extra keys on the same account share it. Set GITHUB_MODELS_TOKEN to move the agent off the budget the app's own AI features use.",
       },
       throttleKey: "ops-agent-rate-limited",
     });
@@ -262,7 +309,7 @@ async function invoke(
     );
   }
 
-  throw lastRecoverable ?? new Error("No Groq API keys configured");
+  throw lastRecoverable ?? new Error("No LLM credentials configured");
 }
 
 async function callModel(state: typeof MessagesAnnotation.State) {
