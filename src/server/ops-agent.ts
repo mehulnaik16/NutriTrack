@@ -184,7 +184,21 @@ function model(cred: Credential) {
   if (cred.provider === "gemini") {
     return new ChatGoogleGenerativeAI({
       apiKey: cred.key,
-      model: process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash",
+      // flash-lite, not flash. Measured on this account for the same question:
+      // gemini-3.6-flash took 19.6s and once 42s end to end, because the 3.x
+      // models reason before answering. flash-lite took 925ms and called the
+      // same tool. Vercel functions time out at 10s on Hobby, so the larger
+      // model is not merely slower here — it fails.
+      //
+      // Pinned rather than gemini-flash-lite-latest: an alias that moves under
+      // you changes tool-calling behaviour with no deploy, and that behaviour
+      // is this agent's whole job.
+      //
+      // Note Google retires model ids for *new* keys while existing ones keep
+      // working — gemini-2.5-flash answers "no longer available to new users"
+      // with a 404. A model id that works on one account can fail on another,
+      // so re-check this when rotating keys.
+      model: process.env.GEMINI_MODEL?.trim() || "gemini-3.1-flash-lite",
       temperature: 0.2,
       maxOutputTokens: 1200,
       // Same reasoning as the GitHub client: the chain is the retry, and an
@@ -296,7 +310,15 @@ async function invoke(
     } catch (e) {
       if (isUnavailable(e)) {
         lastRecoverable = e;
-        console.warn(`[ops-agent] ${label} unavailable, falling through`);
+        // The reason is logged, not just the fact. Falling through silently is
+        // what let a wrong Gemini model id look identical to a retired service
+        // for several rounds — the fallback worked, so nothing appeared broken,
+        // and the actual message named the fix.
+        console.warn(
+          `[ops-agent] ${label} unavailable, falling through: ${
+            e instanceof Error ? e.message.slice(0, 200) : String(e)
+          }`,
+        );
         continue;
       }
       if (isAuthError(e)) {
