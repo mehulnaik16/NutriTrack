@@ -22,15 +22,15 @@ import { todayLocal } from "@/lib/dates";
 import {
   PLANS,
   PLAN_FEATURES,
-  REFEREE_DISCOUNT_RUPEES,
+  activeGift,
   effectivePrice,
-  giftApplies,
+  giftLabel,
   monthlyRate,
   periodLabel,
   planCta,
   showsTrialBanner,
 } from "@/lib/plans";
-import { invalidateReferralGift, useReferralGift } from "@/hooks/useReferralGift";
+import { invalidateReferralGift, useGift } from "@/hooks/useReferralGift";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export function PricingPlans({
@@ -51,7 +51,11 @@ export function PricingPlans({
   const native = isNativeApp();
   // While this is loading the cards render the list price. Correcting ₹999 down
   // to ₹849 is safe; the reverse would be a promise taken back.
-  const { status: referralStatus, loading: giftLoading } = useReferralGift();
+  const {
+    status: referralStatus,
+    gymLink,
+    loading: giftLoading,
+  } = useGift();
 
   const start = async (planId: string) => {
     if (!user) {
@@ -124,7 +128,14 @@ export function PricingPlans({
             selectedPlan,
             native,
           });
-          const gift = !giftLoading && giftApplies(referralStatus, p.id);
+          // A friend's code and a gym's code both take ₹150 off Yearly; only
+          // the wording differs. activeGift() is the same function
+          // serverCreateSubscription() charges by, so the card cannot quote a
+          // price the checkout will not honour.
+          const kind = giftLoading
+            ? null
+            : activeGift({ referralStatus, gymLink, planId: p.id });
+          const gift = kind !== null;
           const price = effectivePrice(p, gift);
           return (
             <Card
@@ -156,10 +167,9 @@ export function PricingPlans({
                     {periodLabel(p.months)}
                   </span>
                 </div>
-                {gift && (
+                {kind && (
                   <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">
-                    <Gift className="h-3.5 w-3.5" /> Gift applied · ₹
-                    {REFEREE_DISCOUNT_RUPEES} off
+                    <Gift className="h-3.5 w-3.5" /> {giftLabel(kind)}
                   </p>
                 )}
                 {p.months > 1 && (

@@ -12,7 +12,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/client";
 import { requireSupabaseAuth } from "@/integrations/auth-middleware";
 import { checkRateLimit } from "@/lib/ai";
-import { giftApplies } from "@/lib/plans";
+import { activeGift } from "@/lib/plans";
 
 /** The three plan durations. Mirrors PLANS in src/lib/plans.ts. */
 export type Tier = "monthly" | "quarterly" | "yearly";
@@ -66,18 +66,35 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
       "@/server/razorpay"
     );
 
-    // The gift is spent once. A referral row that already reached 'subscribed'
-    // means this user has bought before, so the discount is gone. giftApplies()
-    // is the same predicate the pricing cards render with, so what is shown and
-    // what is charged cannot drift apart.
+    // The gift is spent once, whichever code earned it. A referral row that
+    // already reached 'subscribed', or a gym link with gift_spent_at set, means
+    // this user has bought before and the discount is gone. activeGift() is the
+    // same function the pricing cards render with, so what is shown and what is
+    // charged cannot drift apart.
+    //
+    // Read through supabaseAdmin rather than the user client on purpose: these
+    // are two RLS-scoped tables and this must not depend on a policy staying
+    // permissive. The rows are still selected by this caller's own id.
     let discounted = false;
     if (data.tier === "yearly") {
-      const { data: ref } = await supabaseAdmin
-        .from("referrals")
-        .select("status")
-        .eq("referee_id", userId)
-        .maybeSingle();
-      discounted = giftApplies(ref?.status, data.tier);
+      const [ref, gym] = await Promise.all([
+        supabaseAdmin
+          .from("referrals")
+          .select("status")
+          .eq("referee_id", userId)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("gym_links")
+          .select("source, gift_spent_at")
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
+      discounted =
+        activeGift({
+          referralStatus: (ref.data as any)?.status,
+          gymLink: gym.data as any,
+          planId: data.tier,
+        }) !== null;
     }
 
     const { subscriptionId } = await createSubscription({

@@ -35,6 +35,7 @@ import {
   Mail,
   Bug,
   Activity,
+  Building2,
   Dumbbell,
   Camera,
   Trophy,
@@ -108,16 +109,17 @@ import { invalidateAccess } from "@/hooks/useAccessGate";
 import { AchievementsPage } from "@/components/Achievements";
 import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
+import { GymLinkPage } from "@/components/GymLink";
 import { SubHeader } from "@/components/SubHeader";
 import { PricingPlans } from "@/components/PricingPlans";
 import {
-  REFEREE_DISCOUNT_RUPEES,
+  activeGift,
   effectivePrice,
   findPlan,
-  giftApplies,
+  giftLabel,
   periodLabel,
 } from "@/lib/plans";
-import { useReferralGift } from "@/hooks/useReferralGift";
+import { useGift } from "@/hooks/useReferralGift";
 import {
   BASE_TRIAL_DAYS,
   isTrialActive,
@@ -180,7 +182,7 @@ function wpFieldValues(p: WorkoutPrefs) {
 
 const PAGE_VALUES: readonly Page[] = [
   "menu", "details", "workout-details", "theme", "transactions", "pricing",
-  "settings", "help", "about", "refer", "achievements", "measurements",
+  "settings", "help", "about", "refer", "gym", "achievements", "measurements",
 ];
 
 export const Route = createFileRoute("/profile")({
@@ -200,6 +202,7 @@ type Page =
   | "help"
   | "about"
   | "refer"
+  | "gym"
   | "achievements"
   | "measurements";
 
@@ -220,6 +223,7 @@ const MENU_ITEMS: {
   { id: "help",         icon: <MessageCircle className="h-7 w-7 md:h-[26px] md:w-[26px]" />, label: "Help & support" },
   { id: "about",        icon: <Info className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "About us" },
   { id: "refer",        icon: <Gift className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Refer & Earn" },
+  { id: "gym",          icon: <Building2 className="h-7 w-7 md:h-[26px] md:w-[26px]" />,     label: "Your Gym" },
 ];
 
 const FAQS = [
@@ -530,6 +534,7 @@ function Profile() {
   if (page === "about") return <AboutPage onBack={goBack} />;
   if (page === "refer")
     return <ReferAndEarnPage userId={user.id} onBack={goBack} />;
+  if (page === "gym") return <GymLinkPage userId={user.id} onBack={goBack} />;
   if (page === "achievements")
     return <AchievementsPage userId={user.id} onBack={goBack} />;
   if (page === "measurements")
@@ -1187,9 +1192,16 @@ function TransactionsPage({
   const plan = findPlan(profile.selected_plan);
   // A referred user pays the gift price, so this card must quote the same
   // number the pricing grid and Razorpay do — not the list price.
-  const { status: referralStatus, loading: giftLoading } = useReferralGift();
-  const gift = !!plan && !giftLoading && giftApplies(referralStatus, plan.id);
-  const planPrice = plan ? effectivePrice(plan, gift) : 0;
+  const {
+    status: referralStatus,
+    gymLink,
+    loading: giftLoading,
+  } = useGift();
+  const giftKind =
+    plan && !giftLoading
+      ? activeGift({ referralStatus, gymLink, planId: plan.id })
+      : null;
+  const planPrice = plan ? effectivePrice(plan, giftKind !== null) : 0;
   // Referral rewards extend the trial, so the length is no longer a constant —
   // see src/lib/trial.ts, which the Refer & Earn page shares.
   const bonusDays = profile.bonus_trial_days ?? 0;
@@ -1299,7 +1311,7 @@ function TransactionsPage({
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {gift && (
+                    {giftKind && (
                       <span className="mr-1.5 line-through opacity-70">
                         ₹{plan.price}
                       </span>
@@ -1308,9 +1320,9 @@ function TransactionsPage({
                     {periodLabel(plan.months)}
                     {trialActive ? " after trial" : ""}
                   </p>
-                  {gift && (
+                  {giftKind && (
                     <p className="mt-1 text-xs font-semibold text-accent">
-                      Gift applied · ₹{REFEREE_DISCOUNT_RUPEES} off
+                      {giftLabel(giftKind)}
                     </p>
                   )}
                 </div>

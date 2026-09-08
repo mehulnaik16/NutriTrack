@@ -21,6 +21,8 @@ import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
 import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
 import { isValidCode, REFEREE_DISCOUNT_RUPEES } from "@/lib/referral";
+import { isGymCode } from "@/lib/gym";
+import { serverLinkGym, serverVerifyGymCode } from "@/lib/gym-link";
 import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
 import {
   activityMultipliers,
@@ -45,7 +47,7 @@ import {
  */
 const STEPS = [
   { key: "account", title: "Create Account" },
-  { key: "referral", title: "Referral Code" },
+  { key: "referral", title: "Invite Code" },
   { key: "body", title: "Body Stats" },
   { key: "activity", title: "Activity" },
   { key: "goal", title: "Goal" },
@@ -56,14 +58,15 @@ type StepKey = (typeof STEPS)[number]["key"];
 
 export const Route = createFileRoute("/quiz")({
   component: Quiz,
-  // `ref` carries a friend's invite code. Unlisted params are stripped by the
-  // router, so leaving it out here silently discards every referral link.
+  // `ref` carries an invite code — a friend's (RAH38291) or a gym's
+  // (GYM-IRONVAULT-123). Unlisted params are stripped by the router, so leaving
+  // it out here silently discards every referral and gym QR link.
   validateSearch: (s: Record<string, unknown>): { step?: number; ref?: string } => {
     const n = Number(s.step);
     const out: { step?: number; ref?: string } = {};
     if (Number.isInteger(n) && n >= 1 && n <= STEPS.length) out.step = n;
     const code = typeof s.ref === "string" ? s.ref.trim().toUpperCase() : "";
-    if (isValidCode(code)) out.ref = code;
+    if (isValidCode(code) || isGymCode(code)) out.ref = code;
     return out;
   },
 });
@@ -88,7 +91,7 @@ function pendingReferralCode(fromSearch?: string): string | null {
   if (typeof sessionStorage === "undefined") return null;
   try {
     const stored = sessionStorage.getItem(REF_STORAGE_KEY);
-    return isValidCode(stored) ? stored : null;
+    return isValidCode(stored) || isGymCode(stored) ? stored : null;
   } catch {
     return null;
   }
@@ -151,6 +154,13 @@ function Quiz() {
     "idle" | "checking" | "valid" | "invalid"
   >(() => (pendingReferralCode(searchRef) ? "valid" : "idle"));
   const [codeError, setCodeError] = useState<string | null>(null);
+  /** Which kind of code `applied` holds. submit() dispatches on it, because a
+   *  friend's code and a gym's code are claimed through different calls. */
+  const [appliedKind, setAppliedKind] = useState<"friend" | "gym" | null>(() =>
+    isGymCode(pendingReferralCode(searchRef)) ? "gym" : pendingReferralCode(searchRef) ? "friend" : null,
+  );
+  /** The gym behind a valid gym code, for the success message. */
+  const [gymName, setGymName] = useState<string | null>(null);
   /** Only set for an already-signed-in user; a fresh signup has no code yet. */
   const [ownCode, setOwnCode] = useState<string | null>(null);
 
@@ -173,29 +183,43 @@ function Quiz() {
     };
   }, [user]);
 
+  /** Clear every trace of a previous verdict. Called before each check and by
+   *  Skip, so the box and the message can never describe different codes. */
+  const clearCode = () => {
+    setApplied(null);
+    setAppliedKind(null);
+    setGymName(null);
+  };
+
   /**
    * Check a code against the database and record the verdict.
    *
-   * get_referrer_name() is granted to anon and returns the sender's first name
-   * or null, so it doubles as the existence check — no new RPC needed, and the
-   * success message can name the friend who sent it.
+   * Two shapes are accepted and they cannot be confused: a friend's code is
+   * three letters then five digits, a gym's is GYM-<name>-<3 digits>. Friend
+   * codes resolve through get_referrer_name(), which is granted to anon and so
+   * doubles as the existence check; gym codes live in the partner project and
+   * resolve through serverVerifyGymCode(), which discloses the gym's name and
+   * nothing else.
    */
   const checkCode = async (raw: string) => {
     const code = raw.trim().toUpperCase();
     if (!code) {
-      setApplied(null);
+      clearCode();
       setCodeState("idle");
       setCodeError(null);
       return;
     }
-    if (!isValidCode(code)) {
-      setApplied(null);
+    const gym = isGymCode(code);
+    if (!gym && !isValidCode(code)) {
+      clearCode();
       setCodeState("invalid");
-      setCodeError("Codes look like RAH38291 — three letters then five digits.");
+      setCodeError(
+        "That code doesn't look right. A friend's code is like RAH38291; a gym's is like GYM-IRONVAULT-123.",
+      );
       return;
     }
-    if (ownCode && code === ownCode) {
-      setApplied(null);
+    if (!gym && ownCode && code === ownCode) {
+      clearCode();
       setCodeState("invalid");
       setCodeError("That's your own code — ask a friend for theirs.");
       return;
@@ -203,22 +227,42 @@ function Quiz() {
     setCodeState("checking");
     setCodeError(null);
     try {
+      if (gym) {
+        const { gymName: name } = await serverVerifyGymCode({ data: { code } });
+        if (name) {
+          setGymName(name);
+          setReferrerName(null);
+          setApplied(code);
+          setAppliedKind("gym");
+          setCodeState("valid");
+          rememberReferralCode(code);
+        } else {
+          clearCode();
+          setCodeState("invalid");
+          setCodeError(
+            "We couldn't find that gym code. Check it with your gym and try again.",
+          );
+        }
+        return;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
       const { data } = await (supabase.rpc as any)("get_referrer_name", { code });
       if (data) {
         setReferrerName(data as string);
+        setGymName(null);
         setApplied(code);
+        setAppliedKind("friend");
         setCodeState("valid");
         rememberReferralCode(code);
       } else {
-        setApplied(null);
+        clearCode();
         setCodeState("invalid");
         setCodeError(
           "We couldn't find that code. Check it with your friend and try again.",
         );
       }
     } catch {
-      setApplied(null);
+      clearCode();
       setCodeState("invalid");
       setCodeError("Couldn't check that code just now. Try again.");
     }
@@ -228,20 +272,29 @@ function Quiz() {
     setD((p) => ({ ...p, [k]: v }));
 
   // Park the invite code before any OAuth round-trip can drop it, then resolve
-  // the sender's first name for the gift banner. An unknown code resolves to
-  // null and the quiz simply renders as normal.
+  // who sent it for the gift banner — a friend's first name, or the gym's name.
+  // An unknown code resolves to null and the quiz simply renders as normal.
   useEffect(() => {
     rememberReferralCode(searchRef);
     const code = pendingReferralCode(searchRef);
     if (!code) return;
     let cancelled = false;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-    (supabase.rpc as any)("get_referrer_name", { code }).then(
-      ({ data }: { data: string | null }) => {
-        if (!cancelled) setReferrerName(data ?? null);
-      },
-      () => {},
-    );
+    if (isGymCode(code)) {
+      serverVerifyGymCode({ data: { code } }).then(
+        ({ gymName: name }) => {
+          if (!cancelled) setGymName(name ?? null);
+        },
+        () => {},
+      );
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
+      (supabase.rpc as any)("get_referrer_name", { code }).then(
+        ({ data }: { data: string | null }) => {
+          if (!cancelled) setReferrerName(data ?? null);
+        },
+        () => {},
+      );
+    }
     return () => {
       cancelled = true;
     };
@@ -343,11 +396,19 @@ function Quiz() {
       // Attribution is best-effort by design: an unknown code, a self-referral
       // or a second attempt all come back false, and none of them may block an
       // account that has already been created.
+      //
+      // Whether this earns anything is decided server-side either way —
+      // claim_referral() and link_gym() both derive it from the account's own
+      // state, so nothing sent from here can talk them into a reward.
       const refCode = applied;
       if (refCode) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-          await (supabase.rpc as any)("claim_referral", { code: refCode });
+          if (appliedKind === "gym") {
+            await serverLinkGym({ data: { code: refCode } });
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
+            await (supabase.rpc as any)("claim_referral", { code: refCode });
+          }
           sessionStorage.removeItem(REF_STORAGE_KEY);
         } catch (refErr) {
           console.warn("[referral] could not claim code", refErr);
@@ -387,10 +448,12 @@ function Quiz() {
         <div className="animate-in fade-in slide-in-from-right-4 duration-500">
             {stepKey === "account" && (
               <div className="space-y-6">
-                {referrerName && applied && (
+                {applied && (referrerName || gymName) && (
                   <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
                     <p className="flex items-center gap-2 font-display text-base font-bold text-accent">
-                      🎁 {referrerName} sent you a gift
+                      {appliedKind === "gym"
+                        ? `🏋️ ${gymName} has you covered`
+                        : `🎁 ${referrerName} sent you a gift`}
                     </p>
                     <p className="mt-1.5 text-sm text-muted-foreground">
                       Sign up and you'll get ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
@@ -398,7 +461,7 @@ function Quiz() {
                       plus a free trial to explore everything.
                     </p>
                     <p className="mt-2 text-xs font-medium text-muted-foreground">
-                      Gift code applied:{" "}
+                      {appliedKind === "gym" ? "Gym code applied:" : "Gift code applied:"}{" "}
                       <span className="font-display tracking-widest text-accent">
                         {applied}
                       </span>
@@ -500,41 +563,45 @@ function Quiz() {
             {stepKey === "referral" && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <h2 className="text-3xl font-semibold mb-2">
-                  Referral code{" "}
+                  Got a code?{" "}
                   <span className="text-muted-foreground font-normal">
                     (optional)
                   </span>
                 </h2>
                 <p className="text-muted-foreground mb-8 text-sm">
-                  Got a code from a friend? Enter it here to claim your gift —
-                  ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
+                  From a friend, or from your gym. Either one gets you ₹
+                  {REFEREE_DISCOUNT_RUPEES} off the{" "}
                   {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"} plan.
+                  This is the only place a code counts, so enter it now if you
+                  have one.
                 </p>
 
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">Their code</Label>
+                  <Label className="text-foreground/80">Friend or gym code</Label>
                   <div className="flex gap-2">
                     <Input
                       value={codeInput}
-                      maxLength={8}
+                      // Long enough for GYM- plus a twelve-letter gym name plus
+                      // three digits; a friend's code is eight.
+                      maxLength={20}
                       autoCapitalize="characters"
                       autoComplete="off"
                       spellCheck={false}
-                      placeholder="RAH38291"
+                      placeholder="RAH38291 or GYM-IRONVAULT-123"
                       onChange={(e) => {
                         setCodeInput(e.target.value.toUpperCase());
                         // Editing invalidates the previous verdict — the box and
                         // the message must never describe different codes.
                         setCodeState("idle");
                         setCodeError(null);
-                        setApplied(null);
+                        clearCode();
                       }}
                       onBlur={() => {
                         if (codeInput.trim() && codeState === "idle") {
                           checkCode(codeInput);
                         }
                       }}
-                      className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl font-display tracking-[0.2em]"
+                      className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl font-display tracking-[0.1em]"
                     />
                     <Button
                       type="button"
@@ -549,8 +616,10 @@ function Quiz() {
 
                   {codeState === "valid" && (
                     <p className="text-sm font-medium text-accent">
-                      🎁 Gift from {referrerName ?? "your friend"} applied — ₹
-                      {REFEREE_DISCOUNT_RUPEES} off the{" "}
+                      {appliedKind === "gym"
+                        ? `🏋️ ${gymName ?? "Your gym"} verified — `
+                        : `🎁 Gift from ${referrerName ?? "your friend"} applied — `}
+                      ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
                       {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"}{" "}
                       plan.
                     </p>
@@ -861,7 +930,7 @@ function Quiz() {
                     type="button"
                     onClick={() => {
                       setCodeInput("");
-                      setApplied(null);
+                      clearCode();
                       setCodeState("idle");
                       setCodeError(null);
                       setStep(step + 1);

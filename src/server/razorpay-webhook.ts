@@ -173,6 +173,78 @@ export async function handleRazorpayWebhook(
     return new Response("Processing failed", { status: 500 });
   }
 
+  // ── The gym partner's side of the same event ──────────────────────────────
+  //
+  // Entitlement has already been recorded above and must not be undone by
+  // anything here, so this whole block is best-effort: a partner-project outage
+  // logs and continues rather than returning 500 and having Razorpay retry a
+  // charge we have already applied.
+  //
+  // Commission is offered, not decided: record_gym_charge() pays nothing unless
+  // the member entered that gym's code during signup. That check lives in the
+  // partner database on purpose, so a mistake on this side cannot pay out.
+  try {
+    const { gymPartnerConfigured } = await import("@/server/gym-partner");
+    if (gymPartnerConfigured()) {
+      if (isRefund && paymentId) {
+        const { reverseCharge } = await import("@/server/gym-partner");
+        await reverseCharge(paymentId);
+      } else if (data?.charged && paymentId) {
+        const { recordCharge, syncMember } = await import(
+          "@/server/gym-partner"
+        );
+        const { data: charge } = await supabaseAdmin
+          .from("subscription_charges")
+          .select("user_id, tier, amount_paise, charged_at")
+          .eq("provider_payment_id", paymentId)
+          .maybeSingle();
+
+        const userId = (charge as any)?.user_id as string | undefined;
+        if (userId) {
+          const { data: link } = await supabaseAdmin
+            .from("gym_links")
+            .select("partner_code")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+          if ((link as any)?.partner_code) {
+            await recordCharge({
+              userId,
+              chargeId: paymentId,
+              amountPaise: (charge as any).amount_paise ?? 0,
+              tier: (charge as any).tier,
+              chargedAt: (charge as any).charged_at,
+            });
+
+            // access_until has just moved. The partner's roster reads it to
+            // show who is due to renew, and their own migration notes it must
+            // be synced on every access change rather than nightly.
+            const { data: profile } = await supabaseAdmin
+              .from("user_profiles")
+              .select("full_name, access_until")
+              .eq("id", userId)
+              .maybeSingle();
+
+            await syncMember({
+              userId,
+              code: (link as any).partner_code,
+              fullName: (profile as any)?.full_name ?? null,
+              accessUntil: (profile as any)?.access_until ?? null,
+              hasPaid: true,
+              tier: (charge as any).tier,
+              // Never raised here: sync_gym_member() keeps whatever was decided
+              // at first link, so this value cannot promote an unattributed
+              // member into a paying one.
+              attributed: false,
+            });
+          }
+        }
+      }
+    }
+  } catch (gymErr) {
+    console.error("[razorpay-webhook] gym partner sync failed:", gymErr);
+  }
+
   // Revenue signals. Throttled per event type, so a burst of renewals on the
   // same day summarises rather than floods.
   if (

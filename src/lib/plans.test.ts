@@ -19,9 +19,11 @@ import {
   PLANS,
   REFEREE_DISCOUNT_RUPEES,
   REFERRAL_DISCOUNT_PLAN_ID,
+  activeGift,
   effectivePrice,
   findPlan,
   giftApplies,
+  giftLabel,
   monthlyRate,
   periodLabel,
   planCta,
@@ -117,6 +119,69 @@ assert.equal(giftApplies(undefined, "yearly"), false);
 // Yearly only — a referred user still pays full price on the other tiers.
 assert.equal(giftApplies("trial", "monthly"), false);
 assert.equal(giftApplies("trial", "quarterly"), false);
+
+// ── The gym gift, and the rule that decides who is paid ──────────────────────
+//
+// A gym code entered at signup earns the member the same ₹150 and earns the gym
+// 20% commission. The same code entered from the profile page earns nobody
+// anything. `source` is the only thing that distinguishes them, and link_gym()
+// in SQL — never a client — is what sets it.
+const SIGNUP_LINK = { source: "signup", gift_spent_at: null };
+const PROFILE_LINK = { source: "profile", gift_spent_at: null };
+const SPENT_LINK = { source: "signup", gift_spent_at: "2026-09-01T00:00:00Z" };
+
+assert.equal(activeGift({ gymLink: SIGNUP_LINK, planId: "yearly" }), "gym");
+// The case stated most emphatically: a gym that did not bring us the customer
+// gets nothing, and the member gets no discount for walking in later.
+assert.equal(
+  activeGift({ gymLink: PROFILE_LINK, planId: "yearly" }),
+  null,
+  "a code entered from the profile page never earns anything",
+);
+assert.equal(activeGift({ gymLink: SPENT_LINK, planId: "yearly" }), null, "spent once");
+assert.equal(activeGift({ planId: "yearly" }), null, "no code at all, no gift");
+
+// Yearly only, for BOTH kinds. The ₹150 must never reach ₹249 or ₹499.
+for (const tier of ["monthly", "quarterly"]) {
+  assert.equal(
+    activeGift({ gymLink: SIGNUP_LINK, planId: tier }),
+    null,
+    `a gym gift must not reach the ${tier} plan`,
+  );
+  assert.equal(
+    activeGift({ referralStatus: "trial", planId: tier }),
+    null,
+    `a friend gift must not reach the ${tier} plan`,
+  );
+}
+
+// A friend code claimed at signup wins, and link_gym() then refuses to attribute
+// any gym added afterwards — so this pairing is the one a real account reaches
+// after joining a gym from its profile page. It must read as the friend gift.
+assert.equal(
+  activeGift({ referralStatus: "trial", gymLink: PROFILE_LINK, planId: "yearly" }),
+  "friend",
+);
+
+// Both kinds are worth exactly the same money, and it is the money Razorpay
+// charges — the display price and the charged price are pinned to each other.
+for (const kind of [
+  activeGift({ referralStatus: "trial", planId: "yearly" }),
+  activeGift({ gymLink: SIGNUP_LINK, planId: "yearly" }),
+]) {
+  assert.ok(kind, "both kinds must resolve");
+  assert.equal(effectivePrice(YEARLY, kind !== null), YEARLY_DISCOUNTED.rupees);
+}
+
+// Different wording, same amount. Being sent by a friend is not the same thing
+// as walking into a gym, and the pill must not say it is.
+assert.notEqual(giftLabel("gym"), giftLabel("friend"));
+for (const kind of ["gym", "friend"] as const) {
+  assert.ok(
+    giftLabel(kind).includes(String(REFEREE_DISCOUNT_RUPEES)),
+    `${kind} copy must name the amount`,
+  );
+}
 
 // The call to action. A trial is spent once per account, so the moment
 // trial_start_date exists every card must sell instead of offering a trial —

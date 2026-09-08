@@ -149,6 +149,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      gym_links: {
+        Row: {
+          created_at: string;
+          end_date: string | null;
+          gift_spent_at: string | null;
+          gym_name: string;
+          partner_code: string;
+          plan_months: number | null;
+          source: string;
+          start_date: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          end_date?: string | null;
+          gift_spent_at?: string | null;
+          gym_name: string;
+          partner_code: string;
+          plan_months?: number | null;
+          source: string;
+          start_date?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          end_date?: string | null;
+          gift_spent_at?: string | null;
+          gym_name?: string;
+          partner_code?: string;
+          plan_months?: number | null;
+          source?: string;
+          start_date?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       notification_logs: {
         Row: {
           current_scheduled_at: string;

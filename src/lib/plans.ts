@@ -70,6 +70,58 @@ export function effectivePrice(plan: Plan, gift: boolean): number {
     : plan.price;
 }
 
+/** Where a user's ₹150 came from. The amount is the same either way; only the
+ *  wording differs, because being sent by a friend is not the same thing as
+ *  walking into a gym. */
+export type GiftKind = "friend" | "gym";
+
+/** The caller's own row in `gym_links`, as the RLS-scoped select returns it. */
+export interface GymLinkGift {
+  /** 'signup' or 'profile'. Only a code entered during signup earns anything —
+   *  link_gym() decides this in SQL and nothing here can override it. */
+  source: string;
+  gift_spent_at: string | null;
+}
+
+/**
+ * Which gift this user still holds on this plan, if any.
+ *
+ * At most one, and not by luck: the signup step accepts exactly one code, so an
+ * account is attributed to a friend or to a gym, never both. A friend code
+ * claimed at signup also makes `link_gym()` refuse to attribute any gym added
+ * later, which is what stops a gym being paid for a customer it did not bring.
+ *
+ * Shared by the pricing cards and by serverCreateSubscription(), for the same
+ * reason giftApplies() is: a money rule written twice is a money rule that will
+ * disagree with itself.
+ */
+export function activeGift(opts: {
+  referralStatus?: string | null;
+  gymLink?: GymLinkGift | null;
+  planId: string;
+}): GiftKind | null {
+  // Yearly-only, checked first so neither branch below can leak the gift onto
+  // the 1-month or 3-month plans.
+  if (opts.planId !== REFERRAL_DISCOUNT_PLAN_ID) return null;
+  if (giftApplies(opts.referralStatus, opts.planId)) return "friend";
+  const link = opts.gymLink;
+  if (link && link.source === "signup" && !link.gift_spent_at) return "gym";
+  return null;
+}
+
+/**
+ * The one place either gift's copy is written.
+ *
+ * Previously this string was duplicated verbatim in PricingPlans.tsx and
+ * profile.tsx, which is how the second wording would have drifted from the
+ * first the moment a gym gift existed.
+ */
+export function giftLabel(kind: GiftKind): string {
+  return kind === "gym"
+    ? `Gym offer applied · ₹${REFEREE_DISCOUNT_RUPEES} off`
+    : `Gift applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
+}
+
 /**
  * Every plan unlocks the whole app — they differ only in billing period, so the
  * feature list is shared rather than tiered.

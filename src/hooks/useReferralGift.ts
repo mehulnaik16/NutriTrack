@@ -1,52 +1,66 @@
 /**
- * Is the ₹150 referral gift still available to this user?
+ * The caller's own gift state, for the pricing cards.
  *
- * Only pricing display depends on this. What is actually charged is decided in
- * serverCreateSubscription() from the same `referrals` row and the same
- * giftApplies() predicate, so a tampered client can misprice a card it is
- * looking at and nothing else.
+ * Two rows decide whether someone pays ₹999 or ₹849: their `referrals` row
+ * (a friend's code) and their `gym_links` row (a gym's code). Both are readable
+ * by a plain select under their own RLS policy — `auth.uid() = referee_id` and
+ * `auth.uid() = user_id` — so neither needs an RPC, and neither can see anybody
+ * else's.
  *
- * No RPC and no migration: the referrals RLS policy already grants a user their
- * own row on either side — `auth.uid() = referrer_id or auth.uid() = referee_id`
- * — so a plain select is both readable and bounded to the caller.
- *
- * Shape follows useAccessGate: one read per user per page load shared by every
- * card on screen, and a `loading` state kept distinct from "not eligible" so a
- * referred user does not watch ₹849 appear as a correction. While loading,
- * callers render the list price — quoting full price and correcting downwards is
- * the safe direction; the reverse would be a promise we then take back.
+ * This decides nothing. activeGift() in src/lib/plans.ts turns these two rows
+ * into a verdict, and serverCreateSubscription() runs the same function over
+ * the same rows to decide what is actually charged.
  */
-
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { useAuth } from "@/lib/auth";
+import type { GymLinkGift } from "@/lib/plans";
 
 export interface ReferralGift {
   /** The caller's own referrals row status, or null when never referred. */
   status: string | null;
+  /** The caller's own gym_links row, or null when they have no gym. */
+  gymLink: GymLinkGift | null;
   loading: boolean;
 }
 
-const inFlight = new Map<string, Promise<string | null>>();
+interface GiftRows {
+  status: string | null;
+  gymLink: GymLinkGift | null;
+}
 
-async function read(userId: string): Promise<string | null> {
+const inFlight = new Map<string, Promise<GiftRows>>();
+
+const EMPTY: GiftRows = { status: null, gymLink: null };
+
+async function read(userId: string): Promise<GiftRows> {
   try {
-    const { data } = await supabase
-      .from("referrals")
-      .select("status")
-      .eq("referee_id", userId)
-      .maybeSingle();
-    return (data?.status as string | undefined) ?? null;
+    const [ref, gym] = await Promise.all([
+      supabase
+        .from("referrals")
+        .select("status")
+        .eq("referee_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("gym_links")
+        .select("source, gift_spent_at")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
+    return {
+      status: ((ref.data as any)?.status as string | undefined) ?? null,
+      gymLink: (gym.data as GymLinkGift | null) ?? null,
+    };
   } catch {
-    // A network blip must not invent an entitlement. Forget the attempt so the
-    // next mount retries, and report "not referred" meanwhile — that shows the
-    // list price, which is the safe direction to be wrong in.
+    // Drop the memo so the next mount retries, and resolve to "no gift" —
+    // deliberately failing towards the higher price. Quoting ₹999 and
+    // correcting down is recoverable; quoting ₹849 and charging ₹999 is not.
     inFlight.delete(userId);
-    return null;
+    return EMPTY;
   }
 }
 
-function loadStatus(userId: string): Promise<string | null> {
+function loadGift(userId: string): Promise<GiftRows> {
   const cached = inFlight.get(userId);
   if (cached) return cached;
   const p = read(userId);
@@ -60,20 +74,20 @@ export function invalidateReferralGift(userId?: string | null): void {
   else inFlight.clear();
 }
 
-export function useReferralGift(): ReferralGift {
+export function useGift(): ReferralGift {
   const { user, loading: authLoading } = useAuth();
   const userId = user?.id ?? null;
 
-  const [status, setStatus] = useState<string | null>(null);
+  const [rows, setRows] = useState<GiftRows>(EMPTY);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
     setChecked(false);
-    loadStatus(userId).then((s) => {
+    loadGift(userId).then((r) => {
       if (cancelled) return;
-      setStatus(s);
+      setRows(r);
       setChecked(true);
     });
     return () => {
@@ -81,9 +95,10 @@ export function useReferralGift(): ReferralGift {
     };
   }, [userId]);
 
-  // Signed out is not "still checking" — a visitor reading the landing page has
-  // a final answer already, and it is the list price.
-  if (!authLoading && !userId) return { status: null, loading: false };
+  // Signed out is a final answer, not "still checking" — otherwise a landing
+  // page would sit on a loading price forever.
+  if (!authLoading && !userId)
+    return { status: null, gymLink: null, loading: false };
 
-  return { status, loading: authLoading || !checked };
+  return { ...rows, loading: authLoading || !checked };
 }
