@@ -17,7 +17,7 @@
  * see src/lib/entitlement.ts and public.recompute_access().
  */
 
-import { REFERRAL_DISCOUNT_PLAN_ID } from "./plans";
+import { REFEREE_DISCOUNT_RUPEES, REFERRAL_DISCOUNT_PLAN_ID } from "./plans";
 
 export const DAYS_PER_REFERRAL = 5;
 /** Accrual ceiling. Reached at the 12th qualified referral (12 × 5). */
@@ -31,7 +31,6 @@ export const MAX_PREMIUM_DAYS = 480;
  * credits anyone. Until it elapses the referrer sees "processing", not a number.
  */
 export const PREMIUM_HOLD_DAYS = 3;
-export const REFEREE_DISCOUNT_RUPEES = 150;
 
 /**
  * Stepper nodes on the progress bar. Referring is uncapped, and free days stop
@@ -153,5 +152,9 @@ export function giftMessage(opts: {
     .trimEnd();
 }
 
-/** Re-exported so the referral UI never hardcodes which plan the gift applies to. */
-export { REFERRAL_DISCOUNT_PLAN_ID };
+/**
+ * Re-exported so the referral UI never hardcodes which plan the gift applies to,
+ * or what it is worth. Both live in plans.ts — pricing cannot import this module
+ * without a cycle, and the gift is a pricing fact.
+ */
+export { REFERRAL_DISCOUNT_PLAN_ID, REFEREE_DISCOUNT_RUPEES };

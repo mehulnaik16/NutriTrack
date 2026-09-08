@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { serverGroqChat } from "@/lib/ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarIcon,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -47,7 +48,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { uploadWeightPhoto, deleteWeightPhoto, replaceWeightPhoto } from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
-import { PremiumGate } from "@/components/PremiumGate";
+import { useAccessGate } from "@/hooks/useAccessGate";
 import { todayLocal } from "@/lib/dates";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
@@ -93,6 +94,8 @@ Be specific to their numbers. Be warm and real — not generic or cheesy. No has
 
 function WeightPage() {
   const { user, loading } = useAuth();
+  const { state: accessState } = useAccessGate();
+  const photoLocked = accessState !== "entitled";
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -564,54 +567,54 @@ function WeightPage() {
             </div>
 
             {/* Photo upload — the one locked control on this page. Logging a
-                weight stays free; the progress-photo pipeline does not. */}
-            <PremiumGate
-              variant="inline"
-              title="Progress photos are premium"
-              message="Logging your weight stays free. Pick a plan to add progress photos and compare them over time."
-              placeholder={
-                <div className="space-y-2">
-                  <Label>Progress photo (optional)</Label>
-                  <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6">
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Tap to add a progress photo
-                    </p>
-                  </div>
-                </div>
-              }
-            >
+                weight stays free; the progress-photo pipeline is premium, so
+                free-tier users get a small in-block lock and no file input. */}
             <div className="space-y-2">
               <Label>Progress photo (optional)</Label>
-              <div
-                onClick={() => fileRef.current?.click()}
-                className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 hover:border-accent transition-colors"
-              >
-                {photoPreview ? (
-                  <img
-                    src={photoPreview}
-                    alt="preview"
-                    className="h-32 w-32 rounded-lg object-cover"
+              {photoLocked ? (
+                <Link
+                  to="/plans"
+                  className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 text-center transition-colors hover:border-accent"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  </span>
+                  <p className="text-sm text-muted-foreground">
+                    Progress photos are premium — pick a plan to add them
+                  </p>
+                </Link>
+              ) : (
+                <>
+                  <div
+                    onClick={() => fileRef.current?.click()}
+                    className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 hover:border-accent transition-colors"
+                  >
+                    {photoPreview ? (
+                      <img
+                        src={photoPreview}
+                        alt="preview"
+                        className="h-32 w-32 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <>
+                        <Camera className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Tap to add a progress photo
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handlePhoto}
                   />
-                ) : (
-                  <>
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Tap to add a progress photo
-                    </p>
-                  </>
-                )}
-              </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handlePhoto}
-              />
+                </>
+              )}
             </div>
-            </PremiumGate>
 
             <Button
               onClick={logWeight}
@@ -817,6 +820,8 @@ function WeightEntryModal({
   weightUnit: WeightUnit;
 }) {
   const disp = (kg: number) => round1(kgToWeight(kg, weightUnit));
+  const { state: accessState } = useAccessGate();
+  const photoLocked = accessState !== "entitled";
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editDate, setEditDate] = useState("");
@@ -915,9 +920,11 @@ function WeightEntryModal({
                     />
                     {isEditing && (
                       <div className="absolute inset-0 bg-black/50 opacity-100 md:bg-black/60 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
-                          Change Photo
-                        </Button>
+                        {!photoLocked && (
+                          <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
+                            Change Photo
+                          </Button>
+                        )}
                         <Button variant="destructive" size="sm" onClick={() => setEditPhotoPreview(null)}>
                           Remove Photo
                         </Button>
@@ -925,15 +932,28 @@ function WeightEntryModal({
                     )}
                   </div>
                 ) : (
-                  isEditing && (
-                    <div 
+                  isEditing &&
+                  (photoLocked ? (
+                    <Link
+                      to="/plans"
+                      className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:border-accent w-full"
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                        <Lock className="h-4 w-4 text-muted-foreground" />
+                      </span>
+                      <p className="text-sm text-muted-foreground">
+                        Progress photos are premium — pick a plan to add them
+                      </p>
+                    </Link>
+                  ) : (
+                    <div
                       onClick={() => fileRef.current?.click()}
                       className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 hover:border-accent transition-colors w-full"
                     >
                       <Camera className="h-8 w-8 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground">Tap to add a progress photo</p>
                     </div>
-                  )
+                  ))
                 )}
                 <input
                   ref={fileRef}

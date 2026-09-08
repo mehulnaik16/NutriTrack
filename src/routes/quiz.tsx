@@ -36,6 +36,24 @@ import {
   resolveGoalKey,
 } from "@/lib/nutrition";
 
+/**
+ * The wizard, in order. Step numbers were hardcoded in a dozen places, so
+ * inserting one meant renumbering every branch and hoping none was missed — the
+ * referral step is the first time that bill came due. Everything now derives
+ * from this list: the panel that renders, the header, the count, the bound
+ * validateSearch clamps to, and where Continue turns into Create My Account.
+ */
+const STEPS = [
+  { key: "account", title: "Create Account" },
+  { key: "referral", title: "Referral Code" },
+  { key: "body", title: "Body Stats" },
+  { key: "activity", title: "Activity" },
+  { key: "goal", title: "Goal" },
+  { key: "review", title: "Review" },
+] as const;
+
+type StepKey = (typeof STEPS)[number]["key"];
+
 export const Route = createFileRoute("/quiz")({
   component: Quiz,
   // `ref` carries a friend's invite code. Unlisted params are stripped by the
@@ -43,7 +61,7 @@ export const Route = createFileRoute("/quiz")({
   validateSearch: (s: Record<string, unknown>): { step?: number; ref?: string } => {
     const n = Number(s.step);
     const out: { step?: number; ref?: string } = {};
-    if (Number.isInteger(n) && n >= 1 && n <= 5) out.step = n;
+    if (Number.isInteger(n) && n >= 1 && n <= STEPS.length) out.step = n;
     const code = typeof s.ref === "string" ? s.ref.trim().toUpperCase() : "";
     if (isValidCode(code)) out.ref = code;
     return out;
@@ -97,6 +115,7 @@ function Quiz() {
   const isOAuth = !!user;
   const { step: searchStep, ref: searchRef } = Route.useSearch();
   const step = searchStep ?? 1;
+  const stepKey: StepKey = STEPS[step - 1]?.key ?? "account";
   // Each step is a real history entry: forward pushes, back pops.
   const setStep = (n: number) => routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
   const [submitting, setSubmitting] = useState(false);
@@ -115,6 +134,95 @@ function Quiz() {
   });
   const [loseRate, setLoseRate] = useState("lose_0_25kg");
   const [unit, setUnit] = useState<"kg" | "lb">("kg");
+
+  // ── The referral step ──────────────────────────────────────────────────────
+  //
+  // `applied` is the single answer submit() uses. It is seeded from the ?ref=
+  // link so someone arriving from a share sees the step already filled in and
+  // green, and a code typed by hand overwrites it — the URL must not win over
+  // what the user just entered.
+  const [codeInput, setCodeInput] = useState(
+    () => pendingReferralCode(searchRef) ?? "",
+  );
+  const [applied, setApplied] = useState<string | null>(
+    () => pendingReferralCode(searchRef),
+  );
+  const [codeState, setCodeState] = useState<
+    "idle" | "checking" | "valid" | "invalid"
+  >(() => (pendingReferralCode(searchRef) ? "valid" : "idle"));
+  const [codeError, setCodeError] = useState<string | null>(null);
+  /** Only set for an already-signed-in user; a fresh signup has no code yet. */
+  const [ownCode, setOwnCode] = useState<string | null>(null);
+
+  // An OAuth user who re-enters the quiz already owns a code. claim_referral
+  // rejects a self-referral server-side, so this only stops the UI from
+  // celebrating a gift that would then be silently dropped.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    supabase
+      .from("user_profiles")
+      .select("referral_code")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setOwnCode((data as any)?.referral_code ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  /**
+   * Check a code against the database and record the verdict.
+   *
+   * get_referrer_name() is granted to anon and returns the sender's first name
+   * or null, so it doubles as the existence check — no new RPC needed, and the
+   * success message can name the friend who sent it.
+   */
+  const checkCode = async (raw: string) => {
+    const code = raw.trim().toUpperCase();
+    if (!code) {
+      setApplied(null);
+      setCodeState("idle");
+      setCodeError(null);
+      return;
+    }
+    if (!isValidCode(code)) {
+      setApplied(null);
+      setCodeState("invalid");
+      setCodeError("Codes look like RAH38291 — three letters then five digits.");
+      return;
+    }
+    if (ownCode && code === ownCode) {
+      setApplied(null);
+      setCodeState("invalid");
+      setCodeError("That's your own code — ask a friend for theirs.");
+      return;
+    }
+    setCodeState("checking");
+    setCodeError(null);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
+      const { data } = await (supabase.rpc as any)("get_referrer_name", { code });
+      if (data) {
+        setReferrerName(data as string);
+        setApplied(code);
+        setCodeState("valid");
+        rememberReferralCode(code);
+      } else {
+        setApplied(null);
+        setCodeState("invalid");
+        setCodeError(
+          "We couldn't find that code. Check it with your friend and try again.",
+        );
+      }
+    } catch {
+      setApplied(null);
+      setCodeState("invalid");
+      setCodeError("Couldn't check that code just now. Try again.");
+    }
+  };
 
   const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setD((p) => ({ ...p, [k]: v }));
@@ -166,7 +274,7 @@ function Quiz() {
   const macros  = useMemo(() => calcMacros(target, goalKey, d.weightKg), [target, goalKey, d.weightKg]);
 
   const canNext = () => {
-    if (step === 1) {
+    if (stepKey === "account") {
       const identityOk = d.fullName.trim() !== "" && d.email.trim() !== "";
       if (isOAuth) return identityOk && d.age >= 16;
       return (
@@ -177,9 +285,14 @@ function Quiz() {
         d.age >= 16
       );
     }
-    if (step === 2) return d.heightCm > 0 && d.weightKg > 0;
-    if (step === 3) return !!d.activity;
-    if (step === 4) {
+    // Optional, so an empty box passes. A code that is present but unverified
+    // does not: the user fixes it, clears it, or taps Skip for now.
+    if (stepKey === "referral") {
+      return codeInput.trim() === "" || codeState === "valid";
+    }
+    if (stepKey === "body") return d.heightCm > 0 && d.weightKg > 0;
+    if (stepKey === "activity") return !!d.activity;
+    if (stepKey === "goal") {
       if (!d.goal) return false;
       // lose/gain goals need a rate chosen (loseRate must match the active goal)
       if (d.goal === "lose") return loseRate.startsWith("lose_");
@@ -230,7 +343,7 @@ function Quiz() {
       // Attribution is best-effort by design: an unknown code, a self-referral
       // or a second attempt all come back false, and none of them may block an
       // account that has already been created.
-      const refCode = pendingReferralCode(searchRef);
+      const refCode = applied;
       if (refCode) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
@@ -265,16 +378,16 @@ function Quiz() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
           <span className="text-foreground font-bold tracking-wide">
-            {step === 1 ? "Create Account (1/5)" : step === 2 ? "Body Stats (2/5)" : step === 3 ? "Activity (3/5)" : step === 4 ? "Goal (4/5)" : "Review (5/5)"}
+            {STEPS[step - 1]?.title} ({step}/{STEPS.length})
           </span>
-          {/* no skip — all steps are required */}
+          {/* the referral step carries its own Skip; the rest are required */}
           <div className="w-10" />
         </div>
 
         <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-            {step === 1 && (
+            {stepKey === "account" && (
               <div className="space-y-6">
-                {referrerName && (
+                {referrerName && applied && (
                   <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
                     <p className="flex items-center gap-2 font-display text-base font-bold text-accent">
                       🎁 {referrerName} sent you a gift
@@ -287,7 +400,7 @@ function Quiz() {
                     <p className="mt-2 text-xs font-medium text-muted-foreground">
                       Gift code applied:{" "}
                       <span className="font-display tracking-widest text-accent">
-                        {pendingReferralCode(searchRef)}
+                        {applied}
                       </span>
                     </p>
                   </div>
@@ -384,7 +497,78 @@ function Quiz() {
               </div>
             )}
 
-            {step === 2 && (
+            {stepKey === "referral" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <h2 className="text-3xl font-semibold mb-2">
+                  Referral code{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (optional)
+                  </span>
+                </h2>
+                <p className="text-muted-foreground mb-8 text-sm">
+                  Got a code from a friend? Enter it here to claim your gift —
+                  ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
+                  {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"} plan.
+                </p>
+
+                <div className="space-y-2">
+                  <Label className="text-foreground/80">Their code</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={codeInput}
+                      maxLength={8}
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      spellCheck={false}
+                      placeholder="RAH38291"
+                      onChange={(e) => {
+                        setCodeInput(e.target.value.toUpperCase());
+                        // Editing invalidates the previous verdict — the box and
+                        // the message must never describe different codes.
+                        setCodeState("idle");
+                        setCodeError(null);
+                        setApplied(null);
+                      }}
+                      onBlur={() => {
+                        if (codeInput.trim() && codeState === "idle") {
+                          checkCode(codeInput);
+                        }
+                      }}
+                      className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl font-display tracking-[0.2em]"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => checkCode(codeInput)}
+                      disabled={!codeInput.trim() || codeState === "checking"}
+                      className="h-12 rounded-xl px-6 font-bold"
+                      variant="outline"
+                    >
+                      {codeState === "checking" ? "Checking…" : "Apply"}
+                    </Button>
+                  </div>
+
+                  {codeState === "valid" && (
+                    <p className="text-sm font-medium text-accent">
+                      🎁 Gift from {referrerName ?? "your friend"} applied — ₹
+                      {REFEREE_DISCOUNT_RUPEES} off the{" "}
+                      {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"}{" "}
+                      plan.
+                    </p>
+                  )}
+                  {codeState === "invalid" && codeError && (
+                    <p className="text-sm font-medium text-red-500">
+                      {codeError}
+                    </p>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  No code? Carry on — you'll still get your free trial.
+                </p>
+              </div>
+            )}
+
+            {stepKey === "body" && (
               <div className="space-y-6 animate-in fade-in duration-300 flex flex-col items-center">
                 <h2 className="text-3xl font-semibold mb-2 self-start">What's your weight?</h2>
                 <p className="text-muted-foreground mb-8 text-sm self-start">
@@ -444,7 +628,7 @@ function Quiz() {
               </div>
             )}
 
-            {step === 3 && (
+            {stepKey === "activity" && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <h2 className="text-3xl font-semibold mb-2">Activity level</h2>
                 <p className="text-muted-foreground mb-8 text-sm">
@@ -495,7 +679,7 @@ function Quiz() {
               </div>
             )}
 
-            {step === 4 && (
+            {stepKey === "goal" && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <h2 className="text-3xl font-semibold mb-2">Your goal</h2>
                 <p className="text-muted-foreground mb-8 text-sm">
@@ -614,7 +798,7 @@ function Quiz() {
               </div>
             )}
 
-            {step === 5 && (
+            {stepKey === "review" && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <h2 className="text-3xl font-semibold mb-2">Review & confirm</h2>
                 <p className="text-muted-foreground mb-8 text-sm">
@@ -660,8 +844,9 @@ function Quiz() {
               </div>
             )}
 
-            <div className="mt-12 flex items-center justify-center">
-              {step < 5 ? (
+            <div className="mt-12 flex flex-col items-center justify-center gap-3">
+              {step < STEPS.length ? (
+                <>
                 <Button
                   onClick={() => setStep(step + 1)}
                   disabled={!canNext()}
@@ -669,6 +854,24 @@ function Quiz() {
                 >
                   Continue
                 </Button>
+                {/* The one skippable step. Clearing the box as it advances is
+                    what keeps a half-typed code from reaching submit(). */}
+                {stepKey === "referral" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCodeInput("");
+                      setApplied(null);
+                      setCodeState("idle");
+                      setCodeError(null);
+                      setStep(step + 1);
+                    }}
+                    className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  >
+                    Skip for now
+                  </button>
+                )}
+                </>
               ) : (
                 <Button
                   onClick={submit}

@@ -12,6 +12,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/client";
 import { requireSupabaseAuth } from "@/integrations/auth-middleware";
 import { checkRateLimit } from "@/lib/ai";
+import { giftApplies } from "@/lib/plans";
 
 /** The three plan durations. Mirrors PLANS in src/lib/plans.ts. */
 export type Tier = "monthly" | "quarterly" | "yearly";
@@ -57,7 +58,7 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(tierSchema)
   .handler(async ({ context, data }) => {
-    const { userId } = context;
+    const { userId, supabase: userClient } = context;
     checkRateLimit(userId);
 
     const { supabaseAdmin } = await import("@/integrations/client.server");
@@ -66,7 +67,9 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
     );
 
     // The gift is spent once. A referral row that already reached 'subscribed'
-    // means this user has bought before, so the discount is gone.
+    // means this user has bought before, so the discount is gone. giftApplies()
+    // is the same predicate the pricing cards render with, so what is shown and
+    // what is charged cannot drift apart.
     let discounted = false;
     if (data.tier === "yearly") {
       const { data: ref } = await supabaseAdmin
@@ -74,7 +77,7 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
         .select("status")
         .eq("referee_id", userId)
         .maybeSingle();
-      discounted = !!ref && ref.status !== "subscribed";
+      discounted = giftApplies(ref?.status, data.tier);
     }
 
     const { subscriptionId } = await createSubscription({
@@ -85,15 +88,25 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
 
     // Recorded through the same SECURITY DEFINER function the client would use,
     // so the row is created under one set of rules whichever path reaches it.
+    //
+    // Through the USER-scoped client from requireSupabaseAuth, never
+    // supabaseAdmin: register_subscription takes no user id on purpose and
+    // derives its subject from auth.uid(). The service-role key carries no user
+    // JWT, so auth.uid() is null there and the function raises 'Unauthorized' —
+    // which is exactly what every Buy click used to surface as a toast.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-    const { error } = await (supabaseAdmin.rpc as any)(
+    const { error } = await (userClient.rpc as any)(
       "register_subscription",
       {
         p_provider_subscription_id: subscriptionId,
         p_tier: data.tier,
       },
     );
-    if (error) throw new Error(error.message);
+    // A bare rethrow of error.message is what made this read as a one-word
+    // mystery in the UI. Name the step that failed.
+    if (error) {
+      throw new Error(`Could not record the subscription: ${error.message}`);
+    }
 
     const plan = planFor(data.tier, discounted);
     return {

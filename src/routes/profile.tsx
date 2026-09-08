@@ -110,7 +110,14 @@ import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
 import { SubHeader } from "@/components/SubHeader";
 import { PricingPlans } from "@/components/PricingPlans";
-import { findPlan, periodLabel } from "@/lib/plans";
+import {
+  REFEREE_DISCOUNT_RUPEES,
+  effectivePrice,
+  findPlan,
+  giftApplies,
+  periodLabel,
+} from "@/lib/plans";
+import { useReferralGift } from "@/hooks/useReferralGift";
 import {
   BASE_TRIAL_DAYS,
   isTrialActive,
@@ -1178,6 +1185,11 @@ function TransactionsPage({
   onPricing: () => void;
 }) {
   const plan = findPlan(profile.selected_plan);
+  // A referred user pays the gift price, so this card must quote the same
+  // number the pricing grid and Razorpay do — not the list price.
+  const { status: referralStatus, loading: giftLoading } = useReferralGift();
+  const gift = !!plan && !giftLoading && giftApplies(referralStatus, plan.id);
+  const planPrice = plan ? effectivePrice(plan, gift) : 0;
   // Referral rewards extend the trial, so the length is no longer a constant —
   // see src/lib/trial.ts, which the Refer & Earn page shares.
   const bonusDays = profile.bonus_trial_days ?? 0;
@@ -1287,10 +1299,20 @@ function TransactionsPage({
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    ₹{plan.price}
+                    {gift && (
+                      <span className="mr-1.5 line-through opacity-70">
+                        ₹{plan.price}
+                      </span>
+                    )}
+                    ₹{planPrice}
                     {periodLabel(plan.months)}
                     {trialActive ? " after trial" : ""}
                   </p>
+                  {gift && (
+                    <p className="mt-1 text-xs font-semibold text-accent">
+                      Gift applied · ₹{REFEREE_DISCOUNT_RUPEES} off
+                    </p>
+                  )}
                 </div>
                 <BadgeCheck className="h-6 w-6 text-accent" />
               </div>
@@ -1349,7 +1371,7 @@ function TransactionsPage({
               >
                 {/* Once access has lapsed the only useful move is paying, so
                     the button says that rather than "change plan". */}
-                {hasAccessNow ? "Change plan" : `Buy · ₹${plan.price}`}
+                {hasAccessNow ? "Change plan" : `Buy · ₹${planPrice}`}
               </Button>
             </div>
           ) : (

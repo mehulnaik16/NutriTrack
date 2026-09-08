@@ -9,7 +9,7 @@
  */
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Check, Gift, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,11 +22,15 @@ import { todayLocal } from "@/lib/dates";
 import {
   PLANS,
   PLAN_FEATURES,
+  REFEREE_DISCOUNT_RUPEES,
+  effectivePrice,
+  giftApplies,
   monthlyRate,
   periodLabel,
   planCta,
   showsTrialBanner,
 } from "@/lib/plans";
+import { invalidateReferralGift, useReferralGift } from "@/hooks/useReferralGift";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export function PricingPlans({
@@ -45,6 +49,9 @@ export function PricingPlans({
   const navigate = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
   const native = isNativeApp();
+  // While this is loading the cards render the list price. Correcting ₹999 down
+  // to ₹849 is safe; the reverse would be a promise taken back.
+  const { status: referralStatus, loading: giftLoading } = useReferralGift();
 
   const start = async (planId: string) => {
     if (!user) {
@@ -82,6 +89,9 @@ export function PricingPlans({
     try {
       await subscribe(planId);
       invalidateAccess(user.id);
+      // The gift is spent by a yearly purchase, so the cached "eligible" answer
+      // is stale the moment this returns.
+      invalidateReferralGift(user.id);
       toast.success("Payment received. Your access updates within a minute.");
       onBought?.();
     } catch (e) {
@@ -114,6 +124,8 @@ export function PricingPlans({
             selectedPlan,
             native,
           });
+          const gift = !giftLoading && giftApplies(referralStatus, p.id);
+          const price = effectivePrice(p, gift);
           return (
             <Card
               key={p.id}
@@ -131,17 +143,28 @@ export function PricingPlans({
               )}
               <CardContent className="p-6">
                 <h3 className="font-display text-xl font-bold">{p.name}</h3>
-                <div className="mt-3 flex items-baseline gap-1">
+                <div className="mt-3 flex items-baseline gap-2">
+                  {gift && (
+                    <span className="font-display text-2xl font-bold text-muted-foreground/70 line-through">
+                      ₹{p.price}
+                    </span>
+                  )}
                   <span className="font-display text-4xl font-bold">
-                    ₹{p.price}
+                    ₹{price}
                   </span>
                   <span className="text-sm text-muted-foreground">
                     {periodLabel(p.months)}
                   </span>
                 </div>
+                {gift && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">
+                    <Gift className="h-3.5 w-3.5" /> Gift applied · ₹
+                    {REFEREE_DISCOUNT_RUPEES} off
+                  </p>
+                )}
                 {p.months > 1 && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Works out to ₹{monthlyRate(p)}/month
+                    Works out to ₹{monthlyRate(p, price)}/month
                   </p>
                 )}
                 <ul className="mt-6 space-y-3 text-sm">
@@ -168,7 +191,7 @@ export function PricingPlans({
                     {busy === p.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : cta === "buy" ? (
-                      `Buy · ₹${p.price}`
+                      `Buy · ₹${price}`
                     ) : cta === "current" ? (
                       "Your current plan"
                     ) : (

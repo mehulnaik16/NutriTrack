@@ -17,8 +17,11 @@
 import assert from "node:assert";
 import {
   PLANS,
+  REFEREE_DISCOUNT_RUPEES,
   REFERRAL_DISCOUNT_PLAN_ID,
+  effectivePrice,
   findPlan,
+  giftApplies,
   monthlyRate,
   periodLabel,
   planCta,
@@ -85,10 +88,35 @@ assert.equal(YEARLY_DISCOUNTED.periodDays, PLAN_CATALOG.yearly.periodDays);
 assert.equal(periodLabel(1), "/month");
 assert.equal(periodLabel(3), "/3 months");
 assert.equal(periodLabel(12), "/year");
-assert.equal(
-  monthlyRate({ id: "yearly", name: "Yearly", months: 12, price: 999 }),
-  83,
-);
+const YEARLY = { id: "yearly", name: "Yearly", months: 12, price: 999 };
+const MONTHLY = { id: "monthly", name: "Monthly", months: 1, price: 249 };
+assert.equal(monthlyRate(YEARLY), 83);
+
+// ── The gift, as the cards render it ──────────────────────────────────────────
+//
+// The whole point of effectivePrice() is that the number on the card and the
+// number Razorpay charges are the same number. Pin them to each other: if
+// either side is edited alone, this fails rather than silently quoting a price
+// the checkout will not honour.
+assert.equal(effectivePrice(YEARLY, true), YEARLY_DISCOUNTED.rupees);
+assert.equal(effectivePrice(YEARLY, true), 999 - REFEREE_DISCOUNT_RUPEES);
+assert.equal(effectivePrice(YEARLY, false), 999);
+// The gift cannot leak to a tier that does not carry it, however it is called.
+assert.equal(effectivePrice(MONTHLY, true), 249);
+// The monthly sub-line recomputes from what is actually paid, not the list price.
+assert.equal(monthlyRate(YEARLY, effectivePrice(YEARLY, true)), 71);
+
+// Eligibility. A referred user holds the gift until their first yearly buy,
+// which is when handle_razorpay_event() flips the row to 'subscribed'.
+assert.equal(giftApplies("pending", "yearly"), true);
+assert.equal(giftApplies("trial", "yearly"), true);
+assert.equal(giftApplies("subscribed", "yearly"), false, "spent once, never again");
+// Never referred at all.
+assert.equal(giftApplies(null, "yearly"), false);
+assert.equal(giftApplies(undefined, "yearly"), false);
+// Yearly only — a referred user still pays full price on the other tiers.
+assert.equal(giftApplies("trial", "monthly"), false);
+assert.equal(giftApplies("trial", "quarterly"), false);
 
 // The call to action. A trial is spent once per account, so the moment
 // trial_start_date exists every card must sell instead of offering a trial —

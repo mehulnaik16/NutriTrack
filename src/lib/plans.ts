@@ -27,6 +27,50 @@ export const PLANS: readonly Plan[] = [
 export const REFERRAL_DISCOUNT_PLAN_ID = "yearly";
 
 /**
+ * The referral gift, in rupees. Defined here rather than in referral.ts because
+ * pricing must not import the referral module — referral.ts already imports this
+ * one, and it re-exports this constant so no call site had to change.
+ *
+ * Pinned against YEARLY_DISCOUNTED.rupees in src/server/razorpay.ts by
+ * src/lib/plans.test.ts: what the card shows and what Razorpay charges are the
+ * same number or the test fails.
+ */
+export const REFEREE_DISCOUNT_RUPEES = 150;
+
+/**
+ * Is the gift still available to a user, for this plan?
+ *
+ * `referralStatus` is the user's own row in `referrals` — null when they were
+ * never referred. The gift is spent by their first Yearly purchase, which is
+ * when handle_razorpay_event() flips that row to 'subscribed'.
+ *
+ * Shared deliberately: serverCreateSubscription() decides what to charge with
+ * this, and the pricing cards decide what to show with it. A money rule written
+ * twice is a money rule that will disagree with itself.
+ */
+export function giftApplies(
+  referralStatus: string | null | undefined,
+  planId: string,
+): boolean {
+  return (
+    planId === REFERRAL_DISCOUNT_PLAN_ID &&
+    !!referralStatus &&
+    referralStatus !== "subscribed"
+  );
+}
+
+/**
+ * What the user actually pays. A no-op for every plan but the yearly one, so
+ * callers can apply it unconditionally and the gift can never leak to a tier
+ * that does not carry it.
+ */
+export function effectivePrice(plan: Plan, gift: boolean): number {
+  return gift && plan.id === REFERRAL_DISCOUNT_PLAN_ID
+    ? plan.price - REFEREE_DISCOUNT_RUPEES
+    : plan.price;
+}
+
+/**
  * Every plan unlocks the whole app — they differ only in billing period, so the
  * feature list is shared rather than tiered.
  *
@@ -56,9 +100,14 @@ export function periodLabel(months: number): string {
   return `/${months} months`;
 }
 
-/** Effective monthly rate, rounded, for the "works out to ₹83/mo" sub-line. */
-export function monthlyRate(plan: Plan): number {
-  return Math.round(plan.price / plan.months);
+/**
+ * Effective monthly rate, rounded, for the "works out to ₹83/mo" sub-line.
+ *
+ * `price` overrides the list price so a discounted card recomputes rather than
+ * showing the full-price monthly figure beside a reduced total.
+ */
+export function monthlyRate(plan: Plan, price: number = plan.price): number {
+  return Math.round(price / plan.months);
 }
 
 /** What the button on a plan card offers. See planCta(). */

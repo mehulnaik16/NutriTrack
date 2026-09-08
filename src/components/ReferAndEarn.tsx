@@ -98,6 +98,8 @@ export function ReferAndEarnPage({
   const [editing, setEditing] = useState(false);
   /** bonus_premium_days as the fold computed it. null until the read lands. */
   const [creditedDays, setCreditedDays] = useState<number | null>(null);
+  /** bonus_trial_days, same source and same reason — see freeDays below. */
+  const [creditedTrialDays, setCreditedTrialDays] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,7 +121,9 @@ export function ReferAndEarnPage({
       // is what makes a hold that quietly elapsed show up here without a cron.
       getBillingSummary()
         .then((b) => {
-          if (!cancelled) setCreditedDays(b.bonus_premium_days);
+          if (cancelled) return;
+          setCreditedDays(b.bonus_premium_days);
+          setCreditedTrialDays(b.bonus_trial_days);
         })
         .catch(() => {
           /* the tracker falls back to the row count */
@@ -148,7 +152,10 @@ export function ReferAndEarnPage({
     rows?.filter((r) => r.status === "trial" || r.status === "subscribed")
       .length ?? 0;
   const subscribed = rows?.filter((r) => r.status === "subscribed") ?? [];
-  const freeDays = freeDaysEarned(qualified);
+  // The database is the authority, same as the paid track below: recompute_access()
+  // applies the 12-referral accrual cap and any clawback that a bare row count
+  // cannot see. freeDaysEarned() is the fallback until that read lands.
+  const freeDays = creditedTrialDays ?? freeDaysEarned(qualified);
   // Three states, not two. A friend who just bought is "processing" until the
   // 3-day hold elapses — the days are real but not yet spendable, and a refund
   // inside the window means they never land at all.
