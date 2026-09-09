@@ -38,9 +38,24 @@ export function isTier(v: unknown): v is Tier {
   return typeof v === "string" && (TIERS as readonly string[]).includes(v);
 }
 
+/**
+ * Plan ids get the same .trim() the credentials get at requireEnv().
+ *
+ * Without it, a trailing space or a stray quote in a Vercel variable is sent to
+ * Razorpay as part of the id, and the only symptom is Razorpay answering "The ID
+ * provided is invalid or could not be found" — which reads exactly like a plan
+ * that does not exist.
+ */
+function planEnv(name: string): string | undefined {
+  const v = process.env[name]?.trim();
+  return v && v.length > 0 ? v : undefined;
+}
+
 interface PlanEntry {
   /** Razorpay plan id, from the dashboard. */
   planId: string | undefined;
+  /** Which environment variable it came from, so an error can name it. */
+  envVar: string;
   /** Billing cycles to charge before the subscription completes. */
   totalCount: number;
   /** Days of access one charge grants. Clamped again in SQL (1–400). */
@@ -56,19 +71,22 @@ interface PlanEntry {
  */
 export const PLAN_CATALOG: Record<Tier, PlanEntry> = {
   monthly: {
-    planId: process.env.RAZORPAY_PLAN_MONTHLY,
+    planId: planEnv("RAZORPAY_PLAN_MONTHLY"),
+    envVar: "RAZORPAY_PLAN_MONTHLY",
     totalCount: 120,
     periodDays: 30,
     rupees: 249,
   },
   quarterly: {
-    planId: process.env.RAZORPAY_PLAN_QUARTERLY,
+    planId: planEnv("RAZORPAY_PLAN_QUARTERLY"),
+    envVar: "RAZORPAY_PLAN_QUARTERLY",
     totalCount: 40,
     periodDays: 91,
     rupees: 499,
   },
   yearly: {
-    planId: process.env.RAZORPAY_PLAN_YEARLY,
+    planId: planEnv("RAZORPAY_PLAN_YEARLY"),
+    envVar: "RAZORPAY_PLAN_YEARLY",
     totalCount: 10,
     periodDays: 365,
     rupees: 999,
@@ -77,7 +95,8 @@ export const PLAN_CATALOG: Record<Tier, PlanEntry> = {
 
 /** The referral gift: a separate plan id at ₹150 off, yearly only. */
 export const YEARLY_DISCOUNTED: PlanEntry = {
-  planId: process.env.RAZORPAY_PLAN_YEARLY_DISCOUNTED,
+  planId: planEnv("RAZORPAY_PLAN_YEARLY_DISCOUNTED"),
+  envVar: "RAZORPAY_PLAN_YEARLY_DISCOUNTED",
   totalCount: 10,
   periodDays: 365,
   rupees: 849,
@@ -248,15 +267,34 @@ export async function createSubscription(args: {
     );
   }
 
-  const json = await razorpayFetch("/subscriptions", {
-    method: "POST",
-    body: {
-      plan_id: plan.planId,
-      total_count: plan.totalCount,
-      customer_notify: 1,
-      notes: { user_id: args.userId, tier: args.tier },
-    },
-  });
+  // Razorpay answers a plan id it does not recognise with "The ID provided is
+  // invalid or could not be found" — true, but it names neither the plan nor
+  // where the id came from, so the pricing page showed an error nobody could
+  // act on. The usual cause is an id belonging to a different account or the
+  // other mode (test ids do not work with a live key, or vice versa), which is
+  // easy to hit after rotating a key.
+  const label = `${args.tier}${args.discounted ? " (discounted)" : ""}`;
+  let json: Record<string, unknown>;
+  try {
+    json = await razorpayFetch("/subscriptions", {
+      method: "POST",
+      body: {
+        plan_id: plan.planId,
+        total_count: plan.totalCount,
+        customer_notify: 1,
+        notes: { user_id: args.userId, tier: args.tier },
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/invalid or could not be found/i.test(msg)) {
+      throw new Error(
+        `Razorpay does not recognise the ${label} plan id set in ${plan.envVar}. ` +
+          `Check it exists in this Razorpay account, in the same mode as the key. (${msg})`,
+      );
+    }
+    throw e;
+  }
 
   const id = json.id;
   if (typeof id !== "string") {
@@ -266,19 +304,52 @@ export async function createSubscription(args: {
 }
 
 /**
- * Cancel a subscription at the end of the paid period.
+ * Cancel a subscription.
  *
- * `cancel_at_cycle_end: 1` deliberately: the user paid for the period, so they
- * keep it. The fold honours that anyway — access_until already covers the
- * charged days — but cancelling immediately would also stop Razorpay from
- * sending the events that keep our rows in step.
+ * `atCycleEnd` defaults to true, which is what a user asking to cancel means:
+ * they paid for the period, so they keep it, and Razorpay keeps sending the
+ * events that hold our rows in step until it truly ends.
+ *
+ * Pass false only when replacing one subscription with another. There the old
+ * one has to stop billing *now* — leaving it live would charge the user twice
+ * over, and would keep the row that subscriptions_one_live_per_user counts.
+ * Cancelling costs them nothing: access_until is folded from charges, which
+ * cancelling never touches.
  */
 export async function cancelSubscription(
   subscriptionId: string,
+  atCycleEnd = true,
 ): Promise<{ status: string }> {
   const json = await razorpayFetch(`/subscriptions/${subscriptionId}/cancel`, {
     method: "POST",
-    body: { cancel_at_cycle_end: 1 },
+    body: { cancel_at_cycle_end: atCycleEnd ? 1 : 0 },
   });
   return { status: typeof json.status === "string" ? json.status : "cancelled" };
+}
+
+/**
+ * Read a payment. Used to confirm the money genuinely moved before granting
+ * anything at checkout success — the browser's callback says a payment happened,
+ * this says whether Razorpay agrees.
+ */
+export async function fetchPayment(
+  paymentId: string,
+): Promise<{ status: string; amount: number; subscriptionId: string | null }> {
+  const json = await razorpayFetch(`/payments/${paymentId}`, { method: "GET" });
+  return {
+    status: typeof json.status === "string" ? json.status : "",
+    amount: typeof json.amount === "number" ? Math.trunc(json.amount) : 0,
+    subscriptionId:
+      typeof json.subscription_id === "string" ? json.subscription_id : null,
+  };
+}
+
+/** Read a subscription, for its authoritative status. */
+export async function fetchSubscription(
+  subscriptionId: string,
+): Promise<{ status: string }> {
+  const json = await razorpayFetch(`/subscriptions/${subscriptionId}`, {
+    method: "GET",
+  });
+  return { status: typeof json.status === "string" ? json.status : "" };
 }

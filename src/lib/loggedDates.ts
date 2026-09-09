@@ -25,7 +25,9 @@ export async function fetchLoggedDates(userId: string): Promise<Date[]> {
     // the bug this replaces.
     .limit(50000);
 
-  const seen = new Set<string>((data ?? []).map((r: { date: string }) => r.date));
+  const seen = new Set<string>(
+    (data ?? []).map((r: { date: string }) => r.date),
+  );
   return [...seen].map((iso) => {
     // Local midnight, not `new Date(iso)` — that parses as UTC and lands on the
     // previous day for anyone west of Greenwich.

@@ -91,12 +91,20 @@ export function PricingPlans({
     if (!isTier(planId)) return;
     setBusy(planId);
     try {
-      await subscribe(planId);
+      const { applied } = await subscribe(planId);
       invalidateAccess(user.id);
       // The gift is spent by a yearly purchase, so the cached "eligible" answer
       // is stale the moment this returns.
       invalidateReferralGift(user.id);
-      toast.success("Payment received. Your access updates within a minute.");
+      // Two true sentences, and which one is true is known by now. `applied`
+      // means the charge is recorded and the days are already on the account;
+      // otherwise the webhook still has to land, and promising otherwise is how
+      // a user ends up staring at a locked screen believing it is unlocked.
+      toast.success(
+        applied
+          ? "You're in — your plan is active."
+          : "Payment received. Your access updates within a minute.",
+      );
       onBought?.();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

@@ -62,9 +62,73 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
     checkRateLimit(userId);
 
     const { supabaseAdmin } = await import("@/integrations/client.server");
-    const { createSubscription, keyId, planFor } = await import(
-      "@/server/razorpay"
-    );
+    const {
+      createSubscription,
+      keyId,
+      planFor,
+      cancelSubscription,
+      fetchSubscription,
+    } = await import("@/server/razorpay");
+
+    // Switching plans replaces the old subscription rather than running beside
+    // it. Two reasons, and the second is the one that used to eat payments:
+    //
+    //   * Money. Leaving the monthly live while a yearly starts bills the user
+    //     for both, every cycle, until they notice.
+    //   * subscriptions_one_live_per_user is a unique index over live rows. A
+    //     second live subscription made handle_razorpay_event raise, so the
+    //     charge insert that comes after it was never reached — the upgrade was
+    //     paid for and granted nothing, permanently.
+    //
+    // Cancelling costs the user no days. access_until is folded from
+    // subscription_charges, which this does not touch, so everything already
+    // paid for keeps counting and the new plan queues on after it.
+    const { data: live } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id, provider_subscription_id")
+      .eq("user_id", userId)
+      .eq("provider", "razorpay")
+      .in("status", ["authenticated", "active", "pending", "halted"])
+      .maybeSingle();
+
+    if (live) {
+      try {
+        // Not at cycle end: it has to stop being live before the next one can
+        // become live.
+        await cancelSubscription(live.provider_subscription_id, false);
+      } catch (e) {
+        // Razorpay refuses to cancel something already finished, and our row
+        // can say "live" for a subscription that ended without us hearing about
+        // it. Ask what it really is: if it is already over, there is nothing to
+        // stop and the purchase may go ahead.
+        let settled = false;
+        try {
+          const { status } = await fetchSubscription(
+            live.provider_subscription_id,
+          );
+          settled = ["cancelled", "completed", "expired"].includes(status);
+        } catch {
+          /* couldn't ask — treat as still live and refuse below */
+        }
+        if (!settled) {
+          // Fail the purchase rather than proceed. Charging someone for a
+          // second subscription while the first keeps recurring is worse than
+          // making them try again.
+          const msg = e instanceof Error ? e.message : String(e);
+          throw new Error(
+            `Could not switch off your current plan, so nothing was charged. Please try again. (${msg})`,
+          );
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts omits this service-role-only table
+      await (supabaseAdmin.from("subscriptions") as any)
+        .update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", live.id);
+    }
 
     // The gift is spent once, whichever code earned it. A referral row that
     // already reached 'subscribed', or a gym link with gift_spent_at set, means
@@ -174,15 +238,34 @@ export const serverCancelSubscription = createServerFn({ method: "POST" })
   });
 
 /**
- * Confirm the signature Checkout hands back after a subscription payment.
+ * Confirm the payment Checkout hands back, and grant the days it bought.
  *
- * This grants nothing — entitlement moves only when the webhook records a
- * charge. It exists so the browser can tell "Razorpay says you paid" from a
- * forged success callback before it shows a success screen and starts polling.
+ * This used to verify the signature and stop there, leaving entitlement
+ * entirely to the webhook. That made one missed delivery indistinguishable from
+ * a working system: subscriptions piled up at status 'created', not one charge
+ * was ever recorded, and every user who paid was shown "your access updates
+ * within a minute" and then nothing, forever.
  *
- * The subscription id is taken from our own row for this user, never from the
- * Checkout response: a client-supplied id on both sides of the HMAC would
- * verify nothing. `razorpay_subscription_id` in the callback is ignored.
+ * So there are now two independent paths to the same result, and neither is
+ * required for the other to work:
+ *
+ *   this one   — fast, runs while the user is still looking at the screen
+ *   the webhook — authoritative, and the only path for renewals, refunds and
+ *                 cancellations, which no browser is present for
+ *
+ * They cannot stack. subscription_charges.provider_payment_id is unique, so
+ * whichever arrives second inserts nothing and grants nothing. Whichever
+ * arrives first wins; the other is free.
+ *
+ * Two things are checked before anything is granted, and the order matters:
+ *
+ *   1. The HMAC, over a subscription id read from OUR row for this user — never
+ *      from the Checkout response, because a client-supplied id on both sides
+ *      of a comparison verifies nothing. `razorpay_subscription_id` in the
+ *      callback stays ignored.
+ *   2. Razorpay's own record of the payment. A signature proves the browser was
+ *      handed a real payment id; only `status: 'captured'` proves the money
+ *      actually moved. The amount is read from there too, never from the client.
  */
 export const serverConfirmCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -202,16 +285,66 @@ export const serverConfirmCheckout = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!sub) return { verified: false as const };
+    if (!sub) return { verified: false, applied: false };
 
-    const { verifyCheckoutSignature } = await import("@/server/razorpay");
-    return {
-      verified: verifyCheckoutSignature({
-        paymentId: data.paymentId,
-        subscriptionId: sub.provider_subscription_id,
-        signature: data.signature,
-      }),
-    };
+    const { verifyCheckoutSignature, fetchPayment, fetchSubscription } =
+      await import("@/server/razorpay");
+
+    const verified = verifyCheckoutSignature({
+      paymentId: data.paymentId,
+      subscriptionId: sub.provider_subscription_id,
+      signature: data.signature,
+    });
+    if (!verified) return { verified: false, applied: false };
+
+    // Ask Razorpay what this payment is. 'captured' is the only status that
+    // means settled money; 'authorized' is a hold that can still fail, and
+    // granting on it would hand out days for a payment that never completes.
+    const payment = await fetchPayment(data.paymentId);
+    if (payment.status !== "captured") {
+      return { verified: true, applied: false };
+    }
+    // And that it belongs to this user's subscription. fetchPayment reads
+    // Razorpay's own linkage, so a payment id lifted from elsewhere cannot be
+    // spent here even if it were somehow signed.
+    if (
+      payment.subscriptionId &&
+      payment.subscriptionId !== sub.provider_subscription_id
+    ) {
+      return { verified: true, applied: false };
+    }
+
+    const rzpSub = await fetchSubscription(sub.provider_subscription_id);
+
+    // The same function the webhook route calls, with the same arguments it
+    // would send. p_period_days stays null so the period is derived in SQL from
+    // our own tier rather than from anything that crossed the wire.
+    //
+    // The event id is ours, not Razorpay's — Razorpay's real event id arrives
+    // later on the webhook and is deliberately different, so both are recorded
+    // and only the first one to arrive grants anything.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
+    const { error: rpcError } = await (supabaseAdmin.rpc as any)(
+      "handle_razorpay_event",
+      {
+        p_event_id: `checkout:${data.paymentId}`,
+        p_event_type: "subscription.charged",
+        p_subscription_id: sub.provider_subscription_id,
+        p_payment_id: data.paymentId,
+        p_amount_paise: payment.amount,
+        p_status: rzpSub.status || null,
+        p_period_days: null,
+        p_refunded: false,
+      },
+    );
+    if (rpcError) {
+      // Not fatal to the user: the webhook is still coming and will apply the
+      // same payment. Surfaced so the caller can keep the cautious copy.
+      console.error("[razorpay] checkout fulfil failed:", rpcError.message);
+      return { verified: true, applied: false };
+    }
+
+    return { verified: true, applied: true };
   });
 
 /** What the profile row actually holds after a trial call. */
@@ -324,17 +457,18 @@ export async function getBillingSummary(): Promise<BillingSummary> {
  * applies is decided there too by reading the referrals table, so there is no
  * discount flag a client could set.
  *
- * The success handler does not grant anything. It verifies the returned
- * signature for authenticity and refetches the summary; entitlement moves only
- * when the webhook records a charge.
+ * Resolves with whether access was actually granted before the user let go of
+ * the screen. `false` is not a failure — it means the webhook has to finish the
+ * job, which it will; it only decides which of two true sentences the toast
+ * says.
  */
-export async function subscribe(tier: Tier): Promise<void> {
+export async function subscribe(tier: Tier): Promise<{ applied: boolean }> {
   const { keyId, subscriptionId, name, description } =
     await serverCreateSubscription({ data: { tier } });
 
   const Razorpay = await loadCheckout();
 
-  await new Promise<void>((resolve, reject) => {
+  return await new Promise<{ applied: boolean }>((resolve, reject) => {
     const rzp = new Razorpay({
       key: keyId,
       subscription_id: subscriptionId,
@@ -344,24 +478,27 @@ export async function subscribe(tier: Tier): Promise<void> {
         razorpay_payment_id?: string;
         razorpay_signature?: string;
       }) => {
-        // Fire-and-forget: a bad signature is logged but does not block the
-        // user, because the webhook is the real authority and will either
-        // confirm the charge or never arrive.
-        if (r?.razorpay_payment_id && r?.razorpay_signature) {
-          serverConfirmCheckout({
-            data: {
-              paymentId: r.razorpay_payment_id,
-              signature: r.razorpay_signature,
-            },
-          })
-            .then((res) => {
-              if (!res.verified) {
-                console.warn("[razorpay] checkout signature did not verify");
-              }
-            })
-            .catch(() => {});
+        if (!r?.razorpay_payment_id || !r?.razorpay_signature) {
+          resolve({ applied: false });
+          return;
         }
-        resolve();
+        // Awaited, not fired and forgotten: this is what grants the days, and
+        // resolving before it lands would send the user to a dashboard that is
+        // still locked. It is still not allowed to fail the purchase — the
+        // money moved, and the webhook applies the same payment either way.
+        serverConfirmCheckout({
+          data: {
+            paymentId: r.razorpay_payment_id,
+            signature: r.razorpay_signature,
+          },
+        })
+          .then((res) => {
+            if (!res.verified) {
+              console.warn("[razorpay] checkout signature did not verify");
+            }
+            resolve({ applied: res.applied });
+          })
+          .catch(() => resolve({ applied: false }));
       },
       modal: { ondismiss: () => reject(new Error("Checkout closed")) },
       theme: { color: "#4d7c0f" },
