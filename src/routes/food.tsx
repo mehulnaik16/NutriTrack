@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
 import { DEFAULT_MEALS, loadMealNames, saveMealNames } from "@/lib/meals";
 import { supabase } from "@/integrations/client";
+import { fetchLoggedDates } from "@/lib/loggedDates";
 import {
   Utensils,
   UtensilsCrossed,
@@ -110,6 +111,9 @@ function FoodPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [todayLogs, setTodayLogs] = useState<any[]>([]);
   const [monthLogs, setMonthLogs] = useState<any[]>([]);
+  // Separate from monthLogs: the calendar highlights every day ever logged,
+  // while monthLogs is the 30-day window the chart totals need.
+  const [loggedDates, setLoggedDates] = useState<Date[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const searchRef = useRef<FoodSearchRef>(null);
   const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
@@ -191,6 +195,7 @@ function FoodPage() {
     setProfile(p);
     setTodayLogs(t ?? []);
     setMonthLogs(m ?? []);
+    fetchLoggedDates(user.id).then(setLoggedDates);
     if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
   }, [user, selectedDate, navigate]);
 
@@ -414,7 +419,7 @@ function FoodPage() {
                         return dStart > todayStart;
                       }}
                       modifiers={{
-                        logged: [...new Set(monthLogs.map((l) => new Date(l.date)))],
+                        logged: loggedDates,
                       }}
                       modifiersStyles={{
                         logged: {

@@ -67,6 +67,7 @@ import { WeeklyReport } from "@/components/WeeklyReport";
 import { PremiumGate } from "@/components/PremiumGate";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { fetchLoggedDates } from "@/lib/loggedDates";
 import { loadMealNames } from "@/lib/meals";
 import { uploadWeightPhoto } from "@/services/storage";
 import { todayLocal, toLocalISO } from "@/lib/dates";
@@ -225,6 +226,9 @@ function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [todayLogs, setTodayLogs] = useState<FoodLog[]>([]);
   const [monthLogs, setMonthLogs] = useState<FoodLog[]>([]);
+  // Separate from monthLogs: the calendar highlights every day ever logged,
+  // while monthLogs is the 30-day window the charts need.
+  const [loggedDates, setLoggedDates] = useState<Date[]>([]);
   const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
@@ -331,6 +335,7 @@ function Dashboard() {
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);
     setMonthLogs((m as FoodLog[]) ?? []);
+    fetchLoggedDates(user.id).then(setLoggedDates);
     setWeightEntries((w as WeightEntry[]) ?? []);
     if (wp?.plan_json) setWorkoutPlan(wp.plan_json as unknown as WorkoutPlan);
     if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
@@ -598,7 +603,6 @@ function Dashboard() {
   const lastWeight = weightEntries[weightEntries.length - 1]?.weight_kg;
   const prevWeight = weightEntries[weightEntries.length - 2]?.weight_kg;
   const weightDiff = lastWeight && prevWeight ? lastWeight - prevWeight : null;
-  const loggedDates = [...new Set(monthLogs.map((l) => new Date(l.date)))];
 
   // Which plan day is today? (Mon-indexed, rotates across the split)
   const planDayIdx = workoutPlan?.days?.length
