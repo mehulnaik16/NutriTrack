@@ -54,24 +54,7 @@ export const FITNESS_GOALS = [
   { value: "strength", label: "Get Stronger (Powerlifting)", emoji: "🏋️" },
 ] as const;
 
-export const CARDIO_OPTIONS = [
-  "Treadmill running",
-  "Outdoor run",
-  "Outdoor walk",
-  "Cycling",
-  "Swimming",
-  "Jump rope",
-  "HIIT",
-  "Yoga & Pilates",
-  "Stair climbing",
-  "Elliptical",
-  "Rowing machine",
-  "SkiErg",
-  "Dancing",
-  "Badminton",
-  "Cricket",
-  "Football",
-] as const;
+export { CARDIO_ACTIVITY_NAMES as CARDIO_OPTIONS } from "@/lib/cardioCategories";
 
 /** Split guidance used in the AI prompt, keyed by training days. */
 export const SPLIT_GUIDE: Record<number, string> = {

@@ -4,6 +4,20 @@ import { useGatedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
 import { useEffect, useState, useMemo } from "react";
 import { CardioPaceChart } from "@/components/CardioPaceChart";
 import {
+  CARDIO_ACTIVITY_NAMES,
+  categoryOf,
+  configFor,
+  metFor,
+  estimateCardioKcal,
+  formatPace,
+  computePaceNumeric,
+  getCardioDefaults,
+  saveCardioDefaults,
+  groupedCatalog,
+  INTERVAL_PROTOCOLS,
+  type CardioCategory,
+} from "@/lib/cardioCategories";
+import {
   LineChart as RechartsLineChart,
   Line,
   ResponsiveContainer,
@@ -167,57 +181,6 @@ const MUSCLES = [
   { id: "compound",  name: "Compound",   img: "/images/compoundfinal.png" },
   { id: "forearms",  name: "Forearms",   img: "/images/forearms.png" },
 ];
-
-const CARDIO_ACTIVITIES = [
-  "Treadmill running",
-  "Outdoor run",
-  "Outdoor walk",
-  "Cycling",
-  "Swimming",
-  "Jump rope",
-  "HIIT",
-  "Yoga & Pilates",
-  "Stair climbing",
-  "Elliptical",
-  "Rowing machine",
-  "SkiErg",
-  "Dancing",
-  "Badminton",
-  "Cricket",
-  "Football",
-];
-
-/**
- * MET values from the Compendium of Physical Activities.
- * kcal = MET × body weight (kg) × duration (hours)
- */
-const CARDIO_METS: Record<string, number> = {
-  "Treadmill running": 8.3,
-  "Outdoor run": 9.8,
-  "Outdoor walk": 3.8,
-  Cycling: 7.5,
-  Swimming: 7.0,
-  "Jump rope": 11.8,
-  HIIT: 8.0,
-  "Yoga & Pilates": 3.0,
-  "Stair climbing": 8.0,
-  Elliptical: 5.0,
-  "Rowing machine": 7.0,
-  SkiErg: 8.0,
-  Dancing: 5.5,
-  Badminton: 5.5,
-  Cricket: 4.8,
-  Football: 7.0,
-};
-
-const estimateCardioKcal = (
-  activity: string | null,
-  minutes: number,
-  weightKg: number,
-): number => {
-  const met = (activity && CARDIO_METS[activity]) || 6.0;
-  return Math.round(met * weightKg * (minutes / 60));
-};
 
 /** RPE 1-10 → colour band. Purely cosmetic; an unset RPE keeps the default. */
 const rpeColor = (rpe?: number) => {
@@ -979,44 +942,50 @@ function WorkoutPage() {
   };
 
   const renderCardioList = () => {
-    // Preferred activities from onboarding float to the top with a badge
-    const sorted = [...CARDIO_ACTIVITIES].sort((a, b) => {
-      const ra = isRecommendedCardio(a, prefs) ? 0 : 1;
-      const rb = isRecommendedCardio(b, prefs) ? 0 : 1;
-      return ra - rb;
-    });
+    const groups = groupedCatalog();
     return (
-      <div className="space-y-3">
-        {sorted.map((act) => {
-          const recommended = isRecommendedCardio(act, prefs);
+      <div className="space-y-6">
+        {groups.map((group) => {
+          // Within each group, recommended activities float to top
+          const sorted = [...group.activities].sort((a, b) => {
+            const ra = isRecommendedCardio(a.name, prefs) ? 0 : 1;
+            const rb = isRecommendedCardio(b.name, prefs) ? 0 : 1;
+            return ra - rb;
+          });
           return (
-            <button
-              key={act}
-              onClick={() => setSelectedCardio(act)}
-              className={`w-full flex items-center justify-between p-4 rounded-xl bg-card border shadow-sm transition-colors ${recommended
-                  ? "border-accent/50 bg-accent/5 hover:border-accent"
-                  : "border-border hover:border-accent/50"
-                }`}
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <Activity className={`h-5 w-5 shrink-0 ${recommended ? "text-accent" : "text-muted-foreground"}`} />
-                <span className="truncate font-semibold">{act}</span>
-                {recommended && (
-                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-foreground">
-                    Recommended
-                  </span>
-                )}
+            <div key={group.category}>
+              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                {group.label}
+              </p>
+              <div className="space-y-2">
+                {sorted.map(({ name }) => {
+                  const recommended = isRecommendedCardio(name, prefs);
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => setSelectedCardio(name)}
+                      className={`w-full flex items-center justify-between p-4 rounded-xl bg-card border shadow-sm transition-colors ${recommended
+                          ? "border-accent/50 bg-accent/5 hover:border-accent"
+                          : "border-border hover:border-accent/50"
+                        }`}
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Activity className={`h-5 w-5 shrink-0 ${recommended ? "text-accent" : "text-muted-foreground"}`} />
+                        <span className="truncate font-semibold">{name}</span>
+                        {recommended && (
+                          <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-foreground">
+                            Recommended
+                          </span>
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  );
+                })}
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </button>
+            </div>
           );
         })}
-        <div className="p-4 mt-6 rounded-xl bg-muted/20 border border-dashed border-border/50 flex flex-col items-center text-center">
-          <p className="text-sm font-medium mb-1">Other Activity?</p>
-          <p className="text-xs text-muted-foreground">
-            Log custom cardio duration to track your burned calories.
-          </p>
-        </div>
       </div>
     );
   };
@@ -1162,13 +1131,29 @@ function WorkoutPage() {
   const CardioModal = () => {
     const distanceUnit = prefs?.distanceUnit ?? "km";
     const origDistanceUnit = prefs?.origDistanceUnit ?? "km";
-    const [duration, setDuration] = useState("30");
+    const cat: CardioCategory = selectedCardio ? categoryOf(selectedCardio) : "distance";
+    const catConfig = selectedCardio ? configFor(selectedCardio) : null;
+    const met = metFor(selectedCardio ?? "");
+
+    // Restore smart defaults from localStorage
+    const defaults = user && selectedCardio ? getCardioDefaults(user.id, selectedCardio) : null;
+
+    const [duration, setDuration] = useState(defaults?.duration ?? "30");
     const [kcal, setKcal] = useState(() =>
-      String(estimateCardioKcal(selectedCardio, 30, bodyWeight)),
+      String(estimateCardioKcal(selectedCardio, parseInt(defaults?.duration ?? "30") || 30, bodyWeight, defaults?.intensity)),
     );
     const [kcalTouched, setKcalTouched] = useState(false);
-    const [bpm, setBpm] = useState("");
-    const [distance, setDistance] = useState("");
+    const [bpm, setBpm] = useState(defaults?.bpm ?? "");
+    const [distance, setDistance] = useState(defaults?.distance_val ?? "");
+    // Category-specific state
+    const [intensity, setIntensity] = useState(defaults?.intensity ?? "");
+    const [style, setStyle] = useState(defaults?.style ?? "");
+    const [score, setScore] = useState("");
+    const [protocol, setProtocol] = useState(defaults?.protocol ?? "");
+    const [rounds, setRounds] = useState(defaults?.rounds ?? "");
+    const [workTime, setWorkTime] = useState(defaults?.workTime ?? "");
+    const [restTime, setRestTime] = useState(defaults?.restTime ?? "");
+    const [avgPower, setAvgPower] = useState(defaults?.avgPower ?? "");
     const [history, setHistory] = useState<any[]>([]);
 
     const fetchHistory = () => {
@@ -1182,6 +1167,17 @@ function WorkoutPage() {
         .order("logged_at", { ascending: false })
         .then(({ data }) => {
           setHistory(data || []);
+          // If no localStorage defaults, populate from most recent log
+          if (!defaults && data && data.length > 0) {
+            const last = data[0];
+            const ex = (last.exercises_done || {}) as Record<string, any>;
+            if (ex.intensity) setIntensity(ex.intensity);
+            if (ex.style) setStyle(ex.style);
+            if (ex.protocol) setProtocol(ex.protocol);
+            if (ex.rounds) setRounds(String(ex.rounds));
+            if (ex.work_time) setWorkTime(String(ex.work_time));
+            if (ex.rest_time) setRestTime(String(ex.rest_time));
+          }
         });
     };
 
@@ -1201,46 +1197,86 @@ function WorkoutPage() {
       }
     };
 
-    const met = (selectedCardio && CARDIO_METS[selectedCardio]) || 6.0;
-
     const handleDuration = (v: string) => {
       setDuration(v);
       if (!kcalTouched) {
         setKcal(
-          String(estimateCardioKcal(selectedCardio, parseInt(v) || 0, bodyWeight)),
+          String(estimateCardioKcal(selectedCardio, parseInt(v) || 0, bodyWeight, intensity || undefined)),
         );
+      }
+    };
+
+    const handleIntensity = (v: string) => {
+      setIntensity(v);
+      if (!kcalTouched) {
+        setKcal(String(estimateCardioKcal(selectedCardio, parseInt(duration) || 0, bodyWeight, v)));
       }
     };
 
     const handleLog = async () => {
       if (!user) return;
       const t = toast.loading("Logging cardio...");
+
+      // Build category-specific exercises_done JSONB
+      const exerciseData: Record<string, any> = {
+        category: cat,
+        bpm: parseInt(bpm) || null,
+      };
+
+      // Distance-based categories
+      if (catConfig?.form.distance && distance) {
+        if (cat === "ergometer") {
+          exerciseData.distance = parseFloat(distance) || null; // stored in meters
+        } else {
+          exerciseData.distance = convDist(parseFloat(distance) || 0, distanceUnit, origDistanceUnit);
+        }
+      }
+      // Intensity
+      if (catConfig?.form.intensity && intensity) exerciseData.intensity = intensity;
+      // Style
+      if (catConfig?.form.style && style) exerciseData.style = style;
+      // Score
+      if (catConfig?.form.score && score) exerciseData.score = score;
+      // Interval fields
+      if (catConfig?.form.protocol && protocol) exerciseData.protocol = protocol;
+      if (catConfig?.form.rounds && rounds) exerciseData.rounds = parseInt(rounds) || null;
+      if (catConfig?.form.workRest) {
+        if (workTime) exerciseData.work_time = parseInt(workTime) || null;
+        if (restTime) exerciseData.rest_time = parseInt(restTime) || null;
+      }
+      // Avg power
+      if (catConfig?.form.avgPower && avgPower) exerciseData.avg_power = parseInt(avgPower) || null;
+
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
         date: todayLocal(),
         workout_name: selectedCardio || "",
         duration_min: parseInt(duration) || 30,
         calories_burned: parseInt(kcal) || 0,
-        exercises_done: { bpm: parseInt(bpm) || null, distance: distance ? convDist(parseFloat(distance) || 0, distanceUnit, origDistanceUnit) : null },
+        exercises_done: exerciseData,
       });
       if (error) {
         toast.error(`Failed to log: ${error.message}`, { id: t });
       } else {
         toast.success("Cardio logged!", { id: t });
+        // Save smart defaults to localStorage
+        saveCardioDefaults(user.id, selectedCardio || "", {
+          duration, bpm, distance_val: distance, intensity, style,
+          protocol, rounds, workTime, restTime, avgPower,
+        });
         loadUserData();
         setSelectedCardio(null);
       }
     };
 
+    // Pace calculation for distance/ergometer categories
     const durationNum = parseInt(duration) || 0;
     const distanceNum = parseFloat(distance) || 0;
-    const showPace = durationNum > 0 && distanceNum > 0;
-    const paceMinPerKm = showPace ? durationNum / distanceNum : 0;
-    const paceMin = Math.floor(paceMinPerKm);
-    const paceSec = Math.round((paceMinPerKm - paceMin) * 60);
-    const paceDisplay = paceSec === 60
-      ? `${paceMin + 1}:00`
-      : `${paceMin}:${String(paceSec).padStart(2, '0')}`;
+    const paceVal = (cat === "distance" || cat === "ergometer") && durationNum > 0 && distanceNum > 0
+      ? computePaceNumeric(durationNum, distanceNum, cat)
+      : null;
+    const paceUnit = cat === "ergometer" ? "min/500m" : `min/${distanceUnit}`;
+    const distLabel = cat === "ergometer" ? "meters" : distanceUnit;
 
     return (
       <Dialog open={!!selectedCardio} onOpenChange={() => setSelectedCardio(null)}>
@@ -1265,8 +1301,10 @@ function WorkoutPage() {
               <TabsTrigger value="timer" className="flex-1 whitespace-nowrap text-[11px] sm:text-sm font-bold px-2 sm:px-3 py-3"><RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" /> Timer</TabsTrigger>
             </TabsList>
 
+            {/* ── LOG TAB ── */}
             <TabsContent value="log" className="space-y-6 pt-4">
             <div className="space-y-4 bg-muted/20 p-5 rounded-2xl border border-border/50">
+              {/* ── Duration (all categories) ── */}
               <div className="space-y-2">
                 <Label className="text-xs uppercase font-bold text-muted-foreground">Duration (min)</Label>
                 <Input
@@ -1290,6 +1328,164 @@ function WorkoutPage() {
                   ))}
                 </div>
               </div>
+
+              {/* ── Distance (Cat A distance, Cat B ergometer) ── */}
+              {catConfig?.form.distance && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
+                    <span>Distance ({distLabel})</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    value={distance}
+                    onChange={(e) => setDistance(e.target.value)}
+                    placeholder={cat === "ergometer" ? "e.g. 2000" : "e.g. 5.2"}
+                    className="h-12 bg-background/50 text-center font-semibold"
+                  />
+                </div>
+              )}
+
+              {/* ── Avg Power (Cat B ergometer) ── */}
+              {catConfig?.form.avgPower && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
+                    <span>Avg Power (Watts)</span>
+                    <span className="text-muted-foreground/50">Optional</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    value={avgPower}
+                    onChange={(e) => setAvgPower(e.target.value)}
+                    placeholder="e.g. 200"
+                    className="h-12 bg-background/50 text-center font-semibold"
+                  />
+                </div>
+              )}
+
+              {/* ── Intensity (Cat C mind_body, Cat D sports, Cat E dance) ── */}
+              {catConfig?.form.intensity && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground">Intensity</Label>
+                  <div className="flex gap-2">
+                    {catConfig.form.intensity.map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => handleIntensity(level)}
+                        className={`flex-1 rounded-lg border py-2.5 text-xs font-bold transition-colors ${intensity === level
+                            ? "border-accent bg-accent/10 text-accent"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Style (Cat C mind_body, Cat E dance) ── */}
+              {catConfig?.form.style && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
+                    <span>Style</span>
+                    <span className="text-muted-foreground/50">Optional</span>
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {catConfig.form.style.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setStyle(style === s ? "" : s)}
+                        className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${style === s
+                            ? "bg-accent/15 text-accent border border-accent/40"
+                            : "bg-muted/30 text-muted-foreground border border-border/50 hover:text-foreground"
+                          }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Score (Cat D sports) ── */}
+              {catConfig?.form.score && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
+                    <span>Score / Points</span>
+                    <span className="text-muted-foreground/50">Optional</span>
+                  </Label>
+                  <Input
+                    type="text"
+                    value={score}
+                    onChange={(e) => setScore(e.target.value)}
+                    placeholder="e.g. 21-18"
+                    className="h-12 bg-background/50 text-center font-semibold"
+                  />
+                </div>
+              )}
+
+              {/* ── Protocol (Cat F interval) ── */}
+              {catConfig?.form.protocol && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground">Protocol</Label>
+                  <div className="flex gap-2">
+                    {catConfig.form.protocol.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setProtocol(p)}
+                        className={`flex-1 rounded-lg border py-2.5 text-xs font-bold transition-colors ${protocol === p
+                            ? "border-accent bg-accent/10 text-accent"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Rounds (Cat F interval) ── */}
+              {catConfig?.form.rounds && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground">Rounds / Intervals</Label>
+                  <Input
+                    type="number"
+                    value={rounds}
+                    onChange={(e) => setRounds(e.target.value)}
+                    placeholder="e.g. 8"
+                    className="h-12 bg-background/50 text-center font-semibold"
+                  />
+                </div>
+              )}
+
+              {/* ── Work / Rest times (Cat F interval) ── */}
+              {catConfig?.form.workRest && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase font-bold text-muted-foreground">Work (sec)</Label>
+                    <Input
+                      type="number"
+                      value={workTime}
+                      onChange={(e) => setWorkTime(e.target.value)}
+                      placeholder="e.g. 20"
+                      className="h-12 bg-background/50 text-center font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase font-bold text-muted-foreground">Rest (sec)</Label>
+                    <Input
+                      type="number"
+                      value={restTime}
+                      onChange={(e) => setRestTime(e.target.value)}
+                      placeholder="e.g. 10"
+                      className="h-12 bg-background/50 text-center font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ── Calories (all categories, auto-estimated) ── */}
               <div className="space-y-2">
                 <Label className="flex justify-between text-xs uppercase font-bold text-muted-foreground">
                   <span>Calories burned</span>
@@ -1307,19 +1503,8 @@ function WorkoutPage() {
                   className="text-xl font-bold h-14 bg-background/50 text-center"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
-                  <span>Distance ({distanceUnit})</span>
-                  <span className="text-muted-foreground/50">Optional</span>
-                </Label>
-                <Input
-                  type="number"
-                  value={distance}
-                  onChange={(e) => setDistance(e.target.value)}
-                  placeholder="e.g. 5.2"
-                  className="h-12 bg-background/50 text-center font-semibold"
-                />
-              </div>
+
+              {/* ── BPM (all categories, optional) ── */}
               <div className="space-y-2">
                 <Label className="text-xs uppercase font-bold text-muted-foreground flex justify-between">
                   <span>BPM (Heart Rate)</span>
@@ -1334,10 +1519,12 @@ function WorkoutPage() {
                 />
               </div>
             </div>
-            {showPace && (
+
+            {/* ── Computed badges ── */}
+            {paceVal !== null && (
               <div className="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
                 <span className="rounded-full bg-accent/10 px-3 py-1 text-accent">
-                  Est. pace: {paceDisplay} min/{distanceUnit}
+                  Est. pace: {formatPace(paceVal)} {paceUnit}
                 </span>
               </div>
             )}
@@ -1354,6 +1541,7 @@ function WorkoutPage() {
             </Button>
             </TabsContent>
 
+            {/* ── HISTORY TAB ── */}
             <TabsContent value="history" className="space-y-4 pt-4">
               {history.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground font-semibold">
@@ -1364,38 +1552,30 @@ function WorkoutPage() {
                   {history.map((log, idx) => {
                     const dateObj = new Date(log.date);
                     dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
-                    
                     const ex = log.exercises_done || {};
-                    // Stored in the original unit; show in the current unit.
-                    const dist = ex.distance ? round1(convDist(parseFloat(ex.distance), origDistanceUnit, distanceUnit)) : null;
+                    const logCat: CardioCategory = ex.category ?? categoryOf(selectedCardio ?? "");
+                    const logDist = ex.distance ? parseFloat(ex.distance) : null;
+                    // Show distance in current unit (distance for ergometers is always meters)
+                    const displayDist = logDist !== null
+                      ? logCat === "ergometer"
+                        ? round1(logDist)
+                        : round1(convDist(logDist, origDistanceUnit, distanceUnit))
+                      : null;
+                    const displayDistUnit = logCat === "ergometer" ? "m" : distanceUnit;
                     const logBpm = ex.bpm ? parseInt(ex.bpm) : null;
-                    
-                    let paceDisplay = null;
-                    if (log.duration_min > 0 && dist && dist > 0) {
-                      const paceMinPerKm = log.duration_min / dist;
-                      const paceMin = Math.floor(paceMinPerKm);
-                      const paceSec = Math.round((paceMinPerKm - paceMin) * 60);
-                      paceDisplay = paceSec === 60
-                        ? `${paceMin + 1}:00`
-                        : `${paceMin}:${String(paceSec).padStart(2, '0')}`;
-                    }
+                    const logPace = logDist && log.duration_min
+                      ? computePaceNumeric(log.duration_min, logDist, logCat)
+                      : null;
 
                     return (
                       <div key={log.id || idx} className="bg-muted/20 p-4 rounded-xl border border-border/50">
                         <div className="mb-2 flex flex-row items-center justify-between border-b border-border/50 pb-2">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-accent">
-                              {dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleDeleteHistory(log.id)}
-                              className="text-muted-foreground hover:text-destructive p-1"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          <span className="font-bold text-accent">
+                            {dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                          <button onClick={() => handleDeleteHistory(log.id)} className="text-muted-foreground hover:text-destructive p-1">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                         <div className="space-y-1">
                           <div className="flex justify-between text-sm">
@@ -1403,25 +1583,61 @@ function WorkoutPage() {
                             <span className="font-bold">{log.duration_min} min</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="font-semibold text-muted-foreground">Calories Burned</span>
+                            <span className="font-semibold text-muted-foreground">Calories</span>
                             <span className="font-bold">{log.calories_burned} kcal</span>
                           </div>
-                          {dist !== null && (
+                          {displayDist !== null && (
                             <div className="flex justify-between text-sm">
                               <span className="font-semibold text-muted-foreground">Distance</span>
-                              <span className="font-bold">{dist} {distanceUnit}</span>
+                              <span className="font-bold">{displayDist} {displayDistUnit}</span>
+                            </div>
+                          )}
+                          {logPace !== null && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Pace</span>
+                              <span className="font-bold">{formatPace(logPace)} {logCat === "ergometer" ? "min/500m" : `min/${distanceUnit}`}</span>
+                            </div>
+                          )}
+                          {ex.avg_power && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Avg Power</span>
+                              <span className="font-bold">{ex.avg_power} W</span>
+                            </div>
+                          )}
+                          {ex.intensity && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Intensity</span>
+                              <span className="font-bold">{ex.intensity}</span>
+                            </div>
+                          )}
+                          {ex.style && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Style</span>
+                              <span className="font-bold">{ex.style}</span>
+                            </div>
+                          )}
+                          {ex.protocol && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Protocol</span>
+                              <span className="font-bold">{ex.protocol}</span>
+                            </div>
+                          )}
+                          {ex.rounds && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Rounds</span>
+                              <span className="font-bold">{ex.rounds}</span>
+                            </div>
+                          )}
+                          {ex.score && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-muted-foreground">Score</span>
+                              <span className="font-bold">{ex.score}</span>
                             </div>
                           )}
                           {logBpm !== null && (
                             <div className="flex justify-between text-sm">
                               <span className="font-semibold text-muted-foreground">BPM</span>
                               <span className="font-bold">{logBpm}</span>
-                            </div>
-                          )}
-                          {paceDisplay !== null && (
-                            <div className="flex justify-between text-sm">
-                              <span className="font-semibold text-muted-foreground">Est. Pace</span>
-                              <span className="font-bold">{paceDisplay} min/{distanceUnit}</span>
                             </div>
                           )}
                         </div>
@@ -1432,9 +1648,8 @@ function WorkoutPage() {
               )}
             </TabsContent>
 
+            {/* ── ANALYTICS TAB ── */}
             <TabsContent value="analytics" className="pt-4">
-              {/* Locked for lapsed users. The chart component is not mounted,
-                  so its pace query never runs. Logging stays free. */}
               <PremiumGate
                 variant="inline"
                 title="Analytics are premium"
@@ -1446,6 +1661,7 @@ function WorkoutPage() {
               </PremiumGate>
             </TabsContent>
 
+            {/* ── TIMER TAB ── */}
             <TabsContent value="timer" className="pt-4">
               <div className="text-center py-12 text-muted-foreground font-semibold">
                 Coming soon
