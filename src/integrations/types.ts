@@ -152,35 +152,26 @@ export type Database = {
       gym_links: {
         Row: {
           created_at: string;
-          end_date: string | null;
           gift_spent_at: string | null;
           gym_name: string;
           partner_code: string;
-          plan_months: number | null;
           source: string;
-          start_date: string | null;
           user_id: string;
         };
         Insert: {
           created_at?: string;
-          end_date?: string | null;
           gift_spent_at?: string | null;
           gym_name: string;
           partner_code: string;
-          plan_months?: number | null;
           source: string;
-          start_date?: string | null;
           user_id: string;
         };
         Update: {
           created_at?: string;
-          end_date?: string | null;
           gift_spent_at?: string | null;
           gym_name?: string;
           partner_code?: string;
-          plan_months?: number | null;
           source?: string;
-          start_date?: string | null;
           user_id?: string;
         };
         Relationships: [];
@@ -323,6 +314,7 @@ export type Database = {
           fiber_target_g: number | null;
           selected_plan: string | null;
           tdee: number | null;
+          gym_attribution_ended_at: string | null;
           trial_start_date: string | null;
           weight_kg: number | null;
           goal_weight_kg: number | null;

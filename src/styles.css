@@ -178,6 +178,43 @@
 
   html {
     scroll-behavior: smooth;
+    /* Dark mode here is a class, not a media query, so native controls (date
+       pickers, scrollbars, select popups) cannot work it out on their own.
+       Told once at the root they follow the theme everywhere, instead of each
+       input carrying a hardcoded scheme that is wrong under the other one. */
+    color-scheme: light;
+  }
+
+  /* Every theme but 'light' is a dark surface — the bootstrap script in
+     __root.tsx removes 'dark' when it sets one of these, so listing them is
+     what keeps a native picker from opening white on carbon. */
+  html.dark,
+  html.theme-ocean,
+  html.theme-sunset,
+  html.theme-forest {
+    color-scheme: dark;
+  }
+
+  /* The calendar button is invisible on a light field in most builds and
+     easy to clip in a narrow column. Give it the theme's own ink, room to be
+     hit, and the whole field height to be hit in. */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.65;
+    padding: 0.35rem;
+    margin-right: -0.15rem;
+    filter: var(--calendar-icon-filter, none);
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  html.dark input[type="date"],
+  html.theme-ocean input[type="date"],
+  html.theme-sunset input[type="date"],
+  html.theme-forest input[type="date"] {
+    --calendar-icon-filter: invert(1);
   }
 
   body {

@@ -287,8 +287,12 @@ export const serverConfirmCheckout = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!sub) return { verified: false, applied: false };
 
-    const { verifyCheckoutSignature, fetchPayment, fetchSubscription } =
-      await import("@/server/razorpay");
+    const {
+      verifyCheckoutSignature,
+      fetchPayment,
+      fetchSubscription,
+      basePaise,
+    } = await import("@/server/razorpay");
 
     const verified = verifyCheckoutSignature({
       paymentId: data.paymentId,
@@ -335,6 +339,11 @@ export const serverConfirmCheckout = createServerFn({ method: "POST" })
         p_status: rzpSub.status || null,
         p_period_days: null,
         p_refunded: false,
+        // What an affiliate commission is calculated on. Identical to the
+        // amount while Dombelz collects no GST; the day it does, this stays the
+        // plan price and only p_amount_paise grows.
+        p_base_paise: basePaise(payment.amount),
+        p_provider: "razorpay",
       },
     );
     if (rpcError) {
@@ -342,6 +351,19 @@ export const serverConfirmCheckout = createServerFn({ method: "POST" })
       // same payment. Surfaced so the caller can keep the cautious copy.
       console.error("[razorpay] checkout fulfil failed:", rpcError.message);
       return { verified: true, applied: false };
+    }
+
+    // The gym that brought us this customer is owed its share of a payment that
+    // has just been recorded. This used to happen only on the webhook, behind a
+    // flag that is false for any payment checkout already fulfilled — which,
+    // since checkout started fulfilling them, is all of them. Best-effort: the
+    // days are already granted and a partner-project outage must not take them
+    // back, and the webhook offers the same charge again for free.
+    try {
+      const { offerChargeToGym } = await import("@/server/gym-partner");
+      await offerChargeToGym(data.paymentId);
+    } catch (gymErr) {
+      console.error("[razorpay] gym commission failed:", gymErr);
     }
 
     return { verified: true, applied: true };

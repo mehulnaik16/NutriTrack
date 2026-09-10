@@ -103,6 +103,29 @@ export const YEARLY_DISCOUNTED: PlanEntry = {
 };
 
 /**
+ * GST added on top of the plan price, in basis points.
+ *
+ * Zero today, and deliberately a number rather than an absence: Dombelz is below
+ * the ₹20 lakh turnover threshold and collects no GST, so ₹249 / ₹499 / ₹999 /
+ * ₹849 are both the price and the base. When registration becomes compulsory,
+ * 18% goes *on top of* those figures — set this to 1800 and nothing else has to
+ * change, because every affiliate commission is already calculated on the base
+ * this produces rather than on the amount charged.
+ */
+export const GST_BPS = 0;
+
+/**
+ * The part of an amount that is ours: the plan price with any GST taken back
+ * out. Collected GST is the government's money, so no platform fee and no
+ * affiliate commission is ever taken on it.
+ *
+ * Exact while GST_BPS is 0, which is the only case that exists so far.
+ */
+export function basePaise(amountPaise: number): number {
+  return Math.round((amountPaise * 10000) / (10000 + GST_BPS));
+}
+
+/**
  * The plan actually charged. `discounted` is decided by the server after
  * reading the referrals table — it is never a parameter from the browser.
  */

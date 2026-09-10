@@ -10,6 +10,7 @@
  * Kept free of server imports so the self-check script can build it alone. The
  * createServerFn wrappers live in gym-link.ts.
  */
+import { todayLocal } from "@/lib/dates";
 
 /**
  * GYM- then up to twelve letters, then exactly three digits.
@@ -69,7 +70,10 @@ export type MembershipStatus = "upcoming" | "active" | "expired" | "unknown";
 export function membershipStatus(
   start: string | null | undefined,
   end: string | null | undefined,
-  today: string = new Date().toISOString().slice(0, 10),
+  // Local, not toISOString(): that is UTC, so for an IST member between
+  // midnight and 05:30 it answers with yesterday and a membership that ended
+  // today still reads as active.
+  today: string = todayLocal(),
 ): MembershipStatus {
   if (!start || !end) return "unknown";
   if (start > today) return "upcoming";
