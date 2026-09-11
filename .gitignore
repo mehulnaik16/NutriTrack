@@ -54,3 +54,6 @@ apitest.md
 # Playwright CLI output (may contain credentials) and browser profile
 .playwright-cli/
 .playwright/
+
+# Locally-installed agent skills (npx skills add) — not project code
+.agents/
