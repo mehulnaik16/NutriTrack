@@ -50,6 +50,8 @@ interface Log {
   workout_name: string;
   duration_min: number;
   calories_burned: number;
+  calc_method?: string;
+  confidence?: string;
   exercises_done:
     | { weight?: string | number; reps?: string | number; unit?: string; bpm?: number | null; distance?: number | null }
     | { weight?: string | number; reps?: string | number; unit?: string }[];
@@ -98,7 +100,7 @@ export function WorkoutLogHistory() {
     if (!user) return;
     supabase
       .from("workout_logs")
-      .select("id, date, logged_at, workout_name, duration_min, calories_burned, exercises_done")
+      .select("id, date, logged_at, workout_name, duration_min, calories_burned, calc_method, confidence, exercises_done")
       .eq("user_id", user.id)
       .order("date", { ascending: false })
       .order("logged_at", { ascending: false })
@@ -390,6 +392,7 @@ export function WorkoutLogHistory() {
                       <p className="truncate text-base font-bold">{l.workout_name}</p>
                       <p className="text-xs text-muted-foreground">
                         {l.duration_min} min · {Math.round(l.calories_burned)} kcal
+                        {l.confidence === "measured" && <span className="ml-1 text-[10px] font-semibold text-green-500">● HR</span>}
                       </p>
                     </div>
                     <button
@@ -428,7 +431,11 @@ export function WorkoutLogHistory() {
                           <span className="flex items-center gap-1.5 text-muted-foreground font-semibold">
                             <Flame className="h-3.5 w-3.5" /> Calories
                           </span>
-                          <span className="font-bold tabular-nums">{Math.round(l.calories_burned)} kcal</span>
+                          <span className="font-bold tabular-nums">
+                            {Math.round(l.calories_burned)} kcal
+                            {l.confidence === "measured" && <span className="ml-1.5 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-green-500">Measured</span>}
+                            {l.confidence === "estimated" && <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Estimated</span>}
+                          </span>
                         </div>
                         {dist !== null && (
                           <div className="flex items-center justify-between">

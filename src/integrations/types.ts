@@ -448,7 +448,9 @@ export type Database = {
       };
       workout_logs: {
         Row: {
+          calc_method: string;
           calories_burned: number;
+          confidence: string;
           date: string;
           duration_min: number;
           exercises_done: Json;
@@ -458,7 +460,9 @@ export type Database = {
           workout_name: string;
         };
         Insert: {
+          calc_method?: string;
           calories_burned?: number;
+          confidence?: string;
           date?: string;
           duration_min?: number;
           exercises_done?: Json;
@@ -468,7 +472,9 @@ export type Database = {
           workout_name: string;
         };
         Update: {
+          calc_method?: string;
           calories_burned?: number;
+          confidence?: string;
           date?: string;
           duration_min?: number;
           exercises_done?: Json;

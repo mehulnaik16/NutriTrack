@@ -53,7 +53,6 @@ export interface CategoryConfig {
 export interface CardioActivity {
   name: string;
   category: CardioCategory;
-  met: number;
 }
 
 // ── Intensity & style constants ──────────────────────────────────────────────
@@ -150,35 +149,35 @@ export const CATEGORY_CONFIGS: Record<CardioCategory, CategoryConfig> = {
 
 export const CARDIO_CATALOG: CardioActivity[] = [
   // ── Category A: Distance & Locomotion ──
-  { name: "Treadmill running",  category: "distance",  met: 8.3 },
-  { name: "Outdoor run",        category: "distance",  met: 9.8 },
-  { name: "Outdoor walk",       category: "distance",  met: 3.8 },
-  { name: "Cycling",            category: "distance",  met: 7.5 },
-  { name: "Swimming",           category: "distance",  met: 7.0 },
-  { name: "Stair climbing",     category: "distance",  met: 8.0 },
+  { name: "Treadmill running",  category: "distance" },
+  { name: "Outdoor run",        category: "distance" },
+  { name: "Outdoor walk",       category: "distance" },
+  { name: "Cycling",            category: "distance" },
+  { name: "Swimming",           category: "distance" },
+  { name: "Stair climbing",     category: "distance" },
   // ── Category B: Machine Ergometers ──
-  { name: "Rowing machine",     category: "ergometer", met: 7.0 },
-  { name: "SkiErg",             category: "ergometer", met: 8.0 },
-  { name: "Elliptical",         category: "ergometer", met: 5.0 },
-  { name: "Assault Bike",       category: "ergometer", met: 10.0 },  // NEW
+  { name: "Rowing machine",     category: "ergometer" },
+  { name: "SkiErg",             category: "ergometer" },
+  { name: "Elliptical",         category: "ergometer" },
+  { name: "Assault Bike",       category: "ergometer" },  // NEW
   // ── Category C: Mind-Body & Flow ──
-  { name: "Yoga & Pilates",     category: "mind_body", met: 3.0 },
-  { name: "Stretching",         category: "mind_body", met: 2.5 },   // NEW
+  { name: "Yoga & Pilates",     category: "mind_body" },
+  { name: "Stretching",         category: "mind_body" },   // NEW
   // ── Category D: Sports & Games ──
-  { name: "Badminton",          category: "sports",    met: 5.5 },
-  { name: "Cricket",            category: "sports",    met: 4.8 },
-  { name: "Football",           category: "sports",    met: 7.0 },
+  { name: "Badminton",          category: "sports" },
+  { name: "Cricket",            category: "sports" },
+  { name: "Football",           category: "sports" },
   // ── Category E: Dance & Choreography ──
-  { name: "Dancing",            category: "dance",     met: 5.5 },
-  { name: "Zumba",              category: "dance",     met: 6.5 },   // NEW
-  { name: "Hip-Hop",            category: "dance",     met: 6.0 },   // NEW
-  { name: "Dance Cardio",       category: "dance",     met: 7.0 },   // NEW
+  { name: "Dancing",            category: "dance" },
+  { name: "Zumba",              category: "dance" },   // NEW
+  { name: "Hip-Hop",            category: "dance" },   // NEW
+  { name: "Dance Cardio",       category: "dance" },   // NEW
   // ── Category F: Interval & High-Intensity ──
-  { name: "HIIT",               category: "interval",  met: 8.0 },
-  { name: "Jump rope",          category: "interval",  met: 11.8 },
-  { name: "Tabata",             category: "interval",  met: 9.0 },   // NEW
-  { name: "EMOM",               category: "interval",  met: 8.0 },   // NEW
-  { name: "AMRAP",              category: "interval",  met: 8.0 },   // NEW
+  { name: "HIIT",               category: "interval" },
+  { name: "Jump rope",          category: "interval" },
+  { name: "Tabata",             category: "interval" },   // NEW
+  { name: "EMOM",               category: "interval" },   // NEW
+  { name: "AMRAP",              category: "interval" },   // NEW
 ];
 
 /** All activity names — drop-in replacement for the old CARDIO_ACTIVITIES array. */
@@ -194,11 +193,6 @@ export function categoryOf(name: string): CardioCategory {
   return BY_NAME.get(name.toLowerCase())?.category ?? "distance";
 }
 
-/** MET value for an activity. Falls back to 6.0 for unknown names. */
-export function metFor(name: string): number {
-  return BY_NAME.get(name.toLowerCase())?.met ?? 6.0;
-}
-
 /** Category config (form fields + chart spec) for an activity. */
 export function configFor(name: string): CategoryConfig {
   return CATEGORY_CONFIGS[categoryOf(name)];
@@ -207,32 +201,6 @@ export function configFor(name: string): CategoryConfig {
 /** Two chart definitions for an activity's Analytics tab. */
 export function chartsFor(name: string): [ChartConfig, ChartConfig] {
   return configFor(name).charts;
-}
-
-// ── Intensity multipliers ────────────────────────────────────────────────────
-
-const INTENSITY_MULT: Record<string, number> = {
-  Light: 0.7,
-  Moderate: 1.0,
-  Vigorous: 1.3,
-  Casual: 0.7,
-  Competitive: 1.0,
-  Training: 1.2,
-};
-
-/**
- * Calorie estimate. MET × bodyweight × hours, optionally scaled by intensity.
- * For interval activities the MET is already high; no extra weighting needed.
- */
-export function estimateCardioKcal(
-  activity: string | null,
-  minutes: number,
-  weightKg: number,
-  intensity?: string,
-): number {
-  const met = metFor(activity ?? "");
-  const mult = intensity ? (INTENSITY_MULT[intensity] ?? 1) : 1;
-  return Math.round(met * mult * weightKg * (minutes / 60));
 }
 
 // ── Smart defaults (localStorage-first, egress-cheap) ────────────────────────

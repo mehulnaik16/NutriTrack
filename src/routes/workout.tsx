@@ -7,8 +7,6 @@ import {
   CARDIO_ACTIVITY_NAMES,
   categoryOf,
   configFor,
-  metFor,
-  estimateCardioKcal,
   formatPace,
   computePaceNumeric,
   getCardioDefaults,
@@ -17,6 +15,8 @@ import {
   INTERVAL_PROTOCOLS,
   type CardioCategory,
 } from "@/lib/cardioCategories";
+import { calculateCalories } from "@/lib/calorieEngine";
+import type { CalcMethod, CalorieResult, Confidence } from "@/lib/calorieEngine";
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -125,7 +125,20 @@ import {
   summarizeSets,
   type LoggedSet,
 } from "@/lib/workoutSets";
-import { convWeight, kgToWeight, convDist, round1 } from "@/lib/units";
+import { convWeight, kgToWeight, convDist, distToKm, round1 } from "@/lib/units";
+
+/** Which formula produced the shown number — surfaced as a chip on the log card. */
+const METHOD_LABEL: Record<CalcMethod, string> = {
+  HEART_RATE: "Heart rate",
+  ACSM_TREADMILL: "Treadmill pace",
+  ACSM_RUN: "Running pace",
+  ACSM_WALK: "Walking pace",
+  SPEED_MET: "Speed",
+  VERTICAL: "Vertical work",
+  TIER_MET: "Activity MET",
+  GENERIC: "Generic estimate",
+  MANUAL: "Manual entry",
+};
 import {
   type WorkoutPrefs as UserWorkoutPrefs,
   defaultLiftForExercise,
@@ -264,8 +277,10 @@ function WorkoutPage() {
   // they make the plan a self-advancing cycle (see cycleDayIndex).
   const [customDayAnchor, setCustomDayAnchor] = useState<string | null>(null);
 
-  // Body weight for MET-based calorie estimates
+  // Body weight, age, gender for calorie engine
   const [bodyWeight, setBodyWeight] = useState(70);
+  const [userAge, setUserAge] = useState(25);
+  const [userGender, setUserGender] = useState("Male");
 
   // Onboarding preferences (default lift weights, cardio recommendations).
   // WorkoutGate has already loaded and validated these — reading them from it
@@ -333,10 +348,12 @@ function WorkoutPage() {
     // Body weight (for calorie estimates)
     const { data: prof } = await supabase
       .from("user_profiles")
-      .select("weight_kg")
+      .select("weight_kg, age, gender")
       .eq("id", user.id)
       .maybeSingle();
     if (prof?.weight_kg) setBodyWeight(prof.weight_kg);
+    if (prof?.age) setUserAge(prof.age);
+    if (prof?.gender) setUserGender(prof.gender);
 
     // Load latest AI/custom plan (custom_plan_day_idx lives on this row —
     // it's progress through THIS plan, so it travels with the plan, not the user)
@@ -1133,16 +1150,12 @@ function WorkoutPage() {
     const origDistanceUnit = prefs?.origDistanceUnit ?? "km";
     const cat: CardioCategory = selectedCardio ? categoryOf(selectedCardio) : "distance";
     const catConfig = selectedCardio ? configFor(selectedCardio) : null;
-    const met = metFor(selectedCardio ?? "");
 
     // Restore smart defaults from localStorage
     const defaults = user && selectedCardio ? getCardioDefaults(user.id, selectedCardio) : null;
 
-    const [duration, setDuration] = useState(defaults?.duration ?? "30");
-    const [kcal, setKcal] = useState(() =>
-      String(estimateCardioKcal(selectedCardio, parseInt(defaults?.duration ?? "30") || 30, bodyWeight, defaults?.intensity)),
-    );
     const [kcalTouched, setKcalTouched] = useState(false);
+    const [duration, setDuration] = useState(defaults?.duration ?? "30");
     const [bpm, setBpm] = useState(defaults?.bpm ?? "");
     const [distance, setDistance] = useState(defaults?.distance_val ?? "");
     // Category-specific state
@@ -1154,13 +1167,37 @@ function WorkoutPage() {
     const [workTime, setWorkTime] = useState(defaults?.workTime ?? "");
     const [restTime, setRestTime] = useState(defaults?.restTime ?? "");
     const [avgPower, setAvgPower] = useState(defaults?.avgPower ?? "");
+
+    // The distance input carries the user's display unit (km or miles); the
+    // engine works in km. Ergometer distance is metres on a machine the engine
+    // has no speed model for, so it never reaches the engine at all.
+    const distanceKm = (dist?: string) => {
+      if (cat !== "distance") return null;
+      const v = parseFloat(dist ?? distance);
+      return Number.isFinite(v) && v > 0 ? distToKm(v, distanceUnit) : null;
+    };
+
+    // Calorie engine helper — returns result for current form state
+    const engineResult = (dur?: string, int?: string, dist?: string, bpmVal?: string) =>
+      calculateCalories(selectedCardio ?? "", {
+        duration_min: parseInt(dur ?? duration) || 30,
+        distance_km: distanceKm(dist),
+        hr_bpm: parseInt(bpmVal ?? bpm) || null,
+        intensity: int ?? (intensity || null),
+      }, { weight_kg: bodyWeight, age: userAge, gender: userGender });
+
+    const initialEstimate = engineResult();
+    const [kcal, setKcal] = useState(String(initialEstimate.kcal));
+    const [calcMethod, setCalcMethod] = useState<CalcMethod>(initialEstimate.method);
+    const [calcConfidence, setCalcConfidence] = useState<Confidence>(initialEstimate.confidence);
+
     const [history, setHistory] = useState<any[]>([]);
 
     const fetchHistory = () => {
       if (!selectedCardio || !user) return;
       supabase
         .from("workout_logs")
-        .select("id, date, logged_at, duration_min, calories_burned, exercises_done")
+        .select("id, date, logged_at, duration_min, calories_burned, confidence, exercises_done")
         .eq("user_id", user.id)
         .eq("workout_name", selectedCardio)
         .order("date", { ascending: false })
@@ -1197,20 +1234,33 @@ function WorkoutPage() {
       }
     };
 
+    // Every input the engine reads must re-run it, or a value the user typed
+    // (heart rate above all) silently never reaches the calculation.
+    const applyEstimate = (r: CalorieResult) => {
+      if (kcalTouched) return; // user overrode the number by hand
+      setKcal(String(r.kcal));
+      setCalcMethod(r.method);
+      setCalcConfidence(r.confidence);
+    };
+
     const handleDuration = (v: string) => {
       setDuration(v);
-      if (!kcalTouched) {
-        setKcal(
-          String(estimateCardioKcal(selectedCardio, parseInt(v) || 0, bodyWeight, intensity || undefined)),
-        );
-      }
+      applyEstimate(engineResult(v, intensity || undefined, distance, bpm));
     };
 
     const handleIntensity = (v: string) => {
       setIntensity(v);
-      if (!kcalTouched) {
-        setKcal(String(estimateCardioKcal(selectedCardio, parseInt(duration) || 0, bodyWeight, v)));
-      }
+      applyEstimate(engineResult(duration, v, distance, bpm));
+    };
+
+    const handleDistance = (v: string) => {
+      setDistance(v);
+      applyEstimate(engineResult(duration, intensity || undefined, v, bpm));
+    };
+
+    const handleBpm = (v: string) => {
+      setBpm(v);
+      applyEstimate(engineResult(duration, intensity || undefined, distance, v));
     };
 
     const handleLog = async () => {
@@ -1253,6 +1303,8 @@ function WorkoutPage() {
         workout_name: selectedCardio || "",
         duration_min: parseInt(duration) || 30,
         calories_burned: parseInt(kcal) || 0,
+        calc_method: kcalTouched ? "MANUAL" : calcMethod,
+        confidence: kcalTouched ? "user_input" : calcConfidence,
         exercises_done: exerciseData,
       });
       if (error) {
@@ -1338,7 +1390,7 @@ function WorkoutPage() {
                   <Input
                     type="number"
                     value={distance}
-                    onChange={(e) => setDistance(e.target.value)}
+                    onChange={(e) => handleDistance(e.target.value)}
                     placeholder={cat === "ergometer" ? "e.g. 2000" : "e.g. 5.2"}
                     className="h-12 bg-background/50 text-center font-semibold"
                   />
@@ -1513,7 +1565,7 @@ function WorkoutPage() {
                 <Input
                   type="number"
                   value={bpm}
-                  onChange={(e) => setBpm(e.target.value)}
+                  onChange={(e) => handleBpm(e.target.value)}
                   placeholder="e.g. 120"
                   className="h-12 bg-background/50 text-center font-semibold"
                 />
@@ -1530,10 +1582,10 @@ function WorkoutPage() {
             )}
             <div className="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
               <span className="rounded-full bg-accent/10 px-3 py-1 text-accent">
-                {met} METs
+                {METHOD_LABEL[kcalTouched ? "MANUAL" : calcMethod]}
               </span>
               <span className="rounded-full bg-muted px-3 py-1">
-                ~{Math.round(met * bodyWeight * (1 / 60))} kcal / min at {round1(kgToWeight(bodyWeight, prefs?.weightUnit ?? "kg"))} {prefs?.weightUnit ?? "kg"}
+                ~{durationNum > 0 ? round1((parseInt(kcal) || 0) / durationNum) : 0} kcal / min at {round1(kgToWeight(bodyWeight, prefs?.weightUnit ?? "kg"))} {prefs?.weightUnit ?? "kg"}
               </span>
             </div>
             <Button onClick={handleLog} className="w-full font-bold h-14 text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1">
@@ -1584,7 +1636,11 @@ function WorkoutPage() {
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="font-semibold text-muted-foreground">Calories</span>
-                            <span className="font-bold">{log.calories_burned} kcal</span>
+                            <span className="font-bold">
+                              {log.calories_burned} kcal
+                              {log.confidence === "measured" && <span className="ml-1.5 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-green-500">Measured</span>}
+                              {log.confidence === "estimated" && <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Estimated</span>}
+                            </span>
                           </div>
                           {displayDist !== null && (
                             <div className="flex justify-between text-sm">
@@ -1850,6 +1906,8 @@ function WorkoutPage() {
         duration_min:
           kind === "isometric" ? Math.max(1, Math.round(holdSec / 60)) : sets.length * 3,
         calories_burned: sets.length * 15,
+        calc_method: "GENERIC",
+        confidence: "estimated",
         // LoggedSet is a closed interface, so it lacks the index signature the
         // generated Json type wants. The shape is checked above.
         exercises_done: payload as any,
