@@ -117,8 +117,9 @@ function isShortInterval(arch: Archetype, duration_min: number): boolean {
 function heartRateKcal(hr: number, weight: number, age: number, gender: string, duration: number): number {
   // "Other" and anything unrecognised take the male equation, matching calcBMR
   // in lib/nutrition.ts so the two never disagree for the same profile.
+  // Note: Keytel et al. (2005) specifies a negative coefficient for female weight.
   if (gender === "Female") {
-    return ((-20.4022 + 0.4472 * hr + 0.1263 * weight + 0.074 * age) / 4.184) * duration;
+    return ((-20.4022 + 0.4472 * hr - 0.1263 * weight + 0.074 * age) / 4.184) * duration;
   }
   return ((-55.0969 + 0.6309 * hr + 0.1988 * weight + 0.2017 * age) / 4.184) * duration;
 }
@@ -148,18 +149,22 @@ const MAX_SPEED: Partial<Record<Archetype, number>> = {
   walk: 12,
 };
 
-/** ACSM running VO2 equation. */
+/**
+ * ACSM running net VO2 equation.
+ * Omits the 3.5 ml/kg/min resting baseline so energy is purely active burn,
+ * ensuring the same distance does not inflate over longer durations and double-count BMR.
+ */
 function acsmRunKcalMin(speed_kmh: number, weight_kg: number, grade: number): number {
   const speed_mmin = speed_kmh * 1000 / 60; // m/min
-  const vo2 = 0.2 * speed_mmin + 0.9 * speed_mmin * grade + 3.5;
-  return (vo2 * weight_kg) / 200;
+  const vo2_net = 0.2 * speed_mmin + 0.9 * speed_mmin * grade;
+  return (vo2_net * weight_kg) / 200;
 }
 
-/** ACSM walking VO2 equation. */
+/** ACSM walking net VO2 equation (omits 3.5 ml/kg/min resting baseline). */
 function acsmWalkKcalMin(speed_kmh: number, weight_kg: number, grade: number): number {
   const speed_mmin = speed_kmh * 1000 / 60;
-  const vo2 = 0.1 * speed_mmin + 1.8 * speed_mmin * grade + 3.5;
-  return (vo2 * weight_kg) / 200;
+  const vo2_net = 0.1 * speed_mmin + 1.8 * speed_mmin * grade;
+  return (vo2_net * weight_kg) / 200;
 }
 
 // ── Level 4: Tiered MET tables ───────────────────────────────────────────────
@@ -170,13 +175,13 @@ const TIERED_MET: Partial<Record<Archetype, TieredMet>> = {
   yoga:              { light: 2.5, default: 3.0, hard: 4.0 },
   stretching:        { light: 2.3, default: 2.5, hard: 3.5 },
   ergometer:         { light: 4.8, default: 7.0, hard: 8.4 },
-  swimming:          { light: 6.0, default: 8.3, hard: 9.8 },
-  zumba:             { light: 6.0, default: 8.0, hard: 9.5 },
+  swimming:          { light: 5.5, default: 7.0, hard: 9.5 },
+  zumba:             { light: 5.5, default: 7.0, hard: 8.5 },
   dance:             { light: 4.5, default: 6.0, hard: 8.0 },
   sports_badminton:  { light: 4.5, default: 5.5, hard: 7.0 },
   sports_cricket:    { light: 3.5, default: 4.8, hard: 7.0 },
   sports_football:   { light: 6.0, default: 8.0, hard: 10.0 },
-  tabata_interval:   { light: 11.0, default: 14.0, hard: 17.0 },
+  tabata_interval:   { light: 8.0, default: 10.0, hard: 13.0 },
 };
 
 /** Flat MET for locomotion archetypes logged without a usable distance. */
@@ -220,12 +225,11 @@ export function calculateCalories(
   const distance_km = num(inputs.distance_km);
 
   // ── Level 1: Heart Rate ──
-  // 50-210 bpm; anything outside that is a typo and falls through.
-  if (hr_bpm != null && hr_bpm >= 50 && hr_bpm <= 210 && !isShortInterval(arch, duration_min)) {
+  // Keytel is validated only for active exercise (>= 85 bpm). Below 85 bpm
+  // (resting/recovery HR), heart rate does not linearly track exercise VO2,
+  // so we fall through to the category's speed or MET tables.
+  if (hr_bpm != null && hr_bpm >= 85 && hr_bpm <= 210 && !isShortInterval(arch, duration_min)) {
     const hrKcal = heartRateKcal(hr_bpm, weight_kg, age, gender, duration_min);
-    // Keytel is only valid above roughly resting HR — below that it returns a
-    // negative burn. A near-resting reading is a real session logged with a bad
-    // number, so fall through to the MET tables rather than storing zero.
     if (hrKcal > 0) return res(hrKcal, "HEART_RATE", "measured");
   }
 
@@ -236,10 +240,12 @@ export function calculateCalories(
     if (speed_kmh <= maxSpeed) {
       if (arch === "treadmill") {
         const grade = (num(inputs.incline_pct) ?? 0) / 100;
-        return res(acsmRunKcalMin(speed_kmh, weight_kg, grade) * duration_min, "ACSM_TREADMILL", "estimated");
+        const fn = speed_kmh < 6.0 ? acsmWalkKcalMin : acsmRunKcalMin;
+        return res(fn(speed_kmh, weight_kg, grade) * duration_min, "ACSM_TREADMILL", "estimated");
       }
       if (arch === "run") {
-        return res(acsmRunKcalMin(speed_kmh, weight_kg, 0) * duration_min, "ACSM_RUN", "estimated");
+        const fn = speed_kmh < 6.0 ? acsmWalkKcalMin : acsmRunKcalMin;
+        return res(fn(speed_kmh, weight_kg, 0) * duration_min, "ACSM_RUN", "estimated");
       }
       if (arch === "walk") {
         return res(acsmWalkKcalMin(speed_kmh, weight_kg, 0) * duration_min, "ACSM_WALK", "estimated");

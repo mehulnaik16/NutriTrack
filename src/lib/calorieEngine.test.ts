@@ -7,6 +7,7 @@
 import assert from "node:assert";
 import { calculateCalories } from "./calorieEngine.ts";
 import type { UserProfile, WorkoutInputs } from "./calorieEngine.ts";
+import { configFor } from "./cardioCategories.ts";
 
 const male70: UserProfile = { weight_kg: 70, age: 30, gender: "Male" };
 
@@ -46,21 +47,21 @@ function within10pct(actual: number, expected: number, label: string) {
   const r = calculateCalories("Treadmill running", {
     duration_min: 20, distance_km: 10 * (20 / 60), incline_pct: 5,
   }, male70);
-  within10pct(r.kcal, 311, "T3 treadmill ACSM");
+  within10pct(r.kcal, 286, "T3 treadmill ACSM");
   assert.strictEqual(r.method, "ACSM_TREADMILL");
   assert.strictEqual(r.confidence, "estimated");
-  console.log(`✓ T3 treadmill ACSM: ${r.kcal} kcal (expected ~311)`);
+  console.log(`✓ T3 treadmill ACSM: ${r.kcal} kcal (expected ~286)`);
 }
 
-// ── Test 4: HIIT 5 min + HR 165 → short-interval exception → TIER_MET ~81 ──
+// ── Test 4: HIIT 5 min + HR 165 → short-interval exception → TIER_MET ~58 ──
 {
   const r = calculateCalories("HIIT", {
     duration_min: 5, hr_bpm: 165,
   }, male70);
-  within10pct(r.kcal, 81, "T4 HIIT short");
+  within10pct(r.kcal, 58, "T4 HIIT short");
   assert.strictEqual(r.method, "TIER_MET");
   assert.strictEqual(r.confidence, "estimated");
-  console.log(`✓ T4 HIIT short: ${r.kcal} kcal (expected ~81)`);
+  console.log(`✓ T4 HIIT short: ${r.kcal} kcal (expected ~58)`);
 }
 
 // ── Test 5: HR = 14 → rejected → falls through ─────────────────────────────
@@ -115,8 +116,8 @@ function within10pct(actual: number, expected: number, label: string) {
 {
   const light = calculateCalories("Swimming", { duration_min: 60, intensity: "Light" }, male70);
   const hard = calculateCalories("Swimming", { duration_min: 60, intensity: "Vigorous" }, male70);
-  assert.strictEqual(light.kcal, 420); // 6.0 × 70
-  assert.strictEqual(hard.kcal, 686);  // 9.8 × 70
+  assert.strictEqual(light.kcal, 385); // 5.5 × 70
+  assert.strictEqual(hard.kcal, 665);  // 9.5 × 70
   console.log(`✓ T10 swimming tiers: ${light.kcal} / ${hard.kcal} kcal`);
 }
 
@@ -152,4 +153,41 @@ function within10pct(actual: number, expected: number, label: string) {
   console.log(`✓ T13 ACSM labels: run=${run.method}, walk=${walk.method}`);
 }
 
-console.log("\n✅ All 13 acceptance tests passed.");
+// ── Test 14: Running distance net invariance (same distance over different times) ──
+{
+  // 5 km at 70 kg should yield 350 kcal regardless of whether it took 25 min or 45 min
+  const fast = calculateCalories("Outdoor run", { duration_min: 25, distance_km: 5 }, male70);
+  const slow = calculateCalories("Outdoor run", { duration_min: 45, distance_km: 5 }, male70);
+  assert.strictEqual(fast.kcal, 350);
+  assert.strictEqual(slow.kcal, 350);
+  console.log(`✓ T14 running net invariance: 25m=${fast.kcal} kcal, 45m=${slow.kcal} kcal (both 350)`);
+}
+
+// ── Test 15: Female Keytel uses correct negative weight coefficient ─────────
+{
+  const female60 = { weight_kg: 60, age: 30, gender: "Female" };
+  // Keytel female: ((-20.4022 + 0.4472*140 - 0.1263*60 + 0.074*30) / 4.184) * 45
+  // = ((-20.4022 + 62.608 - 7.578 + 2.22) / 4.184) * 45 = 36.8478 * 45 / 4.184 = 396.3 -> 396
+  const r = calculateCalories("Cycling", { duration_min: 45, hr_bpm: 140 }, female60);
+  assert.strictEqual(r.method, "HEART_RATE");
+  assert.strictEqual(r.kcal, 396);
+  console.log(`✓ T15 female Keytel correct sign: ${r.kcal} kcal (expected 396)`);
+}
+
+// ── Test 16: Resting HR (<85 bpm) falls through to category MET ─────────────
+{
+  const r = calculateCalories("Yoga & Pilates", { duration_min: 60, hr_bpm: 72 }, male70);
+  assert.strictEqual(r.method, "TIER_MET");
+  assert.strictEqual(r.kcal, 210); // Yoga 3.0 MET * 70
+  console.log(`✓ T16 resting HR (72 bpm) falls through to MET: method=${r.method}`);
+}
+
+// ── Test 17: Swimming form configuration exposes intensity ─────────────────
+{
+  const config = configFor("Swimming");
+  assert.ok(config.form.intensity, "Swimming must have intensity options in form config");
+  assert.deepStrictEqual(Array.from(config.form.intensity), ["Light", "Moderate", "Vigorous"]);
+  console.log(`✓ T17 swimming form has intensity: ${config.form.intensity.join(", ")}`);
+}
+
+console.log("\n✅ All 17 acceptance tests passed.");

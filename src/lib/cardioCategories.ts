@@ -60,6 +60,7 @@ export interface CardioActivity {
 export const MIND_BODY_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
 export const SPORTS_INTENSITY = ["Casual", "Competitive", "Training"] as const;
 export const DANCE_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
+export const SWIMMING_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
 
 export const MIND_BODY_STYLES = [
   "Vinyasa",
@@ -195,7 +196,14 @@ export function categoryOf(name: string): CardioCategory {
 
 /** Category config (form fields + chart spec) for an activity. */
 export function configFor(name: string): CategoryConfig {
-  return CATEGORY_CONFIGS[categoryOf(name)];
+  const base = CATEGORY_CONFIGS[categoryOf(name)];
+  if (name.toLowerCase() === "swimming") {
+    return {
+      ...base,
+      form: { ...base.form, intensity: SWIMMING_INTENSITY },
+    };
+  }
+  return base;
 }
 
 /** Two chart definitions for an activity's Analytics tab. */
