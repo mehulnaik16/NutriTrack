@@ -61,6 +61,7 @@ export const MIND_BODY_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
 export const SPORTS_INTENSITY = ["Casual", "Competitive", "Training"] as const;
 export const DANCE_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
 export const SWIMMING_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
+export const INTERVAL_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
 
 export const MIND_BODY_STYLES = [
   "Vinyasa",
@@ -137,7 +138,7 @@ export const CATEGORY_CONFIGS: Record<CardioCategory, CategoryConfig> = {
   },
   interval: {
     label: "Interval & High-Intensity",
-    form: { protocol: INTERVAL_PROTOCOLS, rounds: true, workRest: true },
+    form: { intensity: INTERVAL_INTENSITY, protocol: INTERVAL_PROTOCOLS, rounds: true, workRest: true },
     charts: [
       { metric: "duration", label: "TOTAL DURATION (MIN)", unit: "min", inverted: false },
       { metric: "rounds", label: "TOTAL ROUNDS / INTERVALS", unit: "", inverted: false },
