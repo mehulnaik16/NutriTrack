@@ -8,6 +8,7 @@ import assert from "node:assert";
 import { calculateCalories } from "./calorieEngine.ts";
 import type { UserProfile, WorkoutInputs } from "./calorieEngine.ts";
 import { configFor } from "./cardioCategories.ts";
+import { weightToKg, distToKm } from "./units.ts";
 
 const male70: UserProfile = { weight_kg: 70, age: 30, gender: "Male" };
 
@@ -190,4 +191,28 @@ function within10pct(actual: number, expected: number, label: string) {
   console.log(`✓ T17 swimming form has intensity: ${config.form.intensity.join(", ")}`);
 }
 
-console.log("\n✅ All 17 acceptance tests passed.");
+// ── Test 18: Unit invariance across kg/lbs and km/mile combinations ──────────
+{
+  // Physical reality: 70 kg (~154 lbs) runner covers 5 km (~3.125 miles) in 30 min
+  const combinations: Array<{ w: number; wu: "kg" | "lbs"; d: number; du: "km" | "mile"; label: string }> = [
+    { w: 70, wu: "kg", d: 5, du: "km", label: "kg + km" },
+    { w: 154, wu: "lbs", d: 3.125, du: "mile", label: "lbs + mile" },
+    { w: 154, wu: "lbs", d: 5, du: "km", label: "lbs + km" },
+    { w: 70, wu: "kg", d: 3.125, du: "mile", label: "kg + mile" },
+  ];
+
+  for (const c of combinations) {
+    const r = calculateCalories("Outdoor run", {
+      duration_min: 30,
+      distance_km: distToKm(c.d, c.du),
+    }, {
+      weight_kg: weightToKg(c.w, c.wu),
+      age: 30,
+      gender: "Male",
+    });
+    assert.strictEqual(r.kcal, 350, `${c.label} failed: expected 350 kcal, got ${r.kcal}`);
+  }
+  console.log(`✓ T18 unit invariance: all 4 unit combinations (kg/lbs × km/mile) yield 350 kcal`);
+}
+
+console.log("\n✅ All 18 acceptance tests passed.");
