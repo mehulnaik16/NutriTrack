@@ -1,17 +1,23 @@
 /* Runnable self-check for the XP system. No test framework installed, so this
-   is a plain assert script:  npx esbuild --bundle | node   (see verify step).
-   Covers the 5 verification cases from the spec. */
+   is a plain assert script:  node --experimental-strip-types src/lib/xpConfig.test.ts
+
+   Per-achievement XP now comes from the `achievements` table via
+   sync_achievements(), so these cases pass xp values in the way the server
+   supplies them rather than reading them off a client constant. The numbers
+   below mirror the migration seed. */
 import assert from "node:assert";
 import {
   XP_PER_LOG,
   XP_PER_LEVEL,
   ACHIEVEMENTS,
+  ACHIEVEMENT_BY_ID,
   computeTotalXP,
   levelFromXP,
-} from "./xpConfig";
+} from "./xpConfig.ts";
 
-const STREAK = ACHIEVEMENTS.STREAK_7_DAY.xp;
-const FIRST_BITE = ACHIEVEMENTS.FIRST_BITE.xp;
+// As seeded in 20260914150000_achievements_catalog.sql.
+const FIRST_BITE = 50;
+const STREAK = 150; // streak_7
 
 // 1. Fresh user: 0 logs, 0 achievements → totalXP 0, level 1, bar empty.
 {
@@ -26,18 +32,15 @@ const FIRST_BITE = ACHIEVEMENTS.FIRST_BITE.xp;
 //    totalXP = XP_PER_LOG*2 + FIRST_BITE (from log 1). The formula is right;
 //    the "clean" log to test is the 2nd, not the 1st.
 {
-  const xp = computeTotalXP(2, [ACHIEVEMENTS.FIRST_BITE.id]);
+  const xp = computeTotalXP(2, [FIRST_BITE]);
   assert.equal(xp, XP_PER_LOG * 2 + FIRST_BITE);
   assert.equal(levelFromXP(xp).level, 1); // well under 1000
 }
 
-// 3. Completing a 7-day streak adds EXACTLY STREAK_7_DAY.xp, nothing more/less.
+// 3. Completing a 7-day streak adds EXACTLY that badge's xp, nothing more/less.
 {
-  const before = computeTotalXP(10, [ACHIEVEMENTS.FIRST_BITE.id]);
-  const after = computeTotalXP(10, [
-    ACHIEVEMENTS.FIRST_BITE.id,
-    ACHIEVEMENTS.STREAK_7_DAY.id,
-  ]);
+  const before = computeTotalXP(10, [FIRST_BITE]);
+  const after = computeTotalXP(10, [FIRST_BITE, STREAK]);
   assert.equal(after - before, STREAK);
 }
 
@@ -53,11 +56,19 @@ const FIRST_BITE = ACHIEVEMENTS.FIRST_BITE.xp;
   assert.ok(justOver.xpIntoCurrentLevel < XP_PER_LEVEL);
 }
 
-// 5. Config is the only knob: multiplying XP_PER_LOG would change outputs.
-//    Proven structurally — every number above is derived from the imports,
-//    so changing xpConfig.ts alone shifts them with no other file touched.
+// 5. XP_PER_LOG is the only client-side knob left; achievement XP arrives from
+//    the server, so an empty list contributes nothing.
 {
   assert.equal(computeTotalXP(3, []), 3 * XP_PER_LOG);
 }
 
-console.log("xpConfig self-check: all 5 cases passed ✓");
+// 6. Every presentation entry is reachable by the id the server returns —
+//    a drifted id would render an unlabelled badge.
+{
+  for (const a of Object.values(ACHIEVEMENTS)) {
+    assert.equal(ACHIEVEMENT_BY_ID[a.id]?.title, a.title, `unmapped id ${a.id}`);
+  }
+  assert.equal(Object.keys(ACHIEVEMENT_BY_ID).length, 19);
+}
+
+console.log("xpConfig self-check: all 6 cases passed ✓");
