@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import {
   Outlet,
   Link,
@@ -110,6 +111,7 @@ function RootComponent() {
         <Outlet />
         <BottomNav />
         <Toaster position="top-right" richColors />
+        <SpeedInsights />
       </AuthProvider>
     </QueryClientProvider>
   );
