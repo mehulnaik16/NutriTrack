@@ -129,12 +129,14 @@ import { convWeight, kgToWeight, convDist, distToKm, round1 } from "@/lib/units"
 
 /** Which formula produced the shown number — surfaced as a chip on the log card. */
 const METHOD_LABEL: Record<CalcMethod, string> = {
+  POWER: "Measured power",
   HEART_RATE: "Heart rate",
   ACSM_TREADMILL: "Treadmill pace",
   ACSM_RUN: "Running pace",
   ACSM_WALK: "Walking pace",
   SPEED_MET: "Speed",
   VERTICAL: "Vertical work",
+  STRENGTH_SETS: "Sets and reps",
   TIER_MET: "Activity MET",
   GENERIC: "Generic estimate",
   MANUAL: "Manual entry",
@@ -884,6 +886,15 @@ function WorkoutPage() {
                 </button>
               );
             })}
+            {/* Sits with the grid, not with search results: it is an entry point
+                to a separate tool, not one of the things being searched. */}
+            <button
+              onClick={() => navigate({ to: "/calorie-calculator" })}
+              className="col-span-3 mt-1 flex h-14 w-full items-center justify-center gap-2 rounded-full border border-border/50 bg-muted/40 text-[15px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.98]"
+            >
+              <Flame className="h-[18px] w-[18px] text-accent" />
+              Calculate Calories Burned
+            </button>
           </div>
         )}
       </div>
@@ -1178,12 +1189,13 @@ function WorkoutPage() {
     };
 
     // Calorie engine helper — returns result for current form state
-    const engineResult = (dur?: string, int?: string, dist?: string, bpmVal?: string) =>
+    const engineResult = (dur?: string, int?: string, dist?: string, bpmVal?: string, pw?: string) =>
       calculateCalories(selectedCardio ?? "", {
         duration_min: parseInt(dur ?? duration) || 30,
         distance_km: distanceKm(dist),
         hr_bpm: parseInt(bpmVal ?? bpm) || null,
         intensity: int ?? (intensity || null),
+        avg_power_w: parseInt(pw ?? avgPower) || null,
       }, { weight_kg: bodyWeight, age: userAge, gender: userGender });
 
     const initialEstimate = engineResult();
@@ -1261,6 +1273,11 @@ function WorkoutPage() {
     const handleBpm = (v: string) => {
       setBpm(v);
       applyEstimate(engineResult(duration, intensity || undefined, distance, v));
+    };
+
+    const handleAvgPower = (v: string) => {
+      setAvgPower(v);
+      applyEstimate(engineResult(duration, intensity || undefined, distance, bpm, v));
     };
 
     const handleLog = async () => {
@@ -1407,7 +1424,7 @@ function WorkoutPage() {
                   <Input
                     type="number"
                     value={avgPower}
-                    onChange={(e) => setAvgPower(e.target.value)}
+                    onChange={(e) => handleAvgPower(e.target.value)}
                     placeholder="e.g. 200"
                     className="h-12 bg-background/50 text-center font-semibold"
                   />

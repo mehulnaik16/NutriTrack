@@ -31,6 +31,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CustomPlanEditRouteImport } from './routes/custom-plan-edit'
 import { Route as CustomPlanRouteImport } from './routes/custom-plan'
 import { Route as ChoosePlanRouteImport } from './routes/choose-plan'
+import { Route as CalorieCalculatorRouteImport } from './routes/calorie-calculator'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DebugNotificationsRouteImport } from './routes/debug.notifications'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -145,6 +146,11 @@ const ChoosePlanRoute = ChoosePlanRouteImport.update({
   path: '/choose-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CalorieCalculatorRoute = CalorieCalculatorRouteImport.update({
+  id: '/calorie-calculator',
+  path: '/calorie-calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -163,6 +169,7 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calorie-calculator': typeof CalorieCalculatorRoute
   '/choose-plan': typeof ChoosePlanRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calorie-calculator': typeof CalorieCalculatorRoute
   '/choose-plan': typeof ChoosePlanRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
@@ -218,6 +226,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calorie-calculator': typeof CalorieCalculatorRoute
   '/choose-plan': typeof ChoosePlanRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/calorie-calculator'
     | '/choose-plan'
     | '/custom-plan'
     | '/custom-plan-edit'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/calorie-calculator'
     | '/choose-plan'
     | '/custom-plan'
     | '/custom-plan-edit'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/calorie-calculator'
     | '/choose-plan'
     | '/custom-plan'
     | '/custom-plan-edit'
@@ -329,6 +341,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalorieCalculatorRoute: typeof CalorieCalculatorRoute
   ChoosePlanRoute: typeof ChoosePlanRoute
   CustomPlanRoute: typeof CustomPlanRoute
   CustomPlanEditRoute: typeof CustomPlanEditRoute
@@ -511,6 +524,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChoosePlanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/calorie-calculator': {
+      id: '/calorie-calculator'
+      path: '/calorie-calculator'
+      fullPath: '/calorie-calculator'
+      preLoaderRoute: typeof CalorieCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -537,6 +557,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalorieCalculatorRoute: CalorieCalculatorRoute,
   ChoosePlanRoute: ChoosePlanRoute,
   CustomPlanRoute: CustomPlanRoute,
   CustomPlanEditRoute: CustomPlanEditRoute,

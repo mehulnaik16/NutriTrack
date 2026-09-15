@@ -8,6 +8,11 @@ import assert from "node:assert";
 import { calculateCalories } from "./calorieEngine.ts";
 import type { UserProfile, WorkoutInputs } from "./calorieEngine.ts";
 import { configFor } from "./cardioCategories.ts";
+import {
+  summarizeStrength, isStrengthExercise, confidenceTier, calorieRange,
+  MUSCLE_MET, LOAD_REF,
+} from "./calorieEngine.ts";
+import { EXERCISES_DB } from "./exercises.ts";
 import { weightToKg, distToKm } from "./units.ts";
 
 const male70: UserProfile = { weight_kg: 70, age: 30, gender: "Male" };
@@ -20,15 +25,18 @@ function within10pct(actual: number, expected: number, label: string) {
   );
 }
 
-// ── Test 1: Cycling with HR → HEART_RATE ~385 kcal ──────────────────────────
+// ── Test 1: Cycling with HR → HEART_RATE ~278 kcal ──────────────────────────
+// Raw Keytel gives 386 here; the male branch carries a 0.72 bias correction
+// because the unadjusted equation bills 11 MET for a 141 bpm ride that costs
+// roughly 7-8. See MALE_KEYTEL_BIAS and calorieEngine.ranges.test.ts.
 {
   const r = calculateCalories("Cycling", {
     duration_min: 30, distance_km: 19, hr_bpm: 141,
   }, male70);
-  within10pct(r.kcal, 385, "T1 cycling+HR");
+  within10pct(r.kcal, 278, "T1 cycling+HR");
   assert.strictEqual(r.method, "HEART_RATE");
   assert.strictEqual(r.confidence, "measured");
-  console.log(`✓ T1 cycling+HR: ${r.kcal} kcal (expected ~385)`);
+  console.log(`✓ T1 cycling+HR: ${r.kcal} kcal (expected ~278, raw Keytel 386)`);
 }
 
 // ── Test 2: Cycling no HR → speed 38 km/h → SPEED_MET ~420 ─────────────────
@@ -216,3 +224,151 @@ function within10pct(actual: number, expected: number, label: string) {
 }
 
 console.log("\n✅ All 18 acceptance tests passed.");
+
+// ── Strength: set-driven calculation ────────────────────────────────────────
+// Appended when the strength calculator landed. The cardio assertions above are
+// untouched; these cover the STRENGTH_SETS path and its inputs.
+
+const sq = (reps: number, weight_kg: number, n: number) =>
+  Array.from({ length: n }, () => ({ reps, weight_kg }));
+
+// ── Test 19: a loaded squat uses the set model, not a flat MET ──────────────
+{
+  const r = calculateCalories("Back Squat", {
+    duration_min: 10, rest_sec: 60, strength_sets: sq(8, 70, 4),
+  }, male70);
+  assert.strictEqual(r.method, "STRENGTH_SETS");
+  assert.strictEqual(r.confidence, "estimated");
+  assert.ok(r.kcal > 0, `T19 expected a positive burn, got ${r.kcal}`);
+  console.log(`✓ T19 squat 4x8 @70kg: ${r.kcal} kcal, method=${r.method}`);
+}
+
+// ── Test 20: heavier load on identical reps costs more ─────────────────────
+{
+  const light = calculateCalories("Back Squat", {
+    duration_min: 10, rest_sec: 60, strength_sets: sq(8, 30, 4),
+  }, male70);
+  const heavy = calculateCalories("Back Squat", {
+    duration_min: 10, rest_sec: 60, strength_sets: sq(8, 120, 4),
+  }, male70);
+  assert.ok(
+    heavy.kcal > light.kcal,
+    `T20 heavy (${heavy.kcal}) must exceed light (${light.kcal}) on identical reps`,
+  );
+  console.log(`✓ T20 load tiers: 30kg=${light.kcal} kcal, 120kg=${heavy.kcal} kcal`);
+}
+
+// ── Test 21: the mean load is volume-weighted and skips empty rows ──────────
+{
+  const withEmpty = summarizeStrength("Back Squat",
+    [{ reps: 10, weight_kg: 60 }, { reps: 0, weight_kg: 999 }], 60, 70);
+  assert.strictEqual(withEmpty?.mean_load_kg, 60, "T21 a 0-rep row must not move the mean");
+
+  const weighted = summarizeStrength("Back Squat",
+    [{ reps: 10, weight_kg: 50 }, { reps: 5, weight_kg: 80 }], 60, 70);
+  // (50*10 + 80*5) / 15 = 60
+  assert.strictEqual(weighted?.mean_load_kg, 60, "T21 mean must weight by reps");
+  console.log(`✓ T21 volume-weighted mean load: ${weighted?.mean_load_kg} kg`);
+}
+
+// ── Test 22: isometrics read hold seconds and ignore reps ──────────────────
+{
+  const held = summarizeStrength("Plank", [{ hold_sec: 60 }, { hold_sec: 45 }], 60, 70);
+  assert.strictEqual(held?.active_sec, 105, "T22 hold seconds must sum");
+  const withReps = summarizeStrength("Plank", [{ reps: 20, hold_sec: 60 }], 60, 70);
+  assert.strictEqual(withReps?.active_sec, 60, "T22 reps must be ignored for a hold");
+  console.log(`✓ T22 plank: ${held?.active_sec}s active from two holds`);
+}
+
+// ── Test 23: rest falls BETWEEN sets, so n sets carry n-1 rests ────────────
+{
+  const s = summarizeStrength("Back Squat", sq(8, 70, 4), 60, 70);
+  assert.strictEqual(s?.rest_sec, 180, `T23 four sets must carry three rests, got ${s?.rest_sec}`);
+  const one = summarizeStrength("Back Squat", sq(8, 70, 1), 60, 70);
+  assert.strictEqual(one?.rest_sec, 0, "T23 a single set carries no rest");
+  console.log(`✓ T23 rest between sets: 4 sets = ${s?.rest_sec}s, 1 set = ${one?.rest_sec}s`);
+}
+
+// ── Test 24: heart rate takes precedence over the set model ────────────────
+{
+  const r = calculateCalories("Back Squat", {
+    duration_min: 10, rest_sec: 60, strength_sets: sq(8, 70, 4), hr_bpm: 140,
+  }, male70);
+  assert.strictEqual(r.method, "HEART_RATE", "T24 a supplied BPM must win");
+  console.log(`✓ T24 BPM switches formula: ${r.kcal} kcal, method=${r.method}`);
+}
+
+// ── Test 25: no set rows falls through to the bout MET table ───────────────
+{
+  const r = calculateCalories("Back Squat", { duration_min: 30 }, male70);
+  assert.strictEqual(r.method, "TIER_MET");
+  assert.strictEqual(r.kcal, 175); // 5.0 MET x 70 x 0.5
+  console.log(`✓ T25 no sets falls through: ${r.kcal} kcal, method=${r.method}`);
+}
+
+// ── Test 26: cardio machines filed under muscles stay cardio ───────────────
+{
+  for (const name of ["Stair Stepper", "Jump Rope"]) {
+    const r = calculateCalories(name, {
+      duration_min: 10, rest_sec: 60, strength_sets: sq(8, 70, 4),
+    }, male70);
+    assert.strictEqual(r.method, "VERTICAL", `T26 ${name} must stay on its cardio archetype`);
+    assert.strictEqual(isStrengthExercise(name), false, `T26 ${name} must not reach the picker`);
+  }
+  assert.strictEqual(isStrengthExercise("Back Squat"), true);
+  assert.strictEqual(isStrengthExercise("Nonexistent Lift"), false);
+  console.log(`✓ T26 Stair Stepper and Jump Rope excluded from strength`);
+}
+
+// ── Test 27: assistance makes a set cheaper, not dearer ────────────────────
+{
+  const assisted = calculateCalories("Assisted Pull up", {
+    duration_min: 10, rest_sec: 60, strength_sets: sq(8, 30, 4),
+  }, male70);
+  const unassisted = calculateCalories("Pull Up", {
+    duration_min: 10, rest_sec: 60, strength_sets: sq(8, 0, 4),
+  }, male70);
+  assert.ok(
+    assisted.kcal < unassisted.kcal,
+    `T27 assisted (${assisted.kcal}) must cost less than unassisted (${unassisted.kcal})`,
+  );
+  console.log(`✓ T27 assisted ${assisted.kcal} kcal < unassisted ${unassisted.kcal} kcal`);
+}
+
+// ── Test 28: an unknown exercise still answers, at low confidence ──────────
+{
+  const s = summarizeStrength("Nonexistent Lift", sq(10, 40, 3), 60, 70);
+  assert.strictEqual(s?.met_resolved, false, "T28 an unknown name must report an unresolved MET");
+  assert.strictEqual(confidenceTier("STRENGTH_SETS", false), "low");
+  assert.strictEqual(confidenceTier("STRENGTH_SETS", true), "medium");
+  assert.strictEqual(confidenceTier("HEART_RATE", false), "high");
+  console.log(`✓ T28 unknown name -> low confidence, MET defaulted to 5.0`);
+}
+
+// ── Test 29: MUSCLE_MET and LOAD_REF cover every muscle group ──────────────
+// A renamed or added group would not throw — every exercise in it would quietly
+// fall to the default MET. This is the check that makes that loud.
+{
+  const groups = Object.keys(EXERCISES_DB).sort();
+  assert.deepStrictEqual(
+    Object.keys(MUSCLE_MET).sort(), groups,
+    "T29 MUSCLE_MET keys must match EXERCISES_DB exactly",
+  );
+  assert.deepStrictEqual(
+    Object.keys(LOAD_REF).sort(), groups,
+    "T29 LOAD_REF keys must match EXERCISES_DB exactly",
+  );
+  console.log(`✓ T29 both strength tables cover all ${groups.length} muscle groups`);
+}
+
+// ── Test 30: the reported range widens as confidence drops ────────────────
+{
+  const high = calorieRange(200, "high");
+  const low = calorieRange(200, "low");
+  assert.deepStrictEqual(high, { low: 180, high: 220 });
+  assert.deepStrictEqual(low, { low: 140, high: 260 });
+  assert.strictEqual(calorieRange(0, "low").low, 0, "T30 a range must never go negative");
+  console.log(`✓ T30 bands: high ${high.low}-${high.high}, low ${low.low}-${low.high}`);
+}
+
+console.log("\n✅ Strength tests passed.");

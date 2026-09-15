@@ -62,6 +62,7 @@ export const SPORTS_INTENSITY = ["Casual", "Competitive", "Training"] as const;
 export const DANCE_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
 export const SWIMMING_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
 export const INTERVAL_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
+export const ERGOMETER_INTENSITY = ["Light", "Moderate", "Vigorous"] as const;
 
 export const MIND_BODY_STYLES = [
   "Vinyasa",
@@ -106,7 +107,9 @@ export const CATEGORY_CONFIGS: Record<CardioCategory, CategoryConfig> = {
   },
   ergometer: {
     label: "Machine Ergometers",
-    form: { distance: true, distanceUnit: "meters", avgPower: true },
+    // Without intensity the engine had no effort signal at all and every
+    // ergometer session collapsed onto one default MET.
+    form: { distance: true, distanceUnit: "meters", intensity: ERGOMETER_INTENSITY, avgPower: true },
     charts: [
       { metric: "pace", label: "PACE (MIN/500M) — LOWER IS FASTER", unit: "min/500m", inverted: true },
       { metric: "avgPower", label: "AVG POWER (WATTS)", unit: "W", inverted: false },

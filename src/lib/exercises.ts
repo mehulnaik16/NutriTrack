@@ -617,3 +617,21 @@ export const MUSCLE_SUBCATEGORIES: Record<string, MuscleSubcategory[]> = {
     { label: "Lower Back", names: EXERCISES_DB.lowerback },
   ],
 };
+
+/**
+ * Exercise name (lowercased) → muscle-group key.
+ *
+ * First group wins. Exactly one name ("Diamond Push Up") is filed under two
+ * muscles, and chest is the primary mover there.
+ *
+ * The calorie engine reads this to resolve a bare exercise name to its MET
+ * value, so it lives beside the data it is derived from rather than being
+ * rebuilt at each call site.
+ */
+export const MUSCLE_OF = new Map<string, string>();
+for (const [group, names] of Object.entries(EXERCISES_DB)) {
+  for (const n of names) {
+    const key = n.toLowerCase();
+    if (!MUSCLE_OF.has(key)) MUSCLE_OF.set(key, group);
+  }
+}
