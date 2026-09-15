@@ -39,6 +39,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
 import { serverAiFoodSearchInline } from "@/lib/ai";
+import { strongFoods } from "@/lib/foodFuzzy";
 import { toLocalISO } from "@/lib/dates";
 import {
   type IFCTItem,
@@ -232,6 +233,8 @@ export const FoodSearch = forwardRef<
   const [cameraOpen, setCameraOpen] = useState(false);
   const [barcodeMode, setBarcodeMode] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  /** Foods parsed from a typed sentence, handed to the voice review list. */
+  const [voiceItems, setVoiceItems] = useState<VoiceFoodItem[] | undefined>();
 
   // Recent foods (for quick re-logging)
   interface RecentFood {
@@ -284,14 +287,48 @@ export const FoodSearch = forwardRef<
       if (r < 5) matches.push({ item: it, r });
     }
     matches.sort((a, b) => a.r - b.r || a.item.name.localeCompare(b.item.name));
-    return matches.slice(0, 12).map((m) => m.item);
+    // Substring first, because it is exact and instant. Only when it finds
+    // nothing is the typo-tolerant pass worth running — and that pass is what
+    // keeps a food we already hold from ever reaching the paid model.
+    if (matches.length > 0) return matches.slice(0, 12).map((m) => m.item);
+    return strongFoods(term, 8);
   }, [q]);
+
+  /**
+   * Per-100 g AI row -> the absolute-macro shape the review list expects.
+   * meal-builder's voiceToItem does this conversion in the other direction.
+   */
+  const aiItemToVoice = (it: IFCTItem): VoiceFoodItem => {
+    const grams = it.serving_g ?? 100;
+    const ratio = grams / 100;
+    return {
+      food_name: it.name,
+      quantity_g: grams,
+      unit: it.piece_g ? "pcs" : "g",
+      unit_quantity: it.piece_g ? +(grams / it.piece_g).toFixed(2) : grams,
+      meal_type: mealPicker?.value ?? "Snack",
+      calories: +(kcalOf(it) * ratio).toFixed(1),
+      protein_g: +((it.protcnt ?? 0) * ratio).toFixed(1),
+      carbs_g: +((it.choavldf ?? 0) * ratio).toFixed(1),
+      fat_g: +((it.fatce ?? 0) * ratio).toFixed(1),
+      fiber_g: +((it.fibtg ?? 0) * ratio).toFixed(1),
+    };
+  };
 
   const handleAiFallback = async () => {
     if (q.trim().length < 2) return;
     setSearching(true);
     try {
-      const { items } = await serverAiFoodSearchInline({ data: q });
+      const { kind, items } = await serverAiFoodSearchInline({ data: q });
+      if (kind === "meal" && items.length > 1) {
+        // Several foods in one sentence. The pick-one list cannot express that,
+        // but the voice review list already can — per-item quantities, edits
+        // and a single bulk log.
+        setVoiceItems(items.map(aiItemToVoice));
+        setVoiceOpen(true);
+        setAiSuggestions([]);
+        return;
+      }
       setAiSuggestions((items || []) as IFCTItem[]);
     } catch (e: any) {
       console.error("AI fallback failed", e);
@@ -540,6 +577,11 @@ export const FoodSearch = forwardRef<
             >
               <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                 <span className="font-medium truncate">{it.name}</span>
+                {it.heard && it.heard.toLowerCase() !== it.name.toLowerCase() && (
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    for "{it.heard}"
+                  </span>
+                )}
                 {it.code === "ai-fallback" && (
                   <Badge className="text-[9px] h-4 px-1 bg-accent/20 text-accent border-none uppercase font-bold shrink-0">
                     AI
@@ -1155,9 +1197,13 @@ export const FoodSearch = forwardRef<
 
       <VoiceFoodDialog
         open={voiceOpen}
-        onOpenChange={setVoiceOpen}
+        onOpenChange={(o) => {
+          setVoiceOpen(o);
+          if (!o) setVoiceItems(undefined);
+        }}
         meal={mealPicker}
         onConfirm={logVoiceItems}
+        initialItems={voiceItems}
       />
 
       {/* Mounted only while open so @zxing/* stays off the initial page load. */}

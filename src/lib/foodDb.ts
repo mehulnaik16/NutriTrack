@@ -3,10 +3,10 @@
  * Used by the FoodSearch component and the /meal-builder page.
  */
 
-import ifctData from "@/data/ifct2017.json";
-import restaurantData from "@/data/restaurantFoods.json";
-import { EXTRA_FOODS } from "@/data/extraFoods";
-import { serverAiFoodSearch } from "@/lib/ai";
+import ifctData from "../data/ifct2017.json" with { type: "json" };
+import restaurantData from "../data/restaurantFoods.json" with { type: "json" };
+import { EXTRA_FOODS } from "../data/extraFoods.ts";
+import type { Unit } from "./foodUnits.ts";
 
 export interface IFCTItem {
   code: string;
@@ -36,6 +36,24 @@ export interface IFCTItem {
    * the estimate only affects the per-100 g view and hand-edited quantities.
    */
   serving_est?: boolean;
+
+  // ── Carried only by AI fallback rows ──────────────────────────────────────
+  // A catalog row never sets these, so every existing food behaves as before.
+
+  /**
+   * The words from the query this row was matched to, which the model records
+   * before it quotes any number. Shown to the user so a wrong correction —
+   * "thatte idli" quietly becoming plain idli — is visible rather than silent.
+   */
+  heard?: string;
+  /** How sure the model is. Below "high" it returns alternatives instead. */
+  confidence?: "high" | "medium" | "low";
+  /** The units that make sense for this food. Absent means all of them. */
+  units?: Unit[];
+  /** Grams in one piece, for a countable food with no PIECE_G entry. */
+  piece_g?: number;
+  /** Grams per millilitre, for a food with no DENSITY entry. */
+  density?: number;
 }
 
 export const KJ_PER_KCAL = 4.184;
@@ -91,15 +109,5 @@ export function searchFoods(query: string, limit = 8): IFCTItem[] {
   }
   matches.sort((a, b) => a.r - b.r || a.item.name.localeCompare(b.item.name));
   return matches.slice(0, limit).map((m) => m.item);
-}
-
-/**
- * AI fallback search — asks the LLM for typical per-100g values when the
- * local database has no match. Returns up to 3 IFCT-shaped items.
- */
-export async function aiFoodSearch(query: string): Promise<IFCTItem[]> {
-  if (query.trim().length < 2) return [];
-  const { items } = await serverAiFoodSearch({ data: query });
-  return (items || []) as IFCTItem[];
 }
 

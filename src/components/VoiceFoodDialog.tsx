@@ -112,6 +112,7 @@ export function VoiceFoodDialog({
   onConfirm,
   meal,
   confirmVerb = "Log",
+  initialItems,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -119,13 +120,28 @@ export function VoiceFoodDialog({
   onConfirm: (items: VoiceFoodItem[]) => void | Promise<void>;
   meal?: MealPicker;
   confirmVerb?: string;
+  /**
+   * Foods already parsed elsewhere, to review instead of speaking.
+   *
+   * The food search uses this when a typed sentence turns out to name several
+   * foods: the review list, its per-item quantity editing and its bulk log are
+   * exactly what that needs, and none of it is specific to the microphone.
+   */
+  initialItems?: VoiceFoodItem[];
 }) {
   const recogRef = useRef<SpeechRecognitionLike | null>(null);
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [items, setItems] = useState<VoiceFoodItem[]>([]);
+  const [items, setItems] = useState<VoiceFoodItem[]>(initialItems ?? []);
   const [parsing, setParsing] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Pre-parsed items arrive as a prop, and the dialog may already be mounted
+  // when they change — a second sentence typed into the search box reuses the
+  // same instance.
+  useEffect(() => {
+    if (initialItems) setItems(initialItems);
+  }, [initialItems]);
 
   // Navigating away mid-recording used to leave the microphone live —
   // nothing stopped the recogniser except the button.

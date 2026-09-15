@@ -14,8 +14,24 @@ import type { Range, Validated } from "./measurements";
 
 export type Unit = "g" | "ml" | "tsp" | "tbsp" | "cup" | "pcs";
 
-/** The only catalog fields this module reads. */
-export type UnitFood = { code: string; grup?: string };
+/**
+ * The only catalog fields this module reads.
+ *
+ * The last three are carried by AI-returned foods, which have no catalog row to
+ * look up: a model-supplied dosa states its own piece weight, and a model-
+ * supplied coffee states that it is poured rather than counted. Catalog rows
+ * never set them, so every existing food behaves exactly as before.
+ */
+export type UnitFood = {
+  code: string;
+  grup?: string;
+  /** Grams in one piece, for a food with no PIECE_G entry. */
+  piece_g?: number;
+  /** Grams per millilitre, for a food with no DENSITY entry. */
+  density?: number;
+  /** The units that make sense for this food. Absent means all of them. */
+  units?: Unit[];
+};
 
 /** Every unit, in the order the selector shows them. */
 export const UNITS: Unit[] = ["g", "ml", "tsp", "tbsp", "cup", "pcs"];
@@ -88,21 +104,28 @@ export const QUANTITY_G: Range = {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-/** Weight of one piece, or `undefined` when the food is not countable. */
+/**
+ * Weight of one piece, or `undefined` when the food is not countable.
+ * A curated piece weight always wins over a model-supplied one.
+ */
 export const pieceGrams = (food: UnitFood): number | undefined =>
-  PIECE_G[food.code];
+  PIECE_G[food.code] ?? food.piece_g;
 
 /** Grams per millilitre. 1 unless the food has a known density. */
 export const density = (food: UnitFood): number =>
-  DENSITY[food.code] ?? DENSITY[food.grup ?? ""] ?? 1;
+  DENSITY[food.code] ?? DENSITY[food.grup ?? ""] ?? food.density ?? 1;
 
 /**
  * Units this food can be logged in. `pcs` appears only for countable foods —
  * or when it is already the selected unit, so reopening a log entered in pieces
  * does not show a value missing from its own list.
+ *
+ * A food may narrow the list with its own `units`: an AI-returned coffee offers
+ * ml and cup but never pcs, and a samosa never offers cup. Catalog rows set no
+ * `units` and so keep being offered all six, unchanged.
  */
 export const unitsFor = (food: UnitFood, current?: Unit): Unit[] =>
-  UNITS.filter(
+  (food.units ?? UNITS).filter(
     (u) => u !== "pcs" || current === "pcs" || pieceGrams(food) !== undefined,
   );
 

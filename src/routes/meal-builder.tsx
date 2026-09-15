@@ -34,8 +34,9 @@ import {
   defaultQtyFor,
   kcalOf,
   searchFoods,
-  aiFoodSearch,
 } from "@/lib/foodDb";
+import { strongFoods } from "@/lib/foodFuzzy";
+import { serverAiFoodSearch } from "@/lib/ai";
 import { type Unit, defaultUnitFor, toGrams, unitsFor } from "@/lib/foodUnits";
 import {
   VoiceFoodDialog,
@@ -140,7 +141,13 @@ function MealBuilderPage() {
       });
   }, [user]);
 
-  const localResults = useMemo(() => searchFoods(query, 8), [query]);
+  // Substring first, because it is exact and instant. Only when it finds
+  // nothing is it worth spending the fuzzy pass — which is also what keeps a
+  // food we already hold from ever reaching the paid model.
+  const localResults = useMemo(() => {
+    const exact = searchFoods(query, 8);
+    return exact.length > 0 ? exact : strongFoods(query, 8);
+  }, [query]);
   const allSuggestions = useMemo(
     () => [...localResults, ...aiSuggestions],
     [localResults, aiSuggestions],
@@ -165,7 +172,8 @@ function MealBuilderPage() {
     if (query.trim().length < 2) return;
     setAiSearching(true);
     try {
-      setAiSuggestions(await aiFoodSearch(query));
+      const { items } = await serverAiFoodSearch({ data: query });
+      setAiSuggestions((items ?? []) as IFCTItem[]);
     } catch (e) {
       console.error("AI fallback failed", e);
       toast.error("AI search failed — try again");
@@ -370,7 +378,12 @@ function MealBuilderPage() {
                 setQuery(e.target.value);
                 if (aiSuggestions.length > 0) setAiSuggestions([]);
               }}
-              onKeyDown={(e) => e.key === "Enter" && handleAiSearch()}
+              onKeyDown={(e) => {
+                // Only reach for the model when local search came up empty.
+                // Enter is a typing habit, and firing it over a list of local
+                // matches spends a metered call on an answered query.
+                if (e.key === "Enter" && allSuggestions.length === 0) handleAiSearch();
+              }}
               className="h-12 rounded-xl pl-9"
             />
             {query.length >= 2 &&
@@ -408,6 +421,11 @@ function MealBuilderPage() {
                       <Badge className="h-4 shrink-0 border-none bg-accent/20 px-1 text-[9px] font-bold uppercase text-accent">
                         AI
                       </Badge>
+                    )}
+                    {it.heard && it.heard.toLowerCase() !== it.name.toLowerCase() && (
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        for "{it.heard}"
+                      </span>
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
