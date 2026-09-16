@@ -249,7 +249,7 @@ export async function groqVision(opts: {
   max_tokens?: number;
 }): Promise<string> {
   return groqChat({
-    model: "qwen/qwen3.6-27b",
+    model: "qwen/qwen3.8-27b",
     max_tokens: opts.max_tokens ?? 500,
     temperature: 0.2,
     reasoning_effort: "none",

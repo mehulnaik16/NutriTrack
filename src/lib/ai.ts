@@ -192,3 +192,20 @@ export const serverGroqVision = createServerFn({ method: "POST" })
     return { result: raw };
   });
 
+// ── AI Vision via Gemini (food-photo A/B against the Groq path) ──────────────
+
+// Same validator, same rate limit, same shape back. The only difference from
+// serverGroqVision is which model sees the image — which is the point: a
+// comparison where the two paths also differ in prompt, limits or parsing
+// measures the plumbing, not the models.
+
+export const serverGeminiVision = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(VisionInput)
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    const { geminiVision } = await import("@/server/gemini");
+    const { prompt, base64, mimeType } = ctx.data;
+    const raw = await geminiVision({ prompt, base64, mimeType });
+    return { result: raw };
+  });

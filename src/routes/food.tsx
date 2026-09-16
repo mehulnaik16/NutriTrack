@@ -452,6 +452,7 @@ function FoodPage() {
               date={selectedDate}
               onLogged={load}
               meals={userMeals}
+              showGeminiPhoto
             />
 
             <div className="mt-5 space-y-5">

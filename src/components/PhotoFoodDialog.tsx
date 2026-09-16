@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { serverGroqVision } from "@/lib/ai";
+import { serverGeminiVision, serverGroqVision } from "@/lib/ai";
 import { type IFCTItem, KJ_PER_KCAL } from "@/lib/foodDb";
 
 interface AIFoodResult {
@@ -61,10 +61,26 @@ export interface MealPicker {
   onChange: (v: string) => void;
 }
 
-// ── AI image recognition via Groq qwen/qwen3.6-27b vision ───────────────────
+/**
+ * Which vision model reads the photo.
+ *
+ * Both are wired to the same prompt, the same parsing and the same result
+ * shape, so the only variable between them is the model — that is what makes
+ * the two buttons in the log-food screen an actual comparison rather than two
+ * different features that happen to both use a camera.
+ */
+export type VisionProvider = "groq" | "gemini";
+
+const VISION_FN = {
+  groq: serverGroqVision, // qwen/qwen3.8-27b
+  gemini: serverGeminiVision, // gemini-3.6-flash
+} as const;
+
+// ── AI image recognition ────────────────────────────────────────────────────
 async function recognizeFoodFromImage(
   base64: string,
   mimeType: "image/jpeg" | "image/png" | "image/webp",
+  provider: VisionProvider,
 ): Promise<AIFoodResult> {
   const prompt = `You are a nutrition expert. Analyze this food photo and return ONLY valid JSON, no markdown:
 {
@@ -80,7 +96,7 @@ async function recognizeFoodFromImage(
 }
 A human palm is ~18cm — use it as a size reference if visible. Use accurate nutritional values for Indian foods.`;
 
-  const { result: raw } = await serverGroqVision({
+  const { result: raw } = await VISION_FN[provider]({
     data: { prompt, base64, mimeType },
   });
   // Safety: strip any <think> tags + markdown fences
@@ -128,6 +144,7 @@ export function PhotoFoodDialog({
   onConfirm,
   meal,
   confirmLabel = "Log this food",
+  provider = "groq",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -135,6 +152,7 @@ export function PhotoFoodDialog({
   onConfirm: (result: PhotoFoodResult) => void | Promise<void>;
   meal?: MealPicker;
   confirmLabel?: string;
+  provider?: VisionProvider;
 }) {
   const webcamRef = useRef<Webcam>(null);
   const [aiResult, setAiResult] = useState<AIFoodResult | null>(null);
@@ -153,7 +171,7 @@ export function PhotoFoodDialog({
     setAnalyzing(true);
     try {
       const base64 = imageSrc.split(",")[1];
-      const result = await recognizeFoodFromImage(base64, "image/jpeg");
+      const result = await recognizeFoodFromImage(base64, "image/jpeg", provider);
       setAiResult(result);
       setWeightInput(String(result.estimated_weight_g ?? ""));
     } catch (e) {
@@ -195,6 +213,11 @@ export function PhotoFoodDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="h-4 w-4" /> AI Food Recognition
+            {/* Named so a side-by-side comparison is not guesswork about
+                which dialog is which. */}
+            <span className="text-xs font-normal text-muted-foreground">
+              {provider === "gemini" ? "Gemini" : "Qwen"}
+            </span>
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">

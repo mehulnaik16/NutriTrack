@@ -61,7 +61,10 @@ import {
   VoiceFoodDialog,
   type VoiceFoodItem,
 } from "@/components/VoiceFoodDialog";
-import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
+import type {
+  PhotoFoodResult,
+  VisionProvider,
+} from "@/components/PhotoFoodDialog";
 
 // Both carry a camera dependency — react-webcam here, @zxing/* via
 // BarcodeScanner — and neither renders until its button is tapped.
@@ -89,9 +92,18 @@ export const FoodSearch = forwardRef<
     date: string;
     onLogged: () => void;
     meals?: string[];
+    /**
+     * Show the second photo tile that runs Gemini instead of Qwen. Off by
+     * default: it is a model comparison, not a feature, so it belongs on the
+     * food page only and must not crowd the dashboard's action row.
+     */
+    showGeminiPhoto?: boolean;
   }
->(({ userId, date, onLogged, meals: mealsProp }, ref) => {
-  const mealCategories = mealsProp && mealsProp.length > 0 ? mealsProp : ["Breakfast", "Lunch", "Dinner", "Snack"];
+>(({ userId, date, onLogged, meals: mealsProp, showGeminiPhoto }, ref) => {
+  const mealCategories =
+    mealsProp && mealsProp.length > 0
+      ? mealsProp
+      : ["Breakfast", "Lunch", "Dinner", "Snack"];
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
@@ -101,11 +113,17 @@ export const FoodSearch = forwardRef<
   const [qty, setQty] = useState("100");
   const [unit, setUnit] = useState<Unit>("g");
   const [meal, setMeal] = useState(() => {
-    const cats = mealsProp && mealsProp.length > 0 ? mealsProp : ["Breakfast", "Lunch", "Dinner", "Snack"];
+    const cats =
+      mealsProp && mealsProp.length > 0
+        ? mealsProp
+        : ["Breakfast", "Lunch", "Dinner", "Snack"];
     const h = new Date().getHours();
     const count = cats.length;
     // Distribute meals evenly across waking hours (6am-10pm = 16 hours)
-    const idx = Math.min(Math.floor(((h < 6 ? 0 : h - 6) / 16) * count), count - 1);
+    const idx = Math.min(
+      Math.floor(((h < 6 ? 0 : h - 6) / 16) * count),
+      count - 1,
+    );
     return cats[idx];
   });
   const [saving, setSaving] = useState(false);
@@ -173,7 +191,10 @@ export const FoodSearch = forwardRef<
     openForMeal: (m: string) => {
       setMeal(m);
       if (inputRef.current) {
-        inputRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        inputRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
@@ -230,7 +251,14 @@ export const FoodSearch = forwardRef<
   }, [userId]);
 
   // Quick add — each dialog owns the rest of its own state.
-  const [cameraOpen, setCameraOpen] = useState(false);
+  /**
+   * Which vision model the open photo dialog is using, or null when it is
+   * closed. One piece of state rather than a boolean per model: two booleans
+   * can both be true, which would mount two webcams over each other.
+   */
+  const [cameraProvider, setCameraProvider] = useState<VisionProvider | null>(
+    null,
+  );
   const [barcodeMode, setBarcodeMode] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   /** Foods parsed from a typed sentence, handed to the voice review list. */
@@ -353,9 +381,7 @@ export const FoodSearch = forwardRef<
   ) => {
     setSaving(true);
     const ratio = grams / 100;
-    const cal = overrides
-      ? overrides.cal
-      : +(kcalOf(item) * ratio).toFixed(1);
+    const cal = overrides ? overrides.cal : +(kcalOf(item) * ratio).toFixed(1);
     const p = overrides
       ? overrides.p
       : +((item.protcnt ?? 0) * ratio).toFixed(1);
@@ -414,7 +440,7 @@ export const FoodSearch = forwardRef<
     const ok = await logFood(item, grams, meal);
     if (ok) {
       toast.success(`${item.name} logged!`);
-      setCameraOpen(false);
+      setCameraProvider(null);
       onLogged();
     }
   };
@@ -539,7 +565,8 @@ export const FoodSearch = forwardRef<
             // Only reach for the AI when the local database came up empty —
             // Enter is a typing habit, and firing it over a list of local
             // matches spends a metered Groq call on an answered query.
-            if (e.key === "Enter" && suggestions.length === 0) handleAiFallback();
+            if (e.key === "Enter" && suggestions.length === 0)
+              handleAiFallback();
           }}
           className="pl-9"
         />
@@ -577,11 +604,12 @@ export const FoodSearch = forwardRef<
             >
               <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                 <span className="font-medium truncate">{it.name}</span>
-                {it.heard && it.heard.toLowerCase() !== it.name.toLowerCase() && (
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    for "{it.heard}"
-                  </span>
-                )}
+                {it.heard &&
+                  it.heard.toLowerCase() !== it.name.toLowerCase() && (
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      for "{it.heard}"
+                    </span>
+                  )}
                 {it.code === "ai-fallback" && (
                   <Badge className="text-[9px] h-4 px-1 bg-accent/20 text-accent border-none uppercase font-bold shrink-0">
                     AI
@@ -600,8 +628,8 @@ export const FoodSearch = forwardRef<
       <div className="flex gap-3 justify-center flex-wrap">
         <Button
           variant="outline"
-          onClick={() => setCameraOpen(true)}
-          title="Log food by photo"
+          onClick={() => setCameraProvider("groq")}
+          title="Log food by photo (Qwen vision)"
           className="flex flex-col items-center justify-center gap-1 p-0"
           style={{ width: 64, height: 64, minWidth: 64 }}
         >
@@ -645,8 +673,26 @@ export const FoodSearch = forwardRef<
           style={{ width: 64, height: 64, minWidth: 64 }}
         >
           <Heart style={{ width: 22, height: 22 }} className="text-red-500" />
-          <span className="text-[8px] font-medium text-red-500">Favourites</span>
+          <span className="text-[8px] font-medium text-red-500">
+            Favourites
+          </span>
         </Button>
+        {/* Same dialog, same prompt, different model — here to be compared
+            against Photo, not to be a second feature. */}
+        {showGeminiPhoto && (
+          <Button
+            variant="outline"
+            onClick={() => setCameraProvider("gemini")}
+            title="Log food by photo (Gemini vision)"
+            className="flex flex-col items-center justify-center gap-1 p-0"
+            style={{ width: 64, height: 64, minWidth: 64 }}
+          >
+            <Camera style={{ width: 22, height: 22 }} />
+            <span className="text-[8px] font-medium text-muted-foreground">
+              Gemini
+            </span>
+          </Button>
+        )}
       </div>
 
       {/* ── Favourites Dialog ── */}
@@ -710,13 +756,22 @@ export const FoodSearch = forwardRef<
                             {mealItem.name}
                           </span>
                           <span className="block truncate text-[10px] text-muted-foreground">
-                            {Math.round(mealItem.calories)} kcal · P{Math.round(mealItem.protein_g)} · C{Math.round(mealItem.carbs_g)} · F{Math.round(mealItem.fat_g)}
+                            {Math.round(mealItem.calories)} kcal · P
+                            {Math.round(mealItem.protein_g)} · C
+                            {Math.round(mealItem.carbs_g)} · F
+                            {Math.round(mealItem.fat_g)}
                           </span>
-                          {mealItem.ingredients && mealItem.ingredients.length > 0 && (
-                            <span className="block truncate text-[9px] text-muted-foreground/80 mt-0.5">
-                              {mealItem.ingredients.map((ig: any) => `${ig.name} (${ig.quantity_g}g - ${Math.round(ig.calories)}kcal)`).join(', ')}
-                            </span>
-                          )}
+                          {mealItem.ingredients &&
+                            mealItem.ingredients.length > 0 && (
+                              <span className="block truncate text-[9px] text-muted-foreground/80 mt-0.5">
+                                {mealItem.ingredients
+                                  .map(
+                                    (ig: any) =>
+                                      `${ig.name} (${ig.quantity_g}g - ${Math.round(ig.calories)}kcal)`,
+                                  )
+                                  .join(", ")}
+                              </span>
+                            )}
                         </div>
                       </button>
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -731,7 +786,11 @@ export const FoodSearch = forwardRef<
                               .delete()
                               .eq("id", mealItem.id);
                             if (!error) {
-                              setSavedMeals(savedMeals.filter((m: any) => m.id !== mealItem.id));
+                              setSavedMeals(
+                                savedMeals.filter(
+                                  (m: any) => m.id !== mealItem.id,
+                                ),
+                              );
                               toast.success("Removed from favorites");
                             }
                           }}
@@ -752,8 +811,12 @@ export const FoodSearch = forwardRef<
             ) : (
               <div className="py-8 text-center border border-dashed border-border/50 rounded-xl bg-muted/5">
                 <Heart className="h-8 w-8 mx-auto text-muted-foreground/30 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">No favourites yet</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">Tap the heart icon on logged foods to save them here.</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  No favourites yet
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Tap the heart icon on logged foods to save them here.
+                </p>
               </div>
             )}
           </div>
@@ -978,7 +1041,9 @@ export const FoodSearch = forwardRef<
                   setSaveAsMeal((prev) => !prev);
                 }}
                 aria-label={
-                  saveAsMeal ? "Remove from favorites save" : "Save to favorites"
+                  saveAsMeal
+                    ? "Remove from favorites save"
+                    : "Save to favorites"
                 }
                 title={
                   saveAsMeal
@@ -991,7 +1056,9 @@ export const FoodSearch = forwardRef<
                     : "text-muted-foreground hover:bg-muted"
                 }`}
               >
-                <Heart className={`h-5 w-5 ${saveAsMeal ? "fill-current" : ""}`} />
+                <Heart
+                  className={`h-5 w-5 ${saveAsMeal ? "fill-current" : ""}`}
+                />
               </Button>
             </DialogTitle>
           </DialogHeader>
@@ -1184,11 +1251,15 @@ export const FoodSearch = forwardRef<
       </Dialog>
 
       {/* Mounted only while open so react-webcam stays off the initial load. */}
-      {cameraOpen && (
+      {cameraProvider && (
         <Suspense fallback={null}>
           <PhotoFoodDialog
             open
-            onOpenChange={setCameraOpen}
+            // Remounts when the provider changes, so a result from one model
+            // can never linger on screen under the other one's name.
+            key={cameraProvider}
+            provider={cameraProvider}
+            onOpenChange={(o) => !o && setCameraProvider(null)}
             meal={mealPicker}
             onConfirm={logPhotoFood}
           />
@@ -1209,7 +1280,11 @@ export const FoodSearch = forwardRef<
       {/* Mounted only while open so @zxing/* stays off the initial page load. */}
       {barcodeMode && (
         <Suspense fallback={null}>
-          <ScanFoodDialog open onOpenChange={setBarcodeMode} onFound={pickFood} />
+          <ScanFoodDialog
+            open
+            onOpenChange={setBarcodeMode}
+            onFound={pickFood}
+          />
         </Suspense>
       )}
     </div>
