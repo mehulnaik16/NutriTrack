@@ -110,6 +110,80 @@ export async function loadReminders(userId: string): Promise<Reminder[]> {
   }));
 }
 
+/** Matches the CHECK constraints on custom_reminders. */
+export const LABEL_MAX = 20;
+export const NOTE_MAX = 40;
+export const REMINDER_MAX = 10;
+
+/**
+ * Create a reminder.
+ *
+ * The 10-per-user cap lives in a BEFORE INSERT trigger, not here — RLS lets the
+ * client insert directly, so the UI is not a trust boundary. This translates
+ * the trigger's exception into something a person can read; the constraint
+ * itself stays in the database where it cannot be bypassed.
+ */
+export async function addReminder(
+  userId: string,
+  reminder: { label: string; remindAt: string; note?: string | null },
+  sortOrder: number,
+): Promise<{ id: string | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from("custom_reminders")
+    .insert({
+      user_id: userId,
+      label: reminder.label.slice(0, LABEL_MAX),
+      note: reminder.note?.trim() ? reminder.note.slice(0, NOTE_MAX) : null,
+      remind_at: reminder.remindAt,
+      sort_order: sortOrder,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    const friendly = error.message.includes("Reminder limit reached")
+      ? `You can have up to ${REMINDER_MAX} reminders.`
+      : error.message;
+    return { id: null, error: friendly };
+  }
+  return { id: data.id, error: null };
+}
+
+export async function updateReminder(
+  id: string,
+  patch: Partial<{
+    label: string;
+    note: string | null;
+    remindAt: string;
+    enabled: boolean;
+  }>,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("custom_reminders")
+    .update({
+      ...(patch.label !== undefined
+        ? { label: patch.label.slice(0, LABEL_MAX) }
+        : {}),
+      ...(patch.note !== undefined
+        ? { note: patch.note?.trim() ? patch.note.slice(0, NOTE_MAX) : null }
+        : {}),
+      ...(patch.remindAt !== undefined ? { remind_at: patch.remindAt } : {}),
+      ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
+    })
+    .eq("id", id);
+  return { error: error?.message ?? null };
+}
+
+export async function deleteReminder(
+  id: string,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("custom_reminders")
+    .delete()
+    .eq("id", id);
+  return { error: error?.message ?? null };
+}
+
 // ── Reconcile ────────────────────────────────────────────────────────────────
 
 export interface ReconcileResult {

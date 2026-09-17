@@ -22,10 +22,13 @@ import { Input } from "@/components/ui/input";
 import {
   DEFAULT_PREFS,
   loadPrefs,
+  loadReminders,
   reconcile,
   savePrefs,
   type NotificationPrefs,
+  type Reminder,
 } from "@/lib/notification-settings";
+import { ReminderRows } from "@/components/ReminderRows";
 import { isNative, requestPermission } from "@/lib/notifications";
 import { CYCLE_LENGTH, motivationFor } from "@/lib/motivation";
 
@@ -45,6 +48,7 @@ function NotificationSettings() {
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [busy, setBusy] = useState(true);
   const [saving, setSaving] = useState(false);
   const native = isNative();
@@ -58,8 +62,9 @@ function NotificationSettings() {
     let cancelled = false;
 
     (async () => {
-      const [loaded, { data }] = await Promise.all([
+      const [loaded, rows, { data }] = await Promise.all([
         loadPrefs(user.id),
+        loadReminders(user.id),
         supabase
           .from("user_profiles")
           .select("created_at, timezone, motivation_seed")
@@ -68,6 +73,7 @@ function NotificationSettings() {
       ]);
       if (cancelled) return;
       setPrefs(loaded);
+      setReminders(rows);
       if (data) setProfile(data);
       setBusy(false);
     })();
@@ -122,6 +128,26 @@ function NotificationSettings() {
       }
     }
     setSaving(false);
+  };
+
+  /**
+   * Re-read the reminders and reschedule.
+   *
+   * Reads back from the database rather than trusting local state: the
+   * 10-reminder cap is a database trigger, so what was actually written is the
+   * only thing worth rendering.
+   */
+  const refreshReminders = async () => {
+    if (!user) return;
+    setReminders(await loadReminders(user.id));
+    if (profile && native) {
+      await reconcile({
+        id: user.id,
+        createdAt: profile.created_at,
+        timezone: profile.timezone,
+        motivationSeed: profile.motivation_seed,
+      });
+    }
   };
 
   /** Ask at the moment the user turns something on, not on app launch. */
@@ -263,10 +289,14 @@ function NotificationSettings() {
           />
         </div>
 
-        <p className="rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground">
-          Adding and editing individual reminders is coming next. The switch
-          above already controls whether any of them fire.
-        </p>
+        {user && (
+          <ReminderRows
+            userId={user.id}
+            reminders={reminders}
+            disabled={!prefs.custom_enabled}
+            onChanged={refreshReminders}
+          />
+        )}
       </Card>
 
       {/* ── Snooze ── */}
