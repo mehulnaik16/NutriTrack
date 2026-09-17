@@ -9,7 +9,7 @@
  * plugin only exists in the app. Saying so plainly beats silently doing half
  * the job.
  */
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Bell, Clock, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -308,6 +308,19 @@ function NotificationSettings() {
           </label>
         )}
       </Card>
+
+      {/* The diagnostics page, still the only way to prove an alarm actually
+          reaches the lock screen. Repointing the profile link at this screen
+          removed the only route to it — and the app has no address bar, so
+          there was no way back. Goes when the feature is verified. */}
+      {native && (
+        <Link
+          to="/debug/notifications"
+          className="self-center text-xs text-muted-foreground underline underline-offset-4"
+        >
+          Diagnostics
+        </Link>
+      )}
     </div>
   );
 }
