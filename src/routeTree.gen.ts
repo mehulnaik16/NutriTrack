@@ -23,6 +23,7 @@ import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PlansRouteImport } from './routes/plans'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MealBuilderRouteImport } from './routes/meal-builder'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HubRouteImport } from './routes/hub'
@@ -106,6 +107,11 @@ const PlansRoute = PlansRouteImport.update({
   path: '/plans',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MealBuilderRoute = MealBuilderRouteImport.update({
   id: '/meal-builder',
   path: '/meal-builder',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
+  '/notifications': typeof NotificationsRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
+  '/notifications': typeof NotificationsRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -235,6 +243,7 @@ export interface FileRoutesById {
   '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
+  '/notifications': typeof NotificationsRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/hub'
     | '/login'
     | '/meal-builder'
+    | '/notifications'
     | '/plans'
     | '/privacy'
     | '/profile'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/hub'
     | '/login'
     | '/meal-builder'
+    | '/notifications'
     | '/plans'
     | '/privacy'
     | '/profile'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/hub'
     | '/login'
     | '/meal-builder'
+    | '/notifications'
     | '/plans'
     | '/privacy'
     | '/profile'
@@ -350,6 +362,7 @@ export interface RootRouteChildren {
   HubRoute: typeof HubRoute
   LoginRoute: typeof LoginRoute
   MealBuilderRoute: typeof MealBuilderRoute
+  NotificationsRoute: typeof NotificationsRoute
   PlansRoute: typeof PlansRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
@@ -468,6 +481,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlansRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/meal-builder': {
       id: '/meal-builder'
       path: '/meal-builder'
@@ -566,6 +586,7 @@ const rootRouteChildren: RootRouteChildren = {
   HubRoute: HubRoute,
   LoginRoute: LoginRoute,
   MealBuilderRoute: MealBuilderRoute,
+  NotificationsRoute: NotificationsRoute,
   PlansRoute: PlansRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,

@@ -1109,18 +1109,15 @@ function Profile() {
           ))}
         </div>
 
-        {/* Notification diagnostics.
-            Temporary, and only inside the app. The native shell has no address
-            bar, so without a link there is no way to reach /debug/notifications
-            on a device — which is the only place the notification plugin can
-            actually be tested. Delete this together with the debug route once
-            the real notification settings screen ships. */}
-        {isNativeApp() && (
+        {/* Notification settings. Shown everywhere now that the screen saves
+            preferences on the web too; only the scheduling half needs the app,
+            and the screen says so itself. */}
+        {(
           <Link
-            to="/debug/notifications"
+            to="/notifications"
             className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border/60 text-sm font-semibold text-muted-foreground hover:bg-muted/40"
           >
-            <Bell className="h-4 w-4" /> Notification diagnostics
+            <Bell className="h-4 w-4" /> Notifications
           </Link>
         )}
 

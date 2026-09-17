@@ -8,9 +8,11 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
 import appCss from "../styles.css?url";
+
+import { useReconcileOnForeground } from "@/lib/useReconcileOnForeground";
 
 function NotFoundComponent() {
   return (
@@ -108,6 +110,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <NotificationReconciler />
         <Outlet />
         <BottomNav />
         <Toaster position="top-right" richColors />
@@ -115,4 +118,16 @@ function RootComponent() {
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+/**
+ * Renders nothing; exists to run the reconcile hook inside AuthProvider.
+ *
+ * It has to be a child rather than a call in RootComponent because the hook
+ * needs the signed-in user, and useAuth only works below the provider.
+ */
+function NotificationReconciler() {
+  const { user } = useAuth();
+  useReconcileOnForeground(user?.id ?? null);
+  return null;
 }
