@@ -65,6 +65,32 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
+        Camera, for the barcode scanner and photo food logging.
+
+        The web app reaches the camera through getUserMedia (react-webcam and
+        @zxing). In a browser the page prompts and that is the end of it; in a
+        WebView the *app* must hold the Android permission first, or the
+        WebView's permission request is denied before the user ever sees a
+        prompt. The camera then simply never opens, with no error — which is
+        exactly how this presented.
+
+        RECORD_AUDIO is deliberately absent: voice logging uses the Web Speech
+        API, which on Android is serviced by Google's own recogniser in a
+        separate process holding its own microphone permission. Declaring a
+        permission the app does not use is a Play review question with no
+        upside.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+        required="false" so a device without a camera can still install. Play
+        filters the listing on hardware a manifest declares as required, and the
+        camera is one feature of several here rather than the point of the app.
+    -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!--
         Exact reminder timing on Android 12+ (API 31).
 
         POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED and WAKE_LOCK are NOT listed
