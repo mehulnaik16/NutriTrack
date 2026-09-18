@@ -153,8 +153,10 @@ export type Database = {
         Row: {
           created_at: string;
           gift_spent_at: string | null;
+          /** The partner's display name: a gym's, a clinic's, or a creator's. */
           gym_name: string;
           partner_code: string;
+          partner_type: string;
           source: string;
           user_id: string;
         };
@@ -163,6 +165,7 @@ export type Database = {
           gift_spent_at?: string | null;
           gym_name: string;
           partner_code: string;
+          partner_type?: string;
           source: string;
           user_id: string;
         };
@@ -171,6 +174,7 @@ export type Database = {
           gift_spent_at?: string | null;
           gym_name?: string;
           partner_code?: string;
+          partner_type?: string;
           source?: string;
           user_id?: string;
         };

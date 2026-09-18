@@ -43,7 +43,7 @@ async function read(userId: string): Promise<GiftRows> {
         .maybeSingle(),
       supabase
         .from("gym_links")
-        .select("source, gift_spent_at")
+        .select("source, gift_spent_at, partner_type")
         .eq("user_id", userId)
         .maybeSingle(),
     ]);

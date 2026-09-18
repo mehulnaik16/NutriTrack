@@ -18,8 +18,10 @@ import {
   addMonths,
   isGymCode,
   isGymDuration,
+  isPartnerCode,
   membershipStatus,
   membershipStatusLabel,
+  partnerKindOf,
 } from "./gym";
 import { isValidCode } from "./referral";
 
@@ -49,22 +51,62 @@ assert.equal(isGymCode(undefined), false);
 assert.equal(isGymCode("XGYM-POWERFITNESS-850"), false);
 assert.equal(isGymCode("GYM-POWERFITNESS-850X"), false);
 
-// ── The two kinds of code can never be confused ────────────────────────────
+// ── Doctor and creator codes ───────────────────────────────────────────────
+// Mirrors generate_doctor_code() and generate_ugc_code() in the partner
+// database. Same contract as isGymCode: a pre-flight check so a typo does not
+// cost a round trip.
+assert.equal(partnerKindOf("DR-ANANYA304"), "doctor");
+assert.equal(partnerKindOf("DR-A123"), "doctor", "one letter is allowed");
+assert.equal(partnerKindOf("DR-ABCDEF304"), "doctor", "six letters is the cap");
+assert.equal(partnerKindOf("DR-ABCDEFG304"), null, "seven is too many");
+assert.equal(partnerKindOf("DR-ANANYA30"), null, "three digits, not two");
+
+assert.equal(partnerKindOf("PRIYAFITQUEEN60"), "ugc");
+assert.equal(partnerKindOf("ABC60"), "ugc");
+assert.equal(partnerKindOf("PRIYAFITQUEEN483"), "ugc", "the collision fallback");
+assert.equal(partnerKindOf("priyafitqueen60"), null, "must be uppercased first");
+assert.equal(partnerKindOf("ABC-60"), null, "no hyphen in a creator code");
+
+assert.equal(partnerKindOf("GYM-IRONVAULT-123"), "gym");
+assert.equal(partnerKindOf("RAH38291"), null, "a friend code belongs to nobody here");
+assert.equal(partnerKindOf(""), null);
+assert.equal(partnerKindOf(null), null);
+assert.equal(isPartnerCode("DR-ANANYA304"), true);
+assert.equal(isPartnerCode("RAH38291"), false);
+// isGymCode stays narrow: the roster, the membership window and the owner
+// confirmation are questions only a gym has an answer to.
+assert.equal(isGymCode("DR-ANANYA304"), false);
+assert.equal(isGymCode("PRIYAFITQUEEN60"), false);
+
+// ── No two kinds of code can ever be confused ──────────────────────────────
 // This is what lets one input box classify by shape alone, with no extra round
 // trip and no ambiguity about which claim path a code should take.
 const SAMPLES = [
   "RAH38291", "DBZ00000", "JOX12345",
   "GYM-POWERFITNESS-850", "GYM-GAGAGN-452", "GYM-IRONVAULT-123",
+  "DR-ANANYA304", "DR-A123", "PRIYAFITQUEEN60", "ABC60", "PRIYAFITQUEEN483",
   "", "rah38291", "gym-gagagn-452", "GYM38291", "RAH-123-456",
 ];
 for (const s of SAMPLES) {
   assert.ok(
-    !(isValidCode(s) && isGymCode(s)),
-    `"${s}" must not match both code shapes`,
+    !(isValidCode(s) && isPartnerCode(s)),
+    `"${s}" must not match both a friend and a partner code shape`,
   );
 }
 assert.equal(isValidCode("GYM-GAGAGN-452"), false, "a gym code is not a friend code");
 assert.equal(isGymCode("RAH38291"), false, "a friend code is not a gym code");
+
+// THE COLLISION THE LETTERS-ONLY RULE EXISTS TO PREVENT.
+// Strip only punctuation from @abc123 and the partner database would mint
+// ABC123 + "60" = ABC12360 — three letters then five digits, which is a friend
+// code's shape exactly. Stripping digits too means a creator code always ends
+// in exactly two digits (60) or exactly three (the fallback).
+assert.equal(isValidCode("ABC12360"), true, "this IS a friend code shape");
+assert.equal(
+  isPartnerCode("ABC12360"),
+  false,
+  "a creator code must never be able to wear the friend-code shape",
+);
 
 // ── Durations: the four the UI offers, and nothing else ────────────────────
 assert.deepEqual([...GYM_DURATIONS], [1, 3, 6, 12]);

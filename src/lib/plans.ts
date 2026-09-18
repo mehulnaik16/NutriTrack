@@ -70,10 +70,10 @@ export function effectivePrice(plan: Plan, gift: boolean): number {
     : plan.price;
 }
 
-/** Where a user's ₹150 came from. The amount is the same either way; only the
- *  wording differs, because being sent by a friend is not the same thing as
- *  walking into a gym. */
-export type GiftKind = "friend" | "gym";
+/** Where a user's ₹150 came from. The amount is the same for all four; only
+ *  the wording differs, because being sent by a friend is not the same thing as
+ *  walking into a gym, and neither is being sent by a doctor. */
+export type GiftKind = "friend" | "gym" | "doctor" | "ugc";
 
 /** The caller's own row in `gym_links`, as the RLS-scoped select returns it. */
 export interface GymLinkGift {
@@ -81,6 +81,9 @@ export interface GymLinkGift {
    *  link_gym() decides this in SQL and nothing here can override it. */
   source: string;
   gift_spent_at: string | null;
+  /** 'gym' | 'doctor' | 'ugc'. Absent on rows written before partner types
+   *  existed, every one of which was a gym. */
+  partner_type?: string | null;
 }
 
 /**
@@ -105,7 +108,12 @@ export function activeGift(opts: {
   if (opts.planId !== REFERRAL_DISCOUNT_PLAN_ID) return null;
   if (giftApplies(opts.referralStatus, opts.planId)) return "friend";
   const link = opts.gymLink;
-  if (link && link.source === "signup" && !link.gift_spent_at) return "gym";
+  if (link && link.source === "signup" && !link.gift_spent_at) {
+    // The rule is unchanged and type-blind: a code entered at signup earns the
+    // gift, whoever issued it. The partner type only picks the wording.
+    const kind = link.partner_type ?? "gym";
+    return kind === "doctor" || kind === "ugc" ? kind : "gym";
+  }
   return null;
 }
 
@@ -117,9 +125,13 @@ export function activeGift(opts: {
  * first the moment a gym gift existed.
  */
 export function giftLabel(kind: GiftKind): string {
-  return kind === "gym"
-    ? `Gym offer applied · ₹${REFEREE_DISCOUNT_RUPEES} off`
-    : `Gift applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
+  if (kind === "gym")
+    return `Gym offer applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
+  if (kind === "doctor")
+    return `Referral applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
+  if (kind === "ugc")
+    return `Creator offer applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
+  return `Gift applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
 }
 
 /**

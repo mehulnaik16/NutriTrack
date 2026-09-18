@@ -30,6 +30,61 @@ export function isGymCode(code: string | null | undefined): boolean {
   return !!code && GYM_CODE_PATTERN.test(code);
 }
 
+/**
+ * DR- then up to six letters, then three digits: DR-ANANYA304.
+ *
+ * Mirrors generate_doctor_code() in the partner database. The letters are the
+ * doctor's own given name with any honorific stripped, so "Dr. Ananya" is
+ * ANANYA and not DR.
+ */
+export const DOCTOR_CODE_PATTERN = /^DR-[A-Z]{1,6}\d{3}$/;
+
+/**
+ * A creator's handle in letters, then 60: PRIYAFITQUEEN60. The three-digit
+ * ending is the collision fallback, used only when every supplied handle is
+ * already taken.
+ *
+ * Mirrors generate_ugc_code(). The partner database strips handles to LETTERS
+ * rather than alphanumerics, and that is what keeps this disjoint from the
+ * friend pattern below: keep the digits and @abc123 becomes ABC123 + '60' =
+ * ABC12360, which is /^[A-Z]{3}\d{5}$/ exactly — a friend code's shape. Since
+ * both quiz.tsx and GymLink.tsx route a pasted code by shape with no round
+ * trip, that collision would send a creator's code into claim_referral().
+ * gym.test.ts pins the disjointness.
+ */
+export const UGC_CODE_PATTERN = /^[A-Z]{1,20}(?:60|\d{3})$/;
+
+export type PartnerKind = "gym" | "doctor" | "ugc";
+
+/** Which kind of partner issued this code, or null if no partner did. */
+export function partnerKindOf(
+  code: string | null | undefined,
+): PartnerKind | null {
+  if (!code) return null;
+  if (GYM_CODE_PATTERN.test(code)) return "gym";
+  if (DOCTOR_CODE_PATTERN.test(code)) return "doctor";
+  if (UGC_CODE_PATTERN.test(code)) return "ugc";
+  return null;
+}
+
+/**
+ * Any of the three partner codes.
+ *
+ * `isGymCode` still exists and still means only a gym — the gym-shaped screens
+ * (a roster, a membership window, an owner to confirm details) ask that
+ * narrower question, and a doctor has no answer to it.
+ */
+export function isPartnerCode(code: string | null | undefined): boolean {
+  return partnerKindOf(code) !== null;
+}
+
+/** What to call this kind of partner in a sentence the member reads. */
+export function partnerKindLabel(kind: PartnerKind): string {
+  if (kind === "gym") return "gym";
+  if (kind === "doctor") return "doctor";
+  return "creator";
+}
+
 /** The membership lengths a member can pick. Durations only — gym pricing
  *  differs per gym and is not modelled anywhere, so no card shows a price. */
 export const GYM_DURATIONS = [1, 3, 6, 12] as const;

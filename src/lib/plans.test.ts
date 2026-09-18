@@ -126,11 +126,44 @@ assert.equal(giftApplies("trial", "quarterly"), false);
 // 20% commission. The same code entered from the profile page earns nobody
 // anything. `source` is the only thing that distinguishes them, and link_gym()
 // in SQL — never a client — is what sets it.
+// No partner_type on these three on purpose: that is what a gym_links row
+// written before partner types existed looks like, and every one of those is a
+// gym.
 const SIGNUP_LINK = { source: "signup", gift_spent_at: null };
 const PROFILE_LINK = { source: "profile", gift_spent_at: null };
 const SPENT_LINK = { source: "signup", gift_spent_at: "2026-09-01T00:00:00Z" };
 
+const DOCTOR_LINK = { source: "signup", gift_spent_at: null, partner_type: "doctor" };
+const UGC_LINK = { source: "signup", gift_spent_at: null, partner_type: "ugc" };
+
 assert.equal(activeGift({ gymLink: SIGNUP_LINK, planId: "yearly" }), "gym");
+
+// A doctor's and a creator's code earn the member exactly what a gym's does.
+// The partner type picks the wording and nothing else — the rule above it is
+// still "entered at signup, on Yearly, not yet spent".
+assert.equal(activeGift({ gymLink: DOCTOR_LINK, planId: "yearly" }), "doctor");
+assert.equal(activeGift({ gymLink: UGC_LINK, planId: "yearly" }), "ugc");
+assert.equal(
+  activeGift({ gymLink: { ...DOCTOR_LINK, source: "profile" }, planId: "yearly" }),
+  null,
+  "a doctor's code entered from the profile page earns nothing either",
+);
+assert.equal(
+  activeGift({ gymLink: { ...UGC_LINK, gift_spent_at: "2026-09-01T00:00:00Z" }, planId: "yearly" }),
+  null,
+  "spent once, for a creator too",
+);
+// An unrecognised value must not invent a fourth kind of gift.
+assert.equal(
+  activeGift({ gymLink: { ...SIGNUP_LINK, partner_type: "hospital" }, planId: "yearly" }),
+  "gym",
+);
+
+// Every kind is worth the same money, and each has its own words for it.
+assert.ok(giftLabel("doctor").includes("150"));
+assert.ok(giftLabel("ugc").includes("150"));
+assert.notEqual(giftLabel("doctor"), giftLabel("gym"));
+assert.notEqual(giftLabel("ugc"), giftLabel("gym"));
 // The case stated most emphatically: a gym that did not bring us the customer
 // gets nothing, and the member gets no discount for walking in later.
 assert.equal(

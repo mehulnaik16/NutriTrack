@@ -52,16 +52,20 @@ import { todayLocal } from "@/lib/dates";
 import {
   GYM_DURATIONS,
   addMonths,
-  isGymCode,
+  isPartnerCode,
   membershipStatus,
   membershipStatusLabel,
+  partnerKindLabel,
   type GymDuration,
+  type PartnerKind,
 } from "@/lib/gym";
 
 interface LinkSummary {
   partnerCode: string;
+  /** The partner's display name: a gym's, a clinic's, or a creator's own. */
   gymName: string;
   source: string;
+  partnerType: PartnerKind;
 }
 
 interface Membership {
@@ -144,10 +148,12 @@ export function GymLinkPage({
       setGymName(null);
       return;
     }
-    if (!isGymCode(code)) {
+    if (!isPartnerCode(code)) {
       setCodeState("invalid");
       setGymName(null);
-      setCodeError("Gym codes look like GYM-IRONVAULT-123.");
+      setCodeError(
+        "Partner codes look like GYM-IRONVAULT-123, DR-ANANYA304 or PRIYAFITQUEEN60.",
+      );
       return;
     }
     setCodeState("checking");
@@ -366,14 +372,64 @@ export function GymLinkPage({
     </section>
   );
 
+  // A doctor and a creator have no roster, no membership window, nobody to
+  // confirm details with and no premises. Everything below that is shaped like
+  // a gym is theirs to skip — for them this page is only "who am I credited
+  // to", plus the ability to undo it.
+  const gymPartner = !link || link.partnerType === "gym";
+  const noun = link ? partnerKindLabel(link.partnerType) : "gym";
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      <SubHeader title="Your Gym" onBack={onBack} />
+      <SubHeader
+        title={link ? `Your ${noun}` : "Your gym or partner"}
+        onBack={onBack}
+      />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : link && !gymPartner ? (
+          <>
+            <PartnerHeader link={link} />
+            <section className="rounded-2xl border border-border bg-card p-5 text-center">
+              <p className="text-sm text-muted-foreground">
+                {link.source === "signup"
+                  ? `You signed up with this code, so your \u20b9150 offer is on your Yearly plan.`
+                  : `You're credited to this ${noun}. Your Dombelz plan and price are unaffected.`}
+              </p>
+            </section>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={removing}
+                  className="w-full rounded-xl py-6 font-bold text-red-500 hover:text-red-500"
+                >
+                  {removing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    `Remove this code`
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove this code?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {link.gymName} will stop being credited for your
+                    subscription, and this can&apos;t be undone. Your Dombelz
+                    plan and access are not affected.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep it</AlertDialogCancel>
+                  <AlertDialogAction onClick={remove}>Remove</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         ) : link && editing ? (
           <>
             <GymHeader link={link} />
@@ -551,15 +607,15 @@ export function GymLinkPage({
             {/* ── The code ────────────────────────────────────────────── */}
             <section className="rounded-2xl border border-border bg-card p-5">
               <h3 className="font-display text-lg font-bold">
-                Join your gym on Dombelz
+                Add your partner code
               </h3>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Enter the code your gym gave you and they'll see you on their
-                member list.
+                From your gym, your doctor or a creator. A gym code also puts
+                you on their member list.
               </p>
 
               <div className="mt-5 space-y-2">
-                <Label className="text-foreground/80">Gym code</Label>
+                <Label className="text-foreground/80">Partner code</Label>
                 <div className="flex gap-2">
                   <Input
                     value={codeInput}
@@ -572,11 +628,11 @@ export function GymLinkPage({
                     onBlur={() => {
                       if (codeState === "idle") void checkCode(codeInput);
                     }}
-                    maxLength={20}
+                    maxLength={23}
                     autoCapitalize="characters"
                     autoComplete="off"
                     spellCheck={false}
-                    placeholder="GYM-IRONVAULT-123"
+                    placeholder="GYM-IRONVAULT-123 or DR-ANANYA304"
                     className="h-12 rounded-xl font-display tracking-[0.1em]"
                   />
                   <Button
@@ -637,6 +693,18 @@ export function GymLinkPage({
         )}
       </main>
     </div>
+  );
+}
+
+/** A partner with no premises: the name and the code, and no building. */
+function PartnerHeader({ link }: { link: LinkSummary }) {
+  return (
+    <section className="rounded-2xl border border-accent/30 bg-card p-6 text-center">
+      <h2 className="font-display text-xl font-bold">{link.gymName}</h2>
+      <p className="mt-2 font-display text-sm tracking-[0.15em] text-muted-foreground">
+        {link.partnerCode}
+      </p>
+    </section>
   );
 }
 

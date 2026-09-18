@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
 import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
 import { isValidCode, REFEREE_DISCOUNT_RUPEES } from "@/lib/referral";
-import { isGymCode } from "@/lib/gym";
+import { isPartnerCode, partnerKindOf, type PartnerKind } from "@/lib/gym";
 import { serverLinkGym, serverVerifyGymCode } from "@/lib/gym-link";
 import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
 import {
@@ -58,15 +58,16 @@ type StepKey = (typeof STEPS)[number]["key"];
 
 export const Route = createFileRoute("/quiz")({
   component: Quiz,
-  // `ref` carries an invite code — a friend's (RAH38291) or a gym's
-  // (GYM-IRONVAULT-123). Unlisted params are stripped by the router, so leaving
-  // it out here silently discards every referral and gym QR link.
+  // `ref` carries an invite code — a friend's (RAH38291) or a partner's
+  // (GYM-IRONVAULT-123, DR-ANANYA304, PRIYAFITQUEEN60). Unlisted params are
+  // stripped by the router, so leaving it out here silently discards every
+  // referral and partner QR link.
   validateSearch: (s: Record<string, unknown>): { step?: number; ref?: string } => {
     const n = Number(s.step);
     const out: { step?: number; ref?: string } = {};
     if (Number.isInteger(n) && n >= 1 && n <= STEPS.length) out.step = n;
     const code = typeof s.ref === "string" ? s.ref.trim().toUpperCase() : "";
-    if (isValidCode(code) || isGymCode(code)) out.ref = code;
+    if (isValidCode(code) || isPartnerCode(code)) out.ref = code;
     return out;
   },
 });
@@ -91,7 +92,7 @@ function pendingReferralCode(fromSearch?: string): string | null {
   if (typeof sessionStorage === "undefined") return null;
   try {
     const stored = sessionStorage.getItem(REF_STORAGE_KEY);
-    return isValidCode(stored) || isGymCode(stored) ? stored : null;
+    return isValidCode(stored) || isPartnerCode(stored) ? stored : null;
   } catch {
     return null;
   }
@@ -155,11 +156,14 @@ function Quiz() {
   >(() => (pendingReferralCode(searchRef) ? "valid" : "idle"));
   const [codeError, setCodeError] = useState<string | null>(null);
   /** Which kind of code `applied` holds. submit() dispatches on it, because a
-   *  friend's code and a gym's code are claimed through different calls. */
-  const [appliedKind, setAppliedKind] = useState<"friend" | "gym" | null>(() =>
-    isGymCode(pendingReferralCode(searchRef)) ? "gym" : pendingReferralCode(searchRef) ? "friend" : null,
+   *  friend's code and a partner's code are claimed through different calls —
+   *  and the three partner kinds are told apart only for the wording. */
+  const [appliedKind, setAppliedKind] = useState<"friend" | PartnerKind | null>(
+    () =>
+      partnerKindOf(pendingReferralCode(searchRef)) ??
+      (pendingReferralCode(searchRef) ? "friend" : null),
   );
-  /** The gym behind a valid gym code, for the success message. */
+  /** The partner behind a valid partner code, for the success message. */
   const [gymName, setGymName] = useState<string | null>(null);
   /** Only set for an already-signed-in user; a fresh signup has no code yet. */
   const [ownCode, setOwnCode] = useState<string | null>(null);
@@ -209,12 +213,13 @@ function Quiz() {
       setCodeError(null);
       return;
     }
-    const gym = isGymCode(code);
+    const partnerKind = partnerKindOf(code);
+    const gym = partnerKind !== null;
     if (!gym && !isValidCode(code)) {
       clearCode();
       setCodeState("invalid");
       setCodeError(
-        "That code doesn't look right. A friend's code is like RAH38291; a gym's is like GYM-IRONVAULT-123.",
+        "That code doesn't look right. A friend's code is like RAH38291; a partner's is like GYM-IRONVAULT-123 or DR-ANANYA304.",
       );
       return;
     }
@@ -228,19 +233,23 @@ function Quiz() {
     setCodeError(null);
     try {
       if (gym) {
-        const { gymName: name } = await serverVerifyGymCode({ data: { code } });
+        const { gymName: name, partnerType } = await serverVerifyGymCode({
+          data: { code },
+        });
         if (name) {
           setGymName(name);
           setReferrerName(null);
           setApplied(code);
-          setAppliedKind("gym");
+          // The server read the row; the shape was only a guess to decide which
+          // of the two verification calls to make.
+          setAppliedKind(partnerType ?? partnerKind);
           setCodeState("valid");
           rememberReferralCode(code);
         } else {
           clearCode();
           setCodeState("invalid");
           setCodeError(
-            "We couldn't find that gym code. Check it with your gym and try again.",
+            "We couldn't find that code. Check it with whoever gave it to you and try again.",
           );
         }
         return;
@@ -279,7 +288,7 @@ function Quiz() {
     const code = pendingReferralCode(searchRef);
     if (!code) return;
     let cancelled = false;
-    if (isGymCode(code)) {
+    if (isPartnerCode(code)) {
       serverVerifyGymCode({ data: { code } }).then(
         ({ gymName: name }) => {
           if (!cancelled) setGymName(name ?? null);
@@ -403,7 +412,7 @@ function Quiz() {
       const refCode = applied;
       if (refCode) {
         try {
-          if (appliedKind === "gym") {
+          if (appliedKind && appliedKind !== "friend") {
             await serverLinkGym({ data: { code: refCode } });
           } else {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
@@ -451,8 +460,8 @@ function Quiz() {
                 {applied && (referrerName || gymName) && (
                   <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
                     <p className="flex items-center gap-2 font-display text-base font-bold text-accent">
-                      {appliedKind === "gym"
-                        ? `🏋️ ${gymName} has you covered`
+                      {appliedKind && appliedKind !== "friend"
+                        ? `${appliedKind === "gym" ? "🏋️" : "🎁"} ${gymName} has you covered`
                         : `🎁 ${referrerName} sent you a gift`}
                     </p>
                     <p className="mt-1.5 text-sm text-muted-foreground">
@@ -461,7 +470,9 @@ function Quiz() {
                       plus a free trial to explore everything.
                     </p>
                     <p className="mt-2 text-xs font-medium text-muted-foreground">
-                      {appliedKind === "gym" ? "Gym code applied:" : "Gift code applied:"}{" "}
+                      {appliedKind && appliedKind !== "friend"
+                        ? "Partner code applied:"
+                        : "Gift code applied:"}{" "}
                       <span className="font-display tracking-widest text-accent">
                         {applied}
                       </span>
@@ -569,21 +580,22 @@ function Quiz() {
                   </span>
                 </h2>
                 <p className="text-muted-foreground mb-8 text-sm">
-                  From a friend, or from your gym. Either one gets you ₹
-                  {REFEREE_DISCOUNT_RUPEES} off the{" "}
+                  From a friend, your gym, your doctor or a creator. Any of them
+                  gets you ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
                   {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"} plan.
                   This is the only place a code counts, so enter it now if you
                   have one.
                 </p>
 
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">Friend or gym code</Label>
+                  <Label className="text-foreground/80">Invite code</Label>
                   <div className="flex gap-2">
                     <Input
                       value={codeInput}
                       // Long enough for GYM- plus a twelve-letter gym name plus
-                      // three digits; a friend's code is eight.
-                      maxLength={20}
+                      // three digits, and for a creator handle of twenty letters
+                      // plus its suffix; a friend's code is eight.
+                      maxLength={23}
                       autoCapitalize="characters"
                       autoComplete="off"
                       spellCheck={false}
@@ -616,8 +628,8 @@ function Quiz() {
 
                   {codeState === "valid" && (
                     <p className="text-sm font-medium text-accent">
-                      {appliedKind === "gym"
-                        ? `🏋️ ${gymName ?? "Your gym"} verified — `
+                      {appliedKind && appliedKind !== "friend"
+                        ? `${appliedKind === "gym" ? "🏋️" : "🎁"} ${gymName ?? "Your partner"} verified — `
                         : `🎁 Gift from ${referrerName ?? "your friend"} applied — `}
                       ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
                       {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"}{" "}

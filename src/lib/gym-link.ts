@@ -14,7 +14,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/auth-middleware";
 import { checkRateLimit } from "@/lib/ai";
-import { addMonths, isGymCode, isGymDuration } from "@/lib/gym";
+import {
+  addMonths,
+  isGymDuration,
+  isPartnerCode,
+  type PartnerKind,
+} from "@/lib/gym";
 
 const codeSchema = z.object({ code: z.string().min(1).max(24) });
 
@@ -55,24 +60,36 @@ function checkVerifyRate() {
 }
 
 /**
- * Does this gym code exist, and what is the gym called?
+ * Does this partner code exist, and what is the partner called?
+ *
+ * Any of the three shapes — a gym, a doctor or a creator. An unapproved one
+ * resolves to null because lookupGym() only selects `status = active`, so a
+ * code that has been issued but not yet reviewed verifies for nobody.
  *
  * No auth middleware on purpose: the signup step runs before the account is
- * created, so this has to be callable unauthenticated. It returns a gym name
- * and nothing else — the same bounded disclosure as get_referrer_name(), which
- * is already anon-granted for friend codes.
+ * created, so this has to be callable unauthenticated. It returns a name and a
+ * kind and nothing else — the same bounded disclosure as get_referrer_name(),
+ * which is already anon-granted for friend codes.
  */
 export const serverVerifyGymCode = createServerFn({ method: "POST" })
   .inputValidator(codeSchema)
   .handler(async ({ data }) => {
     const code = data.code.trim().toUpperCase();
     // Rejected before the network hop, so a typo costs nothing.
-    if (!isGymCode(code)) return { gymName: null as string | null };
+    if (!isPartnerCode(code)) {
+      return {
+        gymName: null as string | null,
+        partnerType: null as PartnerKind | null,
+      };
+    }
 
     checkVerifyRate();
     const { lookupGym } = await import("@/server/gym-partner");
     const gym = await lookupGym(code);
-    return { gymName: gym?.gymName ?? null };
+    return {
+      gymName: gym?.gymName ?? null,
+      partnerType: gym?.partnerType ?? null,
+    };
   });
 
 /**
@@ -92,8 +109,10 @@ export const serverLinkGym = createServerFn({ method: "POST" })
     checkRateLimit(userId);
 
     const code = data.code.trim().toUpperCase();
-    if (!isGymCode(code)) {
-      throw new Error("That doesn't look like a gym code.");
+    // Any of the three partner shapes. A doctor's and a creator's code run
+    // through exactly this path — same offer, same discount, same commission.
+    if (!isPartnerCode(code)) {
+      throw new Error("That doesn't look like a partner code.");
     }
 
     const { supabaseAdmin } = await import("@/integrations/client.server");
@@ -106,7 +125,7 @@ export const serverLinkGym = createServerFn({ method: "POST" })
     const gym = await lookupGym(code);
     if (!gym) {
       throw new Error(
-        "We couldn't find that gym code. Check it with your gym.",
+        "We couldn't find that code. Check it with whoever gave it to you.",
       );
     }
 
@@ -120,10 +139,14 @@ export const serverLinkGym = createServerFn({ method: "POST" })
         p_user_id: userId,
         p_code: gym.partnerCode,
         p_gym_name: gym.gymName,
+        // Read back from the partner database a moment ago, never from `data`.
+        // It decides only what the app calls this partner; the offer, the
+        // discount and the commission are identical for all three.
+        p_partner_type: gym.partnerType,
       },
     );
     if (error) {
-      throw new Error(`Could not link your gym: ${error.message}`);
+      throw new Error(`Could not apply that code: ${error.message}`);
     }
 
     const linked = !!result?.linked;
@@ -157,6 +180,9 @@ export const serverLinkGym = createServerFn({ method: "POST" })
       source,
       gymName: (result?.gym_name as string) ?? gym.gymName,
       partnerCode: (result?.partner_code as string) ?? gym.partnerCode,
+      // From link_gym() when it wrote the row, and from the row it found when
+      // this account was already attributed to somebody else.
+      partnerType: (result?.partner_type as PartnerKind) ?? gym.partnerType,
     };
   });
 
@@ -180,7 +206,7 @@ export const serverGetGymMembership = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/client.server");
     const { data: link } = await supabaseAdmin
       .from("gym_links")
-      .select("partner_code, gym_name, source")
+      .select("partner_code, gym_name, source, partner_type")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -192,7 +218,18 @@ export const serverGetGymMembership = createServerFn({ method: "POST" })
       partnerCode: row.partner_code as string,
       gymName: row.gym_name as string,
       source: row.source as string,
+      // Rows written before the partner_types migration have none, and every
+      // one of those is a gym.
+      partnerType: (row.partner_type ?? "gym") as PartnerKind,
     };
+
+    // A doctor and a creator have no roster, no membership window and nobody
+    // to confirm details with, so there is nothing to fetch and no "they took
+    // you off their list" state to distinguish. The attribution is the whole
+    // story for them.
+    if (summary.partnerType !== "gym") {
+      return { link: summary, membership: null, gymGone: false };
+    }
 
     // A partner outage must not make the page unusable: the attribution is a
     // local fact and can still be shown, and the card says the details could

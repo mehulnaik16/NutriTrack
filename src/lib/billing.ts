@@ -149,7 +149,7 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
           .maybeSingle(),
         supabaseAdmin
           .from("gym_links")
-          .select("source, gift_spent_at")
+          .select("source, gift_spent_at, partner_type")
           .eq("user_id", userId)
           .maybeSingle(),
       ]);

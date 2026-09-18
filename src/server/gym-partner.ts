@@ -17,6 +17,7 @@
  * database on purpose — a bug on this side must not be able to pay out.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { PartnerKind } from "@/lib/gym";
 
 function createGymPartnerClient(): SupabaseClient {
   const url = process.env.GYM_PARTNER_SUPABASE_URL;
@@ -53,22 +54,27 @@ function gymDb(): SupabaseClient {
 
 export interface GymSummary {
   partnerCode: string;
+  /** The partner's display name: a gym's, a clinic's, or a creator's own. */
   gymName: string;
+  /** Which of the three kinds of partner issued this code. */
+  partnerType: PartnerKind;
 }
 
 /**
- * Look a gym up by its affiliate code.
+ * Look a partner up by their affiliate code — a gym, a doctor or a creator.
  *
- * Returns the gym's name and nothing else — the same bounded disclosure as
- * get_referrer_name(), which is already anon-callable for friend codes. A
- * paused or terminated partner resolves to null, so their code stops working
- * the moment they are switched off.
+ * Returns the partner's name and kind and nothing else — the same bounded
+ * disclosure as get_referrer_name(), which is already anon-callable for friend
+ * codes. A pending, paused or terminated partner resolves to null, so an
+ * unapproved code verifies for nobody and a switched-off one stops working the
+ * moment it is switched off. That status filter is the whole approval gate as
+ * far as this side is concerned.
  */
 export async function lookupGym(code: string): Promise<GymSummary | null> {
   const normalized = code.trim().toUpperCase();
   const { data, error } = await gymDb()
     .from("gym_partners")
-    .select("partner_code, gym_name")
+    .select("partner_code, gym_name, partner_type")
     .eq("partner_code", normalized)
     .eq("status", "active")
     .maybeSingle();
@@ -78,6 +84,10 @@ export async function lookupGym(code: string): Promise<GymSummary | null> {
   return {
     partnerCode: data.partner_code as string,
     gymName: data.gym_name as string,
+    // Defaulted rather than asserted: a partner row written before the
+    // partner_types migration has no value, and every one of those is a gym.
+    partnerType: ((data as { partner_type?: string }).partner_type ??
+      "gym") as PartnerKind,
   };
 }
 
