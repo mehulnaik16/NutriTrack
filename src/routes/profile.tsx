@@ -223,10 +223,7 @@ const MENU_ITEMS: {
   { id: "help",         icon: <MessageCircle className="h-7 w-7 md:h-[26px] md:w-[26px]" />, label: "Help & support" },
   { id: "about",        icon: <Info className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "About us" },
   { id: "refer",        icon: <Gift className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Refer & Earn" },
-  // Not "Your Gym" any more: a doctor's and a creator's code live behind this
-  // entry too, and this menu is rendered before the link is loaded, so it
-  // cannot name whichever one this member actually has.
-  { id: "gym",          icon: <Building2 className="h-7 w-7 md:h-[26px] md:w-[26px]" />,     label: "Gym or partner" },
+  { id: "gym",          icon: <Building2 className="h-7 w-7 md:h-[26px] md:w-[26px]" />,     label: "Your Gym" },
 ];
 
 const FAQS = [

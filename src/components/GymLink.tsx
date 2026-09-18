@@ -52,7 +52,7 @@ import { todayLocal } from "@/lib/dates";
 import {
   GYM_DURATIONS,
   addMonths,
-  isPartnerCode,
+  isGymCode,
   membershipStatus,
   membershipStatusLabel,
   partnerKindLabel,
@@ -148,12 +148,15 @@ export function GymLinkPage({
       setGymName(null);
       return;
     }
-    if (!isPartnerCode(code)) {
+    // Gym codes only, here. A doctor's and a creator's code are entered
+    // during signup and nowhere else — this entry is the front door to a
+    // roster, a membership window and an owner who confirms your details,
+    // none of which a doctor or a creator has. isPartnerCode would let one
+    // in and then strand it on a page built for premises.
+    if (!isGymCode(code)) {
       setCodeState("invalid");
       setGymName(null);
-      setCodeError(
-        "Partner codes look like GYM-IRONVAULT-123, DR-ANANYA304 or PRIYAFITQUEEN60.",
-      );
+      setCodeError("Gym codes look like GYM-IRONVAULT-123.");
       return;
     }
     setCodeState("checking");
@@ -382,7 +385,7 @@ export function GymLinkPage({
   return (
     <div className="min-h-screen bg-background pb-24">
       <SubHeader
-        title={link ? `Your ${noun}` : "Your gym or partner"}
+        title={link && !gymPartner ? `Your ${noun}` : "Your Gym"}
         onBack={onBack}
       />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
@@ -607,15 +610,15 @@ export function GymLinkPage({
             {/* ── The code ────────────────────────────────────────────── */}
             <section className="rounded-2xl border border-border bg-card p-5">
               <h3 className="font-display text-lg font-bold">
-                Add your partner code
+                Join your gym on Dombelz
               </h3>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                From your gym, your doctor or a creator. A gym code also puts
-                you on their member list.
+                Enter the code your gym gave you and they&apos;ll see you on
+                their member list.
               </p>
 
               <div className="mt-5 space-y-2">
-                <Label className="text-foreground/80">Partner code</Label>
+                <Label className="text-foreground/80">Gym code</Label>
                 <div className="flex gap-2">
                   <Input
                     value={codeInput}
@@ -628,11 +631,11 @@ export function GymLinkPage({
                     onBlur={() => {
                       if (codeState === "idle") void checkCode(codeInput);
                     }}
-                    maxLength={23}
+                    maxLength={20}
                     autoCapitalize="characters"
                     autoComplete="off"
                     spellCheck={false}
-                    placeholder="GYM-IRONVAULT-123 or DR-ANANYA304"
+                    placeholder="GYM-IRONVAULT-123"
                     className="h-12 rounded-xl font-display tracking-[0.1em]"
                   />
                   <Button
