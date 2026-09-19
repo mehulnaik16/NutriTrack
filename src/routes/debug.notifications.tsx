@@ -31,7 +31,7 @@ import {
   type MotivationDay,
   type MotivationUser,
 } from "@/lib/motivation";
-import { NOTIFICATION_BODY_BUDGET } from "@/data/motivationQuotes";
+import { NOTIFICATION_BODY_BUDGET, quoteBody } from "@/data/motivationQuotes";
 import { deviceTimezone } from "@/lib/timezone";
 import {
   cancelAll,
@@ -113,7 +113,7 @@ function NotificationDebug() {
   const fire = useCallback(async (day: MotivationDay) => {
     const title = `☀️ Day ${day.dayNumber} — Rise & Shine`;
     const options: NotificationOptions = {
-      body: day.quote.text,
+      body: quoteBody(day.quote),
       icon: "/icon-192.png",
       badge: "/icon-192.png",
       // Unique per fire, so repeated taps stack instead of silently replacing
@@ -318,7 +318,7 @@ function NotificationDebug() {
   if (!user) return <p className="p-6">Sign in to preview notifications.</p>;
 
   const overBudget = days.filter(
-    (d) => d.quote.text.length > NOTIFICATION_BODY_BUDGET,
+    (d) => quoteBody(d.quote).length > NOTIFICATION_BODY_BUDGET,
   ).length;
 
   return (
@@ -444,7 +444,8 @@ function NotificationDebug() {
 
       <div className="flex flex-col gap-2">
         {days.map((d) => {
-          const len = d.quote.text.length;
+          // The author rides in the body, so it counts against the budget.
+          const len = quoteBody(d.quote).length;
           const over = len > NOTIFICATION_BODY_BUDGET;
           return (
             <Card key={d.date} className="flex flex-col gap-2 p-3">

@@ -32,7 +32,9 @@ import {
   LocalNotifications,
   type LocalNotificationSchema,
 } from "@capacitor/local-notifications";
+import { quoteBody } from "@/data/motivationQuotes";
 import {
+  CYCLE_LENGTH,
   MOTIVATION_WINDOW_DAYS,
   motivationWindow,
   type MotivationUser,
@@ -97,6 +99,59 @@ export async function requestPermission(): Promise<PermissionState> {
     granted: asked.display === "granted",
     blocked: asked.display === "denied",
   };
+}
+
+/**
+ * Send the user to the OS screen where notifications can be turned back on.
+ *
+ * Needed because a refusal is often final. iOS shows its permission dialog
+ * exactly once per install; Android 13+ stops asking after two dismissals. In
+ * both cases requestPermission() then returns "denied" immediately and nothing
+ * the app does will produce a prompt again — so an app that keeps offering a
+ * toggle which silently fails is worse than one that says "this is switched
+ * off, here is where to switch it on".
+ *
+ * Android gets the per-app notification screen directly. iOS has no equivalent
+ * deep link and can only open the app's own settings page, which is one tap
+ * away from notifications; that is as close as the platform allows.
+ *
+ * Returns whether the screen actually opened, so the caller can fall back to
+ * telling the user the path in words rather than claiming something happened.
+ */
+export async function openNotificationSettings(): Promise<boolean> {
+  if (!isNative()) return false;
+
+  try {
+    const { AppLauncher } = await import("@capacitor/app-launcher");
+
+    if (Capacitor.getPlatform() === "android") {
+      // The documented Intent-to-URL form. APP_NOTIFICATION_SETTINGS lands on
+      // the notification screen for this package specifically, rather than the
+      // general settings app where the user has to go hunting.
+      const pkg = "app.dombelz.mobile";
+      const intent =
+        `intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;` +
+        `S.android.provider.extra.APP_PACKAGE=${pkg};end`;
+      const { completed } = await AppLauncher.openUrl({ url: intent });
+      if (completed) return true;
+
+      // Fall back to the app's own settings page. Less direct, but every
+      // Android version has it, and OEM skins occasionally reject the first.
+      const { completed: viaApp } = await AppLauncher.openUrl({
+        url: `package:${pkg}`,
+      });
+      return viaApp;
+    }
+
+    const { completed } = await AppLauncher.openUrl({ url: "app-settings:" });
+    return completed;
+  } catch (e) {
+    console.warn(
+      "[notifications] could not open settings:",
+      e instanceof Error ? e.message : String(e),
+    );
+    return false;
+  }
 }
 
 /**
@@ -173,7 +228,16 @@ export async function scheduleMotivation(
     notifications.push({
       id: MOTIVATION_ID_BASE + i,
       title: `☀️ Day ${day.dayNumber} — Rise & Shine`,
-      body: day.quote.text,
+      body: quoteBody(day.quote),
+      // largeBody is what makes the notification expandable on Android: the
+      // plugin only attaches BigTextStyle when it is set, and without it the
+      // shade shows a single truncated line with no way to read the rest. The
+      // longest quote plus its author runs past what one line holds, and the
+      // author is the part that falls off the end — which is the whole reason
+      // it is there. Same string in both: collapsed shows as much as fits,
+      // expanded shows all of it.
+      largeBody: quoteBody(day.quote),
+      summaryText: `Day ${day.dayNumber} of ${CYCLE_LENGTH}`,
       schedule: { at, allowWhileIdle: true },
       // Morning motivation carries no snooze actions: snoozing a quote by ten
       // minutes means nothing, and the buttons would be noise on the one
@@ -214,12 +278,15 @@ export async function scheduleReminders(
   const active = reminders.filter((r) => r.enabled);
   const notifications: LocalNotificationSchema[] = active.map((r, i) => {
     const [hour, minute] = r.remindAt.split(":").map(Number);
+    // Spec §9.3: a blank note becomes a sentence built from the label rather
+    // than an empty body.
+    const body =
+      r.note?.trim() || `Time for ${r.label.toLowerCase()}! Log it now.`;
     return {
       id: REMINDER_ID_BASE + i,
       title: `⏰ ${r.label}`,
-      // Spec §9.3: a blank note becomes a sentence built from the label rather
-      // than an empty body.
-      body: r.note?.trim() || `Time for ${r.label.toLowerCase()}! Log it now.`,
+      body,
+      largeBody: body,
       schedule: { on: { hour, minute }, allowWhileIdle: true },
       actionTypeId: allowSnooze ? SNOOZE_CATEGORY : FINAL_CATEGORY,
       extra: { type: "custom_reminder", reminderId: r.id, snoozeCount: 0 },

@@ -29,7 +29,12 @@ import {
   type Reminder,
 } from "@/lib/notification-settings";
 import { ReminderRows } from "@/components/ReminderRows";
-import { isNative, requestPermission } from "@/lib/notifications";
+import {
+  checkPermissionState,
+  isNative,
+  openNotificationSettings,
+  requestPermission,
+} from "@/lib/notifications";
 import { CYCLE_LENGTH, motivationFor } from "@/lib/motivation";
 
 export const Route = createFileRoute("/notifications")({
@@ -51,6 +56,9 @@ function NotificationSettings() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [busy, setBusy] = useState(true);
   const [saving, setSaving] = useState(false);
+  // "denied" means the OS will not prompt again, which needs different words
+  // and a different button from "not asked yet".
+  const [blocked, setBlocked] = useState(false);
   const native = isNative();
 
   useEffect(() => {
@@ -75,6 +83,7 @@ function NotificationSettings() {
       setPrefs(loaded);
       setReminders(rows);
       if (data) setProfile(data);
+      if (isNative()) setBlocked((await checkPermissionState()) === "denied");
       setBusy(false);
     })();
 
@@ -153,17 +162,34 @@ function NotificationSettings() {
   /** Ask at the moment the user turns something on, not on app launch. */
   const enableMorning = async (on: boolean) => {
     if (on && native) {
-      const { granted, blocked } = await requestPermission();
+      const { granted, blocked: isBlocked } = await requestPermission();
+      setBlocked(isBlocked);
       if (!granted) {
-        toast.error(
-          blocked
-            ? "Notifications are blocked for Dombelz in system settings."
-            : "Permission is needed to send reminders.",
-        );
+        if (isBlocked) {
+          // Nothing the app can do from here — the OS has stopped asking. Take
+          // them straight to the screen that can change it rather than leaving
+          // a toggle that silently refuses to stay on.
+          toast.error("Notifications are switched off for Dombelz.", {
+            action: { label: "Open settings", onClick: () => openSettings() },
+            duration: 10000,
+          });
+        } else {
+          toast.error("Permission is needed to send reminders.");
+        }
         return;
       }
     }
     persist({ ...prefs, morning_enabled: on });
+  };
+
+  const openSettings = async () => {
+    const opened = await openNotificationSettings();
+    if (!opened) {
+      toast.info(
+        "Open Settings > Apps > Dombelz > Notifications and turn them on.",
+        { duration: 10000 },
+      );
+    }
   };
 
   if (loading || busy) {
@@ -194,6 +220,24 @@ function NotificationSettings() {
           <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
         )}
       </header>
+
+      {native && blocked && (
+        <Card className="flex flex-col gap-3 border-destructive/50 bg-destructive/5 p-4">
+          <div>
+            <p className="text-sm font-semibold">
+              Notifications are switched off
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Your phone is blocking them for Dombelz, so nothing below can
+              reach you. The app can&rsquo;t ask again — it has to be turned
+              back on in system settings.
+            </p>
+          </div>
+          <Button size="sm" onClick={openSettings} className="self-start">
+            Open notification settings
+          </Button>
+        </Card>
+      )}
 
       {!native && (
         <Card className="border-amber-500/40 bg-amber-500/5 p-4 text-sm">
@@ -262,7 +306,10 @@ function NotificationSettings() {
                   />
                 </div>
                 <p className="line-clamp-3 text-xs italic text-muted-foreground">
-                  Tomorrow: &ldquo;{cycle.tomorrow.quote.text}&rdquo;
+                  Tomorrow: &ldquo;{cycle.tomorrow.quote.text}&rdquo;{" "}
+                  <span className="not-italic">
+                    &mdash; {cycle.tomorrow.quote.author}
+                  </span>
                 </p>
               </div>
             )}

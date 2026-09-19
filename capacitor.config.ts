@@ -26,6 +26,18 @@ const config: CapacitorConfig = {
     cleartext: false,
   },
   backgroundColor: "#101014",
+  plugins: {
+    LocalNotifications: {
+      // Android paints the status-bar icon as a flat silhouette, discarding
+      // colour entirely. Without a monochrome drawable it falls back to a
+      // generic information glyph — the "i" people were seeing. This is the
+      // Dombelz pulse line, white on transparency.
+      smallIcon: "ic_stat_dombelz",
+      // The tint applied behind that silhouette, and the accent colour of the
+      // notification itself. Matches the app's own accent.
+      iconColor: "#D4F73F",
+    },
+  },
   android: {
     allowMixedContent: false,
   },

@@ -1,0 +1,27 @@
+<!--
+    Status-bar icon for notifications.
+
+    Android draws this as a silhouette: every non-transparent pixel is painted
+    a single system colour and everything else is dropped. Colour, gradients
+    and detail are discarded, which is why the launcher icon cannot be reused
+    — hand it a full-colour logo and you get a grey blob, or, with nothing
+    usable at all, the generic information glyph. That is the "i" that was
+    showing.
+
+    So this is the Dombelz pulse line only, drawn in solid white on
+    transparency, stroked rather than filled so it survives being shrunk to
+    24dp in a status bar.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:pathData="M22,12h-4l-3,9L9,3l-3,9H2"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

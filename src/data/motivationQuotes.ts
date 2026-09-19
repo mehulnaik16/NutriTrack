@@ -27,7 +27,28 @@ export interface MotivationQuote {
   author: string;
 }
 
-/** Characters of body text a lock-screen banner shows before expansion. */
+/**
+ * The notification body for one quote: the words, then who said them.
+ *
+ * The attribution is not decoration. Without a name the line reads as filler
+ * an app generated, and the whole point of a morning quote is that a person
+ * said it — an em dash and a name is the difference between advice and
+ * wallpaper.
+ *
+ * One function so the notification, the settings preview and the debug page
+ * cannot drift apart on what a quote actually looks like.
+ */
+export function quoteBody(q: Pick<MotivationQuote, "text" | "author">): string {
+  return `${q.text} — ${q.author}`;
+}
+
+/**
+ * Characters of body text a lock-screen banner shows before expansion.
+ *
+ * A guideline, not a limit. The scheduler sets largeBody, so Android attaches
+ * BigTextStyle and the full quote is one pull away; six entries run past this
+ * and are left intact rather than misquoted to fit.
+ */
 export const NOTIFICATION_BODY_BUDGET = 110;
 
 export const MOTIVATION_QUOTES: MotivationQuote[] = [
@@ -520,9 +541,10 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
 /**
  * Entries whose body overflows the collapsed banner.
  *
- * Not fatal - the OS truncates rather than fails - but a quote the reader has
- * to expand to finish is a quote that did not land at 7am.
+ * Not fatal - the OS truncates rather than fails, and largeBody means the rest
+ * is one pull away - but a quote the reader has to expand to finish is a quote
+ * that did not land at 7am. Read as a count to keep low, not a test to pass.
  */
 export const OVER_BUDGET_QUOTES = MOTIVATION_QUOTES.filter(
-  (q) => q.text.length > NOTIFICATION_BODY_BUDGET,
+  (q) => quoteBody(q).length > NOTIFICATION_BODY_BUDGET,
 );
