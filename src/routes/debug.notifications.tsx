@@ -19,13 +19,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Bell,
-  BellOff,
-  CalendarClock,
-  Smartphone,
-  TriangleAlert,
-} from "lucide-react";
+import { Bell, BellOff, CalendarClock, Smartphone } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { Button } from "@/components/ui/button";
@@ -326,7 +320,6 @@ function NotificationDebug() {
   const overBudget = days.filter(
     (d) => d.quote.text.length > NOTIFICATION_BODY_BUDGET,
   ).length;
-  const flagged = days.filter((d) => d.quote.flag).length;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5 p-4 pb-24">
@@ -354,7 +347,6 @@ function NotificationDebug() {
           <Stat label="Device zone" value={deviceTimezone()} />
           <Stat label="Stored zone" value={profile?.timezone ?? "—"} />
           <Stat label="Over budget" value={`${overBudget} / ${days.length}`} />
-          <Stat label="Flagged" value={`${flagged} / ${days.length}`} />
         </div>
         {profile && deviceTimezone() !== profile.timezone && (
           <p className="text-xs text-amber-600 dark:text-amber-400">
@@ -475,15 +467,6 @@ function NotificationDebug() {
                   — {d.quote.author}
                 </span>
               </p>
-
-              {d.quote.flag && (
-                <p className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                  <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>
-                    #{d.quote.id}: {d.quote.flag}
-                  </span>
-                </p>
-              )}
 
               <Button
                 variant="ghost"

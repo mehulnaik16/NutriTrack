@@ -14,7 +14,9 @@
 import { useEffect } from "react";
 import { App } from "@capacitor/app";
 import { supabase } from "@/integrations/client";
-import { isNative } from "@/lib/notifications";
+import { toast } from "sonner";
+import { isNative, registerActionTypes } from "@/lib/notifications";
+import { registerSnoozeHandlers } from "@/lib/snooze";
 import { reconcile } from "@/lib/notification-settings";
 
 /** Minimum gap between reconciles, to survive rapid app switching. */
@@ -63,12 +65,32 @@ export function useReconcileOnForeground(userId: string | null): void {
 
     void run();
 
+    // Snooze taps arrive through the same app instance, so the handlers belong
+    // beside the reconciler rather than on a screen the user may never open.
+    // A reminder snoozed from the lock screen must reschedule whether or not
+    // anyone has visited notification settings.
+    let teardownSnooze: (() => void) | undefined;
+    void registerActionTypes()
+      .then(() =>
+        registerSnoozeHandlers(userId, (title, body) =>
+          // Foreground delivery shows no system notification, so without this
+          // the reminder is silently swallowed for anyone using the app at the
+          // time it fires.
+          toast(title, { description: body, duration: 8000 }),
+        ),
+      )
+      .then((teardown) => {
+        if (cancelled) teardown();
+        else teardownSnooze = teardown;
+      });
+
     const listener = App.addListener("appStateChange", ({ isActive }) => {
       if (isActive) void run();
     });
 
     return () => {
       cancelled = true;
+      teardownSnooze?.();
       listener.then((l) => l.remove());
     };
   }, [userId]);

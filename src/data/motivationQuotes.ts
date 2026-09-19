@@ -25,8 +25,6 @@ export interface MotivationQuote {
   id: number;
   text: string;
   author: string;
-  /** Set while this entry still needs an editorial decision. Delete when resolved. */
-  flag?: string;
 }
 
 /** Characters of body text a lock-screen banner shows before expansion. */
@@ -45,9 +43,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 3,
-    text: "The body achieves what the mind believes.",
+    text: "Whatever the mind can conceive and believe, it can achieve.",
     author: "Napoleon Hill",
-    flag: "attribution unverified - no primary source ties this to Napoleon Hill",
   },
   {
     id: 4,
@@ -62,14 +59,12 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   {
     id: 6,
     text: "The real workout starts when you want to stop.",
-    author: "Jim Rohn",
-    flag: "misattributed - this is Ronnie Coleman, not Jim Rohn",
+    author: "Ronnie Coleman",
   },
   {
     id: 7,
-    text: "Pain is weakness leaving the body.",
-    author: "United States Marine Corps",
-    flag: "MUST FIX - tells users of a health app to train through pain",
+    text: "We suffer more often in imagination than in reality.",
+    author: "Seneca",
   },
   {
     id: 8,
@@ -78,9 +73,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 9,
-    text: "I hated every minute of training, but I said, 'Don't quit. Suffer now and live the rest of your life as a champion.'",
+    text: "Suffer now and live the rest of your life as a champion.",
     author: "Muhammad Ali",
-    flag: "over budget (116 chars)",
   },
   {
     id: 10,
@@ -99,9 +93,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 13,
-    text: "If you want something you've never had, you must be willing to do something you've never done.",
-    author: "Thomas Jefferson",
-    flag: "misattributed - not Thomas Jefferson",
+    text: "You do not rise to the level of your goals. You fall to the level of your systems.",
+    author: "James Clear",
   },
   {
     id: 14,
@@ -165,9 +158,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 26,
-    text: "Everybody wants to be a bodybuilder, but don't nobody wanna lift no heavy ass weight.",
-    author: "Ronnie Coleman",
-    flag: "MUST FIX - profanity on a lock screen",
+    text: "It's not that I'm so smart, it's just that I stay with problems longer.",
+    author: "Albert Einstein",
   },
   {
     id: 27,
@@ -186,9 +178,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 30,
-    text: "We all have dreams. But in order to make dreams come into reality, it takes an awful lot of determination, dedication, self-discipline, and effort.",
+    text: "The battles that count aren't the ones for gold medals. The struggles within yourself are where it's at.",
     author: "Jesse Owens",
-    flag: "over budget (147 chars)",
   },
   {
     id: 31,
@@ -207,9 +198,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 34,
-    text: "The only way to achieve the impossible is to believe it is possible.",
-    author: "Charles Kingsleigh",
-    flag: "Charles Kingsleigh is a character invented for the 2010 Alice in Wonderland film",
+    text: "It always seems impossible until it's done.",
+    author: "Nelson Mandela",
   },
   {
     id: 35,
@@ -249,9 +239,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 43,
-    text: "Your love for what you do and your willingness to push yourself where others aren't prepared to go is what will make you great.",
-    author: "Laurence Shahlaei",
-    flag: "over budget (127 chars)",
+    text: "Strength does not come from physical capacity. It comes from an indomitable will.",
+    author: "Mahatma Gandhi",
   },
   {
     id: 44,
@@ -280,9 +269,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 49,
-    text: "The resistance that you fight physically in the gym and the resistance that you fight in life can only build a strong character.",
+    text: "The mind is the limit. As long as the mind can envision that you can do something, you can do it.",
     author: "Arnold Schwarzenegger",
-    flag: "over budget (128 chars)",
   },
   {
     id: 50,
@@ -296,9 +284,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 52,
-    text: "Physical fitness is not only one of the most important keys to a healthy body, it is the basis of dynamic and creative intellectual activity.",
+    text: "Physical fitness is the basis of dynamic and creative intellectual activity.",
     author: "John F. Kennedy",
-    flag: "over budget (141 chars)",
   },
   {
     id: 53,
@@ -318,8 +305,7 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   {
     id: 56,
     text: "I always felt my greatest asset wasn't my physical ability, it was my mental ability.",
-    author: "Bruce Jenner",
-    flag: "MUST FIX - deadnames Caitlyn Jenner",
+    author: "Caitlyn Jenner",
   },
   {
     id: 57,
@@ -359,15 +345,13 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 65,
-    text: "I've missed more than 9000 shots in my career. I've lost almost 300 games. 26 times, I've been trusted to take the game winning shot and missed. I've failed over and over and over again in my life. And that is why I succeed.",
+    text: "I've failed over and over and over again in my life. And that is why I succeed.",
     author: "Michael Jordan",
-    flag: "over budget - roughly 3x what a banner shows (224 chars)",
   },
   {
     id: 66,
-    text: "Champions aren't made in the gyms. Champions are made from something they have deep inside them - a desire, a dream, a vision.",
+    text: "Champions aren't made in gyms. Champions are made from something they have deep inside them.",
     author: "Muhammad Ali",
-    flag: "over budget (126 chars)",
   },
   {
     id: 67,
@@ -386,9 +370,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 70,
-    text: "If you run into a wall, don't turn around and give up. Figure out how to climb it, go through it, or work around it.",
-    author: "Michael Jordan",
-    flag: "over budget (116 chars)",
+    text: "Fall seven times, stand up eight.",
+    author: "Japanese proverb",
   },
   {
     id: 71,
@@ -407,9 +390,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 74,
-    text: "Pain is temporary. It may last a minute, or an hour, or a day, or a year, but eventually it will subside. If I quit, however, it lasts forever.",
-    author: "Unknown",
-    flag: "over budget; also misattributed - this is Lance Armstrong (143 chars)",
+    text: "The impediment to action advances action. What stands in the way becomes the way.",
+    author: "Marcus Aurelius",
   },
   {
     id: 75,
@@ -428,9 +410,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 78,
-    text: "If you deliberately plan on being less than you are capable of being, then I warn you that you'll be unhappy for the rest of your life.",
+    text: "If you plan on being less than you are capable of being, you'll be unhappy for the rest of your life.",
     author: "Abraham Maslow",
-    flag: "over budget (135 chars)",
   },
   {
     id: 79,
@@ -440,9 +421,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   { id: 80, text: "Becoming is better than being.", author: "Carol S. Dweck" },
   {
     id: 81,
-    text: "The best years of your life are the ones in which you decide your problems are your own. You realize that you control your own destiny.",
+    text: "The best years of your life are the ones in which you decide your problems are your own.",
     author: "Albert Ellis",
-    flag: "over budget (135 chars)",
   },
   {
     id: 82,
@@ -461,9 +441,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 85,
-    text: "Discipline is choosing between what you want now and what you want most.",
-    author: "Abraham Lincoln",
-    flag: "misattributed - not Abraham Lincoln",
+    text: "Discipline is the bridge between goals and accomplishment.",
+    author: "Jim Rohn",
   },
   {
     id: 86,
@@ -472,9 +451,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 87,
-    text: "Few things in the world are more powerful than a positive push. A smile. A world of optimism and hope. A 'you can do it' when things are tough.",
-    author: "Richard M. Devos",
-    flag: "over budget (143 chars)",
+    text: "Few things are more powerful than a positive push: a smile, a word of optimism and hope.",
+    author: "Richard M. DeVos",
   },
   {
     id: 88,
@@ -488,9 +466,8 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   {
     id: 90,
-    text: "Willpower is the key to success. Successful people strive no matter what they feel by applying their will to overcome apathy, doubt or fear.",
+    text: "Successful people strive no matter what they feel, applying their will to overcome apathy, doubt or fear.",
     author: "Dan Millman",
-    flag: "over budget (140 chars)",
   },
   {
     id: 91,
@@ -539,9 +516,6 @@ export const MOTIVATION_QUOTES: MotivationQuote[] = [
   },
   { id: 100, text: "You are stronger than you think.", author: "Unknown" },
 ];
-
-/** Entries still carrying an unresolved editorial flag. */
-export const FLAGGED_QUOTES = MOTIVATION_QUOTES.filter((q) => q.flag);
 
 /**
  * Entries whose body overflows the collapsed banner.
