@@ -10,9 +10,10 @@
  * THREE INVARIANTS. They are why this file exists rather than a generic query
  * endpoint, and none is negotiable:
  *
- *   1. Read only. The catalog contains no writes and must never gain one. An
- *      agent that can act on production from a chat message is a different
- *      product with a different risk profile.
+ *   1. This catalog is read only. Writes exist, but they live in
+ *      ops-actions.ts and never execute in the turn that proposes them —
+ *      the agent records an intent and a human types a code back. Nothing
+ *      in this file may gain a write.
  *
  *   2. Identifiers are opt-in, never incidental. The seven get_* tools are
  *      aggregate-only. The three user tools can name a person, but the listing
@@ -168,6 +169,49 @@ export const METRIC_TOOLS: readonly MetricTool[] = [
         .describe("Full uuid or the 8-char id prefix."),
     }),
     rpc: "ops_user_detail",
+  },
+  {
+    name: "diagnose_access",
+    description:
+      "Why one user does or does not have access: trial dates, every charge, manual grants, referral bonuses and whether any are still on hold, plus the computed access_until. Use for 'they say they paid but have nothing'.",
+    schema: z.object({
+      user_ref: z
+        .string()
+        .min(4)
+        .max(64)
+        .describe("Full uuid or 8-char prefix."),
+    }),
+    rpc: "ops_diagnose_access",
+  },
+  {
+    name: "get_recent_activity",
+    description:
+      "Timeline of the last N hours: signups, charges, webhook events, refund requests, food logs and any changes the ops agent itself made. Use for 'what happened overnight' and after any alert.",
+    schema: z.object({
+      hours: z
+        .number()
+        .int()
+        .min(1)
+        .max(168)
+        .default(24)
+        .describe("Look-back window in hours."),
+    }),
+    rpc: "ops_recent_activity",
+  },
+  {
+    name: "get_audit_log",
+    description:
+      "Recent changes made through this agent: what, by whom, when. Always check here before concluding a number moved for product reasons — it may have moved because someone asked you to move it.",
+    schema: z.object({
+      limit_n: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20)
+        .describe("How many entries to return."),
+    }),
+    rpc: "ops_audit_recent",
   },
 ] as const;
 

@@ -17,10 +17,16 @@
  *      that message reaches this endpoint with a perfectly valid secret token.
  *      Only TELEGRAM_CHAT_ID is answered.
  *
- *   3. The catalog. Even a fully authorised caller can only reach the named,
- *      parameterised, read-only functions in metrics.ts. There is no path from
- *      here to a write, and none to arbitrary SQL. Three of those tools can
- *      identify a user, which is why layer 2 matters as much as layer 1.
+ *   3. The catalog. Even a fully authorised caller only reaches named,
+ *      parameterised functions. There is no arbitrary SQL anywhere.
+ *
+ *   4. Owner-only writes, confirmed out of band. Three tools can change
+ *      something, and none of them executes in the turn that proposes it. The
+ *      agent returns a code; this handler matches "confirm <code>" with a
+ *      regular expression before the model is involved, and ops-authz.ts
+ *      checks the sender is the group's creator — administrators are
+ *      deliberately not enough, because promoting someone to admin is a
+ *      routine convenience that must not hand over billing.
  *
  * Unauthorised requests get 200 and silence, never an error message. A refusal
  * that explains itself confirms the endpoint is real and worth more attention.
@@ -28,6 +34,7 @@
 
 import { askOpsAgent, availableTools, clearHistory } from "./ops-agent";
 import { sendAlert } from "./telegram";
+import { executeConfirmed } from "./ops-actions";
 
 /**
  * Telegram retries non-2xx deliveries, so almost everything answers 200 —
@@ -84,7 +91,7 @@ Try:
 • list the users who haven't logged anything
 • what's going on with <name>'s account?
 
-I can read metrics and look up individual accounts, but I can't change anything — no writes, no refunds, no access grants. Those stay in the Supabase and Razorpay dashboards.
+I can also fix a few things — grant access, revoke a grant, reset someone's notification settings. I never do it straight away: I'll describe the change and give you a code, and it happens only when the group OWNER replies "confirm <code>". Admins can't, deliberately.
 
 /reset clears this conversation's memory.`;
 
@@ -121,6 +128,10 @@ export async function handleTelegramWebhook(
   // Only plain new messages are acted on.
   const chatId = pick(update, "message", "chat", "id");
   const text = pick(update, "message", "text");
+  // Authority is per person, not per chat. Writes are owner-only, and the
+  // owner is established from Telegram rather than from anything in the
+  // message — see src/server/ops-authz.ts.
+  const fromId = pick(update, "message", "from", "id");
   if (typeof chatId !== "number" || typeof text !== "string") {
     return ack("ignored: not a text message");
   }
@@ -174,12 +185,29 @@ export async function handleTelegramWebhook(
     await reply(chatId, "Conversation memory cleared.");
     return ack("reset");
   }
+  // Confirmation is matched here, before the model is involved at all. That is
+  // the point of it: a prompt injection can talk the agent into proposing a
+  // change, but the code that performs it is typed by a human and parsed by a
+  // regular expression.
+  const confirm = trimmed.match(/^confirm\s+([A-Za-z0-9]{6})$/i);
+  if (confirm) {
+    const result = await executeConfirmed(
+      String(chatId),
+      typeof fromId === "number" ? fromId : undefined,
+      confirm[1],
+    );
+    await reply(chatId, result.message);
+    return ack(result.ok ? "action executed" : "action refused");
+  }
+
   // Telegram appends @botname in groups; strip it so "/foo@bot" is not sent to
   // the agent as if it were a question.
   const question = trimmed.replace(/^\/\w+(@\w+)?\s*/, "") || trimmed;
 
   try {
-    const { text: answer, toolsUsed } = await askOpsAgent(chatId, question);
+    const { text: answer, toolsUsed } = await askOpsAgent(chatId, question, {
+      fromUserId: typeof fromId === "number" ? fromId : undefined,
+    });
     const footer = toolsUsed.length
       ? `\n\n— ${toolsUsed.join(", ")}`
       : `\n\n— no tools used`;

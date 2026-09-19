@@ -230,6 +230,64 @@ export type Database = {
         };
         Relationships: [];
       };
+      manual_grants: {
+        Row: {
+          clawback_at: string | null;
+          created_at: string;
+          days: number;
+          effective_at: string;
+          /** Telegram chat id, or 'dashboard'. */
+          granted_by: string;
+          id: string;
+          reason: string;
+          user_id: string;
+        };
+        Insert: {
+          clawback_at?: string | null;
+          created_at?: string;
+          days: number;
+          effective_at?: string;
+          granted_by: string;
+          id?: string;
+          reason: string;
+          user_id: string;
+        };
+        Update: {
+          clawback_at?: string | null;
+          days?: number;
+          effective_at?: string;
+          reason?: string;
+        };
+        Relationships: [];
+      };
+      ops_pending_actions: {
+        Row: {
+          action: string;
+          args: Json;
+          chat_id: number;
+          code: string;
+          consumed_at: string | null;
+          created_at: string;
+          expires_at: string;
+          requested_by: number;
+          summary: string;
+        };
+        Insert: {
+          action: string;
+          args?: Json;
+          chat_id: number;
+          code: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          requested_by: number;
+          summary: string;
+        };
+        Update: {
+          consumed_at?: string | null;
+        };
+        Relationships: [];
+      };
       ops_agent_threads: {
         Row: {
           /** Telegram chat id. Negative for groups, hence a bigint. */
