@@ -35,7 +35,9 @@ export function checkRateLimit(userId: string) {
   }
 
   if (record.count >= 30) {
-    throw new Error("Rate limit exceeded. Please wait a minute before trying again.");
+    throw new Error(
+      "Rate limit exceeded. Please wait a minute before trying again.",
+    );
   }
 
   record.count++;
@@ -47,11 +49,13 @@ export function checkRateLimit(userId: string) {
  * `serverAiFoodSearch` and `serverAiFoodSearchInline` were byte-identical, so
  * every fix had to be made twice or silently reached only one caller.
  */
-async function runFoodSearch(rawQuery: string): Promise<AiFoodResult> {
+async function runFoodSearch(
+  rawQuery: string,
+  engine: FoodSearchEngine = "groq",
+): Promise<AiFoodResult> {
   const cleanQuery = sanitizeFoodQuery(rawQuery);
   if (cleanQuery.length < 2) return { kind: "single", items: [] };
 
-  const { groqChat } = await import("@/server/groq");
   // Imported inside the handler, beside groq, so the catalog is not pulled into
   // this module's static graph — foodDb imports nothing from here any more, and
   // this keeps it that way.
@@ -83,17 +87,34 @@ async function runFoodSearch(rawQuery: string): Promise<AiFoodResult> {
     (refs.length ? `<reference>\n${refs.join("\n")}\n</reference>\n` : "") +
     `<query>${cleanQuery}</query>`;
 
-  const raw = await groqChat({
-    model: "openai/gpt-oss-120b",
-    messages: [
-      { role: "system", content: FOOD_SEARCH_SYSTEM },
-      { role: "user", content: userMsg },
-    ],
-    max_tokens: maxTokensFor(isComposite(cleanQuery)),
-    temperature: 0.1,
-    reasoning_effort: "low",
-    response_format: { type: "json_object" },
-  });
+  const max_tokens = maxTokensFor(isComposite(cleanQuery));
+
+  // Same prompt, same budget, same parse below — the engine only decides who
+  // reads it. Gemini takes one string because generateContent has no system
+  // role; the order is unchanged, so the model still sees the reference data
+  // before the untrusted query.
+  const raw =
+    engine === "gemini"
+      ? await (
+          await import("@/server/gemini")
+        ).geminiText({
+          prompt: [FOOD_SEARCH_SYSTEM, userMsg].join("\n\n"),
+          max_tokens,
+          temperature: 0.1,
+        })
+      : await (
+          await import("@/server/groq")
+        ).groqChat({
+          model: "openai/gpt-oss-120b",
+          messages: [
+            { role: "system", content: FOOD_SEARCH_SYSTEM },
+            { role: "user", content: userMsg },
+          ],
+          max_tokens,
+          temperature: 0.1,
+          reasoning_effort: "low",
+          response_format: { type: "json_object" },
+        });
 
   let parsed: unknown;
   try {
@@ -102,8 +123,19 @@ async function runFoodSearch(rawQuery: string): Promise<AiFoodResult> {
     return { kind: "single", items: [] };
   }
 
-  return validateFoodResponse(parsed, cleanQuery) ?? { kind: "single", items: [] };
+  return (
+    validateFoodResponse(parsed, cleanQuery) ?? { kind: "single", items: [] }
+  );
 }
+
+/**
+ * Which model answers a food search.
+ *
+ * Per-screen rather than global: the food page runs Gemini, and the dashboard's
+ * copy of the same search box stays on Groq, so the two can be compared on the
+ * same queries.
+ */
+export type FoodSearchEngine = "groq" | "gemini";
 
 // ── AI Food Search ───────────────────────────────────────────────────────────
 
@@ -119,10 +151,15 @@ export const serverAiFoodSearch = createServerFn({ method: "POST" })
 
 export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
   .middleware([requireAccess])
-  .inputValidator((d: string) => d)
+  .inputValidator(
+    z.object({
+      query: z.string(),
+      engine: z.enum(["groq", "gemini"]).optional(),
+    }),
+  )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    return runFoodSearch(ctx.data);
+    return runFoodSearch(ctx.data.query, ctx.data.engine);
   });
 
 // ── AI Chat (generic — used by WeeklyReport, weight motivation, workout plan, voice parse) ──
@@ -163,6 +200,21 @@ export const serverGroqChat = createServerFn({ method: "POST" })
     });
 
     return { result: raw };
+  });
+
+// ── AI Chat via Gemini (the food page's half of the comparison) ──────────────
+
+// No model field: unlike the Groq endpoint this one is pinned server-side, so
+// the generic prompt box cannot be pointed at a model nobody priced. No
+// response_format flag either — geminiText always asks for JSON.
+export const serverGeminiChat = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(ChatInput.omit({ model: true, response_format_json: true }))
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    const { geminiText } = await import("@/server/gemini");
+    const { prompt, max_tokens, temperature } = ctx.data;
+    return { result: await geminiText({ prompt, max_tokens, temperature }) };
   });
 
 // ── AI Vision (food photo recognition) ───────────────────────────────────────
@@ -207,5 +259,23 @@ export const serverGeminiVision = createServerFn({ method: "POST" })
     const { geminiVision } = await import("@/server/gemini");
     const { prompt, base64, mimeType } = ctx.data;
     const raw = await geminiVision({ prompt, base64, mimeType });
+    return { result: raw };
+  });
+
+// The same path on the cheap model, so the food page's three camera tiles
+// differ in exactly one thing: which model reads the photo.
+export const serverGeminiLiteVision = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(VisionInput)
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    const { geminiVision, GEMINI_LITE_MODEL } = await import("@/server/gemini");
+    const { prompt, base64, mimeType } = ctx.data;
+    const raw = await geminiVision({
+      prompt,
+      base64,
+      mimeType,
+      model: GEMINI_LITE_MODEL,
+    });
     return { result: raw };
   });

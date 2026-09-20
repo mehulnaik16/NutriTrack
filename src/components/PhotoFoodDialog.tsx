@@ -29,7 +29,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { serverGeminiVision, serverGroqVision } from "@/lib/ai";
+import {
+  serverGeminiLiteVision,
+  serverGeminiVision,
+  serverGroqVision,
+} from "@/lib/ai";
 import { type IFCTItem, KJ_PER_KCAL } from "@/lib/foodDb";
 
 interface AIFoodResult {
@@ -69,12 +73,20 @@ export interface MealPicker {
  * the two buttons in the log-food screen an actual comparison rather than two
  * different features that happen to both use a camera.
  */
-export type VisionProvider = "groq" | "gemini";
+export type VisionProvider = "groq" | "gemini" | "gemini-lite";
 
 const VISION_FN = {
   groq: serverGroqVision, // qwen/qwen3.8-27b
   gemini: serverGeminiVision, // gemini-3.6-flash
+  "gemini-lite": serverGeminiLiteVision, // gemini-3.5-flash-lite
 } as const;
+
+/** Shown in the dialog title, so a three-way comparison is not guesswork. */
+const PROVIDER_LABEL: Record<VisionProvider, string> = {
+  groq: "Qwen",
+  gemini: "Gemini",
+  "gemini-lite": "Gemini Lite",
+};
 
 // ── AI image recognition ────────────────────────────────────────────────────
 async function recognizeFoodFromImage(
@@ -171,7 +183,11 @@ export function PhotoFoodDialog({
     setAnalyzing(true);
     try {
       const base64 = imageSrc.split(",")[1];
-      const result = await recognizeFoodFromImage(base64, "image/jpeg", provider);
+      const result = await recognizeFoodFromImage(
+        base64,
+        "image/jpeg",
+        provider,
+      );
       setAiResult(result);
       setWeightInput(String(result.estimated_weight_g ?? ""));
     } catch (e) {
@@ -213,10 +229,8 @@ export function PhotoFoodDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="h-4 w-4" /> AI Food Recognition
-            {/* Named so a side-by-side comparison is not guesswork about
-                which dialog is which. */}
             <span className="text-xs font-normal text-muted-foreground">
-              {provider === "gemini" ? "Gemini" : "Qwen"}
+              {PROVIDER_LABEL[provider]}
             </span>
           </DialogTitle>
         </DialogHeader>

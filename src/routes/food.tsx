@@ -601,8 +601,27 @@ function FoodPage() {
               </div>
             )}
 
-            {/* ── Create Custom Meal ── */}
+            {/* The same search box again, at the end of the day's logs —
+                after a dozen entries the one at the top is a scroll away.
+                searchOnly, so the camera and mic tiles are not duplicated.
+
+                This copy runs Gemini while the one at the top stays on
+                gpt-oss-120b, which is what makes the pair a comparison: type
+                the same food into both and read the two answers. Do not tidy
+                this up by giving them the same engine. */}
             <div className="mt-8 pt-6 border-t border-border/30">
+              <FoodSearch
+                userId={user.id}
+                date={selectedDate}
+                onLogged={load}
+                meals={userMeals}
+                aiEngine="gemini"
+                searchOnly
+              />
+            </div>
+
+            {/* ── Create Custom Meal ── */}
+            <div className="mt-6">
               <Button
                 variant="outline"
                 className="w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"

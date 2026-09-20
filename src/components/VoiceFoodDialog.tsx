@@ -29,7 +29,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { serverGroqChat } from "@/lib/ai";
+import {
+  serverGeminiChat,
+  serverGroqChat,
+  type FoodSearchEngine,
+} from "@/lib/ai";
 import type { MealPicker } from "@/components/PhotoFoodDialog";
 
 /**
@@ -66,10 +70,11 @@ export interface VoiceFoodItem {
   fiber_g: number;
 }
 
-// ── Voice food logging via Groq ─────────────────────────────────────────────
+// ── Voice food logging ──────────────────────────────────────────────────────
 async function parseVoiceFoodLog(
   transcript: string,
   mealType: string,
+  engine: FoodSearchEngine = "groq",
 ): Promise<VoiceFoodItem[]> {
   const prompt = `You are a nutrition expert. The user said: "${transcript}"
 Parse every food item mentioned and return ONLY a JSON array, no markdown:
@@ -94,16 +99,27 @@ Rules:
 - Each distinct food is a separate item in the array
 - Return empty array [] if no food is mentioned`;
 
-  const { result: raw } = await serverGroqChat({
-    data: {
-      prompt,
-      model: "openai/gpt-oss-120b",
-      max_tokens: 600,
-      temperature: 0.1,
-    },
-  });
+  const { result: raw } =
+    engine === "gemini"
+      ? await serverGeminiChat({
+          data: { prompt, max_tokens: 600, temperature: 0.1 },
+        })
+      : await serverGroqChat({
+          data: {
+            prompt,
+            model: "openai/gpt-oss-120b",
+            max_tokens: 600,
+            temperature: 0.1,
+          },
+        });
   const clean = raw.replace(/```json|```/g, "").trim();
-  return JSON.parse(clean) as VoiceFoodItem[];
+  const parsed: unknown = JSON.parse(clean);
+  // Both models are asked for a bare array and usually give one, but a
+  // JSON-mode model is free to wrap it in an object — which used to reach the
+  // review list as a non-array and throw on .map().
+  if (Array.isArray(parsed)) return parsed as VoiceFoodItem[];
+  const nested = Object.values(parsed ?? {}).find(Array.isArray);
+  return (nested ?? []) as VoiceFoodItem[];
 }
 
 export function VoiceFoodDialog({
@@ -113,6 +129,7 @@ export function VoiceFoodDialog({
   meal,
   confirmVerb = "Log",
   initialItems,
+  engine = "groq",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -120,6 +137,9 @@ export function VoiceFoodDialog({
   onConfirm: (items: VoiceFoodItem[]) => void | Promise<void>;
   meal?: MealPicker;
   confirmVerb?: string;
+  /** Which model parses the sentence. The food page runs Gemini; everywhere
+      else stays on Groq. */
+  engine?: FoodSearchEngine;
   /**
    * Foods already parsed elsewhere, to review instead of speaking.
    *
@@ -164,7 +184,11 @@ export function VoiceFoodDialog({
     if (!text.trim()) return;
     setParsing(true);
     try {
-      const parsed = await parseVoiceFoodLog(text, meal?.value ?? "Snack");
+      const parsed = await parseVoiceFoodLog(
+        text,
+        meal?.value ?? "Snack",
+        engine,
+      );
       setItems(parsed);
       if (parsed.length === 0) toast.info("No food items detected. Try again.");
     } catch (e) {

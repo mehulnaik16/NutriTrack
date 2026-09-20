@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
-import { serverAiFoodSearchInline } from "@/lib/ai";
+import { serverAiFoodSearchInline, type FoodSearchEngine } from "@/lib/ai";
 import { strongFoods } from "@/lib/foodFuzzy";
 import { toLocalISO } from "@/lib/dates";
 import {
@@ -98,8 +98,33 @@ export const FoodSearch = forwardRef<
      * food page only and must not crowd the dashboard's action row.
      */
     showGeminiPhoto?: boolean;
+    /**
+     * Which model answers "Search AI" and the voice parse. Defaults to Groq,
+     * which is what every copy of this box runs but one: the food page's lower,
+     * search-only copy passes "gemini", so the same food typed at the top and
+     * at the bottom of that page is answered by the two models being compared.
+     */
+    aiEngine?: FoodSearchEngine;
+    /**
+     * Render the search box and its results only.
+     *
+     * The food page shows this a second time down by Create Custom Meal, so a
+     * long day of logs need not be scrolled past to add one more food. A second
+     * set of camera and mic tiles there would be clutter — and two mounted
+     * webcams — so the action row stays with the copy at the top.
+     */
+    searchOnly?: boolean;
   }
->(({ userId, date, onLogged, meals: mealsProp, showGeminiPhoto }, ref) => {
+>((props, ref) => {
+  const {
+    userId,
+    date,
+    onLogged,
+    meals: mealsProp,
+    showGeminiPhoto,
+    aiEngine = "groq",
+    searchOnly,
+  } = props;
   const mealCategories =
     mealsProp && mealsProp.length > 0
       ? mealsProp
@@ -347,7 +372,9 @@ export const FoodSearch = forwardRef<
     if (q.trim().length < 2) return;
     setSearching(true);
     try {
-      const { kind, items } = await serverAiFoodSearchInline({ data: q });
+      const { kind, items } = await serverAiFoodSearchInline({
+        data: { query: q, engine: aiEngine },
+      });
       if (kind === "meal" && items.length > 1) {
         // Several foods in one sentence. The pick-one list cannot express that,
         // but the voice review list already can — per-item quantities, edits
@@ -625,75 +652,91 @@ export const FoodSearch = forwardRef<
       )}
 
       {/* ── Action buttons: Camera → Mic → Barcode → Favourites ── */}
-      <div className="flex gap-3 justify-center flex-wrap">
-        <Button
-          variant="outline"
-          onClick={() => setCameraProvider("groq")}
-          title="Log food by photo (Qwen vision)"
-          className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 64, height: 64, minWidth: 64 }}
-        >
-          <Camera style={{ width: 22, height: 22 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">
-            Photo
-          </span>
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setVoiceOpen(true)}
-          title="Log food by voice"
-          className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 64, height: 64, minWidth: 64 }}
-        >
-          <Mic style={{ width: 22, height: 22 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">
-            Voice
-          </span>
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setBarcodeMode(true)}
-          title="Barcode lookup"
-          className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 64, height: 64, minWidth: 64 }}
-        >
-          <Barcode style={{ width: 22, height: 22 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">
-            Scan
-          </span>
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            loadSavedMeals();
-            setFavoritesDialogOpen(true);
-          }}
-          title="View Favourites"
-          className="flex flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
-          style={{ width: 64, height: 64, minWidth: 64 }}
-        >
-          <Heart style={{ width: 22, height: 22 }} className="text-red-500" />
-          <span className="text-[8px] font-medium text-red-500">
-            Favourites
-          </span>
-        </Button>
-        {/* Same dialog, same prompt, different model — here to be compared
-            against Photo, not to be a second feature. */}
-        {showGeminiPhoto && (
+      {!searchOnly && (
+        <div className="flex gap-3 justify-center flex-wrap">
           <Button
             variant="outline"
-            onClick={() => setCameraProvider("gemini")}
-            title="Log food by photo (Gemini vision)"
+            onClick={() => setCameraProvider("groq")}
+            title="Log food by photo (Qwen vision)"
             className="flex flex-col items-center justify-center gap-1 p-0"
             style={{ width: 64, height: 64, minWidth: 64 }}
           >
             <Camera style={{ width: 22, height: 22 }} />
             <span className="text-[8px] font-medium text-muted-foreground">
-              Gemini
+              Photo
             </span>
           </Button>
-        )}
-      </div>
+          <Button
+            variant="outline"
+            onClick={() => setVoiceOpen(true)}
+            title="Log food by voice"
+            className="flex flex-col items-center justify-center gap-1 p-0"
+            style={{ width: 64, height: 64, minWidth: 64 }}
+          >
+            <Mic style={{ width: 22, height: 22 }} />
+            <span className="text-[8px] font-medium text-muted-foreground">
+              Voice
+            </span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setBarcodeMode(true)}
+            title="Barcode lookup"
+            className="flex flex-col items-center justify-center gap-1 p-0"
+            style={{ width: 64, height: 64, minWidth: 64 }}
+          >
+            <Barcode style={{ width: 22, height: 22 }} />
+            <span className="text-[8px] font-medium text-muted-foreground">
+              Scan
+            </span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              loadSavedMeals();
+              setFavoritesDialogOpen(true);
+            }}
+            title="View Favourites"
+            className="flex flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
+            style={{ width: 64, height: 64, minWidth: 64 }}
+          >
+            <Heart style={{ width: 22, height: 22 }} className="text-red-500" />
+            <span className="text-[8px] font-medium text-red-500">
+              Favourites
+            </span>
+          </Button>
+          {/* Same dialog, same prompt, different model — here to be compared
+              against Photo, not to be a second feature. */}
+          {showGeminiPhoto && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setCameraProvider("gemini")}
+                title="Log food by photo (Gemini vision)"
+                className="flex flex-col items-center justify-center gap-1 p-0"
+                style={{ width: 64, height: 64, minWidth: 64 }}
+              >
+                <Camera style={{ width: 22, height: 22 }} />
+                <span className="text-[8px] font-medium text-muted-foreground">
+                  Gemini
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCameraProvider("gemini-lite")}
+                title="Log food by photo (Gemini Flash Lite vision)"
+                className="flex flex-col items-center justify-center gap-1 p-0"
+                style={{ width: 64, height: 64, minWidth: 64 }}
+              >
+                <Camera style={{ width: 22, height: 22 }} />
+                <span className="text-[8px] font-medium text-muted-foreground">
+                  Lite
+                </span>
+              </Button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Favourites Dialog ── */}
       <Dialog open={favoritesDialogOpen} onOpenChange={setFavoritesDialogOpen}>
@@ -1275,6 +1318,7 @@ export const FoodSearch = forwardRef<
         meal={mealPicker}
         onConfirm={logVoiceItems}
         initialItems={voiceItems}
+        engine={aiEngine}
       />
 
       {/* Mounted only while open so @zxing/* stays off the initial page load. */}

@@ -1,5 +1,6 @@
 /**
- * Server-only Gemini vision client, for the food-photo A/B against Groq.
+ * Server-only Gemini client, for the food-photo A/B against Groq and for the
+ * food page's text calls.
  *
  * Lives beside groq.ts and is blocked from client bundles by the same
  * importProtection rule in vite.config.ts.
@@ -25,46 +26,64 @@ const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
  */
 const VISION_MODEL = "gemini-3.6-flash";
 
+/**
+ * The cheap model the food page runs: its second camera tile, its text search
+ * and its voice parse. Verified against this key for both text and image
+ * prompts before being wired in.
+ */
+const LITE_MODEL = "gemini-3.5-flash-lite";
+
 /** What the model is called in the UI and in errors, so a comparison is labelled. */
 export const GEMINI_VISION_MODEL = VISION_MODEL;
+export const GEMINI_LITE_MODEL = LITE_MODEL;
 
-export async function geminiVision(opts: {
+/**
+ * Thinking budget per model, because the floor is not the same on both.
+ *
+ * The 3.x models reason before answering and bill it against maxOutputTokens —
+ * the same trap as gpt-oss in groq.ts — and a photo the user is waiting on
+ * cannot spend a 10s Vercel Hobby budget thinking. gemini-3.6-flash takes 0 for
+ * that. gemini-3.5-flash-lite answers 0 with a bare 400 INVALID_ARGUMENT and
+ * accepts 128, which it then leaves unspent (no thoughtsTokenCount) on the
+ * short, shaped prompts this app sends. Both values were checked against the
+ * live API, not inferred from the docs.
+ */
+const THINKING_BUDGET: Record<string, number> = {
+  [VISION_MODEL]: 0,
+  [LITE_MODEL]: 128,
+};
+
+async function generate(opts: {
+  model: string;
   prompt: string;
-  base64: string;
-  mimeType: string;
+  image?: { base64: string; mimeType: string };
   max_tokens?: number;
+  temperature?: number;
 }): Promise<string> {
   const key = (process.env.GEMINI_API_KEY ?? "").trim();
   if (!key) throw new Error("GEMINI_API_KEY is not configured.");
 
+  const parts: Record<string, unknown>[] = [{ text: opts.prompt }];
+  if (opts.image)
+    parts.push({
+      inline_data: { mime_type: opts.image.mimeType, data: opts.image.base64 },
+    });
+
   const res = await fetch(
-    `${GEMINI_BASE}/${VISION_MODEL}:generateContent?key=${encodeURIComponent(key)}`,
+    `${GEMINI_BASE}/${opts.model}:generateContent?key=${encodeURIComponent(key)}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: opts.prompt },
-              {
-                inline_data: { mime_type: opts.mimeType, data: opts.base64 },
-              },
-            ],
-          },
-        ],
+        contents: [{ parts }],
         generationConfig: {
-          temperature: 0.2,
+          temperature: opts.temperature ?? 0.2,
           maxOutputTokens: opts.max_tokens ?? 800,
-          // Ask for JSON directly rather than fishing it out of prose. The
-          // caller still runs its brace-matching parse, because this only
-          // constrains the shape, not the field names.
+          // Ask for JSON directly rather than fishing it out of prose. Every
+          // caller here wants JSON, and the caller still runs its own parse,
+          // because this only constrains the shape, not the field names.
           responseMimeType: "application/json",
-          // The 3.x models reason before answering and bill it against
-          // maxOutputTokens — same trap as gpt-oss in groq.ts. Off entirely:
-          // Vercel functions time out at 10s on Hobby, and a photo the user is
-          // waiting on cannot spend that budget thinking.
-          thinkingConfig: { thinkingBudget: 0 },
+          thinkingConfig: { thinkingBudget: THINKING_BUDGET[opts.model] ?? 0 },
         },
       }),
     },
@@ -72,7 +91,9 @@ export async function geminiVision(opts: {
 
   if (!res.ok) {
     const err = await res.text().catch(() => "");
-    throw new Error(`Gemini vision error ${res.status}: ${err.slice(0, 400)}`);
+    throw new Error(
+      `Gemini error ${res.status} (${opts.model}): ${err.slice(0, 400)}`,
+    );
   }
 
   const data = await res.json();
@@ -97,4 +118,28 @@ export async function geminiVision(opts: {
     throw new Error(`Gemini returned no text (finish: ${cand.finishReason}).`);
 
   return text;
+}
+
+export async function geminiVision(opts: {
+  prompt: string;
+  base64: string;
+  mimeType: string;
+  max_tokens?: number;
+  model?: string;
+}): Promise<string> {
+  return generate({
+    model: opts.model ?? VISION_MODEL,
+    prompt: opts.prompt,
+    image: { base64: opts.base64, mimeType: opts.mimeType },
+    max_tokens: opts.max_tokens,
+  });
+}
+
+/** Text-only, pinned to the cheap model — nothing here needs the big one. */
+export async function geminiText(opts: {
+  prompt: string;
+  max_tokens?: number;
+  temperature?: number;
+}): Promise<string> {
+  return generate({ model: LITE_MODEL, ...opts });
 }
