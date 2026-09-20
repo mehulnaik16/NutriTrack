@@ -171,6 +171,37 @@
   --fat: oklch(0.7 0.12 220);
 }
 
+:root.theme-cyber {
+  --radius: 0px;
+  --background: oklch(0 0 0); /* True OLED Pitch Black */
+  --foreground: oklch(1 0 0); /* Pure Stark White */
+  --card: oklch(0.06 0 0); /* Deep Charcoal Panel */
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.06 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(1 0 0); /* Pure White */
+  --primary-foreground: oklch(0 0 0); /* Black text on white */
+  --secondary: oklch(0.18 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.75 0 0); /* Light Chalk Silver */
+  --accent: oklch(1 0 0); /* Pure White */
+  --accent-foreground: oklch(0 0 0);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.85 0 0); /* Stark High-Contrast White Border */
+  --input: oklch(0.85 0 0); /* Stark High-Contrast White Border */
+  --ring: oklch(1 0 0);
+  --energy: oklch(1 0 0);
+  --warn: oklch(0.85 0 0);
+  --fat: oklch(0.7 0 0);
+}
+
+:root.theme-cyber,
+:root.theme-cyber * {
+  font-family: "VT323", monospace !important;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

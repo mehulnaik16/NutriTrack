@@ -8,6 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 .vercel
 .env
+.env*
+.env.*
+scratch/
 node_modules
 dist
 dist-ssr
