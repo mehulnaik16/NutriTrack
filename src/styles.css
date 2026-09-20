@@ -202,6 +202,56 @@
   font-family: "VT323", monospace !important;
 }
 
+:root.theme-cyberdeck {
+  --radius: 2px;
+  --background: oklch(0.12 0.015 250); /* Deep Onyx / Obsidian */
+  --foreground: oklch(0.96 0.03 95); /* Crisp pale yellow-white telemetry text */
+  --card: oklch(0.16 0.025 250); /* Dark Graphite HUD plate */
+  --card-foreground: oklch(0.96 0.03 95);
+  --popover: oklch(0.16 0.025 250);
+  --popover-foreground: oklch(0.96 0.03 95);
+  --primary: oklch(0.9 0.22 100); /* Hazard Cyber Yellow #FCEE0A */
+  --primary-foreground: oklch(0.1 0.02 250);
+  --secondary: oklch(0.22 0.035 230);
+  --secondary-foreground: oklch(0.96 0.03 95);
+  --muted: oklch(0.2 0.025 250);
+  --muted-foreground: oklch(0.7 0.08 210); /* Cyan-tinted telemetry muted */
+  --accent: oklch(0.85 0.19 210); /* Neural Telemetry Cyan #00F0FF */
+  --accent-foreground: oklch(0.1 0.02 250);
+  --destructive: oklch(0.68 0.24 28);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.42 0.1 210); /* Glowing Cyan Tech Border */
+  --input: oklch(0.42 0.1 210);
+  --ring: oklch(0.9 0.22 100);
+  --energy: oklch(0.9 0.22 100);
+  --warn: oklch(0.78 0.2 45);
+  --fat: oklch(0.85 0.19 210);
+}
+
+:root.theme-cyberdeck h1,
+:root.theme-cyberdeck h2,
+:root.theme-cyberdeck h3,
+:root.theme-cyberdeck h4,
+:root.theme-cyberdeck .font-display {
+  font-family: "Orbitron", system-ui, sans-serif !important;
+  letter-spacing: 0.06em;
+}
+
+:root.theme-cyberdeck,
+:root.theme-cyberdeck button,
+:root.theme-cyberdeck input,
+:root.theme-cyberdeck span,
+:root.theme-cyberdeck p,
+:root.theme-cyberdeck label {
+  font-family: "Share Tech Mono", ui-monospace, monospace;
+}
+
+:root.theme-cyberdeck .card,
+:root.theme-cyberdeck [class*="rounded-"] {
+  border-width: 1px;
+  box-shadow: 0 0 14px -3px oklch(0.85 0.19 210 / 0.18);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
@@ -222,7 +272,9 @@
   html.dark,
   html.theme-ocean,
   html.theme-sunset,
-  html.theme-forest {
+  html.theme-forest,
+  html.theme-cyber,
+  html.theme-cyberdeck {
     color-scheme: dark;
   }
 

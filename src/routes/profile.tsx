@@ -51,6 +51,7 @@ import {
   Trash2,
   Bell,
   Terminal,
+  Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -322,7 +323,8 @@ function Profile() {
       "theme-ocean",
       "theme-sunset",
       "theme-forest",
-      "theme-cyber"
+      "theme-cyber",
+      "theme-cyberdeck"
     );
     if (newTheme !== "light") {
       document.documentElement.classList.add(newTheme);
@@ -594,6 +596,7 @@ function Profile() {
               { id: "theme-sunset", label: "Sunset", icon: <Sunset className="h-5 w-5 text-orange-400" /> },
               { id: "theme-forest", label: "Forest", icon: <TreePine className="h-5 w-5 text-green-500" /> },
               { id: "theme-cyber",  label: "Retro Cyber", icon: <Terminal className="h-5 w-5 text-white" /> },
+              { id: "theme-cyberdeck", label: "Cyberware HUD", icon: <Zap className="h-5 w-5 text-yellow-400" /> },
             ].map((t) => (
               <button
                 key={t.id}

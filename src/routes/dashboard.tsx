@@ -73,6 +73,7 @@ import { uploadWeightPhoto } from "@/services/storage";
 import { todayLocal, toLocalISO } from "@/lib/dates";
 import { formatQty } from "@/lib/foodUnits";
 import { calcBMR, calcTDEE, calcCalorieTarget, calcMacros } from "@/lib/nutrition";
+import { getTelemetryLabel } from "@/lib/telemetry";
 
 // Route-level lock. Dashboard is not mounted while access has lapsed, so none
 // of its reads fire — the blur is over filler, not over the user's own data.
@@ -624,7 +625,7 @@ function Dashboard() {
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">
-                  Today's Overview
+                  {getTelemetryLabel("Today's Overview")}
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   Stay on track, {firstName}.
@@ -745,25 +746,25 @@ function Dashboard() {
               {/* Macros Breakdown */}
               <div className="flex-1 w-full space-y-5">
                 <MacroProgress
-                  label="Protein"
+                  label={getTelemetryLabel("Protein")}
                   current={totals.protein}
                   target={profile.protein_target_g ?? 0}
                   color="bg-[var(--energy)]"
                 />
                 <MacroProgress
-                  label="Carbs"
+                  label={getTelemetryLabel("Carbs")}
                   current={totals.carbs}
                   target={profile.carbs_target_g ?? 0}
                   color="bg-[var(--warn)]"
                 />
                 <MacroProgress
-                  label="Fats"
+                  label={getTelemetryLabel("Fat")}
                   current={totals.fat}
                   target={profile.fat_target_g ?? 0}
                   color="bg-[var(--fat)]"
                 />
                 <MacroProgress
-                  label="Fiber"
+                  label={getTelemetryLabel("Fiber")}
                   current={totals.fiber}
                   target={fiberTarget}
                   color="bg-[var(--accent)]"
