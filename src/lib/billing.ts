@@ -12,6 +12,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/client";
 import { requireSupabaseAuth } from "@/integrations/auth-middleware";
 import { checkRateLimit } from "@/lib/ai";
+import { serverSyncEntitlement } from "@/lib/gym-link";
 import { activeGift } from "@/lib/plans";
 
 /** The three plan durations. Mirrors PLANS in src/lib/plans.ts. */
@@ -405,6 +406,16 @@ export async function startTrial(
     .eq("id", userId)
     .maybeSingle();
   if (readErr) throw new Error(readErr.message);
+
+  // access_until has just come into existence. A member who linked a partner
+  // code at signup was synced across before this moment, so the partner holds
+  // a snapshot with no trial in it and counts them as expired. Told here
+  // rather than at each caller, because every path that starts a trial comes
+  // through this function.
+  //
+  // Not awaited, and it cannot reject: the trial is already granted, and the
+  // member should not wait on — or be failed by — a second project.
+  void serverSyncEntitlement().catch(() => {});
 
   return (data ?? {
     selected_plan: planId,

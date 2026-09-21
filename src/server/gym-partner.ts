@@ -357,9 +357,51 @@ export async function offerChargeToGym(paymentId: string): Promise<void> {
   // access_until has just moved. The partner's roster reads it to show who is
   // due to renew, and their own migration notes it must be synced on every
   // access change rather than nightly.
+  await pushEntitlement(userId, { hasPaid: true, tier: row.tier });
+}
+
+/**
+ * Push what the member is currently entitled to over to the partner project.
+ *
+ * The partner side keeps a *snapshot*, not a live view: `gym_dashboard()`
+ * counts "on free trial" as members whose stored `access_until` still reads as
+ * a trial. A member who links a code during signup is synced before any trial
+ * exists, so that snapshot goes over as null and the partner counts them as
+ * expired forever. Nothing corrected it afterwards, which is why a creator
+ * could watch a member start a trial and still see zero.
+ *
+ * So this runs on every change to access, which is what the note above asks
+ * for — at payment, and now at the moment the trial begins.
+ *
+ * Safe to call at any time, and safe to call often:
+ *
+ * - no link, no work. A member with no partner code tells nobody anything.
+ * - `sync_gym_member` folds rather than overwrites — `has_paid` is OR-ed,
+ *   `access_until` and the name are coalesced, and `attributed` is left alone
+ *   on update. So passing the defaults here can never downgrade a paying
+ *   member to unpaid, blank a name, or promote an unattributed one.
+ */
+export async function pushEntitlement(
+  userId: string,
+  extra?: { hasPaid?: boolean; tier?: string | null },
+): Promise<void> {
+  if (!gymPartnerConfigured()) return;
+
+  const { supabaseAdmin } = await import("@/integrations/client.server");
+
+  const { data: link } = await supabaseAdmin
+    .from("gym_links")
+    .select("partner_code")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- service-role-only table
+  const partnerCode = (link as any)?.partner_code as string | undefined;
+  if (!partnerCode) return;
+
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
-    .select("full_name, access_until")
+    .select("full_name, access_until, selected_plan")
     .eq("id", userId)
     .maybeSingle();
 
@@ -370,8 +412,9 @@ export async function offerChargeToGym(paymentId: string): Promise<void> {
     fullName: (profile as any)?.full_name ?? null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto
     accessUntil: (profile as any)?.access_until ?? null,
-    hasPaid: true,
-    tier: row.tier,
+    hasPaid: extra?.hasPaid ?? false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto
+    tier: extra?.tier ?? ((profile as any)?.selected_plan ?? null),
     // Never raised here: sync_gym_member() keeps whatever was decided at first
     // link, so this value cannot promote an unattributed member into a paying
     // one.

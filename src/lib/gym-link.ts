@@ -373,3 +373,32 @@ export const serverUnlinkGym = createServerFn({ method: "POST" })
 
     return { removed: true as const };
   });
+
+/**
+ * Tell the member's partner that their access changed.
+ *
+ * Called when a trial starts. The partner keeps a snapshot taken at link time,
+ * and at signup that snapshot predates the trial, so their "on free trial"
+ * count stayed at zero however many people were actually on one.
+ *
+ * Deliberately returns rather than throws when the partner project cannot be
+ * reached: a creator's counter being a few minutes stale is a far smaller
+ * problem than a member being unable to start the trial they came for.
+ */
+export const serverSyncEntitlement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+
+    try {
+      const { pushEntitlement } = await import("@/server/gym-partner");
+      await pushEntitlement(userId);
+      return { synced: true as const };
+    } catch (err) {
+      console.warn(
+        "[gym-link] entitlement sync failed:",
+        err instanceof Error ? err.message : err,
+      );
+      return { synced: false as const };
+    }
+  });
