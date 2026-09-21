@@ -391,13 +391,32 @@ export async function pushEntitlement(
 
   const { data: link } = await supabaseAdmin
     .from("gym_links")
-    .select("partner_code")
+    .select("partner_code, partner_type")
     .eq("user_id", userId)
     .maybeSingle();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- service-role-only table
   const partnerCode = (link as any)?.partner_code as string | undefined;
   if (!partnerCode) return;
+
+  // A member who left a gym must stay left. sync_gym_member re-creates the
+  // roster row it is given, so syncing here on the next trial or payment
+  // would quietly put them back on a list they removed themselves from — and
+  // that row is exactly what record_gym_charge looks for before paying, so
+  // resurrecting it would hand the gym a commission the member cancelled.
+  //
+  // A creator and a doctor are the opposite case and must always be synced:
+  // they count every signup their code brought, for good, and there is no
+  // roster to leave.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto
+  if (((link as any).partner_type ?? "gym") === "gym") {
+    const { data: membership } = await supabaseAdmin
+      .from("gym_memberships")
+      .select("partner_code")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (membership?.partner_code !== partnerCode) return;
+  }
 
   const { data: profile } = await supabaseAdmin
     .from("user_profiles")
