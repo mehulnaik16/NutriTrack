@@ -66,6 +66,7 @@ import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { PremiumGate } from "@/components/PremiumGate";
 import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
+import { LunarCalorieSatellite } from "@/components/LunarCalorieSatellite";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { fetchLoggedDates } from "@/lib/loggedDates";
@@ -726,37 +727,47 @@ function Dashboard() {
             </div>
 
             <div className="relative z-10 flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-12">
-              {/* Calories Ring */}
-              <div className="relative h-48 w-48 shrink-0">
-                <div className="pointer-events-none absolute inset-6 rounded-full bg-accent/15 blur-2xl" />
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={donutData}
-                      dataKey="value"
-                      innerRadius={70}
-                      outerRadius={90}
-                      startAngle={90}
-                      endAngle={-270}
-                      stroke="none"
-                    >
-                      <Cell fill={donutColor} />
-                      <Cell fill="var(--muted)" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <Flame
-                    className={`h-6 w-6 mb-1 ${remaining < 0 ? "text-destructive" : "text-energy"}`}
+              {/* Calories: Photographic Moon & Orbiting Chandrayaan Satellite for ISRO theme, standard PieChart donut for others */}
+              {isIsroTheme ? (
+                <div className="shrink-0 flex items-center justify-center py-1">
+                  <LunarCalorieSatellite
+                    totals={totals}
+                    target={target}
+                    remaining={remaining}
                   />
-                  <span className="font-display text-4xl font-bold tracking-tighter leading-none">
-                    {Math.round(totals.calories)}
-                  </span>
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground mt-1">
-                    / {target} kcal
-                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="relative h-48 w-48 shrink-0">
+                  <div className="pointer-events-none absolute inset-6 rounded-full bg-accent/15 blur-2xl" />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        dataKey="value"
+                        innerRadius={70}
+                        outerRadius={90}
+                        startAngle={90}
+                        endAngle={-270}
+                        stroke="none"
+                      >
+                        <Cell fill={donutColor} />
+                        <Cell fill="var(--muted)" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <Flame
+                      className={`h-6 w-6 mb-1 ${remaining < 0 ? "text-destructive" : "text-energy"}`}
+                    />
+                    <span className="font-display text-4xl font-bold tracking-tighter leading-none">
+                      {Math.round(totals.calories)}
+                    </span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground mt-1">
+                      / {target} kcal
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Macros Breakdown */}
               <div className="flex-1 w-full space-y-5">
