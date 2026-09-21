@@ -152,7 +152,26 @@ export const serverLinkGym = createServerFn({ method: "POST" })
     const linked = !!result?.linked;
     const source = (result?.source as string) ?? "profile";
 
-    if (linked) {
+    // Joining the gym is a separate fact from being attributed to it, and is
+    // recorded separately. A member already credited to a creator keeps that
+    // credit — link_gym returned their existing row and changed nothing — and
+    // still becomes a member of this gym here. Worth no commission either
+    // way: sync_gym_member keeps whatever `attributed` the first link decided.
+    let joinedGym = false;
+    if (gym.partnerType === "gym") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
+      const { error: joinErr } = await (supabaseAdmin.rpc as any)("join_gym", {
+        p_user_id: userId,
+        p_code: gym.partnerCode,
+        p_gym_name: gym.gymName,
+      });
+      if (joinErr) {
+        throw new Error(`Could not join that gym: ${joinErr.message}`);
+      }
+      joinedGym = true;
+    }
+
+    if (linked || joinedGym) {
       const { data: profile } = await supabaseAdmin
         .from("user_profiles")
         .select("full_name, access_until, selected_plan")
@@ -204,32 +223,32 @@ export const serverGetGymMembership = createServerFn({ method: "POST" })
     const { userId } = context;
 
     const { supabaseAdmin } = await import("@/integrations/client.server");
-    const { data: link } = await supabaseAdmin
-      .from("gym_links")
-      .select("partner_code, gym_name, source, partner_type")
+
+    // Read from gym_memberships, never gym_links. This page is about the gym
+    // the member joined, and nothing else: who they were referred by is not
+    // its business, so a member credited to a creator or a doctor sees the
+    // same empty "connect your gym" page as anybody else. Attribution and the
+    // ₹150 it earned live on untouched in gym_links, where the pricing reads
+    // them.
+    const { data: joined } = await supabaseAdmin
+      .from("gym_memberships")
+      .select("partner_code, gym_name")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (!link) return { link: null, membership: null };
+    if (!joined) return { link: null, membership: null };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generated types lag the migration
-    const row = link as any;
+    const row = joined as any;
     const summary = {
       partnerCode: row.partner_code as string,
       gymName: row.gym_name as string,
-      source: row.source as string,
-      // Rows written before the partner_types migration have none, and every
-      // one of those is a gym.
-      partnerType: (row.partner_type ?? "gym") as PartnerKind,
+      // Kept in the shape the card already expects. A membership is always a
+      // gym — join_gym refuses anything else — and it is always something the
+      // member did from this page rather than at signup.
+      source: "profile",
+      partnerType: "gym" as PartnerKind,
     };
-
-    // A doctor and a creator have no roster, no membership window and nobody
-    // to confirm details with, so there is nothing to fetch and no "they took
-    // you off their list" state to distinguish. The attribution is the whole
-    // story for them.
-    if (summary.partnerType !== "gym") {
-      return { link: summary, membership: null, gymGone: false };
-    }
 
     // A partner outage must not make the page unusable: the attribution is a
     // local fact and can still be shown, and the card says the details could
@@ -363,8 +382,12 @@ export const serverUnlinkGym = createServerFn({ method: "POST" })
       );
     }
 
+    // leave_gym, not unlink_gym: this drops the membership and deliberately
+    // leaves gym_links alone. The member keeps the ₹150 their signup code
+    // earned — it is spent by buying, not by staying linked — and whoever was
+    // credited for bringing them stays credited.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-    const { error } = await (supabaseAdmin.rpc as any)("unlink_gym", {
+    const { error } = await (supabaseAdmin.rpc as any)("leave_gym", {
       p_user_id: userId,
     });
     if (error) {

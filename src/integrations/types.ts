@@ -180,6 +180,32 @@ export type Database = {
         };
         Relationships: [];
       };
+      /**
+       * The gym a member joined from their profile. Separate from gym_links,
+       * which records the code used at signup and never changes — a member
+       * can be credited to a creator and belong to a gym at the same time.
+       */
+      gym_memberships: {
+        Row: {
+          created_at: string;
+          gym_name: string;
+          partner_code: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          gym_name: string;
+          partner_code: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          gym_name?: string;
+          partner_code?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       notification_logs: {
         Row: {
           current_scheduled_at: string;
