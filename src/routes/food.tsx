@@ -43,6 +43,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { getTelemetryLabel } from "@/lib/telemetry";
 
 // Route-level lock, history included. FoodPage never mounts while access has
 // lapsed, so no log — today's or older — is fetched into a lapsed client.
@@ -346,7 +347,7 @@ function FoodPage() {
           <CardHeader className="pb-3 border-b bg-muted/5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Utensils className="h-5 w-5 text-accent" /> Log Food
+                <Utensils className="h-5 w-5 text-accent" /> {getTelemetryLabel("Log Food")}
                 <Button
                   variant="ghost"
                   size="icon"

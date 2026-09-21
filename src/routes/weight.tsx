@@ -24,6 +24,8 @@ import {
 import { getCachedWorkoutPrefs } from "@/lib/workoutPrefs";
 import { type WeightUnit, kgToWeight, weightToKg, round1 } from "@/lib/units";
 import { Header } from "@/components/Header";
+import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
+import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -398,8 +400,17 @@ function WeightPage() {
       <Header name={profile.full_name?.split(" ")[0]} />
       <main className="mx-auto max-w-4xl space-y-6 px-3 py-5 sm:px-6 sm:py-6">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-          Weight Tracker
+          {getTelemetryLabel("Weight Tracker")}
         </h1>
+
+        {isIsroTheme() && (
+          <ChandrayaanDescentWidget
+            currentWeight={latest?.weight_kg ?? profile.weight_kg}
+            goalWeight={profile.goal_weight_kg}
+            weightDiff={totalChange}
+            unit={wu}
+          />
+        )}
 
         {/* ── Summary cards ── */}
         <div className="grid gap-4 sm:grid-cols-3">

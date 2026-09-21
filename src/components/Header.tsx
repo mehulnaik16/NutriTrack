@@ -342,6 +342,15 @@ export function Header({
         ? "border-accent/40 text-accent"
         : "text-muted-foreground";
 
+  const [isIsroTheme, setIsIsroTheme] = useState(false);
+  useEffect(() => {
+    const check = () => setIsIsroTheme(document.documentElement.classList.contains("theme-isro"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
   // pt-safe keeps the logo clear of the system status bar in the Capacitor
   // shell. Android 15 forces edge-to-edge for targetSdk 35, so the WebView
   // starts at y=0 behind the clock and battery and the app has to inset itself
@@ -349,6 +358,24 @@ export function Header({
   // and nothing moves.
   return (
     <header className="pt-safe sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+      {isIsroTheme && (
+        <div className="w-full bg-[#080c16] border-b border-[#1f2e45] px-3 py-1 flex items-center justify-between text-[10px] font-mono text-[#94a3b8]">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse" />
+            <span className="text-[#FF671F] font-bold">ISRO ISTRAC // MOX-2</span>
+            <span className="hidden sm:inline text-slate-500">|</span>
+            <span className="hidden sm:inline text-slate-400">GROUND STATION: BENGALURU</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-slate-400">
+              S-BAND: <span className="text-[#10B981] font-bold">NOMINAL</span>
+            </span>
+            <span className="hidden xs:inline text-slate-400">
+              ORBIT: <span className="text-white font-bold">LEO-400KM</span>
+            </span>
+          </div>
+        </div>
+      )}
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
         <div className="flex items-center gap-5">
           <Link to="/dashboard" className="flex items-center gap-2">

@@ -65,6 +65,7 @@ import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { PremiumGate } from "@/components/PremiumGate";
+import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { fetchLoggedDates } from "@/lib/loggedDates";
@@ -255,6 +256,20 @@ function Dashboard() {
   const [savingWeight, setSavingWeight] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isIsroTheme, setIsIsroTheme] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsIsroTheme(document.documentElement.classList.contains("theme-isro"));
+    };
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -960,7 +975,7 @@ function Dashboard() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="truncate font-bold leading-none text-foreground">
-                      Today's Workout
+                      {getTelemetryLabel("Today's Workout")}
                     </h3>
                     <p className="mt-1 truncate text-xs uppercase tracking-wide text-muted-foreground">
                       {workoutPlan?.goal || "No Plan"}
@@ -1029,12 +1044,20 @@ function Dashboard() {
               </CardContent>
             </Card>
 
+            {isIsroTheme && (
+              <ChandrayaanDescentWidget
+                currentWeight={lastWeight || profile?.weight_kg}
+                goalWeight={profile?.goal_weight_kg}
+                weightDiff={weightDiff}
+              />
+            )}
+
             {/* Quick Weight Log */}
             <Card className="border-border shadow-sm">
               <CardHeader className="pb-3 pt-5">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-muted-foreground" /> Weight
-                  Tracker
+                  <Scale className="h-5 w-5 text-muted-foreground" />{" "}
+                  {getTelemetryLabel("Weight")}
                 </CardTitle>
               </CardHeader>
               <CardContent>

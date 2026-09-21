@@ -60,6 +60,7 @@ import {
 } from "@/components/CustomPlanDayPicker";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -607,7 +608,7 @@ function WorkoutPage() {
             </div>
             <div className="min-w-0">
               <p className="truncate font-display text-sm font-bold uppercase tracking-wider">
-                My Plan
+                {getTelemetryLabel("My Plan")}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {plan.goal} · {plan.days_per_week} days/week
@@ -2502,7 +2503,7 @@ function WorkoutPage() {
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50 scale-95"
                   }`}
               >
-                {tab}
+                {getTelemetryLabel(tab)}
               </button>
             ))}
           </div>
@@ -2518,6 +2519,15 @@ function WorkoutPage() {
             renderCardioList()
           ) : (
             <>
+              {isIsroTheme() && (
+                <div className="flex items-center justify-between rounded-xl bg-[#0e1626] border border-[#25334a] p-3 text-xs font-mono mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#FF671F] animate-pulse" />
+                    <span className="text-[#FF671F] font-bold">GAGANYAAN CREW DRILLS</span>
+                  </div>
+                  <span className="text-[#10B981] font-semibold">G-FORCE: 3.5G OPTIMAL</span>
+                </div>
+              )}
               {renderPlanCard()}
               {renderMuscleGrid()}
             </>

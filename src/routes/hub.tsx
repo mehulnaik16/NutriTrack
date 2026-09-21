@@ -25,6 +25,7 @@ import {
   Star,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
 
 export const Route = createFileRoute("/hub")({
   component: Hub,
@@ -386,6 +387,16 @@ function Hub() {
     <div className="min-h-screen bg-background pb-24">
       <Header name={firstName} />
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+        {isIsroTheme() && (
+          <div className="mb-4 flex items-center justify-between rounded-xl bg-[#0e1626] border border-[#25334a] p-3 text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#FF671F] animate-pulse" />
+              <span className="text-[#FF671F] font-bold">ISTRAC TELECOMMAND & CREW HUB</span>
+            </div>
+            <span className="text-[#10B981] font-semibold">SQUADRON UPLINK: ACTIVE</span>
+          </div>
+        )}
+
         {/* ── Custom Tabs (same style as workout.tsx) ── */}
         <div className="mb-6 flex gap-2 rounded-2xl border border-border/50 bg-muted/40 p-1.5 backdrop-blur-sm">
           {(["ANALYTICS", "FRIENDS", "RANK"] as const).map((tab) => (
@@ -398,7 +409,7 @@ function Hub() {
                   : "scale-95 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               }`}
             >
-              {tab}
+              {getTelemetryLabel(tab)}
             </button>
           ))}
         </div>
