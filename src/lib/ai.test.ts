@@ -187,4 +187,36 @@ const item = (over: Record<string, unknown> = {}) => ({
   console.log("✓ A11 budget 900 single / 1400 composite");
 }
 
+// ── A12: cache fields: the model must name the food canonically and classify it ──
+{
+  const cacheItem = validateFoodResponse(
+    {
+      kind: "single",
+      items: [
+        item({
+          canonical_key: "curd rice",
+          food_class: "rice dish",
+          aliases: ["Dahi bhaat", "Thayir saadam"],
+          basis: "100g",
+        }),
+      ],
+    },
+    "curd rice",
+  );
+  assert.ok(cacheItem);
+  assert.equal(cacheItem.items[0].canonical_key, "curd rice");
+  assert.equal(cacheItem.items[0].food_class, "rice dish");
+  assert.deepEqual(cacheItem.items[0].aliases, ["Dahi bhaat", "Thayir saadam"]);
+  assert.equal(cacheItem.items[0].basis, "100g");
+
+  // Missing cache fields must not reject the item — the user still gets an
+  // answer, it simply cannot be cached without a key to group it under.
+  const noCache = validateFoodResponse({ kind: "single", items: [item()] }, "x");
+  assert.ok(noCache);
+  assert.equal(noCache.items[0].canonical_key, "");
+  assert.deepEqual(noCache.items[0].aliases, []);
+  assert.equal(noCache.items[0].basis, "100g");
+  console.log("✓ A12 cache fields: canonical_key, food_class, aliases, basis");
+}
+
 console.log("\n✅ All AI food-search tests passed.");
