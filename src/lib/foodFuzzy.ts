@@ -20,6 +20,7 @@
 
 import Fuse from "fuse.js";
 import { ITEMS, type IFCTItem } from "./foodDb.ts";
+import { catalogAliases } from "./foodCache.ts";
 
 /**
  * Confident enough to answer from the catalog and skip the model entirely.
@@ -74,7 +75,12 @@ function index(): Fuse<Indexed> {
   if (fuse) return fuse;
   const rows: Indexed[] = ITEMS.map((item) => ({
     item,
-    alt: altNames(item.lang ?? ""),
+    // altNames(lang) covers the 430 real-IFCT rows that carry regional names
+    // in `lang`. catalogAliases additionally parses the 1,014 rows that bake
+    // aliases into `name` as "(a/b/c)" groups instead — extending the lang
+    // shape's coverage rather than replacing it. Deduped: catalogAliases
+    // already includes the lang-derived names.
+    alt: [...new Set([...altNames(item.lang ?? ""), ...catalogAliases(item)])],
   }));
   fuse = new Fuse(rows, {
     // The English name leads; the regional names and brand back it up. Fuse

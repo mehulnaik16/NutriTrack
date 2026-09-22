@@ -139,6 +139,15 @@ const hits = (q: string) => strongFoods(q, 3).length;
   console.log(`✓ F8 exact names rank first`);
 }
 
+// ── F9: parenthetical name-aliases now widen the index, not just `lang` ────
+// "Semolina porridge (Suji/Rava daliya)" has no `lang`; before catalogAliases
+// was wired into the index, "Suji" ranked behind "Wheat, semolina" and "Shahi
+// suji halwa" on this exact catalog. Verified against src/data/ifct2017.json.
+{
+  assert.strictEqual(top("Suji"), "Semolina porridge (Suji/Rava daliya)");
+  console.log(`✓ F9 name-parenthetical alias "Suji" reaches its row`);
+}
+
 // ── similarity: exported for the cache's alias cross-check ─────────────────
 assert.equal(similarity("idli", "idli"), 1);
 assert.ok(similarity("idli", "idly") >= 0.7);
