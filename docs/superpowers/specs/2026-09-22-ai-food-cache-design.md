@@ -237,17 +237,34 @@ Atwater gate tests **one answer against itself** and runs on every call. The
 quorum tests **three answers against each other** and runs only once a group is
 full. Neither number is derived from the other and they must not be blended.
 
-**Atwater and mass balance — ±10%.** The reported energy must sit within 10% of
-`4·protein + 9·fat + 4·carbohydrate`, and `protein + fat + carbohydrate + fibre`
-must not exceed 100 g per 100 g. The band is deliberately wider than the 5%
-quorum: published energy legitimately diverges from the Atwater calculation on
-high-fibre, fermented and cooked Indian foods, and a 5% gate would reject real
-curd rice while a 20% gate would catch almost nothing. A reported energy of zero
-fails. The zero-energy oils in IFCT are a catalog quirk handled by `kcalOf`, not
-something an AI answer should reproduce.
+**Atwater and mass balance — ±10%, two-tier.** The repository already gates
+energy in `reconcileEnergy` (`src/lib/foodAiSchema.ts`) at `ENERGY_TOL = 0.25`
+with an absolute floor of `ENERGY_FLOOR_KJ = 85`, and it *repairs* rather than
+rejects: a mismatched `enerc` is recomputed from the macros, because this path
+only runs when local search found nothing and rejecting leaves the user with a
+blank screen. Its comment records the measurement behind 25% — against all
+1,556 catalog rows, pass rates are 93.8% at 10%, 97.3% at 15%, 97.7% at 25% and
+98.1% at 40%.
 
-This gate is free, runs before any write, and applies only to AI answers.
-Catalog rows never enter this flow.
+Those two jobs are separated rather than merged. What the user sees does not
+change: `reconcileEnergy` still repairs at ±25% and an answer is always
+rendered. The cache gate is a second, stricter check that decides only whether
+an answer is trustworthy enough to *count toward the three* — the reported
+energy must sit within **±10%** of `4·protein + 9·fat + 4·carbohydrate`, and
+`protein + fat + carbohydrate + fibre` must not exceed 100 g per 100 g. An
+answer that fails is shown to the user and simply not cached.
+
+**Order is load-bearing.** The cache gate runs on the **raw model answer**,
+before `reconcileEnergy` touches it. Run afterwards it is a no-op, because a
+repaired value is Atwater-consistent by construction.
+
+A reported energy of zero fails. The zero-energy oils in IFCT are a catalog
+quirk handled by `kcalOf`, not something an AI answer should reproduce. The
+mass-balance half is genuinely new: the schema caps each macro at 100
+individually but never checks their sum.
+
+This gate is free and applies only to AI answers. Catalog rows never enter this
+flow.
 
 **Quorum — mean ±5%.** For each of the five macros, take the mean of the three answers;
 every answer must fall within mean ±5%. Where the mean is below 0.5 g the macro
@@ -377,7 +394,17 @@ logging; the user already has their answer and a lost row only delays quorum.
 
 ## Testing
 
-Pure functions in `src/lib/foodCache.ts` get unit tests beside the existing
+This repository has **no test framework**. Tests are plain `node:assert`
+scripts run directly — `node src/lib/foodCache.test.ts` — the convention
+established by `foodUnits.test.ts` and `ai.test.ts`. Follow it; do not
+introduce vitest.
+
+Two existing helpers are reused rather than rewritten: `altNames` in
+`src/lib/foodFuzzy.ts` already parses the semicolon-delimited `lang` shape, and
+the same file holds a Levenshtein `similarity` function that the alias
+cross-check needs. Both are currently private and get exported.
+
+Pure functions in `src/lib/foodCache.ts` get tests beside the existing
 `foodUnits.test.ts` and `foodFuzzy.test.ts`:
 
 - canonical key and search key, including Indic script input
