@@ -232,7 +232,12 @@ traffic; rare ones cost one call and stop.
 
 ## The gates
 
-**Atwater and mass balance.** The reported energy must sit within **±7.5%** of
+These are two separate checks with two separate thresholds, on purpose. The
+Atwater gate tests **one answer against itself** and runs on every call. The
+quorum tests **three answers against each other** and runs only once a group is
+full. Neither number is derived from the other and they must not be blended.
+
+**Atwater and mass balance — ±10%.** The reported energy must sit within 10% of
 `4·protein + 9·fat + 4·carbohydrate`, and `protein + fat + carbohydrate + fibre`
 must not exceed 100 g per 100 g. The band is deliberately wider than the 5%
 quorum: published energy legitimately diverges from the Atwater calculation on
@@ -244,7 +249,7 @@ something an AI answer should reproduce.
 This gate is free, runs before any write, and applies only to AI answers.
 Catalog rows never enter this flow.
 
-**Quorum.** For each of the five macros, take the mean of the three answers;
+**Quorum — mean ±5%.** For each of the five macros, take the mean of the three answers;
 every answer must fall within mean ±5%. Where the mean is below 0.5 g the macro
 passes when all three values lie within 0.5 g of each other — without this floor
 a fibre value of zero divides by approximately nothing and no food ever
@@ -275,7 +280,57 @@ equivalent possessive forms in Indic scripts — must never reach
    step-2 hit. A search without a log is not a strong enough signal to save, and
    keeps costing an AI call by design.
 
-Detection must handle Indic script natively, not only romanised input.
+### How a personal name is detected
+
+Detection is a pure function, no AI call. Classifying with the model would cost
+the call this path exists to avoid, and a misclassification would leak a private
+name into a shared table permanently. Three signals, checked in order.
+
+**1. The user's own saved meals — language-independent, and the strongest
+signal.** If the query fuzzy-matches one of this user's `saved_meals` names at
+`>= 0.8`, it is personal, whatever language it is in and whether or not it
+carries a possessive. This needs no linguistics at all and already covers the
+common case of someone re-typing a meal they have logged before.
+
+**2. A possessive marker in the original script.** Matching runs on the text as
+typed, before any romanisation, because transliteration is exactly where these
+short words lose their distinctiveness. The script is identified with Unicode
+property escapes (`\p{Script=Devanagari}`, `\p{Script=Kannada}`, and so on), and
+the first one or two tokens are compared against a fixed per-language list of
+possessive forms held as one constant in `src/lib/foodCache.ts`:
+
+| Language | Forms |
+|---|---|
+| Hindi / Marathi | मेरा, मेरी, मेरे, माझा, माझी |
+| Kannada | ನನ್ನ |
+| Tamil | என், எனது |
+| Telugu | నా, నాది |
+| Malayalam | എന്റെ |
+| Bengali | আমার |
+| Gujarati | મારું, મારી |
+| Punjabi | ਮੇਰਾ, ਮੇਰੀ |
+| Urdu | میرا, میری |
+
+The possessive leads the phrase in all of these, so only the opening tokens are
+examined. Exact token match, no similarity — these are closed-class words with
+fixed spellings, and fuzzy-matching them would catch real food names.
+
+**3. A possessive marker in Latin script**, for English and for romanised typing:
+`my`, `mine`, `our`, plus romanised forms `mera`, `meri`, `nanna`, `enadhu`,
+`amar`, `maru`, `majha`. Tokens shorter than three characters are excluded from
+this list, which is why Tamil `என்` and Telugu `నా` are detected in their own
+script but their romanisations `en` and `naa` are not — two-letter tokens
+collide with ordinary words and food names far too often to be trusted.
+
+**Ties break toward personal.** The two errors are not symmetric: a false
+positive costs one user one AI call and one row the shared cache never gains,
+while a false negative writes somebody's private meal name into a shared table
+for good. When a marker matches ambiguously, treat the query as personal.
+
+This is a heuristic and it will miss unusual phrasings. That is acceptable
+because the shared pipeline's own rules are the real protection: nothing enters
+`ai_verified` without three independent answers agreeing, so a personal name
+that slips past detection almost never converges anyway.
 
 ## Voice and photo logs
 
@@ -328,10 +383,12 @@ Pure functions in `src/lib/foodCache.ts` get unit tests beside the existing
 - canonical key and search key, including Indic script input
 - the alias parser on both catalog shapes: a `lang` row and a parenthetical
   `name` row, plus a row with neither
-- the Atwater gate at the ±7.5% boundary, the 100 g mass balance, zero energy
+- the Atwater gate at the ±10% boundary, the 100 g mass balance, zero energy
 - the quorum check, including the near-zero fibre floor
 - the alias cross-check, including a single-source alias being dropped
-- personal-name detection in English and in Indic script
+- personal-name detection: English `my X`, a Kannada `ನನ್ನ X`, a Hindi `मेरा X`,
+  a `saved_meals` match with no possessive at all, and a food name containing
+  the letters `en` or `naa` that must **not** be flagged
 - `food_class` disagreement forcing a miss despite a key match
 
 ## Build order
