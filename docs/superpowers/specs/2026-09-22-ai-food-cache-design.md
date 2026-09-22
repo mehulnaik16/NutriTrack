@@ -32,6 +32,23 @@ Several contradict the original brief, and the design follows the code.
   so there is nothing to duplicate and nothing to fold in. IFCT rows also carry
   a `lang` field holding per-language names, which is already fed to the model as
   reference data.
+- **The bundled catalog is not purely IFCT 2017, and it carries aliases in two
+  different shapes.** Of its 1,556 rows, 542 are real IFCT (codes `A`–`T`); the
+  rest are a merged corpus of 490 `ASC*`, 376 `BFP*` and 148 `OSR*` rows. All
+  1,014 merged rows have an empty `lang` field and keep their aliases inside
+  `name`, in parentheses, slash-delimited — 384 of them do. The 430 rows that do
+  populate `lang` hold aliases there instead, semicolon-delimited with language
+  tags (`"A., Kash. Baajra; Kan. Sajje; Tam. Kambu"`), 423 of them. Around 630
+  rows carry no aliases in either shape. An alias parser must therefore read
+  **both** shapes: reading only `lang` drops every alias from two thirds of the
+  catalog, and reading only `name` drops every real IFCT alias set.
+- **Catalog energy figures are uneven.** The median `enerc`-to-Atwater ratio is
+  4.1793, which is correct, but 225 of 1,542 rows sit outside ±5% of it. Part of
+  that spread is genuine divergence between measured and calculated energy, part
+  is inconsistent conversion in the merged rows. Catalog rows never enter the
+  verification pipeline, so the Atwater gate is unaffected — but a catalog row's
+  energy figure is not reliable when it is fed to the model as a reference
+  value.
 - **Every AI food search funnels through one function**, `runFoodSearch` in
   `src/lib/ai.ts`. Both `serverAiFoodSearch` and `serverAiFoodSearchInline` call
   it, both gate on `requireAccess`, and both are rate limited to 30 requests per
@@ -160,6 +177,11 @@ name, produced by an off-the-shelf transliteration library rather than
 hand-written rules. `food_name` keeps the original script untouched for display
 and as an alias. All lookup, dedup and similarity work uses `search_key`.
 
+Building `search_key` and the seed alias set for the bundled catalog means
+parsing both alias shapes described above — the parenthetical, slash-delimited
+form inside `name` and the semicolon-delimited, language-tagged form in `lang`.
+One parser, two branches, tested against a row of each kind.
+
 **`canonical_key`** comes from the model's own answer, not from the query text.
 This is what groups the three verification rows together. Grouping on the AI's
 canonical key rather than fuzzy-matching the raw query before the call sidesteps
@@ -267,6 +289,11 @@ then routed through the normal path — bundled catalog, then `ai_flagged`, then
 gets cheaper because it no longer emits macros. Typed composite queries use the
 free `COMPOSITE_SPLIT` regex the same way, one cache lookup per split item.
 
+Using that regex to split speech as well was considered and rejected: it is
+weaker than the model at parsing messy spoken sentences, and the extra saving is
+not worth the accuracy loss. That is the same accuracy-over-cost call made
+everywhere else in this design.
+
 ## Corrections and demotion
 
 A user editing the macros of an `ai_verified` food writes an `ai_flagged` row
@@ -299,6 +326,8 @@ Pure functions in `src/lib/foodCache.ts` get unit tests beside the existing
 `foodUnits.test.ts` and `foodFuzzy.test.ts`:
 
 - canonical key and search key, including Indic script input
+- the alias parser on both catalog shapes: a `lang` row and a parenthetical
+  `name` row, plus a row with neither
 - the Atwater gate at the ±7.5% boundary, the 100 g mass balance, zero energy
 - the quorum check, including the near-zero fibre floor
 - the alias cross-check, including a single-source alias being dropped
