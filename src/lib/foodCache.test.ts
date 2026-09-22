@@ -203,4 +203,35 @@ assert.equal(cross.length >= 1, true, `expected an idli alias, got ${cross}`);
 
 assert.deepEqual(crossCheckAliases([[], [], []]), []);
 
+// ── personal-name detection ─────────────────────────────────────────────────
+import { isPersonalName } from "./foodCache.ts";
+
+// English, the 66-of-293 case in the live data.
+assert.equal(isPersonalName("My shake"), true);
+assert.equal(isPersonalName("my chicken biryani"), true);
+assert.equal(isPersonalName("our breakfast"), true);
+
+// Native script, matched in its own script before any romanisation.
+assert.equal(isPersonalName("ನನ್ನ ಶೇಕ್"), true); // Kannada
+assert.equal(isPersonalName("मेरा शेक"), true); // Hindi
+assert.equal(isPersonalName("என் இட்லி"), true); // Tamil
+assert.equal(isPersonalName("నా అన్నం"), true); // Telugu
+
+// Romanised possessives long enough to be safe.
+assert.equal(isPersonalName("mera shake"), true);
+assert.equal(isPersonalName("nanna shake"), true);
+
+// ── Review Focus 3: short romanisations must NOT flag real foods ──────────
+// "en" and "naa" are Tamil and Telugu possessives, and also ordinary letters
+// inside real food names. Two-letter tokens are excluded from the Latin list.
+assert.equal(isPersonalName("en idli"), false);
+assert.equal(isPersonalName("naan"), false);
+assert.equal(isPersonalName("naa rice"), false);
+
+// Ordinary foods are never personal.
+assert.equal(isPersonalName("curd rice"), false);
+assert.equal(isPersonalName("thatte idli"), false);
+// A possessive in the middle is not a possessive name.
+assert.equal(isPersonalName("chicken my way"), false);
+
 console.log("foodCache: all assertions passed");

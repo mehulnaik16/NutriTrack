@@ -222,3 +222,78 @@ export function crossCheckAliases(lists: string[][]): string[] {
   }
   return kept;
 }
+
+/**
+ * Possessive markers, in their own scripts.
+ *
+ * Matched before romanisation, because that is where these words lose their
+ * distinctiveness: Tamil என் and Telugu నా romanise to "en" and "naa", which
+ * occur inside ordinary food names. Closed-class words with fixed spellings,
+ * so the comparison is exact — fuzzy-matching them would catch real foods.
+ */
+const NATIVE_POSSESSIVES = [
+  "मेरा",
+  "मेरी",
+  "मेरे",
+  "माझा",
+  "माझी", // Hindi, Marathi
+  "ನನ್ನ", // Kannada
+  "என்",
+  "எனது", // Tamil
+  "నా",
+  "నాది", // Telugu
+  "എന്റെ", // Malayalam
+  "আমার", // Bengali
+  "મારું",
+  "મારી", // Gujarati
+  "ਮੇਰਾ",
+  "ਮੇਰੀ", // Punjabi
+  "میرا",
+  "میری", // Urdu
+];
+
+/**
+ * Latin possessives. Every entry is three characters or more on purpose:
+ * "en" and "naa" collide with ordinary words far too often to be trusted, so
+ * those two languages are detected in their own script only.
+ */
+const LATIN_POSSESSIVES = [
+  "my",
+  "mine",
+  "our",
+  "mera",
+  "meri",
+  "nanna",
+  "enadhu",
+  "amar",
+  "maru",
+  "majha",
+];
+
+/**
+ * Is this someone's private meal name rather than a food?
+ *
+ * Nothing that returns true may reach ai_unverified, ai_verified or an alias
+ * set, on a hit or a miss. Ties break toward personal: a false positive costs
+ * one AI call, a false negative writes somebody's private meal name into a
+ * shared table permanently.
+ *
+ * This is a heuristic and will miss unusual phrasings. The quorum is the real
+ * protection — a private name needs three independent agreeing answers to be
+ * promoted, which it essentially never gets.
+ */
+export function isPersonalName(query: string): boolean {
+  const text = query.trim();
+  if (!text) return false;
+
+  // Possessives lead the phrase in every language listed, so only the opening
+  // tokens are examined: "chicken my way" is a recipe, not a private name.
+  if (NATIVE_POSSESSIVES.some((p) => text.startsWith(p))) return true;
+
+  const first = text
+    .toLowerCase()
+    .split(/\s+/)[0]
+    .replace(/[^\p{L}]/gu, "");
+  // "my" is two letters but unambiguous in English, unlike "en"/"naa".
+  return LATIN_POSSESSIVES.includes(first);
+}
