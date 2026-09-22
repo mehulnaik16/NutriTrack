@@ -229,7 +229,9 @@ export function crossCheckAliases(lists: string[][]): string[] {
  * Matched before romanisation, because that is where these words lose their
  * distinctiveness: Tamil என் and Telugu నా romanise to "en" and "naa", which
  * occur inside ordinary food names. Closed-class words with fixed spellings,
- * so the comparison is exact — fuzzy-matching them would catch real foods.
+ * so the comparison is a plain substring prefix match — never fuzzy — but a
+ * prefix match alone isn't enough: see NATIVE_SAFE_GLUED_LEN below for why
+ * short entries also need a word boundary.
  */
 const NATIVE_POSSESSIVES = [
   "मेरा",
@@ -251,6 +253,30 @@ const NATIVE_POSSESSIVES = [
   "میرا",
   "میری", // Urdu
 ];
+
+/**
+ * Below this many code points, a prefix match on its own is too likely to be
+ * a coincidence: Telugu నా ("my", 2 code points) is also the first two
+ * letters of నాన్ ("naan"), నాటు కోడి ("country chicken") and నారింజ
+ * ("orange"). At or above this length a coincidental prefix is implausible
+ * enough to trust even when glued directly onto the next word — which
+ * matters because Kannada agglutinates its possessive straight onto the
+ * noun with no space (ನನ್ನಶೇಕ್, "my shake"), and ನನ್ನ itself is exactly 4
+ * code points, the shortest entry this list needs to stay glued-safe. Every
+ * entry below 4 (నా at 2, என் at 3) instead requires a word boundary —
+ * end of string or a following non-letter — right after the match.
+ */
+const NATIVE_SAFE_GLUED_LEN = 4;
+
+/**
+ * True when the match doesn't run straight into another letter of the same
+ * word: either the possessive was the whole string, or whatever follows it
+ * is not itself a letter (whitespace, punctuation, digit, ...).
+ */
+const hasNativeBoundary = (text: string, possessive: string): boolean => {
+  const rest = text.slice(possessive.length);
+  return rest === "" || !/^\p{L}/u.test(rest);
+};
 
 /**
  * Latin possessives. Every entry is three characters or more on purpose:
@@ -288,12 +314,21 @@ export function isPersonalName(query: string): boolean {
 
   // Possessives lead the phrase in every language listed, so only the opening
   // tokens are examined: "chicken my way" is a recipe, not a private name.
-  if (NATIVE_POSSESSIVES.some((p) => text.startsWith(p))) return true;
+  if (
+    NATIVE_POSSESSIVES.some(
+      (p) =>
+        text.startsWith(p) &&
+        (p.length >= NATIVE_SAFE_GLUED_LEN || hasNativeBoundary(text, p)),
+    )
+  )
+    return true;
 
-  const first = text
-    .toLowerCase()
-    .split(/\s+/)[0]
-    .replace(/[^\p{L}]/gu, "");
+  // The leading run of letters, not the leading whitespace-delimited token:
+  // "My-shake" and "My_shake" must isolate "my", not fail as one glued
+  // "myshake" or "my-shake". A false negative here is the expensive
+  // direction — it lets a private name into shared storage permanently —
+  // so punctuation-joined possessives must not slip through.
+  const first = text.toLowerCase().match(/^\p{L}+/u)?.[0] ?? "";
   // "my" is two letters but unambiguous in English, unlike "en"/"naa".
   return LATIN_POSSESSIVES.includes(first);
 }

@@ -234,4 +234,22 @@ assert.equal(isPersonalName("thatte idli"), false);
 // A possessive in the middle is not a possessive name.
 assert.equal(isPersonalName("chicken my way"), false);
 
+// ── native-script prefix boundary (post-review fix) ────────────────────────
+// A short native possessive glued to the front of an ordinary word must not
+// flag it: Telugu నా ("my", 2 code points) is also the first two letters of
+// real food and ingredient names.
+assert.equal(isPersonalName("నాన్"), false); // naan (the bread), Telugu script
+assert.equal(isPersonalName("నాటు కోడి"), false); // country chicken
+assert.equal(isPersonalName("నారింజ"), false); // orange
+assert.equal(isPersonalName("నా అన్నం"), true); // "my rice" — possessive + space
+// Kannada agglutinates the possessive straight onto the noun with no space,
+// and ನನ್ನ is long enough (4 code points) that this glued form is still safe.
+assert.equal(isPersonalName("ನನ್ನಶೇಕ್"), true); // "my shake", no space
+
+// ── Latin possessive joined by punctuation, not just whitespace ───────────
+// A false negative is the expensive direction: it lets a private name reach
+// shared storage permanently, where a false positive only costs one AI call.
+assert.equal(isPersonalName("My-shake"), true);
+assert.equal(isPersonalName("My_shake"), true);
+
 console.log("foodCache: all assertions passed");
