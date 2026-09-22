@@ -50,6 +50,9 @@ import {
   AlertTriangle,
   Trash2,
   Bell,
+  Terminal,
+  Zap,
+  Rocket,
 } from "lucide-react";
 import {
   Dialog,
@@ -320,7 +323,10 @@ function Profile() {
       "dark",
       "theme-ocean",
       "theme-sunset",
-      "theme-forest"
+      "theme-forest",
+      "theme-cyber",
+      "theme-cyberdeck",
+      "theme-isro"
     );
     if (newTheme !== "light") {
       document.documentElement.classList.add(newTheme);
@@ -591,6 +597,9 @@ function Profile() {
               { id: "theme-ocean",  label: "Ocean",  icon: <Droplets className="h-5 w-5 text-cyan-400" /> },
               { id: "theme-sunset", label: "Sunset", icon: <Sunset className="h-5 w-5 text-orange-400" /> },
               { id: "theme-forest", label: "Forest", icon: <TreePine className="h-5 w-5 text-green-500" /> },
+              { id: "theme-cyber",  label: "Retro Cyber", icon: <Terminal className="h-5 w-5 text-white" /> },
+              { id: "theme-cyberdeck", label: "Cyberware HUD", icon: <Zap className="h-5 w-5 text-yellow-400" /> },
+              { id: "theme-isro", label: "ISRO Mission Operations", icon: <Rocket className="h-5 w-5 text-[#FF671F]" /> },
             ].map((t) => (
               <button
                 key={t.id}

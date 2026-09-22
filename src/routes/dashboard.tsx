@@ -65,6 +65,8 @@ import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { PremiumGate } from "@/components/PremiumGate";
+import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
+import { LunarCalorieSatellite } from "@/components/LunarCalorieSatellite";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { fetchLoggedDates } from "@/lib/loggedDates";
@@ -73,6 +75,7 @@ import { uploadWeightPhoto } from "@/services/storage";
 import { todayLocal, toLocalISO } from "@/lib/dates";
 import { formatQty } from "@/lib/foodUnits";
 import { calcBMR, calcTDEE, calcCalorieTarget, calcMacros } from "@/lib/nutrition";
+import { getTelemetryLabel } from "@/lib/telemetry";
 
 // Route-level lock. Dashboard is not mounted while access has lapsed, so none
 // of its reads fire — the blur is over filler, not over the user's own data.
@@ -254,6 +257,20 @@ function Dashboard() {
   const [savingWeight, setSavingWeight] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isIsroTheme, setIsIsroTheme] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsIsroTheme(document.documentElement.classList.contains("theme-isro"));
+    };
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -624,7 +641,7 @@ function Dashboard() {
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">
-                  Today's Overview
+                  {getTelemetryLabel("Today's Overview")}
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   Stay on track, {firstName}.
@@ -710,60 +727,70 @@ function Dashboard() {
             </div>
 
             <div className="relative z-10 flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-12">
-              {/* Calories Ring */}
-              <div className="relative h-48 w-48 shrink-0">
-                <div className="pointer-events-none absolute inset-6 rounded-full bg-accent/15 blur-2xl" />
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={donutData}
-                      dataKey="value"
-                      innerRadius={70}
-                      outerRadius={90}
-                      startAngle={90}
-                      endAngle={-270}
-                      stroke="none"
-                    >
-                      <Cell fill={donutColor} />
-                      <Cell fill="var(--muted)" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <Flame
-                    className={`h-6 w-6 mb-1 ${remaining < 0 ? "text-destructive" : "text-energy"}`}
+              {/* Calories: Photographic Moon & Orbiting Chandrayaan Satellite for ISRO theme, standard PieChart donut for others */}
+              {isIsroTheme ? (
+                <div className="shrink-0 flex items-center justify-center py-1">
+                  <LunarCalorieSatellite
+                    totals={totals}
+                    target={target}
+                    remaining={remaining}
                   />
-                  <span className="font-display text-4xl font-bold tracking-tighter leading-none">
-                    {Math.round(totals.calories)}
-                  </span>
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground mt-1">
-                    / {target} kcal
-                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="relative h-48 w-48 shrink-0">
+                  <div className="pointer-events-none absolute inset-6 rounded-full bg-accent/15 blur-2xl" />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        dataKey="value"
+                        innerRadius={70}
+                        outerRadius={90}
+                        startAngle={90}
+                        endAngle={-270}
+                        stroke="none"
+                      >
+                        <Cell fill={donutColor} />
+                        <Cell fill="var(--muted)" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <Flame
+                      className={`h-6 w-6 mb-1 ${remaining < 0 ? "text-destructive" : "text-energy"}`}
+                    />
+                    <span className="font-display text-4xl font-bold tracking-tighter leading-none">
+                      {Math.round(totals.calories)}
+                    </span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground mt-1">
+                      / {target} kcal
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Macros Breakdown */}
               <div className="flex-1 w-full space-y-5">
                 <MacroProgress
-                  label="Protein"
+                  label={getTelemetryLabel("Protein")}
                   current={totals.protein}
                   target={profile.protein_target_g ?? 0}
                   color="bg-[var(--energy)]"
                 />
                 <MacroProgress
-                  label="Carbs"
+                  label={getTelemetryLabel("Carbs")}
                   current={totals.carbs}
                   target={profile.carbs_target_g ?? 0}
                   color="bg-[var(--warn)]"
                 />
                 <MacroProgress
-                  label="Fats"
+                  label={getTelemetryLabel("Fat")}
                   current={totals.fat}
                   target={profile.fat_target_g ?? 0}
                   color="bg-[var(--fat)]"
                 />
                 <MacroProgress
-                  label="Fiber"
+                  label={getTelemetryLabel("Fiber")}
                   current={totals.fiber}
                   target={fiberTarget}
                   color="bg-[var(--accent)]"
@@ -959,7 +986,7 @@ function Dashboard() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="truncate font-bold leading-none text-foreground">
-                      Today's Workout
+                      {getTelemetryLabel("Today's Workout")}
                     </h3>
                     <p className="mt-1 truncate text-xs uppercase tracking-wide text-muted-foreground">
                       {workoutPlan?.goal || "No Plan"}
@@ -1028,12 +1055,20 @@ function Dashboard() {
               </CardContent>
             </Card>
 
+            {isIsroTheme && (
+              <ChandrayaanDescentWidget
+                currentWeight={lastWeight || profile?.weight_kg}
+                goalWeight={profile?.goal_weight_kg}
+                weightDiff={weightDiff}
+              />
+            )}
+
             {/* Quick Weight Log */}
             <Card className="border-border shadow-sm">
               <CardHeader className="pb-3 pt-5">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-muted-foreground" /> Weight
-                  Tracker
+                  <Scale className="h-5 w-5 text-muted-foreground" />{" "}
+                  {getTelemetryLabel("Weight")}
                 </CardTitle>
               </CardHeader>
               <CardContent>

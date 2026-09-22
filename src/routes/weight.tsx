@@ -24,6 +24,8 @@ import {
 import { getCachedWorkoutPrefs } from "@/lib/workoutPrefs";
 import { type WeightUnit, kgToWeight, weightToKg, round1 } from "@/lib/units";
 import { Header } from "@/components/Header";
+import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
+import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +54,9 @@ import { useAccessGate } from "@/hooks/useAccessGate";
 import { todayLocal } from "@/lib/dates";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
+
+// Feature flag: set to true to re-enable AI motivation on the weight page
+const SHOW_AI_MOTIVATION = false;
 
 interface WeightEntry {
   id: string;
@@ -238,7 +243,9 @@ function WeightPage() {
       setPhotoFile(null);
       setPhotoPreview(null);
       await load();
-      fetchMotivation();
+      if (SHOW_AI_MOTIVATION) {
+        fetchMotivation();
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -398,8 +405,17 @@ function WeightPage() {
       <Header name={profile.full_name?.split(" ")[0]} />
       <main className="mx-auto max-w-4xl space-y-6 px-3 py-5 sm:px-6 sm:py-6">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-          Weight Tracker
+          {getTelemetryLabel("Weight Tracker")}
         </h1>
+
+        {isIsroTheme() && (
+          <ChandrayaanDescentWidget
+            currentWeight={latest?.weight_kg ?? profile.weight_kg}
+            goalWeight={profile.goal_weight_kg}
+            weightDiff={totalChange}
+            unit={wu}
+          />
+        )}
 
         {/* ── Summary cards ── */}
         <div className="grid gap-4 sm:grid-cols-3">
@@ -491,8 +507,8 @@ function WeightPage() {
           </Card>
         )}
 
-        {/* ── AI Motivation ── */}
-        {entries.length > 0 && (
+        {/* ── AI Motivation (hidden via feature flag) ── */}
+        {SHOW_AI_MOTIVATION && entries.length > 0 && (
           <Card className="border-[var(--energy)]/20 bg-[var(--energy)]/5">
             <CardContent className="p-5">
               {motivation ? (
