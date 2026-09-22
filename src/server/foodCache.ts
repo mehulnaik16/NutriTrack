@@ -8,6 +8,12 @@
  * cost money, never break search — a failed read falls through to the AI call
  * and a failed write only delays a food reaching quorum.
  *
+ * DEPLOY ORDER: the supabase/migrations for this feature must be applied before
+ * this file ships. Reads degrade safely if they are not — a missing column is
+ * logged and falls through to the AI call — but the promotion upsert fails, so
+ * nothing ever reaches ai_verified and the cache stays permanently empty while
+ * search goes on looking perfectly healthy.
+ *
  * The `as any` casts below are the escape this codebase already uses for
  * service-role-only tables (see saved_meals in FoodSearch.tsx and food.tsx):
  * types.ts is generated from what the anon role can see, so the three cache
