@@ -8,6 +8,7 @@ import {
   User as UserIcon,
   Flame,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 function HubIcon({ className }: { className?: string }) {
   return (
@@ -378,10 +379,8 @@ export function Header({
       )}
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
         <div className="flex items-center gap-5">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-accent-foreground glow-accent-sm">
-              <Activity className="h-5 w-5" />
-            </div>
+          <Link to="/dashboard" className="flex items-center gap-2.5">
+            <BrandLogo className="h-8 w-8 text-accent shrink-0 transition-transform hover:scale-105" />
             <span className="font-display text-base font-bold tracking-tight sm:text-lg">
               Dombelz
             </span>

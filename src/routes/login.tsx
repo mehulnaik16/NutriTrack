@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { authErrorMessage } from "@/lib/authErrors";
 import { supabase } from "@/integrations/client";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
@@ -76,10 +77,8 @@ function Login() {
         <div className="bg-grid bg-radial-fade absolute inset-0" />
         <div className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-accent/15 blur-[110px]" />
 
-        <Link to="/" className="relative flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground glow-accent-sm">
-            <Activity className="h-5 w-5" />
-          </div>
+        <Link to="/" className="relative flex items-center gap-2.5">
+          <BrandLogo className="h-9 w-9 text-accent shrink-0 transition-transform hover:scale-105" />
           <span className="font-display text-xl font-bold tracking-tight">
             Dombelz
           </span>
@@ -117,11 +116,9 @@ function Login() {
           {/* Mobile logo */}
           <Link
             to="/"
-            className="mb-8 flex items-center justify-center gap-2 lg:hidden"
+            className="mb-8 flex items-center justify-center gap-2.5 lg:hidden"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground glow-accent-sm">
-              <Activity className="h-5 w-5" />
-            </div>
+            <BrandLogo className="h-9 w-9 text-accent shrink-0" />
             <span className="font-display text-2xl font-bold">Dombelz</span>
           </Link>
 
