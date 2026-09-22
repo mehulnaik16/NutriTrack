@@ -40,19 +40,30 @@ export function scriptOf(text: string): string {
  * punctuation and collapsed whitespace. The original text is always kept
  * beside it for display — nothing is replaced.
  *
- * Sanscript's ITRANS output uses ASCII marks (`.`, `~`, `^`) to carry vowel
- * length and nasalisation that plain ASCII can't otherwise represent — e.g.
- * "ಇಡ್ಲಿ" (idli) romanises to "iDli" with a retroflex marker, not bare
- * "idli". Since search keys only need to be *close*, not lossless, those
- * marks are stripped along with all other punctuation below rather than
- * preserved.
+ * The target scheme is IAST, not ITRANS, and deliberately so. ITRANS leaves
+ * some Tamil letters (e.g. the alveolar "ன்") completely untransliterated —
+ * the native character survives straight into a "romanised" key — and it
+ * marks vowel length with an accent (è) that a plain punctuation strip
+ * doesn't touch. IAST always renders in Latin letters, using combining
+ * diacritics (ṭ, ḍ, ā, ...) for what ITRANS encodes as stray marks or leaves
+ * native. NFD-decomposing and dropping those combining marks (\p{M}) turns
+ * "taṭṭè iḍli" into "tatte idli", which is what lets a Kannada name and its
+ * English spelling land close enough for pg_trgm to match.
+ *
+ * Known, accepted gap: Devanagari and Bengali keep an inherent trailing
+ * vowel IAST always writes out ("मेरा" -> "merā" -> "mera", not "mer") that
+ * English speakers often drop (schwa deletion, e.g. "mera" vs "mer"). Fixing
+ * that needs real linguistics, not a search-key transform, and is out of
+ * scope here — a miss just costs one extra AI call, not a wrong answer.
  */
 export function searchKey(text: string): string {
   const script = scriptOf(text);
   const scheme = SCRIPTS.find((s) => s[0] === script)?.[2];
   const roman =
-    scheme && scheme !== "" ? Sanscript.t(text, scheme, "itrans") : text;
+    scheme && scheme !== "" ? Sanscript.t(text, scheme, "iast") : text;
   return roman
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim()

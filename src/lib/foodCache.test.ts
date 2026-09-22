@@ -27,4 +27,19 @@ const kn = searchKey("ಇಡ್ಲಿ");
 assert.ok(kn.startsWith("idl"), `expected an idli-like key, got ${kn}`);
 assert.equal(searchKey(""), "");
 
+// Cross-script matching is the point of this module: a Kannada name and its
+// English spelling must land close enough for pg_trgm/similarity to see them
+// as the same food. ITRANS alone scored "tattè idli" vs "thatte idli" at
+// 0.73, below the 0.85 cross-script threshold; IAST + deburring fixes it.
+assert.equal(searchKey("ತಟ್ಟೆ ಇಡ್ಲಿ"), "tatte idli");
+// No native-script character may survive romanisation — ITRANS used to leave
+// Tamil "ன்" untransliterated inside an otherwise-Latin key.
+const tamilKey = searchKey("என் இட்லி");
+assert.ok(
+  /^[\p{L}\p{N} ]*$/u.test(tamilKey) && !/\p{Script=Tamil}/u.test(tamilKey),
+  "no native characters may survive romanisation",
+);
+// Recorded, not asserted-to-taste: IAST's "dh" for this letter, not "d".
+assert.equal(searchKey("இட்லி"), "idhli");
+
 console.log("foodCache: all assertions passed");
