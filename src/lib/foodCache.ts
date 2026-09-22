@@ -138,3 +138,49 @@ export function cacheGate(it: {
   if (!(implied > 0)) return false;
   return Math.abs(it.enerc - implied) <= CACHE_ENERGY_TOL * implied;
 }
+
+/** The five macros the cache stores and agrees on. enerc is kJ, the rest grams. */
+export const MACROS = [
+  "enerc",
+  "protcnt",
+  "fatce",
+  "choavldf",
+  "fibtg",
+] as const;
+export type Macros = Record<(typeof MACROS)[number], number>;
+
+/** How far each answer may sit from the group mean, per macro. */
+export const QUORUM_TOL = 0.05;
+
+/**
+ * Below this the relative test is meaningless and an absolute one takes over.
+ * 0.1 g and 0.3 g of fibre are 200% apart and the same food; without this
+ * floor every food with a near-zero macro fails forever.
+ */
+export const QUORUM_ABS_FLOOR = 0.5;
+
+const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+/**
+ * Do three independent answers agree closely enough to become permanent?
+ *
+ * All five macros must pass. A single failure deletes the whole group and
+ * restarts it from empty — deliberately not a sliding window, so a run of bad
+ * answers can never accumulate into a verified row.
+ */
+export function quorumPasses(rows: Macros[]): boolean {
+  if (rows.length !== 3) return false;
+  return MACROS.every((m) => {
+    const values = rows.map((r) => r[m]);
+    const avg = mean(values);
+    const tol = Math.max(QUORUM_TOL * avg, QUORUM_ABS_FLOOR);
+    return values.every((v) => Math.abs(v - avg) <= tol);
+  });
+}
+
+/** The per-macro mean of an agreeing group — what reaches ai_verified. */
+export function consolidate(rows: Macros[]): Macros {
+  const out = {} as Macros;
+  for (const m of MACROS) out[m] = +mean(rows.map((r) => r[m])).toFixed(2);
+  return out;
+}

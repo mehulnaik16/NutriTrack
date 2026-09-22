@@ -117,4 +117,64 @@ assert.equal(
   "repaired answer passes — proof the gate must see the raw value first",
 );
 
+// ── quorum check and consolidation ──────────────────────────────────────────
+import { quorumPasses, consolidate } from "./foodCache.ts";
+
+const macro = (over: Partial<Record<string, number>> = {}) => ({
+  enerc: 700,
+  protcnt: 10,
+  fatce: 5,
+  choavldf: 20,
+  fibtg: 2,
+  ...over,
+});
+
+// Three near-identical answers verify.
+assert.equal(
+  quorumPasses([macro(), macro({ enerc: 710 }), macro({ enerc: 690 })]),
+  true,
+);
+
+// One macro outside mean ±5% fails the whole group — delete and restart.
+assert.equal(quorumPasses([macro(), macro(), macro({ protcnt: 14 })]), false);
+
+// A group that is not yet three rows never passes.
+assert.equal(quorumPasses([macro(), macro()]), false);
+
+// ── Review Focus 2: near-zero macros ──────────────────────────────────────
+// Fibre 0 across all three is agreement, not a division by nothing.
+assert.equal(
+  quorumPasses([macro({ fibtg: 0 }), macro({ fibtg: 0 }), macro({ fibtg: 0 })]),
+  true,
+);
+// 0.1 vs 0.3 g of fibre is 200% apart in relative terms and identical in
+// practice — the absolute floor must let it through.
+assert.equal(
+  quorumPasses([
+    macro({ fibtg: 0.1 }),
+    macro({ fibtg: 0.3 }),
+    macro({ fibtg: 0.2 }),
+  ]),
+  true,
+);
+// But a real disagreement at low values is still a disagreement.
+assert.equal(
+  quorumPasses([
+    macro({ fibtg: 0.1 }),
+    macro({ fibtg: 0.2 }),
+    macro({ fibtg: 9 }),
+  ]),
+  false,
+);
+
+// consolidate takes the per-macro mean of the three.
+assert.deepEqual(
+  consolidate([
+    macro({ enerc: 690 }),
+    macro({ enerc: 700 }),
+    macro({ enerc: 710 }),
+  ]),
+  macro({ enerc: 700 }),
+);
+
 console.log("foodCache: all assertions passed");
