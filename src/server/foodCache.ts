@@ -68,11 +68,40 @@ type GroupRow = Macros & {
   model: string;
 };
 
-/** Typo tolerance within one script. */
+/**
+ * Similarity is a backstop for typos in the SAME script. It is not, and cannot
+ * be, the cross-script mechanism — that is the alias path in lookupCache.
+ *
+ * DO NOT LOWER THESE TO FIX A CROSS-SCRIPT MISS. That is the one change these
+ * numbers exist to prevent. Measured pg_trgm similarities on this database:
+ *
+ *   tatte idli / thatte idli         0.643   true cross-script (Kannada)
+ *   amara bhata / amar bhat          0.571   true cross-script (Bengali)
+ *   curd rise / curd rice            0.538   ordinary typo
+ *   naan / paneer naan               0.417   DIFFERENT foods
+ *   idhli / idli                     0.375   true cross-script (Tamil)
+ *   chicken biryani / chicken pulao  0.364   DIFFERENT foods
+ *   iddali / idli                    0.333   true cross-script (Malayalam)
+ *   curd rice / fried rice           0.313   DIFFERENT foods
+ *
+ * The two distributions overlap. A true Tamil match scores 0.375, below two
+ * pairs of genuinely different foods at 0.417 and 0.364, so no trigram
+ * threshold separates them: any value loose enough to catch cross-script
+ * spellings also serves paneer naan's macros for a query of "naan". Cross-
+ * script matching is handled instead by comparing normalised alias keys, which
+ * is exact and has no threshold to tune.
+ *
+ * Both numbers were originally calibrated against Levenshtein similarity — the
+ * measure the JS helper in lib/foodCache.ts uses — which scores these same
+ * pairs far higher. They were never right for pg_trgm. They are kept because
+ * being too strict here is harmless: a same-script near-miss just costs one AI
+ * call, which is what would have happened anyway.
+ */
 const SIM_SAME_SCRIPT = 0.7;
 /**
- * Across scripts the bar is higher. Transliteration noise is a different and
- * less trustworthy error class than a fat-fingered typo.
+ * Higher still when the query and the stored name are written in different
+ * scripts, which at these levels means the similarity path effectively never
+ * fires cross-script. That is intended — see above.
  */
 const SIM_CROSS_SCRIPT = 0.85;
 
@@ -117,19 +146,39 @@ export async function lookupCache(opts: {
     const exact = (column: "search_key" | "canonical_key") =>
       table("ai_verified").select("*").eq(column, key).limit(1).maybeSingle();
 
-    const bySearch = await exact("search_key");
-    warn("ai_verified search_key read failed", bySearch.error);
-    let row: VerifiedRow | null = bySearch.data;
+    // Cheapest and surest first. The first three steps are exact matches on the
+    // normalised key and cannot be wrong; only the fourth guesses.
 
+    // 1. canonical_key — the primary key, a btree lookup.
+    const byCanonical = await exact("canonical_key");
+    warn("ai_verified canonical_key read failed", byCanonical.error);
+    let row: VerifiedRow | null = byCanonical.data;
+
+    // 2. search_key — the row's own display name, normalised.
     if (!row) {
-      const byCanonical = await exact("canonical_key");
-      warn("ai_verified canonical_key read failed", byCanonical.error);
-      row = byCanonical.data;
+      const bySearch = await exact("search_key");
+      warn("ai_verified search_key read failed", bySearch.error);
+      row = bySearch.data;
     }
 
+    // 3. alias_keys — every other spelling the quorum agreed on, normalised the
+    //    same way the query was. This is the cross-script path, and it is the
+    //    whole reason the model is asked for native-script aliases: a Kannada
+    //    query and a stored alias "ತಟ್ಟೆ ಇಡ್ಲಿ" both normalise to "tatte idli",
+    //    so they match exactly, with no threshold in the way. Similarity cannot
+    //    do this job — see the note on SIM_SAME_SCRIPT for the measurements.
     if (!row) {
-      // Fall back to similarity. The threshold depends on whether the query
-      // and the stored name are written in the same script.
+      const byAlias = await table("ai_verified")
+        .select("*")
+        .contains("alias_keys", [key])
+        .limit(1)
+        .maybeSingle();
+      warn("ai_verified alias_keys read failed", byAlias.error);
+      row = byAlias.data;
+    }
+
+    // 4. Similarity, last: a same-script typo backstop and nothing more.
+    if (!row) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
       const { data: near, error } = await (db.rpc as any)(
         "ai_verified_similar",
@@ -240,15 +289,30 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
     });
 
     if (quorumPasses(macroRows)) {
+      const rowKey = searchKey(row.canonical_key);
+      const aliases = crossCheckAliases(group.map((g) => g.aliases ?? []));
+
+      // alias_keys is every normalised form this row answers to, and it
+      // includes the row's own search_key as well as the aliases. That is what
+      // makes step 3 of lookupCache a single indexed containment query which
+      // means "does any spelling of this food match the query", rather than one
+      // query for the name and another for the aliases. Derived with the same
+      // searchKey() the lookup uses — if the two ever diverged the match would
+      // silently stop working, so there is exactly one function for it.
+      const aliasKeys = [
+        ...new Set([rowKey, ...aliases.map(searchKey)].filter(Boolean)),
+      ];
+
       const { error } = await table("ai_verified").upsert({
         canonical_key: row.canonical_key,
-        search_key: searchKey(row.canonical_key),
+        search_key: rowKey,
         food_name: group[0].food_name,
         food_class: group[0].food_class,
         basis: group[0].basis,
         piece_g: group[0].piece_g,
         ...consolidate(macroRows),
-        aliases: crossCheckAliases(group.map((g) => g.aliases ?? [])),
+        aliases,
+        alias_keys: aliasKeys,
         models: group.map((g) => g.model),
       });
       warn("ai_verified upsert failed", error);
