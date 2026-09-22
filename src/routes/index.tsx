@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   ArrowRight,
   Barcode,
   Camera,
   Check,
+  ChevronDown,
   Dumbbell,
   Droplets,
   Flame,
@@ -109,6 +110,16 @@ const FAQS = [
 function Landing() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [expandedPlans, setExpandedPlans] = useState<Record<string, boolean>>({
+    [PLANS[0]?.id ?? "monthly"]: true,
+  });
+
+  const togglePlanFeatures = (planId: string) => {
+    setExpandedPlans((prev) => ({
+      ...prev,
+      [planId]: !prev[planId],
+    }));
+  };
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/dashboard", replace: true });
@@ -421,7 +432,25 @@ function Landing() {
                   Works out to ₹{monthlyRate(p)}/month
                 </p>
               )}
-              <ul className="mt-6 space-y-3 text-sm">
+              {/* Mobile dropdown toggle */}
+              <button
+                type="button"
+                onClick={() => togglePlanFeatures(p.id)}
+                className="mt-4 flex w-full items-center justify-between py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground md:hidden"
+                aria-expanded={!!expandedPlans[p.id]}
+              >
+                <span>Features</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    expandedPlans[p.id] ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              <ul
+                className={`space-y-3 text-sm md:mt-6 md:block ${
+                  expandedPlans[p.id] ? "mt-3 block" : "hidden"
+                }`}
+              >
                 {PLAN_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2.5">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
@@ -429,7 +458,7 @@ function Landing() {
                   </li>
                 ))}
               </ul>
-              <Link to="/quiz" className="mt-7 block">
+              <Link to="/quiz" className="mt-4 md:mt-7 block">
                 <Button
                   className={`w-full rounded-full font-bold ${
                     p.popular

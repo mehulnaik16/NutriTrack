@@ -9,7 +9,7 @@
  */
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, Gift, Loader2, Sparkles } from "lucide-react";
+import { Check, ChevronDown, Gift, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,7 +48,17 @@ export function PricingPlans({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
+  const [expandedPlans, setExpandedPlans] = useState<Record<string, boolean>>({
+    [PLANS[0]?.id ?? "monthly"]: true,
+  });
   const native = isNativeApp();
+
+  const togglePlanFeatures = (planId: string) => {
+    setExpandedPlans((prev) => ({
+      ...prev,
+      [planId]: !prev[planId],
+    }));
+  };
   // While this is loading the cards render the list price. Correcting ₹999 down
   // to ₹849 is safe; the reverse would be a promise taken back.
   const {
@@ -145,6 +155,7 @@ export function PricingPlans({
             : activeGift({ referralStatus, gymLink, planId: p.id });
           const gift = kind !== null;
           const price = effectivePrice(p, gift);
+          const isFeaturesOpen = !!expandedPlans[p.id];
           return (
             <Card
               key={p.id}
@@ -185,7 +196,25 @@ export function PricingPlans({
                     Works out to ₹{monthlyRate(p, price)}/month
                   </p>
                 )}
-                <ul className="mt-6 space-y-3 text-sm">
+                {/* Mobile dropdown toggle */}
+                <button
+                  type="button"
+                  onClick={() => togglePlanFeatures(p.id)}
+                  className="mt-4 flex w-full items-center justify-between py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground md:hidden"
+                  aria-expanded={isFeaturesOpen}
+                >
+                  <span>Features</span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform duration-200 ${
+                      isFeaturesOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                <ul
+                  className={`space-y-3 text-sm md:mt-6 md:block ${
+                    isFeaturesOpen ? "mt-3 block" : "hidden"
+                  }`}
+                >
                   {PLAN_FEATURES.map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
@@ -196,20 +225,20 @@ export function PricingPlans({
                 {cta === "native" ? (
                   // No third-party checkout in the native shell. Entitlement
                   // bought on the website applies here the moment it lands.
-                  <p className="mt-6 rounded-full border border-border px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">
+                  <p className="mt-4 md:mt-6 rounded-full border border-border px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">
                     Manage your plan on the Dombelz website
                   </p>
                 ) : (
                   <Button
                     onClick={() => (cta === "buy" ? buy(p.id) : start(p.id))}
                     disabled={cta === "current" || busy !== null}
-                    className={`mt-6 w-full rounded-full font-bold ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                    className={`mt-4 md:mt-6 w-full rounded-full font-bold ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
                     variant={p.popular ? "default" : "outline"}
                   >
                     {busy === p.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : cta === "buy" ? (
-                      `Buy · ₹${price}`
+                      "Subscribe"
                     ) : cta === "current" ? (
                       "Your current plan"
                     ) : (
