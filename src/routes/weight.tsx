@@ -55,6 +55,9 @@ import { todayLocal } from "@/lib/dates";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
 
+// Feature flag: set to true to re-enable AI motivation on the weight page
+const SHOW_AI_MOTIVATION = false;
+
 interface WeightEntry {
   id: string;
   date: string;
@@ -240,7 +243,9 @@ function WeightPage() {
       setPhotoFile(null);
       setPhotoPreview(null);
       await load();
-      fetchMotivation();
+      if (SHOW_AI_MOTIVATION) {
+        fetchMotivation();
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -502,8 +507,8 @@ function WeightPage() {
           </Card>
         )}
 
-        {/* ── AI Motivation ── */}
-        {entries.length > 0 && (
+        {/* ── AI Motivation (hidden via feature flag) ── */}
+        {SHOW_AI_MOTIVATION && entries.length > 0 && (
           <Card className="border-[var(--energy)]/20 bg-[var(--energy)]/5">
             <CardContent className="p-5">
               {motivation ? (
