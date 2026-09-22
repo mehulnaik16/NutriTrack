@@ -304,9 +304,13 @@ const LATIN_POSSESSIVES = [
  * one AI call, a false negative writes somebody's private meal name into a
  * shared table permanently.
  *
- * This is a heuristic and will miss unusual phrasings. The quorum is the real
- * protection — a private name needs three independent agreeing answers to be
- * promoted, which it essentially never gets.
+ * This is a heuristic and will miss unusual phrasings. The quorum behind it
+ * raises the bar but does not close the gap: promotion needs three answers
+ * agreeing within 5%, and those answers can all come from the same model, so
+ * what the quorum really rules out is a one-off outlier, not a mistake the
+ * model makes consistently. A private name the model reads as a real food the
+ * same way three times over can still be promoted. This check is the guard
+ * that matters; treat the quorum as a second line, not a safety net.
  */
 export function isPersonalName(query: string): boolean {
   const text = query.trim();

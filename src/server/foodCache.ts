@@ -180,8 +180,11 @@ export async function lookupCache(opts: {
  * path and nothing here may throw.
  */
 export async function recordAnswer(row: UnverifiedRow): Promise<void> {
-  if (!row.canonical_key) return; // Nothing to group it under.
   try {
+    // Inside the try: reading `row.canonical_key` was the one dereference in
+    // this module sitting outside it, and a null row from a caller would have
+    // thrown straight through into search.
+    if (!row.canonical_key) return; // Nothing to group it under.
     const { supabaseAdmin: db } = await import("@/integrations/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts omits these service-role-only tables
     const table = (name: string) => db.from(name as any) as any;
@@ -267,6 +270,46 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
   } catch (err) {
     console.warn(
       "[food-cache] write failed, answer served but not cached",
+      err,
+    );
+  }
+}
+
+/**
+ * Store one model response, which may describe several foods.
+ *
+ * Quorum means three *independent* verdicts on the same food. Two items of one
+ * response are not two verdicts: they come from one model, one prompt and one
+ * generation, so whatever produced a wrong number in the first is still in
+ * force for the second. A response that named the same food twice — the same
+ * canonical_key and the same food_class — would therefore fill two of the three
+ * slots by itself, and the food could be promoted to permanent shared data on
+ * what is really a single opinion held twice.
+ *
+ * So only the first item per (canonical_key, food_class) in a batch is kept.
+ * The others are dropped rather than deferred: the remaining slots are meant to
+ * be filled by a later search making a fresh call, which is the only thing that
+ * makes them independent.
+ *
+ * This lives here rather than at the caller so that every future caller gets it
+ * — a caller that loops over `recordAnswer` itself would silently reintroduce
+ * the hole. Deliberately sequential: each answer has to read back the group the
+ * one before it just joined.
+ */
+export async function recordAnswers(rows: UnverifiedRow[]): Promise<void> {
+  try {
+    const seen = new Set<string>();
+    for (const row of rows ?? []) {
+      //   cannot occur in either field, so it cannot fuse two distinct
+      // pairs into one key.
+      const slot = `${row?.canonical_key} ${row?.food_class}`;
+      if (seen.has(slot)) continue;
+      seen.add(slot);
+      await recordAnswer(row);
+    }
+  } catch (err) {
+    console.warn(
+      "[food-cache] batch write failed, answers served but not cached",
       err,
     );
   }
