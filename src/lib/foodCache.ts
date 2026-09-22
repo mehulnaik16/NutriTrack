@@ -9,6 +9,7 @@
  * on `searchKey`, which romanises first.
  */
 import Sanscript from "@indic-transliteration/sanscript";
+import { altNames } from "./foodFuzzy.ts";
 
 /** The scripts this app actually meets, plus Latin. */
 const SCRIPTS = [
@@ -68,4 +69,32 @@ export function searchKey(text: string): string {
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim()
     .replace(/\s+/g, " ");
+}
+
+/**
+ * A parenthetical group that is a list of names rather than a portion hint.
+ * "Roti (1 medium = 40g)" is a measurement; "Curd rice (Dahi bhaat/...)" is an
+ * alias list. Digits and "=" mark the former.
+ */
+const isAliasGroup = (inner: string) => !/[0-9=]/.test(inner);
+
+/**
+ * Every alias a catalog row carries, in whichever of the two shapes it uses.
+ *
+ * The catalog is not one corpus. Its 430 real IFCT rows keep regional names in
+ * `lang`, semicolon-delimited with language tags. Its 1,014 merged rows leave
+ * `lang` empty and bake aliases into `name`, in parentheses, slash-delimited.
+ * Reading only one shape silently loses the other's aliases entirely, so this
+ * reads both.
+ */
+export function catalogAliases(row: { name: string; lang?: string }): string[] {
+  const out = [...altNames(row.lang ?? "")];
+  for (const [, inner] of row.name.matchAll(/\(([^)]*)\)/g)) {
+    if (!isAliasGroup(inner)) continue;
+    for (const part of inner.split("/")) {
+      const alias = part.trim();
+      if (alias) out.push(alias);
+    }
+  }
+  return out;
 }

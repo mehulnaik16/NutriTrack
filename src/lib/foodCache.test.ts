@@ -7,7 +7,7 @@
 
    Everything here is a pure function: no network, no Supabase, no API key. */
 import assert from "node:assert";
-import { scriptOf, searchKey } from "./foodCache.ts";
+import { scriptOf, searchKey, catalogAliases } from "./foodCache.ts";
 
 // ── script detection ───────────────────────────────────────────────────────
 assert.equal(scriptOf("thatte idli"), "Latin");
@@ -41,5 +41,29 @@ assert.ok(
 );
 // Recorded, not asserted-to-taste: IAST's "dh" for this letter, not "d".
 assert.equal(searchKey("இட்லி"), "idhli");
+
+// ── alias shape 1: `lang`, semicolon-delimited (430 rows, real IFCT) ───────
+assert.deepEqual(
+  catalogAliases({
+    name: "Bajra",
+    lang: "A., Kash. Baajra; Kan. Sajje; Tam. Kambu",
+  }),
+  ["Baajra", "Sajje", "Kambu"],
+);
+
+// ── alias shape 2: parenthetical in `name` (1,014 rows, merged corpus) ─────
+assert.deepEqual(
+  catalogAliases({
+    name: "Curd rice (Dahi bhaat/Dahi chawal/ Perugu annam/Thayir saadam)",
+    lang: "",
+  }),
+  ["Dahi bhaat", "Dahi chawal", "Perugu annam", "Thayir saadam"],
+);
+
+// ── neither shape: roughly 630 rows carry no aliases at all ───────────────
+assert.deepEqual(catalogAliases({ name: "Bajra", lang: "" }), []);
+
+// A parenthetical that is a portion hint, not an alias, must not become one.
+assert.deepEqual(catalogAliases({ name: "Roti (1 medium = 40g)", lang: "" }), []);
 
 console.log("foodCache: all assertions passed");
