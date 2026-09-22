@@ -9,7 +9,7 @@
  * on `searchKey`, which romanises first.
  */
 import Sanscript from "@indic-transliteration/sanscript";
-import { altNames } from "./foodFuzzy.ts";
+import { altNames, similarity } from "./foodFuzzy.ts";
 
 /** The scripts this app actually meets, plus Latin. */
 const SCRIPTS = [
@@ -183,4 +183,42 @@ export function consolidate(rows: Macros[]): Macros {
   const out = {} as Macros;
   for (const m of MACROS) out[m] = +mean(rows.map((r) => r[m])).toFixed(2);
   return out;
+}
+
+/** How close two spellings must be to count as the same alias. */
+export const ALIAS_SIM = 0.9;
+
+/**
+ * The aliases at least two of the three answers agree on.
+ *
+ * A single model's claim is never written to the trusted set: one confident
+ * hallucination would otherwise make "biryani" an alias of "pulao" forever.
+ * Comparison runs on searchKey, so a native-script spelling and its
+ * romanisation count as the same alias rather than two separate ones.
+ *
+ * Dedup against `kept` uses similarity, not exact searchKey equality: "Dahi
+ * bhaat" and "Dahi bhat" have different keys (one letter apart) but are the
+ * same alias by the same 0.9 measure that backs them in the first place, so
+ * an exact-match seen-set would let both through as separate entries.
+ */
+export function crossCheckAliases(lists: string[][]): string[] {
+  const kept: string[] = [];
+  const keptKeys: string[] = [];
+  for (let i = 0; i < lists.length; i++) {
+    for (const alias of lists[i]) {
+      const key = searchKey(alias);
+      if (!key || keptKeys.some((k) => similarity(k, key) >= ALIAS_SIM))
+        continue;
+      const backers = lists.filter((other, j) =>
+        j !== i
+          ? other.some((b) => similarity(searchKey(b), key) >= ALIAS_SIM)
+          : true,
+      ).length;
+      if (backers >= 2) {
+        keptKeys.push(key);
+        kept.push(alias);
+      }
+    }
+  }
+  return kept;
 }

@@ -177,4 +177,30 @@ assert.deepEqual(
   macro({ enerc: 700 }),
 );
 
+// ── alias cross-check ────────────────────────────────────────────────────────
+import { crossCheckAliases } from "./foodCache.ts";
+
+// Backed by two of three, with a spelling difference inside 0.9.
+assert.deepEqual(
+  crossCheckAliases([
+    ["Dahi bhaat", "Thayir saadam"],
+    ["Dahi bhat", "Perugu annam"],
+    ["Curd rice"],
+  ]),
+  ["Dahi bhaat"],
+);
+
+// A single answer's claim is never trusted on its own.
+assert.deepEqual(
+  crossCheckAliases([["Thayir saadam"], ["Perugu annam"], ["Daddojanam"]]),
+  [],
+);
+
+// Native script and its romanisation are the same alias: comparison runs on
+// searchKey, so the surviving alias is kept in the form it was first given.
+const cross = crossCheckAliases([["ಇಡ್ಲಿ"], ["idli"], ["Idly"]]);
+assert.equal(cross.length >= 1, true, `expected an idli alias, got ${cross}`);
+
+assert.deepEqual(crossCheckAliases([[], [], []]), []);
+
 console.log("foodCache: all assertions passed");
