@@ -44,8 +44,12 @@ interface Indexed {
   alt: string[];
 }
 
-/** Leading language abbreviations: "Kan.", "Tam.", "A.", "Kash.", "E." */
-const LANG_PREFIX = /\b[A-Z][a-z]{0,4}\.\s*/g;
+/**
+ * Leading language abbreviations: "Kan.", "Tam.", "A.", "Kash.", "E." A comma
+ * follows when several languages share one alias ("A., Kash. Baajra"), so it
+ * is stripped along with the abbreviation, not left dangling on the name.
+ */
+const LANG_PREFIX = /\b[A-Z][a-z]{0,4}\.,?\s*/g;
 
 /**
  * "A., Kash. Baajra; B. Bajra; E. Pearl millet; Kan. Sajje"
@@ -56,7 +60,7 @@ const LANG_PREFIX = /\b[A-Z][a-z]{0,4}\.\s*/g;
  * while "kambu" falsely matched Rambutan at 0.23. As separate short entries
  * each name is matched on its own terms.
  */
-function altNames(lang: string): string[] {
+export function altNames(lang: string): string[] {
   if (!lang) return [];
   return lang
     .split(";")
@@ -122,8 +126,13 @@ function editDistance(a: string, b: string): number {
   return prev[b.length];
 }
 
-/** 1 for identical words, 0 for nothing in common. */
-const similarity = (a: string, b: string): number =>
+/**
+ * 1 for identical words, 0 for nothing in common.
+ *
+ * Exported because the food cache's alias cross-check compares alias lists at
+ * 0.9 and must use the same measure this module matches on.
+ */
+export const similarity = (a: string, b: string): number =>
   1 - editDistance(a, b) / Math.max(a.length, b.length, 1);
 
 /**

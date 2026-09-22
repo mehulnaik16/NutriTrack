@@ -15,6 +15,8 @@ import {
   fuzzyFoods,
   referenceFoods,
   isComposite,
+  similarity,
+  altNames,
 } from "./foodFuzzy.ts";
 
 const top = (q: string) => strongFoods(q, 3)[0]?.name ?? "";
@@ -136,5 +138,19 @@ const hits = (q: string) => strongFoods(q, 3).length;
   assert.ok(top("paneer").toLowerCase().startsWith("paneer"));
   console.log(`✓ F8 exact names rank first`);
 }
+
+// ── similarity: exported for the cache's alias cross-check ─────────────────
+assert.equal(similarity("idli", "idli"), 1);
+assert.ok(similarity("idli", "idly") >= 0.7);
+assert.ok(similarity("idli", "dosa") < 0.5);
+assert.equal(similarity("", ""), 1);
+
+// ── altNames: the lang shape, 430 catalog rows use it ─────────────────────
+assert.deepEqual(altNames("A., Kash. Baajra; Kan. Sajje; Tam. Kambu"), [
+  "Baajra",
+  "Sajje",
+  "Kambu",
+]);
+assert.deepEqual(altNames(""), []);
 
 console.log("\n✅ All food-fuzzy tests passed.");
