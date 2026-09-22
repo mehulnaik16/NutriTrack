@@ -211,9 +211,10 @@ type Page =
 
 /* ─── menu items ─── */
 const MENU_ITEMS: {
-  id: Page;
+  id: Page | "notifications";
   icon: React.ReactNode;
   label: string;
+  to?: "/notifications";
 }[] = [
   { id: "details",         icon: <User className="h-7 w-7 md:h-[26px] md:w-[26px]" />,      label: "Profile details" },
   { id: "workout-details", icon: <Dumbbell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,   label: "Workout details" },
@@ -227,6 +228,7 @@ const MENU_ITEMS: {
   { id: "about",        icon: <Info className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "About us" },
   { id: "refer",        icon: <Gift className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Refer & Earn" },
   { id: "gym",          icon: <Building2 className="h-7 w-7 md:h-[26px] md:w-[26px]" />,     label: "Your Gym" },
+  { id: "notifications",icon: <Bell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Notifications", to: "/notifications" },
 ];
 
 const FAQS = [
@@ -1101,34 +1103,44 @@ function Profile() {
       <main className="mx-auto max-w-lg px-4 py-6">
         {/* 2-column grid */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {MENU_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setPage(item.id)}
-              className="card-lift group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 text-left min-h-[96px] sm:min-h-[104px]"
-            >
-              <span className="text-muted-foreground group-hover:text-accent transition-colors mb-4 inline-block">
-                {item.icon}
-              </span>
-              <div className="flex items-center justify-between w-full gap-2">
-                <span className="text-[15px] sm:text-[17px] font-semibold leading-tight line-clamp-2">{item.label}</span>
-                <ChevronRight className="h-5 w-5 text-muted-foreground/50 flex-shrink-0" />
-              </div>
-            </button>
-          ))}
-        </div>
+          {MENU_ITEMS.map((item) => {
+            const cardContent = (
+              <>
+                <span className="text-muted-foreground group-hover:text-accent transition-colors mb-4 inline-block">
+                  {item.icon}
+                </span>
+                <div className="flex items-center justify-between w-full gap-2">
+                  <span className="text-[15px] sm:text-[17px] font-semibold leading-tight line-clamp-2">
+                    {item.label}
+                  </span>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground/50 flex-shrink-0" />
+                </div>
+              </>
+            );
 
-        {/* Notification settings. Shown everywhere now that the screen saves
-            preferences on the web too; only the scheduling half needs the app,
-            and the screen says so itself. */}
-        {(
-          <Link
-            to="/notifications"
-            className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border/60 text-sm font-semibold text-muted-foreground hover:bg-muted/40"
-          >
-            <Bell className="h-4 w-4" /> Notifications
-          </Link>
-        )}
+            if (item.to) {
+              return (
+                <Link
+                  key={item.id}
+                  to={item.to}
+                  className="card-lift group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 text-left min-h-[96px] sm:min-h-[104px]"
+                >
+                  {cardContent}
+                </Link>
+              );
+            }
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => setPage(item.id as Page)}
+                className="card-lift group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 text-left min-h-[96px] sm:min-h-[104px]"
+              >
+                {cardContent}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Sign out */}
         <AlertDialog>

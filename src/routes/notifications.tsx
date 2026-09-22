@@ -9,7 +9,7 @@
  * plugin only exists in the app. Saying so plainly beats silently doing half
  * the job.
  */
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Bell, Clock, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -50,6 +50,15 @@ interface Profile {
 function NotificationSettings() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
+
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      navigate({ to: "/profile", replace: true });
+    }
+  };
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -210,7 +219,7 @@ function NotificationSettings() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate({ to: "/profile" })}
+          onClick={goBack}
           aria-label="Back to profile"
         >
           <ArrowLeft className="h-5 w-5" />
