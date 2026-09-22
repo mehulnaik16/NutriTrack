@@ -98,3 +98,43 @@ export function catalogAliases(row: { name: string; lang?: string }): string[] {
   }
   return out;
 }
+
+const KJ_PER_KCAL = 4.184;
+
+/**
+ * How far a cacheable answer's stated energy may sit from what its own macros
+ * imply.
+ *
+ * Deliberately stricter than ENERGY_TOL (0.25) in foodAiSchema.ts, and doing a
+ * different job. That one repairs a bad value so the user still sees an
+ * answer, because this path only runs when local search found nothing. This
+ * one decides whether the answer is solid enough to count toward the three
+ * that make a food permanent. A borderline answer is shown and not cached.
+ *
+ * 10% costs roughly 6% of genuine foods by the measurement recorded on
+ * ENERGY_TOL — an acceptable price for a row that outlives the search.
+ */
+export const CACHE_ENERGY_TOL = 0.1;
+
+/**
+ * Is this single answer internally consistent enough to be cached?
+ *
+ * MUST be called on the raw model answer, before reconcileEnergy touches it.
+ * Run afterwards it always returns true, because a repaired enerc is computed
+ * from these very macros.
+ */
+export function cacheGate(it: {
+  enerc: number;
+  protcnt: number;
+  fatce: number;
+  choavldf: number;
+  fibtg: number;
+}): boolean {
+  if (!(it.enerc > 0)) return false;
+  // Per 100 g, the parts cannot outweigh the whole.
+  if (it.protcnt + it.fatce + it.choavldf + it.fibtg > 100) return false;
+  const implied =
+    (4 * it.protcnt + 9 * it.fatce + 4 * it.choavldf) * KJ_PER_KCAL;
+  if (!(implied > 0)) return false;
+  return Math.abs(it.enerc - implied) <= CACHE_ENERGY_TOL * implied;
+}

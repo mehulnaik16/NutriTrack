@@ -64,6 +64,57 @@ assert.deepEqual(
 assert.deepEqual(catalogAliases({ name: "Bajra", lang: "" }), []);
 
 // A parenthetical that is a portion hint, not an alias, must not become one.
-assert.deepEqual(catalogAliases({ name: "Roti (1 medium = 40g)", lang: "" }), []);
+assert.deepEqual(
+  catalogAliases({ name: "Roti (1 medium = 40g)", lang: "" }),
+  [],
+);
+
+// ── Atwater cache gate ──────────────────────────────────────────────────────
+import { cacheGate, CACHE_ENERGY_TOL } from "./foodCache.ts";
+import { reconcileEnergy } from "./foodAiSchema.ts";
+
+const KJ = 4.184;
+/** Internally consistent: 10P + 5F + 20C implies (40 + 45 + 80) kcal. */
+const consistent = {
+  name: "test food",
+  protcnt: 10,
+  fatce: 5,
+  choavldf: 20,
+  fibtg: 2,
+  enerc: +(165 * KJ).toFixed(1),
+};
+
+assert.equal(CACHE_ENERGY_TOL, 0.1);
+assert.equal(cacheGate(consistent), true);
+
+// Within 10%: still cacheable.
+assert.equal(cacheGate({ ...consistent, enerc: 165 * KJ * 1.08 }), true);
+// Outside 10%: shown to the user, never cached.
+assert.equal(cacheGate({ ...consistent, enerc: 165 * KJ * 1.2 }), false);
+
+// Zero energy fails. The zero-energy IFCT oils are a catalog quirk, not
+// something an AI answer may reproduce.
+assert.equal(cacheGate({ ...consistent, enerc: 0 }), false);
+
+// Mass balance: the macros of 100 g cannot exceed 100 g. The schema caps each
+// field at 100 individually and never checks the sum.
+assert.equal(
+  cacheGate({ protcnt: 40, fatce: 40, choavldf: 40, fibtg: 5, enerc: 2800 }),
+  false,
+);
+
+// ── Review Focus 1: the gate must run BEFORE reconcileEnergy ──────────────
+// A repaired answer is Atwater-consistent by construction, so gating after the
+// repair can never fail and the whole check becomes a no-op.
+// 1.5x (50% over), not the brief's 1.2x: reconcileEnergy only repairs past its
+// own ENERGY_TOL (25%), and 20% over sits inside that tolerance, so a 1.2x
+// value is returned unrepaired and the "proof" assertion below would fail.
+const bad = { ...consistent, enerc: 165 * KJ * 1.5 };
+assert.equal(cacheGate(bad), false, "raw answer must fail");
+assert.equal(
+  cacheGate(reconcileEnergy(bad, "test food")),
+  true,
+  "repaired answer passes — proof the gate must see the raw value first",
+);
 
 console.log("foodCache: all assertions passed");
