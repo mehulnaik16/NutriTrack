@@ -32,8 +32,11 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   serverGeminiChat,
   serverGroqChat,
+  serverAiFoodSearchInline,
   type FoodSearchEngine,
 } from "@/lib/ai";
+import { searchFoods, kcalOf, type IFCTItem } from "@/lib/foodDb";
+import { toGrams, pieceGrams, type UnitFood } from "@/lib/foodUnits";
 import type { MealPicker } from "@/components/PhotoFoodDialog";
 
 /**
@@ -71,7 +74,85 @@ export interface VoiceFoodItem {
 }
 
 // ── Voice food logging ──────────────────────────────────────────────────────
-async function parseVoiceFoodLog(
+
+/** What the parse call returns now: names and quantities, no macros. */
+export type ParsedVoiceItem = Pick<
+  VoiceFoodItem,
+  "food_name" | "quantity_g" | "unit" | "unit_quantity" | "meal_type"
+>;
+
+/**
+ * Grams to price the food at.
+ *
+ * The parse model guesses a total weight from its own hardcoded portion sizes
+ * (see the prompt below). But once the name resolves to a real food —
+ * catalog, cache, or a fresh AI answer — that food may carry its own, more
+ * authoritative piece weight (`piece_g`, set when `basis` is "piece"). When
+ * the user counted rather than weighed ("2 idlis", unit not "g"), the
+ * resolved food's own piece weight wins over the parse step's guess: a
+ * bundled Idli row and the parse model's private idea of "1 idli" can
+ * disagree, and only one of them is verified data. `toGrams`/`pieceGrams`
+ * are the same converter the typed search path uses for this.
+ */
+export function gramsFor(it: ParsedVoiceItem, food: UnitFood): number {
+  if (
+    it.unit &&
+    it.unit !== "g" &&
+    it.unit_quantity &&
+    pieceGrams(food) !== undefined
+  ) {
+    return toGrams(it.unit_quantity, "pcs", food);
+  }
+  return it.quantity_g || 100;
+}
+
+/**
+ * Resolve one parsed name to macros through the same tiers a typed search
+ * uses: the bundled catalog first — free, local, the same search FoodSearch's
+ * own suggestions run — and only on a miss does this reach
+ * serverAiFoodSearchInline, which itself checks the user's correction and the
+ * verified cache before ever calling a model. Skipping the catalog step would
+ * send a food already in the bundle, like "idli", into that round trip for
+ * nothing.
+ *
+ * Returns null when nothing resolves. A confident zero is worse than an
+ * admitted gap — the caller surfaces these rather than logging them silently.
+ */
+export async function resolveVoiceItem(
+  it: ParsedVoiceItem,
+  engine: FoodSearchEngine,
+): Promise<VoiceFoodItem | null> {
+  let food: IFCTItem | undefined = searchFoods(it.food_name, 1)[0];
+  if (!food) {
+    try {
+      const { items: found } = await serverAiFoodSearchInline({
+        data: { query: it.food_name, engine },
+      });
+      food = found[0];
+    } catch (e) {
+      console.error("Voice item resolution failed:", it.food_name, e);
+    }
+  }
+  if (!food) return null;
+
+  const grams = gramsFor(it, food);
+  const ratio = grams / 100;
+  return {
+    ...it,
+    quantity_g: grams,
+    // kcalOf() converts the catalog/cache's kJ `enerc` to kcal (÷ KJ_PER_KCAL)
+    // internally — food_logs and VoiceFoodItem are both kcal.
+    calories: +(kcalOf(food) * ratio).toFixed(1),
+    protein_g: +((food.protcnt ?? 0) * ratio).toFixed(1),
+    carbs_g: +((food.choavldf ?? 0) * ratio).toFixed(1),
+    fat_g: +((food.fatce ?? 0) * ratio).toFixed(1),
+    fiber_g: +((food.fibtg ?? 0) * ratio).toFixed(1),
+  };
+}
+
+// Exported so this can be driven headlessly against the real cache/model
+// path in a live check — same reason src/lib/ai.ts exports runFoodSearch.
+export async function parseVoiceFoodLog(
   transcript: string,
   mealType: string,
   engine: FoodSearchEngine = "groq",
@@ -84,31 +165,27 @@ Parse every food item mentioned and return ONLY a JSON array, no markdown:
     "quantity_g": number,
     "unit": "string (e.g. 'pieces', 'bowls', 'g')",
     "unit_quantity": number,
-    "meal_type": "${mealType}",
-    "calories": number,
-    "protein_g": number,
-    "carbs_g": number,
-    "fat_g": number,
-    "fiber_g": number
+    "meal_type": "${mealType}"
   }
 ]
 Rules:
+- Name the food only. Do NOT return calories or any macro value: those are
+  looked up separately, from a verified database wherever one exists.
 - Use common portion sizes if not specified (1 roti = 40g, 1 bowl dal = 150g, 1 banana = 120g, 1 egg = 50g)
 - If user says "2 rotis", set unit="rotis", unit_quantity=2, quantity_g=80. If they just say grams, set unit="g", unit_quantity=100
-- Use accurate nutritional values for Indian foods
 - Each distinct food is a separate item in the array
 - Return empty array [] if no food is mentioned`;
 
   const { result: raw } =
     engine === "gemini"
       ? await serverGeminiChat({
-          data: { prompt, max_tokens: 600, temperature: 0.1 },
+          data: { prompt, max_tokens: 400, temperature: 0.1 },
         })
       : await serverGroqChat({
           data: {
             prompt,
             model: "openai/gpt-oss-120b",
-            max_tokens: 600,
+            max_tokens: 400,
             temperature: 0.1,
           },
         });
@@ -117,9 +194,31 @@ Rules:
   // Both models are asked for a bare array and usually give one, but a
   // JSON-mode model is free to wrap it in an object — which used to reach the
   // review list as a non-array and throw on .map().
-  if (Array.isArray(parsed)) return parsed as VoiceFoodItem[];
-  const nested = Object.values(parsed ?? {}).find(Array.isArray);
-  return (nested ?? []) as VoiceFoodItem[];
+  const items: ParsedVoiceItem[] = Array.isArray(parsed)
+    ? (parsed as ParsedVoiceItem[])
+    : ((Object.values(parsed ?? {}).find(Array.isArray) ??
+        []) as ParsedVoiceItem[]);
+
+  // Each parsed name goes through the same path a typed search takes: the
+  // bundled catalog, then the user's correction and the verified cache (both
+  // inside serverAiFoodSearchInline), and only then a paid call. This is what
+  // puts voice and photo logs on the cache instead of beside it.
+  const resolved = await Promise.all(
+    items.map((it) => resolveVoiceItem(it, engine)),
+  );
+
+  const unresolved = items
+    .filter((_, i) => resolved[i] === null)
+    .map((it) => it.food_name);
+  if (unresolved.length) {
+    toast.warning(
+      `Couldn't find nutrition data for ${unresolved.join(", ")} — add ${
+        unresolved.length > 1 ? "them" : "it"
+      } manually via search.`,
+    );
+  }
+
+  return resolved.filter((it): it is VoiceFoodItem => it !== null);
 }
 
 export function VoiceFoodDialog({
