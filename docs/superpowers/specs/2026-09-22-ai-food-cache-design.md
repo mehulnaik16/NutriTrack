@@ -15,7 +15,7 @@ them before trusting them, and serves them for free from then on.
 Success is measured two ways: AI spend per logged food falls as the same foods
 recur, and a cached answer is at least as trustworthy as the AI answer it
 replaces — because nothing reaches the trusted tier without three independent
-agreeing answers.
+agreeing answers from at least two different people.
 
 ## Verified starting state
 
@@ -94,7 +94,7 @@ Four tiers are read in order. The first three cost nothing.
    A correction exists only for a verified row, so it is read once that row is
    found, and replaces the row's numbers for this user alone.
 3. **`ai_verified`** — the shared trusted tier, three independent agreeing
-   answers consolidated into one row.
+   answers, from at least two different people, consolidated into one row.
 4. **AI call** — last resort, and its answer becomes a row in `ai_unverified`.
 
 Before any of the server tiers, the typed search checks the user's own
@@ -142,6 +142,7 @@ One row per individual AI answer.
 | `protcnt`, `fatce`, `choavldf`, `fibtg` | numeric | grams |
 | `aliases` | text[] | this single answer's claim; not trusted yet |
 | `engine`, `model` | text | which model produced this row |
+| `user_hash` | text | SHA-256 hex of the searching user's id — counts distinct people in a group (Decisions after approval, 9) |
 | `created_at` | timestamptz | |
 
 Indexes: btree on `canonical_key`, GIN `gin_trgm_ops` on `search_key`.
@@ -251,8 +252,14 @@ if their keys collide.
    contained more than one JSON object (an echoed few-shot example would
    validate cleanly and could be cached under the wrong key), and a second
    item of the same key and class within one reply (not an independent
-   answer).
-7. If the group now holds three rows, run the quorum check. All five macros
+   answer). Every row records `user_hash`, the SHA-256 of the searching
+   user's id; a search with no user stages nothing, and a user who already
+   holds `3 − MIN_DISTINCT_USERS + 1` (today 2) rows in the open group stages
+   nothing more, so any three rows come from at least `MIN_DISTINCT_USERS`
+   people.
+7. If the group now holds three rows, run the quorum check — which also
+   re-checks that the three come from at least `MIN_DISTINCT_USERS` people,
+   resetting the group if not. All five macros
    passing consolidates the group into one `ai_verified` row — the mean of
    each macro, the median `piece_g`, the majority `basis`, the most common
    name — inserted only if no row holds that key, never overwriting one — and
@@ -388,28 +395,28 @@ script but their romanisations `en` and `naa` are not — two-letter tokens
 collide with ordinary words and food names far too often to be trusted. (`my`
 is the one two-letter exception: it is unambiguous in English.)
 
-A leading `<word>'s` or `<word>’s` possessive also marks a personal name —
-"mom's shake", "amma's rasam", "grandma’s curry" — except where the possessor
-names a real food: the brands the bundled catalog lists this way (McDonald's,
-Wendy's, Domino's; 309 rows), other common packaged brands, and dishes whose
-own name is possessive ("shepherd's pie", "lady's finger"). That exclusion list
-is fixed, and a brand missing from it ("Mother's Recipe") is treated as
-personal — the cheap direction. No name in the bundled catalog is flagged.
+A leading `<word>'s` or `<word>’s` possessive also marks a personal name when
+the possessor is a family or relationship word — "mom's shake", "amma's rasam",
+"grandma’s curry". Any other possessor reads as a food: brands (Bikaji's,
+Amul's, Reese's, Haldiram's, McDonald's) and dishes whose own name is
+possessive ("shepherd's pie", "baker's chocolate"). The family list is fixed
+and short; a first name ("Priya's salad") is a known miss, caught by the
+saved-meal signal once saved. No name in the bundled catalog is flagged.
 
 **Ties break toward personal.** The two errors are not symmetric: a false
 positive costs one user one AI call and one row the shared cache never gains,
 while a false negative writes somebody's private meal name into a shared table
 for good. When a marker matches ambiguously, treat the query as personal.
 
-This is a heuristic and it will miss unusual phrasings, and **the quorum is
-not a backstop for what it misses.** `ai_unverified` records no user, and the
-three answers can all come from the same model at temperature 0.1. One user
-searching a non-possessive private name ("post-gym shake") three times, before
-ever saving it, can fill a quorum on their own; the model reads it as a real
-food the same way each time, the answers agree, and the private name becomes a
-shared verified row. Requiring the three answers to come from three different
-users would close this, at the cost of slower convergence while the user base
-is small — a product decision that is open, not taken.
+This is a heuristic and it will miss unusual phrasings. **The quorum is a
+second line, not a full backstop.** The three answers all come from the same
+model at temperature 0.1, so agreement rules out a one-off outlier, not a
+consistent misreading. What it does rule out is one person promoting a name
+alone: a group needs answers from at least `MIN_DISTINCT_USERS` different
+people (see "Decisions after approval", item 9), so a private name one user
+searches over and over never fills a group. With the threshold at 2, two
+people independently searching the same missed private name could still
+promote it — rare, and closed further when the threshold rises to 3.
 
 ## Voice and photo logs
 
@@ -527,9 +534,10 @@ The `saved_meals` match is component logic in `FoodSearch`.
   Mitigated by exact key matching with no threshold to loosen, by refusing a
   key two verified rows share, and by `food_class` agreement within a group —
   not by loosening the match.
-- A personal name that detection misses can reach `ai_verified` through one
-  user's repeated searches (see "Personal names"). Open, pending the product
-  owner's decision on a distinct-user quorum.
+- A personal name that detection misses can reach `ai_verified` only if at
+  least `MIN_DISTINCT_USERS` (today 2) different people search it and the
+  answers agree (see "Personal names"). Accepted at today's scale; the
+  threshold rises to 3 as the user base grows.
 
 ## Decisions after approval
 
@@ -587,3 +595,27 @@ sections above have been corrected to match; this is the record of why.
    150 g cup); the saved-meal signal only ran after a possessive had already
    matched; and auto-save tested the model's corrected name, so it never fired
    for an AI estimate.
+   Owner-authorised second round: a catalog name splits into alternatives
+   only at a spaced " / " (raw IFCT rows use an unspaced "/" for a spelling
+   variant of the last word), and a bracket is dropped only when it holds a
+   measurement — except on curated rows, whose brackets name the default
+   state ("Paneer (raw)", "Poha (cooked)"). Spoken "paratha" had logged
+   Potato paratha, "lassi" Lassi (salted) at 19 kcal, "jackfruit" dry
+   jackfruit at 481 kcal. The `<word>'s` possessive rule now fires only for
+   family and relationship words, because it had flagged brands (Bikaji's,
+   Amul's, Reese's) that then never cached. A custom food is never
+   auto-saved: its "Save to My Meals" box decides.
+9. **Quorum counts distinct people: `MIN_DISTINCT_USERS = 2`.** Owner
+   decision. Before this, one user searching a food three times could fill
+   and promote a group alone, including a private name detection missed.
+   `ai_unverified.user_hash` records who staged each answer (SHA-256 hex of
+   the user id, unsalted: the table is service_role-only and its readers can
+   already read `auth.users`). Enforced at staging — each user holds at most
+   `3 − MIN_DISTINCT_USERS + 1` rows of an open group, so any three rows span
+   the required number of people and a group never stalls on one person's
+   rows — and re-checked at promotion. **The threshold is scale-dependent.**
+   2 is chosen for the current small user base (about 5 real users), where 3
+   would stall verification because few foods are ever searched by three
+   different people. It should rise to 3 once the user base is large enough
+   (the owner's figure: 1k–10k users) that it is no longer a bottleneck; the
+   per-user cap then becomes 1 automatically.
