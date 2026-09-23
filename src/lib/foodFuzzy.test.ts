@@ -137,4 +137,21 @@ const hits = (q: string) => strongFoods(q, 3).length;
   console.log(`✓ F8 exact names rank first`);
 }
 
+// ── F9: a regional name shaped like a language tag is not stripped ─────────
+// Toddy's lang ends "Mal., Tam., Tel. Kallu." — a capital, four lowercase
+// letters and a dot, the same shape as "Kash." The old tag pattern deleted it,
+// so "kallu" found nothing locally and went to the paid model. "Kaali Mirch."
+// lost its second word the same way.
+{
+  assert.ok(
+    top("kallu").toLowerCase().includes("toddy"),
+    `F9 "kallu" should reach Toddy, got "${top("kallu") || "(nothing)"}"`,
+  );
+  assert.ok(
+    top("kaali mirch").toLowerCase().includes("pepper"),
+    `F9 "kaali mirch" should reach black pepper, got "${top("kaali mirch") || "(nothing)"}"`,
+  );
+  console.log(`✓ F9 tag-shaped regional names survive: kallu → Toddy, kaali mirch → Pepper`);
+}
+
 console.log("\n✅ All food-fuzzy tests passed.");
