@@ -185,6 +185,43 @@ assert.equal(quorumPasses([macro(), macro(), macro({ protcnt: 14 })]), false);
 // A group that is not yet three rows never passes.
 assert.equal(quorumPasses([macro(), macro()]), false);
 
+// ── quorum counts distinct PEOPLE ───────────────────────────────────────────
+import {
+  MIN_DISTINCT_USERS,
+  PER_USER_CAP,
+  QUORUM_SIZE,
+  enoughUsers,
+} from "./foodCache.ts";
+
+assert.equal(MIN_DISTINCT_USERS, 2);
+assert.equal(PER_USER_CAP, QUORUM_SIZE - MIN_DISTINCT_USERS + 1);
+assert.equal(PER_USER_CAP, 2);
+const by = (...hs: (string | null)[]) => hs.map((user_hash) => ({ user_hash }));
+assert.equal(enoughUsers(by("a", "a", "a")), false, "one person alone");
+assert.equal(enoughUsers(by("a", "a", "b")), true);
+assert.equal(enoughUsers(by("a", null, null)), false, "no id counts as nobody");
+// The staging cap is what makes the promotion check hold by construction:
+// replay every order of staging attempts by three users, staging a row only
+// while that user holds fewer than PER_USER_CAP, and the first QUORUM_SIZE
+// rows always span MIN_DISTINCT_USERS people. Checked against the cap formula
+// for MIN_DISTINCT_USERS 1..3, so raising the constant cannot break it.
+for (let min = 1; min <= QUORUM_SIZE; min++) {
+  const cap = QUORUM_SIZE - min + 1;
+  const users = ["a", "b", "c"];
+  const orders = (n: number): string[][] =>
+    n === 0 ? [[]] : orders(n - 1).flatMap((o) => users.map((u) => [...o, u]));
+  for (const attempts of orders(6)) {
+    const staged: string[] = [];
+    for (const u of attempts)
+      if (staged.filter((s) => s === u).length < cap) staged.push(u);
+    if (staged.length >= QUORUM_SIZE)
+      assert.ok(
+        new Set(staged.slice(0, QUORUM_SIZE)).size >= min,
+        `min ${min}: ${attempts.join("")}`,
+      );
+  }
+}
+
 // ── Review Focus 2: near-zero macros ──────────────────────────────────────
 // Fibre 0 across all three is agreement, not a division by nothing.
 assert.equal(

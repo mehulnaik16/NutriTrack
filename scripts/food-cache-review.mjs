@@ -4,7 +4,8 @@
  *
  * Prints what reached ai_verified in the last 7 days, which verified foods users
  * have corrected for themselves (ai_flagged), and which foods are sitting in
- * ai_unverified short of the three agreeing answers promotion needs.
+ * ai_unverified short of the three agreeing answers, from at least two
+ * different people, that promotion needs.
  *
  * Promotion into the bundled catalog, src/data/extraFoods.ts, stays a hand-made
  * edit and a reviewed commit. Nothing automates it, and nothing should: the
@@ -138,20 +139,33 @@ const pending = await read(
   "ai_unverified",
   db
     .from("ai_unverified")
-    .select("canonical_key, food_class, food_name, created_at"),
+    .select("canonical_key, food_class, food_name, created_at, user_hash"),
 );
 
+// Must match MIN_DISTINCT_USERS in src/lib/foodCache.ts (scale-dependent: 2
+// for today's small user base, 3 once it reaches 1k–10k users).
+const MIN_DISTINCT_USERS = 2;
+
 // Grouped as recordAnswer groups them: by key AND class. Answers that agree on
-// the key but not the class never count toward the same three.
+// the key but not the class never count toward the same three. A group needs
+// three answers from at least MIN_DISTINCT_USERS different people.
 const groups = new Map();
 for (const p of pending) {
   const id = `${p.canonical_key} [${p.food_class}]`;
-  const g = groups.get(id) ?? { n: 0, first: p.created_at, name: p.food_name };
+  const g = groups.get(id) ?? {
+    n: 0,
+    users: new Set(),
+    first: p.created_at,
+    name: p.food_name,
+  };
   g.n++;
+  if (p.user_hash) g.users.add(p.user_hash);
   if (p.created_at < g.first) g.first = p.created_at;
   groups.set(id, g);
 }
 
 console.log(`\n=== Short of quorum: ${groups.size} foods ===`);
 for (const [id, g] of [...groups].sort((a, b) => b[1].n - a[1].n))
-  console.log(`${id}  — ${g.n}/3, since ${day(g.first)}  (${g.name})`);
+  console.log(
+    `${id}  — ${g.n}/3 answers, ${g.users.size}/${MIN_DISTINCT_USERS} people, since ${day(g.first)}  (${g.name})`,
+  );

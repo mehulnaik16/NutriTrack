@@ -189,15 +189,46 @@ export const QUORUM_ABS_FLOOR = 0.5;
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
+/** How many staged answers a group needs before quorum is tested. */
+export const QUORUM_SIZE = 3;
+
+/**
+ * How many DIFFERENT people a group's answers must come from. Without it one
+ * user searching a food three times fills a quorum alone — including a private
+ * meal name isPersonalName misses.
+ *
+ * SCALE-DEPENDENT. 2 is chosen for the current small user base (about 5 real
+ * users), where 3 would stall verification: few foods would ever be searched
+ * by three different people. Raise it to 3 once the user base is large enough
+ * (the owner's figure: 1k–10k users) that it is no longer a bottleneck.
+ * PER_USER_CAP follows automatically.
+ */
+export const MIN_DISTINCT_USERS = 2;
+
+/**
+ * Most rows one user may hold in one open (canonical_key, food_class) group.
+ * With at most this many per person, any QUORUM_SIZE staged rows necessarily
+ * span MIN_DISTINCT_USERS people, so a group can never fill — and stall — on
+ * one user's rows. 2 today; 1 when MIN_DISTINCT_USERS is 3.
+ */
+export const PER_USER_CAP = QUORUM_SIZE - MIN_DISTINCT_USERS + 1;
+
+/** Whether a group's answers come from enough different people. */
+export const enoughUsers = (group: readonly { user_hash: string | null }[]) =>
+  new Set(group.map((g) => g.user_hash).filter(Boolean)).size >=
+  MIN_DISTINCT_USERS;
+
 /**
  * Do three independent answers agree closely enough to become permanent?
+ * (Independent of each other, and from at least MIN_DISTINCT_USERS people —
+ * see enoughUsers, which recordAnswer checks beside this.)
  *
  * All five macros must pass. A single failure deletes the whole group and
  * restarts it from empty — deliberately not a sliding window, so a run of bad
  * answers can never accumulate into a verified row.
  */
 export function quorumPasses(rows: Macros[]): boolean {
-  if (rows.length !== 3) return false;
+  if (rows.length !== QUORUM_SIZE) return false;
   return MACROS.every((m) => {
     const values = rows.map((r) => r[m]);
     const avg = mean(values);

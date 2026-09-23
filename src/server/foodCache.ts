@@ -23,13 +23,17 @@
  */
 import {
   MACROS,
+  PER_USER_CAP,
+  QUORUM_SIZE,
   type LoggedEdit,
   type Macros,
   consolidate,
   consolidateIdentity,
+  enoughUsers,
   per100g,
   quorumPasses,
 } from "@/lib/foodCache";
+import { createHash } from "node:crypto";
 import { crossCheckAliases, scriptOf, searchKey } from "./foodCacheKeys.ts";
 import { searchFoods } from "@/lib/foodDb";
 
@@ -75,7 +79,18 @@ type GroupRow = Macros & {
   piece_g: number | null;
   aliases: string[] | null;
   model: string;
+  user_hash: string | null;
 };
+
+/**
+ * Who staged an answer, as ai_unverified stores it: SHA-256 hex of the
+ * authenticated user id, unsalted. Its one job is counting distinct people in
+ * a group. The table is service_role-only, and any reader of it can already
+ * read auth.users, so a secret pepper would add a deploy dependency for no
+ * real protection.
+ */
+export const userHash = (userId: string) =>
+  createHash("sha256").update(userId).digest("hex");
 
 /**
  * Similarity is a backstop for typos in the SAME script. It is not, and cannot
@@ -245,8 +260,13 @@ export async function lookupCache(opts: {
  * The caller has already served the user, so nothing here is on the critical
  * path and nothing here may throw.
  */
-export async function recordAnswer(row: UnverifiedRow): Promise<void> {
+export async function recordAnswer(
+  row: UnverifiedRow,
+  user_hash: string,
+): Promise<void> {
   try {
+    // No person, no row: a group's answers must be countable by who gave them.
+    if (!user_hash) return;
     // Inside the try: reading `row.canonical_key` was the one dereference in
     // this module sitting outside it, and a null row from a caller would have
     // thrown straight through into search.
@@ -262,7 +282,27 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
     const table = (name: string) => db.from(name as any) as any;
     const unverified = () => table("ai_unverified");
 
+    // At most PER_USER_CAP rows per person in one open group, so any
+    // QUORUM_SIZE rows span MIN_DISTINCT_USERS people and a group can never
+    // fill up on one user's searches. Enforced here, at staging, rather than
+    // only at promotion: a group full of one person's rows would otherwise
+    // sit at the head of the queue forever. A failed count stages nothing.
+    const { count: mine, error: capError } = await unverified()
+      .select("id", { count: "exact", head: true })
+      .eq("canonical_key", row.canonical_key)
+      .eq("food_class", row.food_class)
+      .eq("user_hash", user_hash);
+    if (capError || mine == null) {
+      warn(
+        "ai_unverified cap read failed, answer served but not cached",
+        capError,
+      );
+      return;
+    }
+    if (mine >= PER_USER_CAP) return;
+
     const { error: insertError } = await unverified().insert({
+      user_hash,
       canonical_key: row.canonical_key,
       search_key: searchKey(row.canonical_key),
       food_name: row.food_name,
@@ -304,9 +344,9 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
 
     const group: GroupRow[] = ((all ?? []) as GroupRow[])
       .filter((g) => g.food_class === row.food_class)
-      .slice(0, 3);
+      .slice(0, QUORUM_SIZE);
 
-    if (group.length < 3) return;
+    if (group.length < QUORUM_SIZE) return;
 
     const macroRows = group.map((g) => {
       const m = {} as Macros;
@@ -314,7 +354,10 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
       return m;
     });
 
-    if (quorumPasses(macroRows)) {
+    // enoughUsers is defence in depth: the staging cap already guarantees it,
+    // barring a race between two of one user's own searches. A group short of
+    // people is reset like a group that disagrees.
+    if (enoughUsers(group) && quorumPasses(macroRows)) {
       const rowKey = searchKey(row.canonical_key);
       const aliases = crossCheckAliases(group.map((g) => g.aliases ?? []));
 
@@ -379,7 +422,8 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
 /**
  * Store one model response, which may describe several foods.
  *
- * Quorum means three *independent* verdicts on the same food. Two items of one
+ * Quorum means three *independent* verdicts on the same food, from at least
+ * MIN_DISTINCT_USERS different people (the cap in recordAnswer). Two items of one
  * response are not two verdicts: they come from one model, one prompt and one
  * generation, so whatever produced a wrong number in the first is still in
  * force for the second. A response that named the same food twice — the same
@@ -404,8 +448,16 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
  * the hole. Deliberately sequential: each answer has to read back the group the
  * one before it just joined.
  */
-export async function recordAnswers(rows: UnverifiedRow[]): Promise<void> {
+export async function recordAnswers(
+  rows: UnverifiedRow[],
+  userId: string,
+): Promise<void> {
   try {
+    // The authenticated user from the server function's context, never from
+    // client input. No user, nothing staged: a row nobody can be counted for
+    // could fill a quorum alone.
+    if (!userId) return;
+    const hash = userHash(userId);
     const keys = [
       ...new Set((rows ?? []).map((r) => r?.canonical_key).filter(Boolean)),
     ];
@@ -431,7 +483,7 @@ export async function recordAnswers(rows: UnverifiedRow[]): Promise<void> {
       const slot = JSON.stringify([row?.canonical_key, row?.food_class]);
       if (seen.has(slot)) continue;
       seen.add(slot);
-      await recordAnswer(row);
+      await recordAnswer(row, hash);
     }
   } catch (err) {
     console.warn(

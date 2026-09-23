@@ -297,7 +297,10 @@ export async function runFoodSearch(
     ? { kind: validated.kind, items: validated.items }
     : { kind: "single", items: [] };
 
-  if (!personal && !ambiguous) {
+  // No userId, nothing staged: quorum counts distinct people (see
+  // MIN_DISTINCT_USERS), and an answer nobody can be counted for could fill a
+  // group alone. Both server functions pass ctx.context.userId.
+  if (!personal && !ambiguous && userId) {
     // cacheableAnswers pairs each raw item with its own validation slot BY
     // POSITION and gates the RAW numbers — gating after reconcileEnergy would
     // be a silent no-op, since a repaired enerc passes by construction. The
@@ -323,6 +326,7 @@ export async function runFoodSearch(
         async () =>
           (await import("@/server/foodCache")).recordAnswers(
             rows.map((r) => ({ ...r, engine, model })),
+            userId,
           ),
         undefined,
       );
