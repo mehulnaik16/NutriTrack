@@ -29,7 +29,8 @@ create index ai_unverified_group_idx on public.ai_unverified (canonical_key);
 create index ai_unverified_search_idx
   on public.ai_unverified using gin (search_key extensions.gin_trgm_ops);
 
--- The trusted tier. Read on every search alongside the bundled catalog.
+-- The trusted tier. Read only when the bundled catalog has no answer and a
+-- search reaches the server — never on a catalog hit.
 create table public.ai_verified (
   canonical_key text primary key,
   search_key text not null,

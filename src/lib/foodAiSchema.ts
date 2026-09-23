@@ -278,10 +278,12 @@ const AiFoodItem = z
     fibtg: z.number().finite().min(0).max(100),
 
     // ── Cache fields ─────────────────────────────────────────────────────
-    // The cache groups three independent answers by canonical_key and refuses
-    // to serve a keyed match whose food_class disagrees. Every one of these
-    // catches to a safe empty value: an answer without them is still shown to
-    // the user, it just cannot be cached.
+    // The cache groups three independent answers by canonical_key, and only
+    // answers that also agree on food_class count toward the same group —
+    // food_class guards grouping, not lookup: a search carries no class to
+    // compare, so a verified row is served on its key alone. Every one of
+    // these catches to a safe empty value: an answer without them is still
+    // shown to the user, it just cannot be cached.
     canonical_key: z.string().max(120).catch(""),
     // food_class must be one of FOOD_CLASS_VALUES. Closed rather than free
     // text so three independent calls about the same food describe it the
