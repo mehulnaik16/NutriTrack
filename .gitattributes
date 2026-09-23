@@ -1,0 +1,20 @@
+# Every text file is checked out with LF line endings, on every OS.
+#
+# Without this, Git for Windows (core.autocrlf=true) wrote CRLF into the working
+# copy while the repository stores LF, and prettier -- which expects LF --
+# reported every line of every file: ~44,000 of the ~47,000 `npm run lint`
+# errors were this one mismatch, burying the real ones.
+* text=auto eol=lf
+
+# Binary assets: never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.keystore binary
