@@ -264,7 +264,7 @@ export async function runFoodSearch(
   // "thatte idli" 4 calls out of 5 (see extractJsonObject's own comment).
   // Logged, not silent: a future regression of this shape now leaves a trace
   // instead of a blank screen with no record of why.
-  const parsed = extractJsonObject(raw);
+  const { value: parsed, count: candidateCount } = extractJsonObject(raw);
   if (parsed === undefined) {
     console.warn("[ai-food-search] no JSON object found in the model's reply", {
       query: cleanQuery,
@@ -274,6 +274,21 @@ export async function runFoodSearch(
     });
     return { kind: "single", items: [] };
   }
+  // More than one candidate means the model echoed something else that also
+  // happens to be valid JSON before its real answer — the prompt's own
+  // EXAMPLES section is full of exactly that shape (six complete, schema-
+  // valid objects). extractJsonObject already chose the LAST one to serve,
+  // but an echoed few-shot example would pass Zod validation cleanly and
+  // could be written to the shared cache under the wrong canonical_key and
+  // food_class — permanently. Ambiguity costs one uncached answer, never a
+  // wrong row: the answer is still served, just not recorded below.
+  const ambiguous = candidateCount > 1;
+  if (ambiguous) {
+    console.warn(
+      "[ai-food-search] multiple JSON objects in the model's reply — serving the last, not caching it",
+      { query: cleanQuery, engine, candidateCount },
+    );
+  }
 
   const validated = validateFoodSlots(parsed, cleanQuery);
   // Built field by field so the cache-only `slots` array never rides along in
@@ -282,7 +297,7 @@ export async function runFoodSearch(
     ? { kind: validated.kind, items: validated.items }
     : { kind: "single", items: [] };
 
-  if (!personal) {
+  if (!personal && !ambiguous) {
     // cacheableAnswers pairs each raw item with its own validation slot BY
     // POSITION and gates the RAW numbers — gating after reconcileEnergy would
     // be a silent no-op, since a repaired enerc passes by construction. The

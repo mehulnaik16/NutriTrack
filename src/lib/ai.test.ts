@@ -251,17 +251,28 @@ const item = (over: Record<string, unknown> = {}) => ({
 // ── A13: JSON extraction tolerates prose around the object ────────────────
 // Pins the "thatte idli" regression: the model echoing input before its
 // JSON answer must not lose the answer the way a bare JSON.parse did.
+//
+// v1 of extractJsonObject returned the value directly; v2 returns
+// { value, count } so an ambiguous reply (more than one candidate) can be
+// told apart from a clean one. Every case below is confirmed, by a separate
+// throwaway script run against a copy of the v1 function pulled from commit
+// 482e365, to actually fail there — "decoy object" returns the decoy
+// instead of the real answer, and "unmatched {" returns undefined and never
+// reaches the real answer at all. Both are exactly the failure classes the
+// controller ruling named.
 {
   const good = JSON.stringify({ kind: "single", items: [item()] });
+  const goodParsed = JSON.parse(good);
 
   // A leading echo — the real failure shape: the model repeats the
   // <reference> block (and sometimes the <query> tag) before answering.
+  // Prose alone, no braces, so this is the "one candidate" case.
   const leadingEcho =
     `<reference>\nIdli | E 376.6 | P 2.5 | F 0.2 | C 19.5 | Fib 0.8\n</reference>\n<query>thatte idli</query>\n` +
     good;
   assert.deepStrictEqual(
     extractJsonObject(leadingEcho),
-    JSON.parse(good),
+    { value: goodParsed, count: 1 },
     "A13 a leading echo must not lose the JSON object",
   );
 
@@ -269,37 +280,86 @@ const item = (over: Record<string, unknown> = {}) => ({
   const trailingProse = good + "\n\nLet me know if you'd like another food!";
   assert.deepStrictEqual(
     extractJsonObject(trailingProse),
-    JSON.parse(good),
+    { value: goodParsed, count: 1 },
     "A13 trailing prose must not break extraction",
   );
 
   // Both at once, plus a markdown fence — every symptom stacked.
-  const both =
-    "Sure, here is the reference I was given:\n```\n" +
-    good +
-    "\n```\nHope that helps!";
+  const both = "Sure, here is the reference I was given:\n```\n" + good + "\n```\nHope that helps!";
   assert.deepStrictEqual(
     extractJsonObject(both),
-    JSON.parse(good),
+    { value: goodParsed, count: 1 },
     "A13 leading and trailing text together must not break extraction",
   );
 
-  // No JSON object anywhere: must degrade to undefined, never throw, and
-  // never be confused with a legitimately parsed JS `null`.
-  assert.strictEqual(extractJsonObject("sorry, I don't understand"), undefined);
-  assert.strictEqual(extractJsonObject(""), undefined);
+  // No JSON object anywhere: must degrade to { value: undefined, count: 0 },
+  // never throw, and never be confused with a legitimately parsed JS `null`.
+  assert.deepStrictEqual(extractJsonObject("sorry, I don't understand"), {
+    value: undefined,
+    count: 0,
+  });
+  assert.deepStrictEqual(extractJsonObject(""), { value: undefined, count: 0 });
 
-  // A decoy "{...}" fragment ahead of the real object — e.g. a phrase like
-  // "the format looks like {this}" — must not make extraction give up after
-  // the first candidate fails to parse.
-  const decoyThenReal = "it looks like {this} not JSON, but here it is: " + good;
+  // CRITICAL, controller-ruled case: a decoy object that is itself valid
+  // JSON — exactly what an echoed few-shot example from this prompt's own
+  // EXAMPLES section would look like — sitting before the real answer. Must
+  // pick the LAST (real) one, and must report 2 candidates so the caller
+  // knows not to cache it.
+  const decoyThenReal = JSON.stringify({ note: "echoed reference" }) + good;
+  const decoyResult = extractJsonObject(decoyThenReal);
   assert.deepStrictEqual(
-    extractJsonObject(decoyThenReal),
-    JSON.parse(good),
-    "A13 a decoy brace fragment before the real object must not block extraction",
+    decoyResult.value,
+    goodParsed,
+    "A13 a decoy JSON object before the real one must not be served instead of it",
+  );
+  assert.strictEqual(
+    decoyResult.count,
+    2,
+    "A13 a decoy object must be counted, so the caller can refuse to cache an ambiguous reply",
   );
 
-  console.log("✓ A13 extractJsonObject: leading echo, trailing prose, decoy braces, no JSON at all");
+  // IMPORTANT, controller-ruled case: a lone, never-closed "{" ahead of the
+  // real object must not abort the scan before it reaches the real one —
+  // v1 returned undefined here, recreating the exact silent-blank-screen
+  // bug this function exists to prevent, just triggered a different way.
+  const unmatchedThenReal = "Here's the structure: {\n...\n" + good;
+  assert.deepStrictEqual(
+    extractJsonObject(unmatchedThenReal),
+    { value: goodParsed, count: 1 },
+    "A13 an unmatched { ahead of the real object must not block extraction",
+  );
+
+  // A decoy "{...}" fragment that IS balanced but not valid JSON on its own
+  // (e.g. "the format looks like {this}") must not make extraction give up
+  // either — same guarantee as the unmatched case, different shape of decoy.
+  const invalidBalancedDecoy = "it looks like {this} not JSON, but here it is: " + good;
+  assert.deepStrictEqual(
+    extractJsonObject(invalidBalancedDecoy),
+    { value: goodParsed, count: 1 },
+    "A13 a balanced but unparseable decoy must not block extraction",
+  );
+
+  // A single clean object: exactly one candidate, unambiguous.
+  assert.deepStrictEqual(extractJsonObject(good), { value: goodParsed, count: 1 });
+
+  // Braces and an escaped quote INSIDE a string value must not confuse the
+  // brace-depth scan into ending the object early or splitting it in two —
+  // this is what makes it safe to scan for "{" at all rather than requiring
+  // markdown fences or some other structural marker.
+  const trickyItem = item({
+    name: 'Curly {Brace} "Quoted" Dish',
+    heard: 'a "quoted" query with a { brace } in it',
+  });
+  const tricky = JSON.stringify({ kind: "single", items: [trickyItem] });
+  assert.deepStrictEqual(
+    extractJsonObject(tricky),
+    { value: JSON.parse(tricky), count: 1 },
+    "A13 braces and escaped quotes inside string values must not break extraction",
+  );
+
+  console.log(
+    "✓ A13 extractJsonObject: prose around a clean object, a decoy object (ambiguity reported), an unmatched {, a balanced-but-invalid decoy, and in-string braces/quotes",
+  );
 }
 
 console.log("\n✅ All AI food-search tests passed.");

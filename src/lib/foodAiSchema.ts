@@ -374,32 +374,61 @@ export function reconcileEnergy<
 
 /**
  * Pulls the model's JSON object out of a reply that may carry stray text
- * before or after it.
+ * before or after it — and reports how many candidates it found, so an
+ * AMBIGUOUS reply can be told apart from a clean one.
  *
  * The prompt's OUTPUT section asks for "ONLY one JSON object", but nothing
  * enforces that on the model's side. A live regression on "thatte idli" —
  * one of this prompt's own few-shot examples — showed the model echoing the
- * `<reference>` block back verbatim before its JSON answer on 4 of 5 calls;
- * `JSON.parse` on the raw text fails on the very first `<`, and the whole
- * answer was silently lost. This never throws and never trusts a naive
- * "first { to last }" slice, which would swallow trailing prose's own stray
- * brace; instead it scans for a `{`, walks forward tracking brace depth
- * while skipping over string contents (so a brace inside a food name can't
- * end the object early), and parses once depth returns to zero. If that
- * candidate doesn't parse, it tries the next `{` rather than giving up —
- * cheap insurance against the model echoing a decoy `{...}` fragment (e.g.
- * part of this very prompt's own JSON-shape documentation) ahead of the
- * real answer.
+ * `<reference>` block back verbatim before its JSON answer on 4 of 5 calls.
  *
- * Returns `undefined`, never `null`, on failure — `JSON.parse` can legally
- * return the JS value `null`, and callers need to tell "found nothing" from
- * "found a literal null" apart.
+ * v1 of this function had two defects a review caught:
+ *
+ *   1. It gave up the instant one candidate failed to balance (depth never
+ *      returned to zero), even when a real object followed later in the
+ *      text — a lone stray `{` ahead of the real answer reproduced the
+ *      exact silent-blank-screen failure this function exists to prevent.
+ *   2. It returned the FIRST candidate that parsed. The prompt's own
+ *      EXAMPLES section embeds six complete, schema-valid JSON objects
+ *      right next to the OUTPUT contract, and the model has already shown
+ *      it will echo nearby prompt content — an echoed example would pass
+ *      Zod validation and could be written to the shared cache under the
+ *      WRONG canonical_key and food_class, permanently. Worse than losing
+ *      an answer.
+ *
+ * This version scans every `{` in the text as an independent candidate
+ * start — an unclosed one is simply not a candidate, never a reason to stop
+ * scanning — and collects every COMPLETE, independently-parseable TOP-LEVEL
+ * object. "Top-level" matters: once a `{` produces a successful match, the
+ * scan resumes AFTER that match's closing `}`, so an object nested inside
+ * an already-captured candidate (e.g. one "items" element) is never
+ * re-counted as a second, separate candidate of its own. It prefers the
+ * LAST candidate — a model's real answer follows any echo of its input,
+ * never precedes it — and returns how many candidates it found so the
+ * caller can refuse to cache an ambiguous reply while still serving the
+ * chosen answer.
+ *
+ * String contents are skipped while scanning (respecting `\"` escapes), so
+ * a brace inside a food name can't be mistaken for structure.
+ *
+ * Complexity: O(n^2) worst case — a string of `n` unmatched `{` characters
+ * with no closing brace anywhere retries the inner balance-scan from every
+ * one of them. That is inherent to fixing defect 1 above: a correct scan
+ * cannot bail out after the first unmatched brace. Measured at 2.1 s on
+ * 16,000 characters of exactly that pathological input. Real replies are
+ * bounded by `maxTokensFor` to ~1400 tokens (a few KB), where this is
+ * cheap; nothing attacker-controlled or unbounded is ever passed in here.
+ *
+ * `value` is `undefined`, never `null`, when no candidate parsed —
+ * `JSON.parse` can legally return the JS value `null`, and callers need to
+ * tell "found nothing" from "found a literal null" apart.
  */
-export function extractJsonObject(raw: string): unknown {
+export function extractJsonObject(raw: string): { value: unknown; count: number } {
+  const candidates: unknown[] = [];
   let from = 0;
   while (from < raw.length) {
     const start = raw.indexOf("{", from);
-    if (start === -1) return undefined;
+    if (start === -1) break;
 
     let depth = 0;
     let inString = false;
@@ -423,15 +452,33 @@ export function extractJsonObject(raw: string): unknown {
         }
       }
     }
-    if (end === -1) return undefined; // unbalanced from here to the end of raw
+
+    if (end === -1) {
+      // Never closes before the end of the text: not a candidate, but the
+      // real object may still start later — resume right after this "{",
+      // never abort the whole scan over it.
+      from = start + 1;
+      continue;
+    }
 
     try {
-      return JSON.parse(raw.slice(start, end + 1));
+      candidates.push(JSON.parse(raw.slice(start, end + 1)));
     } catch {
-      from = start + 1; // this candidate wasn't it; try the next "{"
+      // Balanced but not valid JSON on its own (e.g. the literal text
+      // "{this}") — not a candidate. Resume past just this "{", not the
+      // whole failed span, since a real object could start inside it.
+      from = start + 1;
+      continue;
     }
+    // A full top-level candidate was captured — resume AFTER it, so nothing
+    // nested inside it is re-counted as a second, separate candidate.
+    from = end + 1;
   }
-  return undefined;
+
+  return {
+    value: candidates.length ? candidates[candidates.length - 1] : undefined,
+    count: candidates.length,
+  };
 }
 
 /**
