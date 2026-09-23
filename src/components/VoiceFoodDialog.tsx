@@ -168,7 +168,7 @@ export async function resolveVoiceItem(
 }
 
 // Exported so this can be driven headlessly against the real cache/model
-// path in a live check — same reason src/lib/ai.ts exports runFoodSearch.
+// path in a live check.
 export async function parseVoiceFoodLog(
   transcript: string,
   mealType: string,

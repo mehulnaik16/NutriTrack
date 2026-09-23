@@ -119,11 +119,12 @@ async function withinBudget<T>(
  * `serverAiFoodSearch` and `serverAiFoodSearchInline` were byte-identical, so
  * every fix had to be made twice or silently reached only one caller.
  *
- * Exported so the cache path can be exercised end to end without a browser and
- * without a request context: the two server functions below are the only
- * callers in the app.
+ * Deliberately NOT exported. The two server functions below are its only
+ * callers, so the client build drops it along with their handlers. Exported,
+ * it stays in the client module graph, and its `@/server/*` imports trip
+ * TanStack Start's import protection: the dev server refuses to load any page.
  */
-export async function runFoodSearch(
+async function runFoodSearch(
   rawQuery: string,
   engine: FoodSearchEngine = "groq",
   userId?: string,
@@ -376,14 +377,14 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
 // cannot change a food for everybody else, or push them back onto paid calls.
 
 /**
- * The handler's work, exported for the same reason as runFoodSearch: so it can
- * be driven end to end without a request context. Never throws.
+ * The handler's work. Not exported, for the same reason as runFoodSearch: the
+ * client build must be able to drop it with the handler. Never throws.
  *
  * On the cache-write budget: two sequential round trips (three parallel reads,
  * then one upsert) against the ten that budget was sized for. The food_logs
  * edit is saved before this runs, so running over costs only the correction.
  */
-export function recordCorrection(
+function recordCorrection(
   userId: string,
   edit: LoggedEdit,
 ): Promise<string | null> {
