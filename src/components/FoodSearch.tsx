@@ -39,7 +39,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
 import { serverAiFoodSearchInline, type FoodSearchEngine } from "@/lib/ai";
-import { strongFoods } from "@/lib/foodFuzzy";
+import { isPersonalName } from "@/lib/foodCache";
+import { strongFoods, similarity } from "@/lib/foodFuzzy";
 import { toLocalISO } from "@/lib/dates";
 import {
   type IFCTItem,
@@ -371,6 +372,23 @@ export const FoodSearch = forwardRef<
 
   const handleAiFallback = async () => {
     if (q.trim().length < 2) return;
+
+    // A private meal name is answered from the user's own saved meals when
+    // it can be, and never reaches the shared cache either way. The match
+    // runs here, client-side, rather than on the server, because savedMeals
+    // is already loaded under per-user RLS — no round trip, no pg_trgm. A
+    // miss falls through to the AI path below like any other query.
+    if (isPersonalName(q)) {
+      const own = savedMeals.find(
+        (m) => similarity(m.name.toLowerCase(), q.toLowerCase()) >= 0.8,
+      );
+      if (own) {
+        await logSavedMeal(own);
+        setQ("");
+        return;
+      }
+    }
+
     setSearching(true);
     try {
       const { kind, items } = await serverAiFoodSearchInline({
@@ -455,6 +473,22 @@ export const FoodSearch = forwardRef<
         fiber_g: fib,
       });
       error = insertErr;
+      // Auto-save on log, not on search: searching a private name saves
+      // nothing, but logging one is the signal that the name means
+      // something, and it makes the next search of it free. These are the
+      // same whole-log kcal totals just inserted above — saved_meals is
+      // whole-meal kcal, never per-100g/kJ, so nothing here is converted or
+      // divided by quantity.
+      if (!insertErr && isPersonalName(item.name)) {
+        await saveFavoriteMeal({
+          name: item.name,
+          calories: cal,
+          protein_g: p,
+          carbs_g: c,
+          fat_g: f,
+          fiber_g: fib,
+        });
+      }
     }
     setSaving(false);
     if (error) {
@@ -462,6 +496,46 @@ export const FoodSearch = forwardRef<
       return false;
     }
     return true;
+  };
+
+  /**
+   * Log a saved meal at its stored totals. The one place a saved_meals row
+   * turns into a food_logs row — the Favourites list and a personal-name
+   * search match (handleAiFallback) both call this rather than each logging
+   * it their own way, so the two can't drift apart.
+   */
+  const logSavedMeal = async (mealItem: {
+    name: string;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+  }) => {
+    const customItem: IFCTItem = {
+      code: "saved",
+      name: mealItem.name,
+      scie: "",
+      lang: "",
+      grup: "Custom",
+      enerc: 0,
+      protcnt: 0,
+      fatce: 0,
+      choavldf: 0,
+      fibtg: 0,
+    };
+    const ok = await logFood(customItem, 100, meal, {
+      cal: mealItem.calories,
+      p: mealItem.protein_g,
+      c: mealItem.carbs_g,
+      f: mealItem.fat_g,
+      fib: mealItem.fiber_g || 0,
+    });
+    if (ok) {
+      toast.success(`${mealItem.name} logged!`);
+      onLogged();
+    }
+    return ok;
   };
 
   const logPhotoFood = async ({ item, grams }: PhotoFoodResult) => {
@@ -757,31 +831,7 @@ export const FoodSearch = forwardRef<
             {savedMeals.length > 0 ? (
               <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                 {savedMeals.map((mealItem) => {
-                  const handleLogFavorite = async () => {
-                    const customItem: IFCTItem = {
-                      code: "saved",
-                      name: mealItem.name,
-                      scie: "",
-                      lang: "",
-                      grup: "Custom",
-                      enerc: 0,
-                      protcnt: 0,
-                      fatce: 0,
-                      choavldf: 0,
-                      fibtg: 0,
-                    };
-                    const ok = await logFood(customItem, 100, meal, {
-                      cal: mealItem.calories,
-                      p: mealItem.protein_g,
-                      c: mealItem.carbs_g,
-                      f: mealItem.fat_g,
-                      fib: mealItem.fiber_g || 0,
-                    });
-                    if (ok) {
-                      toast.success(`${mealItem.name} logged!`);
-                      onLogged();
-                    }
-                  };
+                  const handleLogFavorite = () => logSavedMeal(mealItem);
 
                   return (
                     <div
