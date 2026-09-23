@@ -72,13 +72,13 @@ function CustomPlanBuilder() {
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         if (!data || data.length === 0) return;
-        setExistingPlanIds(data.map((d: any) => d.id));
-        const existingIdx = (data[0] as any)?.custom_plan_day_idx;
+        setExistingPlanIds(data.map((d) => d.id));
+        const existingIdx = data[0]?.custom_plan_day_idx;
         if (typeof existingIdx === "number") setStartDayIdx(existingIdx);
         const latest = data[0]?.plan_json as any;
         if (isCustomPlan(latest) && latest.days.length === TOTAL_DAYS) {
           setWeek(
-            latest.days.map((d: any) =>
+            latest.days.map((d) =>
               d.muscles?.includes("Rest Day") ? [] : activeMuscles(d),
             ),
           );
@@ -154,7 +154,7 @@ function CustomPlanBuilder() {
               plan_json: plan,
               custom_plan_day_idx: chosenStartDayIdx,
               custom_plan_day_anchor: anchor,
-            } as any)
+            })
             .eq("id", keepId)
         : await supabase.from("workout_plans").insert({
             user_id: user.id,
@@ -162,12 +162,12 @@ function CustomPlanBuilder() {
             plan_json: plan,
             custom_plan_day_idx: chosenStartDayIdx,
             custom_plan_day_anchor: anchor,
-          } as any);
+          });
       if (error) throw error;
       toast.success("Custom plan saved! 💪");
       navigate({ to: "/workout" });
-    } catch (e: any) {
-      toast.error(e.message ?? "Could not save plan");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not save plan");
     } finally {
       setSaving(false);
     }

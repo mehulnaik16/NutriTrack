@@ -265,8 +265,8 @@ function WorkoutSetup() {
         toast.success("Preferences saved — build your weekly plan!");
         navigate({ to: "/custom-plan" });
       }
-    } catch (e: any) {
-      toast.error(e.message ?? "Something went wrong");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Something went wrong");
     } finally {
       setBusy(false);
     }
@@ -561,11 +561,17 @@ function WorkoutSetup() {
                         Add
                       </button>
                     </div>
-                    {cardio.filter((c) => !CARDIO_OPTIONS.includes(c as any))
-                      .length > 0 && (
+                    {cardio.filter(
+                      (c) => !(CARDIO_OPTIONS as readonly string[]).includes(c),
+                    ).length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {cardio
-                          .filter((c) => !CARDIO_OPTIONS.includes(c as any))
+                          .filter(
+                            (c) =>
+                              !(CARDIO_OPTIONS as readonly string[]).includes(
+                                c,
+                              ),
+                          )
                           .map((c) => (
                             <span
                               key={c}

@@ -10,6 +10,7 @@
  */
 
 import { supabase } from "@/integrations/client";
+import type { Tables } from "@/integrations/types";
 import type { WeightUnit, DistanceUnit } from "@/lib/units";
 
 export interface LiftEntry {
@@ -100,12 +101,14 @@ function toRow(userId: string, prefs: WorkoutPrefs) {
 }
 
 /** workout_profile row (DB shape) → WorkoutPrefs (app shape). */
-function fromRow(row: any): WorkoutPrefs {
+function fromRow(row: Tables<"workout_profile">): WorkoutPrefs {
   const lift = (w: number | null, r: number | null) => ({ weight: w, reps: r });
   const muscles = row.muscles_per_workout;
   return {
-    fitnessLevel: row.fitness_level,
-    fitnessGoal: row.fitness_goal,
+    // text columns, held to these values by CHECK constraints the generated
+    // types cannot see.
+    fitnessLevel: row.fitness_level as WorkoutPrefs["fitnessLevel"],
+    fitnessGoal: row.fitness_goal as WorkoutPrefs["fitnessGoal"],
     strongestLifts: {
       benchPress: lift(row.bench_weight_kg, row.bench_reps),
       squat: lift(row.squat_weight_kg, row.squat_reps),
@@ -116,11 +119,12 @@ function fromRow(row: any): WorkoutPrefs {
     musclesPerWorkout:
       muscles === "not_sure" ? "not_sure" : (Number(muscles) as 1 | 2 | 3),
     preferredWorkoutTime: row.preferred_workout_time_min,
-    preferredTrainingPlan: row.preferred_training_plan,
-    weightUnit: row.weight_unit ?? "kg",
-    distanceUnit: row.distance_unit ?? "km",
-    origWeightUnit: row.orig_weight_unit ?? "kg",
-    origDistanceUnit: row.orig_distance_unit ?? "km",
+    preferredTrainingPlan:
+      row.preferred_training_plan as WorkoutPrefs["preferredTrainingPlan"],
+    weightUnit: (row.weight_unit ?? "kg") as WeightUnit,
+    distanceUnit: (row.distance_unit ?? "km") as DistanceUnit,
+    origWeightUnit: (row.orig_weight_unit ?? "kg") as WeightUnit,
+    origDistanceUnit: (row.orig_distance_unit ?? "km") as DistanceUnit,
     completedAt: row.completed_at,
   };
 }
@@ -137,8 +141,8 @@ export async function saveWorkoutPrefs(
     /* storage full/blocked — DB is still attempted */
   }
   const { error } = await supabase
-    .from("workout_profile" as any)
-    .upsert(toRow(userId, prefs) as any, { onConflict: "user_id" });
+    .from("workout_profile")
+    .upsert(toRow(userId, prefs), { onConflict: "user_id" });
   if (error) {
     console.warn("[workoutPrefs] DB save failed:", error.message);
     return { dbSaved: false };
@@ -159,7 +163,7 @@ export async function loadWorkoutPrefs(
   }
 
   const { data, error } = await supabase
-    .from("workout_profile" as any)
+    .from("workout_profile")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();

@@ -48,6 +48,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import type { TablesInsert } from "@/integrations/types";
 import {
   uploadWeightPhoto,
   deleteWeightPhoto,
@@ -232,7 +233,7 @@ function WeightPage() {
         photo_url = result.data.publicUrl;
       }
 
-      const payload: any = {
+      const payload: TablesInsert<"weight_entries"> = {
         user_id: user.id,
         date: todayLocal(),
         weight_kg: w.value,
@@ -263,8 +264,8 @@ function WeightPage() {
       if (SHOW_AI_MOTIVATION) {
         fetchMotivation();
       }
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error((e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -316,8 +317,8 @@ function WeightPage() {
       setSelectedEntry(finalEntry);
 
       load();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error((e as Error).message);
       throw e;
     }
   };
@@ -344,8 +345,8 @@ function WeightPage() {
       toast.success("Entry deleted!");
       setSelectedEntry(null);
       load();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error((e as Error).message);
     }
   };
 

@@ -125,14 +125,14 @@ function PreviewView({ plan }: { plan: LibraryPlan }) {
           .delete()
           .in(
             "id",
-            old.map((o: any) => o.id),
+            old.map((o) => o.id),
           );
       }
       const { error } = await supabase.from("workout_plans").insert({
         user_id: user.id,
         goal: plan.plan.goal,
         plan_json: plan.plan,
-      } as any);
+      });
       if (error) throw error;
       const prefs = await loadWorkoutPrefs(user.id);
       if (prefs)
@@ -142,8 +142,10 @@ function PreviewView({ plan }: { plan: LibraryPlan }) {
         });
       toast.success("Plan added! 💪");
       navigate({ to: "/workout" });
-    } catch (e: any) {
-      toast.error(e.message ?? "Couldn't add the plan. Please try again.");
+    } catch (e) {
+      toast.error(
+        (e as Error).message ?? "Couldn't add the plan. Please try again.",
+      );
     } finally {
       setBusy(false);
     }

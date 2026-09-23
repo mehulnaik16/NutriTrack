@@ -132,25 +132,29 @@ export const serverLinkGym = createServerFn({ method: "POST" })
     // Through supabaseAdmin because link_gym is granted to service_role only —
     // it takes p_user_id, and the whole point is that no browser can reach it.
     // The id comes from the verified JWT in context, never from `data`.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-    const { data: result, error } = await (supabaseAdmin.rpc as any)(
-      "link_gym",
-      {
-        p_user_id: userId,
-        p_code: gym.partnerCode,
-        p_gym_name: gym.gymName,
-        // Read back from the partner database a moment ago, never from `data`.
-        // It decides only what the app calls this partner; the offer, the
-        // discount and the commission are identical for all three.
-        p_partner_type: gym.partnerType,
-      },
-    );
+    const { data: result, error } = await supabaseAdmin.rpc("link_gym", {
+      p_user_id: userId,
+      p_code: gym.partnerCode,
+      p_gym_name: gym.gymName,
+      // Read back from the partner database a moment ago, never from `data`.
+      // It decides only what the app calls this partner; the offer, the
+      // discount and the commission are identical for all three.
+      p_partner_type: gym.partnerType,
+    });
     if (error) {
       throw new Error(`Could not apply that code: ${error.message}`);
     }
 
-    const linked = !!result?.linked;
-    const source = (result?.source as string) ?? "profile";
+    // link_gym returns json; this is its documented shape.
+    const res = result as {
+      linked?: boolean;
+      source?: string;
+      gym_name?: string;
+      partner_code?: string;
+      partner_type?: PartnerKind;
+    } | null;
+    const linked = !!res?.linked;
+    const source = res?.source ?? "profile";
 
     // Joining the gym is a separate fact from being attributed to it, and is
     // recorded separately. A member already credited to a creator keeps that
@@ -159,8 +163,7 @@ export const serverLinkGym = createServerFn({ method: "POST" })
     // way: sync_gym_member keeps whatever `attributed` the first link decided.
     let joinedGym = false;
     if (gym.partnerType === "gym") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-      const { error: joinErr } = await (supabaseAdmin.rpc as any)("join_gym", {
+      const { error: joinErr } = await supabaseAdmin.rpc("join_gym", {
         p_user_id: userId,
         p_code: gym.partnerCode,
         p_gym_name: gym.gymName,
@@ -184,9 +187,9 @@ export const serverLinkGym = createServerFn({ method: "POST" })
         await syncMember({
           userId,
           code: gym.partnerCode,
-          fullName: (profile as any)?.full_name ?? null,
-          accessUntil: (profile as any)?.access_until ?? null,
-          tier: (profile as any)?.selected_plan ?? null,
+          fullName: profile?.full_name ?? null,
+          accessUntil: profile?.access_until ?? null,
+          tier: profile?.selected_plan ?? null,
           attributed: source === "signup",
         });
       } catch (err) {
@@ -197,11 +200,11 @@ export const serverLinkGym = createServerFn({ method: "POST" })
     return {
       linked,
       source,
-      gymName: (result?.gym_name as string) ?? gym.gymName,
-      partnerCode: (result?.partner_code as string) ?? gym.partnerCode,
+      gymName: res?.gym_name ?? gym.gymName,
+      partnerCode: res?.partner_code ?? gym.partnerCode,
       // From link_gym() when it wrote the row, and from the row it found when
       // this account was already attributed to somebody else.
-      partnerType: (result?.partner_type as PartnerKind) ?? gym.partnerType,
+      partnerType: res?.partner_type ?? gym.partnerType,
     };
   });
 
@@ -302,8 +305,7 @@ export const serverSubmitGymDetails = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .maybeSingle();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generated types lag the migration
-    const partnerCode = (link as any)?.partner_code as string | undefined;
+    const partnerCode = link?.partner_code as string | undefined;
     if (!partnerCode) {
       throw new Error("Add your gym's code first.");
     }
@@ -330,12 +332,9 @@ export const serverSubmitGymDetails = createServerFn({ method: "POST" })
       await syncMember({
         userId,
         code: partnerCode,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generated types omit access_until
-        fullName: (profile as any)?.full_name ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto
-        accessUntil: (profile as any)?.access_until ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto
-        tier: (profile as any)?.selected_plan ?? null,
+        fullName: profile?.full_name ?? null,
+        accessUntil: profile?.access_until ?? null,
+        tier: profile?.selected_plan ?? null,
         attributed: false,
       });
     } catch (err) {
@@ -386,8 +385,7 @@ export const serverUnlinkGym = createServerFn({ method: "POST" })
     // leaves gym_links alone. The member keeps the ₹150 their signup code
     // earned — it is spent by buying, not by staying linked — and whoever was
     // credited for bringing them stays credited.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-    const { error } = await (supabaseAdmin.rpc as any)("leave_gym", {
+    const { error } = await supabaseAdmin.rpc("leave_gym", {
       p_user_id: userId,
     });
     if (error) {

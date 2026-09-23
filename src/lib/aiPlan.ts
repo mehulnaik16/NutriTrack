@@ -67,13 +67,10 @@ export async function generateAiPlan(
     .eq("id", userId)
     .maybeSingle();
   const physical: string[] = [];
-  if ((up as any)?.age) physical.push(`- Age: ${(up as any).age} years`);
-  if ((up as any)?.gender) physical.push(`- Sex: ${(up as any).gender}`);
-  if ((up as any)?.weight_kg)
-    physical.push(`- Bodyweight: ${(up as any).weight_kg} kg`);
-  const goalPrimary = (up as any)?.goal
-    ? decomposeGoalKey((up as any).goal).primary
-    : null;
+  if (up?.age) physical.push(`- Age: ${up.age} years`);
+  if (up?.gender) physical.push(`- Sex: ${up.gender}`);
+  if (up?.weight_kg) physical.push(`- Bodyweight: ${up.weight_kg} kg`);
+  const goalPrimary = up?.goal ? decomposeGoalKey(up.goal).primary : null;
   if (goalPrimary && GOAL_PHRASE[goalPrimary])
     physical.push(`- Nutrition goal: ${GOAL_PHRASE[goalPrimary]}`);
 
@@ -160,13 +157,13 @@ ${EXERCISE_CATALOG}
       .delete()
       .in(
         "id",
-        old.map((o: any) => o.id),
+        old.map((o) => o.id),
       );
   }
   const { error } = await supabase.from("workout_plans").insert({
     user_id: userId,
     goal: goalLabel, // NOT NULL column in workout_plans
     plan_json: parsed,
-  } as any);
+  });
   if (error) throw error;
 }

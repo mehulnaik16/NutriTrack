@@ -231,12 +231,12 @@ export function AchievementsPage({
           .eq("user_id", userId)
           .gte("amount_ml", 2000),
         supabase
-          .from("saved_meals" as any)
+          .from("saved_meals")
           .select("id", { count: "exact", head: true })
           .eq("user_id", userId),
       ]);
 
-      const foodRows = (food.data ?? []) as any[];
+      const foodRows = food.data ?? [];
       const earlyLogs = foodRows.filter((r) => {
         if (!r.logged_at) return false;
         return new Date(r.logged_at).getHours() < 8;
@@ -250,13 +250,14 @@ export function AchievementsPage({
               (r) =>
                 r.logged_at && toLocalISO(new Date(r.logged_at)) === r.date,
             )
-            .map((r) => r.date),
+            // The filter compared date to a string, so it is non-null here.
+            .map((r) => r.date!),
         ),
         workoutCount: workouts.count ?? 0,
         weightCount: (weights.data ?? []).length,
-        photoCount: (weights.data ?? []).filter((w: any) => w.photo_url).length,
+        photoCount: (weights.data ?? []).filter((w) => w.photo_url).length,
         hydratedDays: (water.data ?? []).length,
-        savedMeals: (meals as any).count ?? 0,
+        savedMeals: meals.count ?? 0,
         earlyLogs,
       });
     };

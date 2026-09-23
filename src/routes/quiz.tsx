@@ -187,7 +187,7 @@ function Quiz() {
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled) setOwnCode((data as any)?.referral_code ?? null);
+        if (!cancelled) setOwnCode(data?.referral_code ?? null);
       });
     return () => {
       cancelled = true;
@@ -261,8 +261,7 @@ function Quiz() {
         }
         return;
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-      const { data } = await (supabase.rpc as any)("get_referrer_name", {
+      const { data } = await supabase.rpc("get_referrer_name", {
         code,
       });
       if (data) {
@@ -305,8 +304,7 @@ function Quiz() {
         () => {},
       );
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-      (supabase.rpc as any)("get_referrer_name", { code }).then(
+      supabase.rpc("get_referrer_name", { code }).then(
         ({ data }: { data: string | null }) => {
           if (!cancelled) setReferrerName(data ?? null);
         },
@@ -433,8 +431,7 @@ function Quiz() {
           if (appliedKind && appliedKind !== "friend") {
             await serverLinkGym({ data: { code: refCode } });
           } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-            await (supabase.rpc as any)("claim_referral", { code: refCode });
+            await supabase.rpc("claim_referral", { code: refCode });
           }
           sessionStorage.removeItem(REF_STORAGE_KEY);
         } catch (refErr) {
@@ -446,8 +443,8 @@ function Quiz() {
       await refreshProfile();
       toast.success("Account created!");
       navigate({ to: "/plans" });
-    } catch (e: any) {
-      const raw = e?.message as string | undefined;
+    } catch (e) {
+      const raw = (e as Error | undefined)?.message;
       toast.error(authErrorMessage(raw));
       // An existing account can't be created again, and the quiz has no way
       // forward from here — the login screen does, including Google.

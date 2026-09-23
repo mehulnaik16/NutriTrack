@@ -69,6 +69,7 @@ import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget"
 import { LunarCalorieSatellite } from "@/components/LunarCalorieSatellite";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import type { TablesInsert } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
 import { loadMealNames } from "@/lib/meals";
 import { uploadWeightPhoto } from "@/services/storage";
@@ -220,7 +221,7 @@ async function computeStreak(userId: string): Promise<number> {
   }
   await supabase
     .from("user_profiles")
-    .update({ current_streak: streak } as any)
+    .update({ current_streak: streak })
     .eq("id", userId);
   return streak;
 }
@@ -353,11 +354,11 @@ function Dashboard() {
     // Compulsory-once onboarding screens, in order: benefits/features intro, then
     // the Refer & Earn intro. Each is forced on every landing until the user
     // dismisses it (which sets its flag), so they survive logout / app-close.
-    if (!(p as any).has_seen_benefits_features_page) {
+    if (!p.has_seen_benefits_features_page) {
       navigate({ to: "/welcome", replace: true });
       return;
     }
-    if (!(p as any).has_seen_refer_intro) {
+    if (!p.has_seen_refer_intro) {
       navigate({ to: "/refer-intro", replace: true });
       return;
     }
@@ -368,7 +369,7 @@ function Dashboard() {
     fetchLoggedDates(user.id).then(setLoggedDates);
     setWeightEntries((w as WeightEntry[]) ?? []);
     if (wp?.plan_json) setWorkoutPlan(wp.plan_json as unknown as WorkoutPlan);
-    if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
+    if (fav) setFavoriteNames(new Set(fav.map((f) => f.name)));
 
     // Self-healing: recalculate targets if stale (formula was updated after onboarding)
     if (p?.weight_kg && p?.height_cm && p?.age && p?.gender && p?.goal) {
@@ -409,7 +410,7 @@ function Dashboard() {
     if (!user || !newWeight) return;
     setSavingWeight(true);
     try {
-      const payload: any = {
+      const payload: TablesInsert<"weight_entries"> = {
         user_id: user.id,
         date: today(),
         weight_kg: +newWeight,
@@ -438,8 +439,8 @@ function Dashboard() {
       setPhotoFile(null);
       setPhotoPreview(null);
       load();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error((e as Error).message);
     } finally {
       setSavingWeight(false);
     }
@@ -1213,7 +1214,9 @@ function Dashboard() {
                   </CardTitle>
                   <Tabs
                     value={chartMetric}
-                    onValueChange={(v) => setChartMetric(v as any)}
+                    onValueChange={(v) =>
+                      setChartMetric(v as typeof chartMetric)
+                    }
                     className="w-full sm:w-auto"
                   >
                     <TabsList className="h-8 w-full justify-start overflow-x-auto sm:w-auto">

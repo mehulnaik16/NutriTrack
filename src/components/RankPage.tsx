@@ -18,8 +18,6 @@ import { ACHIEVEMENT_BY_ID, computeTotalXP, levelFromXP } from "@/lib/xpConfig";
    any signed-in user could award themselves all 19.
 ═══════════════════════════════════════════════════════════════════════ */
 
-const rpc = (fn: string, args?: Record<string, unknown>) =>
-  (supabase.rpc as any)(fn, args);
 const initial = (n: string | null) => (n?.trim()?.[0] ?? "?").toUpperCase();
 
 export function RankPage() {
@@ -46,12 +44,12 @@ export function RankPage() {
       supabase.from("food_logs").select("date, logged_at").eq("user_id", uid),
       supabase.from("workout_logs").select("date").eq("user_id", uid),
       supabase.from("weight_entries").select("date").eq("user_id", uid),
-      rpc("sync_achievements"),
+      supabase.rpc("sync_achievements"),
     ]);
 
-    const foodRows = (food.data ?? []) as any[];
-    const workoutRows = (workouts.data ?? []) as any[];
-    const weightRows = (weights.data ?? []) as any[];
+    const foodRows = food.data ?? [];
+    const workoutRows = workouts.data ?? [];
+    const weightRows = weights.data ?? [];
     const earned = (synced.data ?? []) as {
       achievement_id: string;
       xp: number;
@@ -106,7 +104,7 @@ export function RankPage() {
       /* storage full / blocked — toasts are cosmetic, carry on */
     }
 
-    setName((prof.data as any)?.full_name ?? null);
+    setName(prof.data?.full_name ?? null);
     setTotalXP(
       computeTotalXP(
         logCount,

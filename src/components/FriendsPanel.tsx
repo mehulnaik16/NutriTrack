@@ -62,8 +62,6 @@ interface Found {
 }
 
 const initial = (n: string | null) => (n?.trim()?.[0] ?? "?").toUpperCase();
-const rpc = (fn: string, args?: Record<string, unknown>) =>
-  (supabase.rpc as any)(fn, args);
 
 /** Avatar with an "active today" dot. Ring intensity tracks weekly consistency. */
 function Avatar({
@@ -121,8 +119,8 @@ export function FriendsPanel() {
   const load = useCallback(async () => {
     if (!user) return;
     const [f, r, me] = await Promise.all([
-      rpc("get_friends"),
-      rpc("get_friend_requests"),
+      supabase.rpc("get_friends"),
+      supabase.rpc("get_friend_requests"),
       supabase
         .from("user_profiles")
         .select("username, full_name")
@@ -132,8 +130,8 @@ export function FriendsPanel() {
     if (f.error) toast.error(f.error.message);
     setFriends((f.data || []) as Friend[]);
     setRequests((r.data || []) as Request[]);
-    setMyUsername((me.data as any)?.username ?? null);
-    setMyName((me.data as any)?.full_name ?? null);
+    setMyUsername(me.data?.username ?? null);
+    setMyName(me.data?.full_name ?? null);
     setLoading(false);
   }, [user]);
 
@@ -146,7 +144,7 @@ export function FriendsPanel() {
     if (tab !== "DISCOVER") return;
     setSearching(true);
     const t = setTimeout(async () => {
-      const { data } = await rpc("search_users", { q: query });
+      const { data } = await supabase.rpc("search_users", { q: query });
       setFound((data || []) as Found[]);
       setSearching(false);
     }, 250);
@@ -241,7 +239,7 @@ export function FriendsPanel() {
   /** Handles a decoded QR string. Server decides what the scan means. */
   const handleCode = async (raw: string) => {
     const code = raw.startsWith(QR_PREFIX) ? raw.slice(QR_PREFIX.length) : raw;
-    const { data, error } = await rpc("resolve_friend_code", { code });
+    const { data, error } = await supabase.rpc("resolve_friend_code", { code });
     if (error) return toast.error(error.message);
     const res = data?.[0];
     const who = res?.full_name ?? "them";

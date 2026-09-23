@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import type { SavedMeal } from "@/lib/meals";
 import {
   type IFCTItem,
   KJ_PER_KCAL,
@@ -123,7 +124,7 @@ function MealBuilderPage() {
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
   const [aiSearching, setAiSearching] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedMeals, setSavedMeals] = useState<any[]>([]);
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
@@ -136,12 +137,12 @@ function MealBuilderPage() {
   useEffect(() => {
     if (!user) return;
     supabase
-      .from("saved_meals" as any)
+      .from("saved_meals")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        if (data) setSavedMeals(data);
+        if (data) setSavedMeals(data as SavedMeal[]);
       });
   }, [user]);
 
@@ -289,22 +290,22 @@ function MealBuilderPage() {
       };
 
       const existing = savedMeals.find(
-        (m: any) => m.name?.toLowerCase() === payload.name.toLowerCase(),
+        (m) => m.name?.toLowerCase() === payload.name.toLowerCase(),
       );
       const { error } = existing
         ? await supabase
-            .from("saved_meals" as any)
+            .from("saved_meals")
             .update(payload)
             .eq("id", existing.id)
         : await supabase
-            .from("saved_meals" as any)
+            .from("saved_meals")
             .insert({ user_id: user.id, ...payload });
       if (error) throw error;
 
       toast.success(`"${payload.name}" saved to Favourites!`);
       router.history.back();
-    } catch (e: any) {
-      toast.error(e.message ?? "Could not save meal");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not save meal");
     } finally {
       setSaving(false);
     }
@@ -314,9 +315,7 @@ function MealBuilderPage() {
   const historyItems = useMemo(() => {
     const uniqueNames = Array.from(
       new Set(
-        savedMeals
-          .flatMap((m: any) => m.ingredients || [])
-          .map((ig: any) => ig.name),
+        savedMeals.flatMap((m) => m.ingredients || []).map((ig) => ig.name),
       ),
     );
     return uniqueNames

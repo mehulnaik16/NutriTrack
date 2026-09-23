@@ -85,10 +85,10 @@ function Hub() {
 
       Promise.all([
         supabase.from("user_profiles").select("id, full_name, current_streak"),
-        (supabase.rpc as any)("get_leaderboard_stats", {
+        supabase.rpc("get_leaderboard_stats", {
           start_date: startDateStr,
         }),
-      ]).then(([profilesRes, statsRes]: [any, any]) => {
+      ]).then(([profilesRes, statsRes]) => {
         if (!isMounted) return;
 
         if (statsRes.error) {
@@ -99,11 +99,11 @@ function Hub() {
           console.error("[leaderboard] profiles error:", profilesRes.error);
         }
 
-        const profiles = (profilesRes.data || []) as any[];
-        const stats = (statsRes.data || []) as any[];
+        const profiles = profilesRes.data || [];
+        const stats = statsRes.data || [];
 
-        const merged: LeaderboardUser[] = stats.map((s: any) => {
-          const p = profiles.find((x: any) => x.id === s.user_id);
+        const merged: LeaderboardUser[] = stats.map((s) => {
+          const p = profiles.find((x) => x.id === s.user_id);
           return {
             id: s.user_id,
             full_name: s.full_name ?? p?.full_name ?? null,

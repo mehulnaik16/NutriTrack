@@ -2050,9 +2050,10 @@ function SettingsPage({
     setDeleting(true);
     try {
       await serverDeleteAccount();
-    } catch (e: any) {
+    } catch (e) {
       toast.error(
-        e.message ?? "Deletion failed — please email support@dombelz.app",
+        (e as Error).message ??
+          "Deletion failed — please email support@dombelz.app",
       );
       setDeleting(false);
       return;
@@ -2140,10 +2141,7 @@ function SettingsPage({
             .select("*")
             .eq("user_id", userId)
             .order("date"),
-          supabase
-            .from("saved_meals" as any)
-            .select("*")
-            .eq("user_id", userId),
+          supabase.from("saved_meals").select("*").eq("user_id", userId),
         ]);
       const payload = {
         exported_at: new Date().toISOString(),
@@ -2160,8 +2158,8 @@ function SettingsPage({
         "application/json",
       );
       toast.success("Export downloaded");
-    } catch (e: any) {
-      toast.error(e.message ?? "Export failed");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Export failed");
     } finally {
       setExporting(null);
     }
@@ -2186,7 +2184,7 @@ function SettingsPage({
       const header =
         "date,meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g";
       const body = rows
-        .map((r: any) =>
+        .map((r) =>
           [
             r.date,
             r.meal_type,
@@ -2208,8 +2206,8 @@ function SettingsPage({
         "text/csv",
       );
       toast.success("Food diary downloaded");
-    } catch (e: any) {
-      toast.error(e.message ?? "Export failed");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Export failed");
     } finally {
       setExporting(null);
     }

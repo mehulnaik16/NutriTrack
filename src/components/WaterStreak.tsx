@@ -137,8 +137,8 @@ export function WaterStreak({ userId, streak }: Props) {
     setStepMl(newStep);
     try {
       await saveWaterPrefs(userId, { goalMl: newGoal, cupMl: newStep });
-    } catch (e: any) {
-      toast.error(e.message ?? "Failed to save water preferences");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Failed to save water preferences");
       return;
     }
     setIsSettingsOpen(false);

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
 import { DEFAULT_MEALS, loadMealNames, saveMealNames } from "@/lib/meals";
 import { supabase } from "@/integrations/client";
+import type { Tables } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
 import {
   Utensils,
@@ -110,12 +111,12 @@ function FoodPage() {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<string>(today());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [todayLogs, setTodayLogs] = useState<any[]>([]);
-  const [monthLogs, setMonthLogs] = useState<any[]>([]);
+  const [todayLogs, setTodayLogs] = useState<Tables<"food_logs">[]>([]);
+  const [monthLogs, setMonthLogs] = useState<Tables<"food_logs">[]>([]);
   // Separate from monthLogs: the calendar highlights every day ever logged,
   // while monthLogs is the 30-day window the chart totals need.
   const [loggedDates, setLoggedDates] = useState<Date[]>([]);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Tables<"user_profiles"> | null>(null);
   const searchRef = useRef<FoodSearchRef>(null);
   const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
 
@@ -180,10 +181,7 @@ function FoodPage() {
           .eq("user_id", user.id)
           .gte("date", thirtyDaysAgo())
           .lte("date", today()),
-        supabase
-          .from("saved_meals" as any)
-          .select("name")
-          .eq("user_id", user.id),
+        supabase.from("saved_meals").select("name").eq("user_id", user.id),
       ]);
     // No profile row means onboarding was never finished — the guard below
     // waits on `profile`, so without this the page spins forever.
@@ -196,7 +194,7 @@ function FoodPage() {
     setTodayLogs(t ?? []);
     setMonthLogs(m ?? []);
     fetchLoggedDates(user.id).then(setLoggedDates);
-    if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
+    if (fav) setFavoriteNames(new Set(fav.map((f) => f.name)));
   }, [user, selectedDate, navigate]);
 
   useEffect(() => {
@@ -232,7 +230,7 @@ function FoodPage() {
       toast.info(`Nothing was logged on ${formatDateDisplay(prevDate)}`);
       return;
     }
-    const rows = prev.map((r: any) => ({
+    const rows = prev.map((r) => ({
       ...r,
       fiber_g: r.fiber_g || 0,
       user_id: user.id,
@@ -249,7 +247,7 @@ function FoodPage() {
     load();
   };
 
-  const relogFood = async (l: any) => {
+  const relogFood = async (l: Tables<"food_logs">) => {
     if (!user) return;
     const { error } = await supabase.from("food_logs").insert({
       user_id: user.id,
@@ -273,14 +271,14 @@ function FoodPage() {
     load();
   };
 
-  const saveFoodAsFavorite = async (l: any) => {
+  const saveFoodAsFavorite = async (l: Tables<"food_logs">) => {
     if (!user) return;
     const isFav = favoriteNames.has(l.food_name);
 
     if (isFav) {
       // Remove from favorites
       const { error } = await supabase
-        .from("saved_meals" as any)
+        .from("saved_meals")
         .delete()
         .eq("user_id", user.id)
         .eq("name", l.food_name);
@@ -295,13 +293,14 @@ function FoodPage() {
       }
     } else {
       // Add to favorites
-      const { error } = await supabase.from("saved_meals" as any).insert({
+      const { error } = await supabase.from("saved_meals").insert({
         user_id: user.id,
         name: l.food_name,
-        calories: l.calories,
-        protein_g: l.protein_g,
-        carbs_g: l.carbs_g,
-        fat_g: l.fat_g,
+        // saved_meals requires every nutrient; food_logs allows NULL.
+        calories: l.calories ?? 0,
+        protein_g: l.protein_g ?? 0,
+        carbs_g: l.carbs_g ?? 0,
+        fat_g: l.fat_g ?? 0,
         fiber_g: l.fiber_g || 0,
       });
       if (!error) {
@@ -468,8 +467,8 @@ function FoodPage() {
 
                 const sub = items.reduce(
                   (a, x) => ({
-                    cal: a.cal + x.calories,
-                    p: a.p + x.protein_g,
+                    cal: a.cal + (x.calories ?? 0),
+                    p: a.p + (x.protein_g ?? 0),
                     fib: a.fib + (x.fiber_g || 0),
                   }),
                   { cal: 0, p: 0, fib: 0 },
@@ -526,16 +525,16 @@ function FoodPage() {
                                     )}
                                   </span>
                                   <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
-                                    {Math.round(l.calories)} kcal
+                                    {Math.round(l.calories ?? 0)} kcal
                                   </span>
                                   <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                                    P{Math.round(l.protein_g)}
+                                    P{Math.round(l.protein_g ?? 0)}
                                   </span>
                                   <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
-                                    C{Math.round(l.carbs_g)}
+                                    C{Math.round(l.carbs_g ?? 0)}
                                   </span>
                                   <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                                    F{Math.round(l.fat_g)}
+                                    F{Math.round(l.fat_g ?? 0)}
                                   </span>
                                 </div>
                               </div>

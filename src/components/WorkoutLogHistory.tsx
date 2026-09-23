@@ -737,7 +737,7 @@ export function WorkoutLogHistory() {
                         borderRadius: 12,
                         fontSize: 12,
                       }}
-                      formatter={(v: any) => [`${v}`, "Volume"]}
+                      formatter={(v) => [`${v}`, "Volume"]}
                     />
                     <Line
                       type="monotone"

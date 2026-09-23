@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
+import type { MealIngredient, SavedMeal } from "@/lib/meals";
 import {
   serverAiFoodSearchInline,
   serverFlagFood,
@@ -84,8 +85,23 @@ const ScanFoodDialog = lazy(() =>
   })),
 );
 
+/** The food_logs fields editLog reads. Nutrients are nullable in the table. */
+export interface EditableLog {
+  id: string;
+  food_name: string;
+  meal_type: string;
+  quantity_g: number;
+  unit?: string | null;
+  unit_quantity?: number | null;
+  calories: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  fiber_g: number | null;
+}
+
 export interface FoodSearchRef {
-  editLog: (log: any) => void;
+  editLog: (log: EditableLog) => void;
   refreshFavorites: () => void;
   openForMeal: (meal: string) => void;
 }
@@ -169,12 +185,12 @@ export const FoodSearch = forwardRef<
 
   const loadSavedMeals = () => {
     supabase
-      .from("saved_meals" as any)
+      .from("saved_meals")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        if (data) setSavedMeals(data);
+        if (data) setSavedMeals(data as SavedMeal[]);
       });
   };
 
@@ -185,7 +201,7 @@ export const FoodSearch = forwardRef<
     carbs_g: number;
     fat_g: number;
     fiber_g: number;
-    ingredients?: any[];
+    ingredients?: MealIngredient[];
   }) => {
     const { data: existing } = await supabase
       .from("saved_meals")
@@ -228,15 +244,15 @@ export const FoodSearch = forwardRef<
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
-    editLog: (log: any) => {
+    editLog: (log) => {
       setIsEditing(true);
       setEditLogId(log.id);
 
       const ratio = log.quantity_g / 100;
-      const baseCal = ratio > 0 ? log.calories / ratio : 0;
-      const baseP = ratio > 0 ? log.protein_g / ratio : 0;
-      const baseC = ratio > 0 ? log.carbs_g / ratio : 0;
-      const baseF = ratio > 0 ? log.fat_g / ratio : 0;
+      const baseCal = ratio > 0 ? (log.calories ?? 0) / ratio : 0;
+      const baseP = ratio > 0 ? (log.protein_g ?? 0) / ratio : 0;
+      const baseC = ratio > 0 ? (log.carbs_g ?? 0) / ratio : 0;
+      const baseF = ratio > 0 ? (log.fat_g ?? 0) / ratio : 0;
 
       setSelected({
         code: "edit",
@@ -273,7 +289,7 @@ export const FoodSearch = forwardRef<
   const [customF, setCustomF] = useState("");
   const [customFib, setCustomFib] = useState("");
   const [saveAsMeal, setSaveAsMeal] = useState(false);
-  const [savedMeals, setSavedMeals] = useState<any[]>([]);
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [favoritesDialogOpen, setFavoritesDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -409,7 +425,7 @@ export const FoodSearch = forwardRef<
       setAiSuggestions(
         ((items || []) as IFCTItem[]).map((it) => ({ ...it, query: typed })),
       );
-    } catch (e: any) {
+    } catch (e) {
       console.error("AI fallback failed", e);
     } finally {
       setSearching(false);
@@ -902,7 +918,7 @@ export const FoodSearch = forwardRef<
                               <span className="block truncate text-[9px] text-muted-foreground/80 mt-0.5">
                                 {mealItem.ingredients
                                   .map(
-                                    (ig: any) =>
+                                    (ig) =>
                                       `${ig.name} (${ig.quantity_g}g - ${Math.round(ig.calories)}kcal)`,
                                   )
                                   .join(", ")}
@@ -918,14 +934,12 @@ export const FoodSearch = forwardRef<
                           onClick={async (e) => {
                             e.stopPropagation();
                             const { error } = await supabase
-                              .from("saved_meals" as any)
+                              .from("saved_meals")
                               .delete()
                               .eq("id", mealItem.id);
                             if (!error) {
                               setSavedMeals(
-                                savedMeals.filter(
-                                  (m: any) => m.id !== mealItem.id,
-                                ),
+                                savedMeals.filter((m) => m.id !== mealItem.id),
                               );
                               toast.success("Removed from favorites");
                             }

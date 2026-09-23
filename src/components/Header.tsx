@@ -502,15 +502,17 @@ export function Header({
           .order("date", { ascending: false })
           .limit(400),
       ]);
-      setWorkoutDates(new Set((wData ?? []).map((d: any) => d.date)));
+      setWorkoutDates(
+        new Set((wData ?? []).flatMap((d) => (d.date ? [d.date] : []))),
+      );
       setFoodDates(
         new Set(
           (fData ?? [])
             .filter(
-              (d: any) =>
-                d.logged_at && localISO(new Date(d.logged_at)) === d.date,
+              (d) => d.logged_at && localISO(new Date(d.logged_at)) === d.date,
             )
-            .map((d: any) => d.date),
+            // The filter compared date to a string, so it is non-null here.
+            .map((d) => d.date!),
         ),
       );
     };

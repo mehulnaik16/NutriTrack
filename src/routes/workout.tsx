@@ -404,8 +404,8 @@ function WorkoutPage() {
       setPlan(p);
       setPlanId(wp.id);
       setPlanDayIdx(todaysPlanIndex(p.days?.length ?? 0));
-      setCustomDayIdx((wp as any).custom_plan_day_idx ?? 0);
-      setCustomDayAnchor((wp as any).custom_plan_day_anchor ?? null);
+      setCustomDayIdx(wp.custom_plan_day_idx ?? 0);
+      setCustomDayAnchor(wp.custom_plan_day_anchor ?? null);
     } else {
       setPlan(null);
       setPlanId(null);
@@ -442,7 +442,7 @@ function WorkoutPage() {
     const anchor = todayLocal();
     const { error } = await supabase
       .from("workout_plans")
-      .update({ custom_plan_day_idx: i, custom_plan_day_anchor: anchor } as any)
+      .update({ custom_plan_day_idx: i, custom_plan_day_anchor: anchor })
       .eq("id", planId);
     if (error) {
       toast.error(error.message);
@@ -462,7 +462,7 @@ function WorkoutPage() {
     const updated = updatePlanDay(plan, dayIdx, muscles);
     const { error } = await supabase
       .from("workout_plans")
-      .update({ plan_json: updated as any })
+      .update({ plan_json: updated })
       .eq("id", planId);
     if (error) {
       toast.error(error.message);
@@ -2037,7 +2037,9 @@ function WorkoutPage() {
             // Beep when rest is over
             try {
               const Ctx =
-                window.AudioContext || (window as any).webkitAudioContext;
+                window.AudioContext ||
+                (window as { webkitAudioContext?: typeof AudioContext })
+                  .webkitAudioContext!;
               const ctx = new Ctx();
               const osc = ctx.createOscillator();
               const gain = ctx.createGain();
@@ -2187,7 +2189,7 @@ function WorkoutPage() {
         confidence: "estimated",
         // LoggedSet is a closed interface, so it lacks the index signature the
         // generated Json type wants. The shape is checked above.
-        exercises_done: payload as any,
+        exercises_done: payload,
       });
       if (error) {
         toast.error(`Failed to log: ${error.message}`, { id: t });
@@ -2782,7 +2784,7 @@ function WorkoutPage() {
                               label: "Peak Est. 1RM",
                               value: `${peakE1RM} ${unit}`,
                             };
-                    const fmtY = (v: any) =>
+                    const fmtY = (v: unknown) =>
                       kind === "isometric"
                         ? formatDuration(Number(v) || 0)
                         : String(v);
@@ -2834,7 +2836,7 @@ function WorkoutPage() {
                                     fontSize: 12,
                                   }}
                                   itemStyle={{ fontWeight: "bold" }}
-                                  formatter={(v: any, name: string) =>
+                                  formatter={(v: unknown, name: string) =>
                                     isLoad
                                       ? [`${v} ${unit}`, name]
                                       : [
@@ -2941,7 +2943,7 @@ function WorkoutPage() {
                                     fontSize: 12,
                                   }}
                                   itemStyle={{ fontWeight: "bold" }}
-                                  formatter={(v: any) => [
+                                  formatter={(v) => [
                                     isLoad
                                       ? `${v} ${unit}`
                                       : kind === "isometric"

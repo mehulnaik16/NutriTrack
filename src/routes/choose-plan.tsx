@@ -50,8 +50,10 @@ function ChoosePlan() {
       await generateAiPlan(user.id, prefs);
       toast.success("Your personalized plan is ready! 💪");
       navigate({ to: "/workout" });
-    } catch (e: any) {
-      toast.error(e.message ?? "Couldn't generate a plan. Please try again.");
+    } catch (e) {
+      toast.error(
+        (e as Error).message ?? "Couldn't generate a plan. Please try again.",
+      );
     } finally {
       setBusy(false);
     }

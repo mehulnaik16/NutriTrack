@@ -48,7 +48,7 @@ async function read(userId: string): Promise<GiftRows> {
         .maybeSingle(),
     ]);
     return {
-      status: ((ref.data as any)?.status as string | undefined) ?? null,
+      status: (ref.data?.status as string | undefined) ?? null,
       gymLink: (gym.data as GymLinkGift | null) ?? null,
     };
   } catch {

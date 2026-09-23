@@ -6,18 +6,18 @@
 // to EXERCISES_DB (src/lib/exercises.ts) so plan exercises pin/favorite/log by the
 // same canonical name everywhere.
 
-export interface LibraryPlanExercise {
+export type LibraryPlanExercise = {
   name: string;
   sets: number;
   reps: string;
-}
-export interface LibraryPlanDay {
+};
+export type LibraryPlanDay = {
   day: string;
   name: string;
   focus: string;
   exercises: LibraryPlanExercise[];
-}
-export interface LibraryPlan {
+};
+export type LibraryPlan = {
   id: number;
   name: string;
   blurb: string;
@@ -29,7 +29,7 @@ export interface LibraryPlan {
     library_id: number;
     library_name: string;
   };
-}
+};
 
 export const WORKOUT_LIBRARY: LibraryPlan[] = [
   {

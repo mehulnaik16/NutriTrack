@@ -83,7 +83,7 @@ function ChartPanel({
     config.metric === "pace" ||
     config.metric === "avgPower" ||
     config.metric === "rounds"
-      ? data.filter((d) => (d as any)[config.metric] !== null)
+      ? data.filter((d) => d[config.metric as keyof ChartDatum] !== null)
       : data;
 
   if (filtered.length < 2) {
@@ -94,7 +94,7 @@ function ChartPanel({
     );
   }
 
-  const paceFormatter = (v: any) => {
+  const paceFormatter = (v: unknown) => {
     if (config.metric === "pace")
       return [formatPace(Number(v)), config.label.split(" —")[0]];
     return [`${v} ${config.unit}`, config.label.split(" —")[0]];

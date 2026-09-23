@@ -16,7 +16,7 @@
 import type { ExerciseKind } from "./exerciseKind.ts";
 import { type WeightUnit, convWeight, round1 } from "@/lib/units";
 
-export interface LoggedSet {
+export type LoggedSet = {
   /** weighted, bodyweight, assisted */
   reps?: string;
   /** weighted: the load · bodyweight: added weight · assisted: the assistance */
@@ -28,7 +28,7 @@ export interface LoggedSet {
   unit?: "kg" | "lbs";
   /** Stamped at write time so readers never re-derive it. Absent on old logs. */
   kind?: ExerciseKind;
-}
+};
 
 const num = (v: unknown) => parseFloat(String(v ?? "")) || 0;
 
