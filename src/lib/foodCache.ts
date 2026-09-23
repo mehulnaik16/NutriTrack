@@ -370,26 +370,46 @@ const LATIN_POSSESSIVES = [
 ];
 
 /**
- * Leading "<word>'s" possessives that name a real food rather than a person:
- * the three brands the bundled catalog lists this way (McDonald's, Wendy's,
- * Domino's — 309 rows), other common packaged brands, and dishes whose own
- * name is possessive ("shepherd's pie"; "lady's finger" is okra).
- * ponytail: a fixed list. A brand missing from it — "Mother's Recipe",
- * "Mom's Magic" — is treated as personal, which costs that search one
- * uncached AI call: the cheap direction. Add brands here as they turn up.
+ * Leading "<word>'s" possessives that mark somebody's own version of a dish:
+ * family and relationship words only. Any other "<word>'s" is far more often
+ * a brand or a dish name — bikaji's, amul's, reese's, campbell's, nature's
+ * basket, baker's chocolate, shepherd's pie — and flagging those kept packaged
+ * foods, the cheapest to cache, from ever caching. An allowlist of brands
+ * could never be complete; the family words that turn a dish private are a
+ * short closed set.
+ * ponytail: a fixed list. A name missing from it ("bhabhi's") reads as a food,
+ * so the model is asked and the answer staged; the quorum and the saved-meal
+ * check are the next guards. Add words here as they turn up.
  */
-const FOOD_POSSESSORS = [
-  "mcdonald",
-  "wendy",
-  "domino",
-  "haldiram",
-  "kellogg",
-  "lay",
-  "hershey",
-  "nando",
-  "shepherd",
-  "lady",
-  "devil",
+const FAMILY_POSSESSORS = [
+  "mom",
+  "mum",
+  "mommy",
+  "mummy",
+  "mama",
+  "maa",
+  "ma",
+  "amma",
+  "ammi",
+  "appa",
+  "dad",
+  "daddy",
+  "papa",
+  "mother",
+  "father",
+  "grandma",
+  "granny",
+  "grandpa",
+  "nani",
+  "dadi",
+  "nana",
+  "dada",
+  "aunty",
+  "auntie",
+  "aunt",
+  "uncle",
+  "wife",
+  "husband",
 ];
 
 /**
@@ -427,11 +447,11 @@ export function isPersonalName(query: string): boolean {
   )
     return true;
 
-  // "mom's shake", "amma's rasam", "grandma’s curry": whoever the leading
-  // word names, a possessive in that position means somebody's own version
-  // of a dish. Straight or curly apostrophe, since phone keyboards emit both.
+  // "mom's shake", "amma's rasam", "grandma’s curry": a family word in the
+  // possessive means somebody's own version of a dish. Straight or curly
+  // apostrophe, since phone keyboards emit both.
   const owner = text.toLowerCase().match(/^(\p{L}+)['’]s(?!\p{L})/u)?.[1];
-  if (owner && !FOOD_POSSESSORS.includes(owner)) return true;
+  if (owner && FAMILY_POSSESSORS.includes(owner)) return true;
 
   // The leading run of letters, not the leading whitespace-delimited token:
   // "My-shake" and "My_shake" must isolate "my", not fail as one glued

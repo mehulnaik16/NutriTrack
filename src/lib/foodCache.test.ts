@@ -335,19 +335,36 @@ assert.equal(isPersonalName("ನನ್ನಶೇಕ್"), true); // "my shake", n
 assert.equal(isPersonalName("My-shake"), true);
 assert.equal(isPersonalName("My_shake"), true);
 
-// ── "<word>'s" possessive: somebody's own version of a dish ───────────────
+// ── "<word>'s" possessive: a family member's own version of a dish ────────
 for (const q of [
   "mom's shake",
   "amma's rasam",
   "grandma’s curry", // curly apostrophe, as phone keyboards type it
-  "Priya's salad",
   "MOM'S DAL",
   "nani's",
+  "papa's special chai",
+  "mummy's rajma",
 ])
   assert.equal(isPersonalName(q), true, q);
 // Real foods with a leading possessive must not be flagged: brands and dishes
 // whose own name is possessive. Also a possessive that is not leading.
 for (const q of [
+  "bikaji's bhujia",
+  "britannia's good day",
+  "amul's butter",
+  "parle's monaco",
+  "ching's hakka noodles",
+  "reese's peanut butter cups",
+  "campbell's tomato soup",
+  "nature's basket granola",
+  "farmer's cheese",
+  "baker's chocolate",
+  "chef's special",
+  "lay's",
+  "haldiram's",
+  "domino's",
+  "hershey's",
+  "wendy's",
   "McDonald's McVeggie Burger",
   "Wendy's Frosty",
   "Domino's farmhouse pizza",
@@ -367,6 +384,9 @@ for (const q of [
 // possessive to see. The saved-meals match in FoodSearch is what catches a
 // name like this once the user has logged it.
 assert.equal(isPersonalName("moms shake"), false);
+// Known miss: a first name is not a family word. Accepted so that brands
+// (bikaji's, amul's) cache; the saved-meals match catches it once saved.
+assert.equal(isPersonalName("Priya's salad"), false);
 // No name in the bundled catalog — 2,675 real foods, 309 of them led by a
 // brand possessive — is flagged.
 {
