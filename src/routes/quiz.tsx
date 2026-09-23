@@ -22,6 +22,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { supabase } from "@/integrations/client";
+import type { TablesInsert } from "@/integrations/types";
 import { useAuth } from "@/lib/auth";
 import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
 import { isValidCode, REFEREE_DISCOUNT_RUPEES } from "@/lib/referral";
@@ -400,6 +401,9 @@ function Quiz() {
       }
       if (!userId) throw new Error("No user created");
 
+      // referral_code is omitted on purpose: the trg_set_referral_code trigger
+      // fills it on insert. The generated types cannot see triggers, so they
+      // mark the column required; the assertion says only that, nothing wider.
       const { error: pErr } = await supabase.from("user_profiles").upsert({
         id: userId,
         full_name: d.fullName,
@@ -417,7 +421,7 @@ function Quiz() {
         carbs_target_g: macros.carbs,
         fat_target_g: macros.fat,
         fiber_target_g: macros.fiber,
-      });
+      } as TablesInsert<"user_profiles">);
       if (pErr) throw pErr;
 
       // Attribution is best-effort by design: an unknown code, a self-referral

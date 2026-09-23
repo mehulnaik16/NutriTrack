@@ -25,8 +25,12 @@ export async function fetchLoggedDates(userId: string): Promise<Date[]> {
     // the bug this replaces.
     .limit(50000);
 
+  // food_logs.date is nullable (it defaults to today, but nothing forbids
+  // NULL); an undated row cannot mark a day as logged.
   const seen = new Set<string>(
-    (data ?? []).map((r: { date: string }) => r.date),
+    (data ?? [])
+      .map((r: { date: string | null }) => r.date)
+      .filter((d): d is string => d !== null),
   );
   return [...seen].map((iso) => {
     // Local midnight, not `new Date(iso)` — that parses as UTC and lands on the

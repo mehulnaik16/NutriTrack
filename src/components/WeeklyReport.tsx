@@ -62,7 +62,12 @@ async function buildWeekStats(
   // Aggregate calories by day
   const dayMap: Record<string, number> = {};
   for (const log of foodLogs ?? []) {
-    dayMap[log.date] = (dayMap[log.date] ?? 0) + log.calories;
+    // food_logs.date is nullable (it defaults to today, but nothing forbids
+    // NULL); an undated row has no day to be counted towards.
+    if (!log.date) continue;
+    // calories is nullable too; a row without one adds nothing, rather than
+    // turning the whole day's total into NaN.
+    dayMap[log.date] = (dayMap[log.date] ?? 0) + (log.calories ?? 0);
   }
 
   const days = Object.entries(dayMap);
