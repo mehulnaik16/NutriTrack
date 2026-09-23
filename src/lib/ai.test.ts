@@ -195,7 +195,7 @@ const item = (over: Record<string, unknown> = {}) => ({
       items: [
         item({
           canonical_key: "curd rice",
-          food_class: "rice dish",
+          food_class: "grain dish",
           aliases: ["Dahi bhaat", "Thayir saadam"],
           basis: "100g",
         }),
@@ -205,7 +205,7 @@ const item = (over: Record<string, unknown> = {}) => ({
   );
   assert.ok(cacheItem);
   assert.equal(cacheItem.items[0].canonical_key, "curd rice");
-  assert.equal(cacheItem.items[0].food_class, "rice dish");
+  assert.equal(cacheItem.items[0].food_class, "grain dish");
   assert.deepEqual(cacheItem.items[0].aliases, ["Dahi bhaat", "Thayir saadam"]);
   assert.equal(cacheItem.items[0].basis, "100g");
 
@@ -214,9 +214,37 @@ const item = (over: Record<string, unknown> = {}) => ({
   const noCache = validateFoodResponse({ kind: "single", items: [item()] }, "x");
   assert.ok(noCache);
   assert.equal(noCache.items[0].canonical_key, "");
+  assert.equal(noCache.items[0].food_class, "");
   assert.deepEqual(noCache.items[0].aliases, []);
   assert.equal(noCache.items[0].basis, "100g");
-  console.log("✓ A12 cache fields: canonical_key, food_class, aliases, basis");
+
+  // food_class is a closed set (FOOD_CLASS_VALUES in foodAiSchema.ts), not
+  // free text. A phrase the model invented instead of picking from the list —
+  // "traditional dish" is a real one a live measurement caught the model
+  // using for "dal baati" — must degrade to "" exactly like a missing class,
+  // never pass through and poison a cache group with off-list text. The rest
+  // of the item, including canonical_key, must survive intact.
+  const offListClass = validateFoodResponse(
+    {
+      kind: "single",
+      items: [item({ canonical_key: "dal baati", food_class: "traditional dish" })],
+    },
+    "dal baati",
+  );
+  assert.ok(offListClass);
+  assert.equal(
+    offListClass.items[0].canonical_key,
+    "dal baati",
+    "A12 an off-list class must not drop the rest of the item",
+  );
+  assert.equal(
+    offListClass.items[0].food_class,
+    "",
+    "A12 an off-list class must degrade to empty, not pass through",
+  );
+  console.log(
+    "✓ A12 cache fields: canonical_key, food_class, aliases, basis, and an off-list class degrades safely",
+  );
 }
 
 console.log("\n✅ All AI food-search tests passed.");

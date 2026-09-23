@@ -239,7 +239,13 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
     // Inside the try: reading `row.canonical_key` was the one dereference in
     // this module sitting outside it, and a null row from a caller would have
     // thrown straight through into search.
-    if (!row.canonical_key) return; // Nothing to group it under.
+    // food_class degrades to "" in the schema when the model's answer is
+    // off-list (see FOOD_CLASS_VALUES in foodAiSchema.ts) so the item still
+    // reaches the user — but it must stop here, the single choke point every
+    // write passes through, or every food whose class came back off-list
+    // would collide under one (canonical_key, "") group and quorum could
+    // promote a class-less row, exactly what food_class exists to prevent.
+    if (!row.canonical_key || !row.food_class) return; // Nothing to group it under.
     const { supabaseAdmin: db } = await import("@/integrations/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts omits these service-role-only tables
     const table = (name: string) => db.from(name as any) as any;

@@ -17,6 +17,7 @@ import {
   maxTokensFor,
   FOOD_SEARCH_SYSTEM,
   type AiFoodResult,
+  type AiFoodItemOut,
 } from "@/lib/foodAiSchema";
 
 // ── Rate Limiter (30 requests/min per user, in-memory) ───────────────────────
@@ -99,7 +100,11 @@ export async function runFoodSearch(
             // Empty on purpose: a served hit is not a fresh opinion, so
             // nothing downstream may record it as one.
             canonical_key: "",
-            food_class: hit.food_class,
+            // Narrows a plain DB string back to the schema's closed type.
+            // Safe: recordAnswer never writes a row whose food_class isn't
+            // one of FOOD_CLASS_VALUES (see its guard in server/foodCache.ts),
+            // so every value this can read back is already list-valid.
+            food_class: hit.food_class as AiFoodItemOut["food_class"],
             aliases: [],
             basis: hit.basis,
           },
