@@ -13,6 +13,7 @@ import {
   sanitizeFoodQuery,
   reconcileEnergy,
   validateFoodResponse,
+  extractJsonObject,
   maxTokensFor,
   ENERGY_TOL,
   ENERGY_FLOOR_KJ,
@@ -245,6 +246,60 @@ const item = (over: Record<string, unknown> = {}) => ({
   console.log(
     "✓ A12 cache fields: canonical_key, food_class, aliases, basis, and an off-list class degrades safely",
   );
+}
+
+// ── A13: JSON extraction tolerates prose around the object ────────────────
+// Pins the "thatte idli" regression: the model echoing input before its
+// JSON answer must not lose the answer the way a bare JSON.parse did.
+{
+  const good = JSON.stringify({ kind: "single", items: [item()] });
+
+  // A leading echo — the real failure shape: the model repeats the
+  // <reference> block (and sometimes the <query> tag) before answering.
+  const leadingEcho =
+    `<reference>\nIdli | E 376.6 | P 2.5 | F 0.2 | C 19.5 | Fib 0.8\n</reference>\n<query>thatte idli</query>\n` +
+    good;
+  assert.deepStrictEqual(
+    extractJsonObject(leadingEcho),
+    JSON.parse(good),
+    "A13 a leading echo must not lose the JSON object",
+  );
+
+  // Trailing prose — a chatty aside after an otherwise clean answer.
+  const trailingProse = good + "\n\nLet me know if you'd like another food!";
+  assert.deepStrictEqual(
+    extractJsonObject(trailingProse),
+    JSON.parse(good),
+    "A13 trailing prose must not break extraction",
+  );
+
+  // Both at once, plus a markdown fence — every symptom stacked.
+  const both =
+    "Sure, here is the reference I was given:\n```\n" +
+    good +
+    "\n```\nHope that helps!";
+  assert.deepStrictEqual(
+    extractJsonObject(both),
+    JSON.parse(good),
+    "A13 leading and trailing text together must not break extraction",
+  );
+
+  // No JSON object anywhere: must degrade to undefined, never throw, and
+  // never be confused with a legitimately parsed JS `null`.
+  assert.strictEqual(extractJsonObject("sorry, I don't understand"), undefined);
+  assert.strictEqual(extractJsonObject(""), undefined);
+
+  // A decoy "{...}" fragment ahead of the real object — e.g. a phrase like
+  // "the format looks like {this}" — must not make extraction give up after
+  // the first candidate fails to parse.
+  const decoyThenReal = "it looks like {this} not JSON, but here it is: " + good;
+  assert.deepStrictEqual(
+    extractJsonObject(decoyThenReal),
+    JSON.parse(good),
+    "A13 a decoy brace fragment before the real object must not block extraction",
+  );
+
+  console.log("✓ A13 extractJsonObject: leading echo, trailing prose, decoy braces, no JSON at all");
 }
 
 console.log("\n✅ All AI food-search tests passed.");

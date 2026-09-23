@@ -14,6 +14,7 @@ import { requireAccess } from "@/lib/access-middleware";
 import {
   sanitizeFoodQuery,
   validateFoodSlots,
+  extractJsonObject,
   maxTokensFor,
   FOOD_SEARCH_SYSTEM,
   type AiFoodResult,
@@ -255,10 +256,20 @@ export async function runFoodSearch(
     });
   }
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-  } catch {
+  // extractJsonObject tolerates prose the model added around its JSON — a
+  // plain JSON.parse on the raw text lost the whole answer the moment the
+  // model echoed the <reference> block back first, which is what happened to
+  // "thatte idli" 4 calls out of 5 (see extractJsonObject's own comment).
+  // Logged, not silent: a future regression of this shape now leaves a trace
+  // instead of a blank screen with no record of why.
+  const parsed = extractJsonObject(raw);
+  if (parsed === undefined) {
+    console.warn("[ai-food-search] no JSON object found in the model's reply", {
+      query: cleanQuery,
+      engine,
+      rawLen: raw.length,
+      rawPreview: raw.slice(0, 200),
+    });
     return { kind: "single", items: [] };
   }
 
