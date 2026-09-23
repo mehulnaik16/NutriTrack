@@ -84,13 +84,14 @@ const consistent = {
   enerc: +(165 * KJ).toFixed(1),
 };
 
-assert.equal(CACHE_ENERGY_TOL, 0.1);
+assert.equal(CACHE_ENERGY_TOL, 0.25);
 assert.equal(cacheGate(consistent), true);
 
-// Within 10%: still cacheable.
-assert.equal(cacheGate({ ...consistent, enerc: 165 * KJ * 1.08 }), true);
-// Outside 10%: shown to the user, never cached.
-assert.equal(cacheGate({ ...consistent, enerc: 165 * KJ * 1.2 }), false);
+// Within 25%: cacheable. 1.2x used to be the "never cached" case at the old
+// 10% gate — it is kept here, flipped, as the record of what changed.
+assert.equal(cacheGate({ ...consistent, enerc: 165 * KJ * 1.2 }), true);
+// Outside 25%: shown to the user, never cached.
+assert.equal(cacheGate({ ...consistent, enerc: 165 * KJ * 1.35 }), false);
 
 // Zero energy fails. The zero-energy IFCT oils are a catalog quirk, not
 // something an AI answer may reproduce.
@@ -106,15 +107,55 @@ assert.equal(
 // ── Review Focus 1: the gate must run BEFORE reconcileEnergy ──────────────
 // A repaired answer is Atwater-consistent by construction, so gating after the
 // repair can never fail and the whole check becomes a no-op.
-// 1.5x (50% over), not the brief's 1.2x: reconcileEnergy only repairs past its
-// own ENERGY_TOL (25%), and 20% over sits inside that tolerance, so a 1.2x
-// value is returned unrepaired and the "proof" assertion below would fail.
+//
+// Choosing the fixture, now that CACHE_ENERGY_TOL and ENERGY_TOL are both
+// 0.25. The two assertions pull in opposite directions:
+//   - cacheGate(raw) must be FALSE, so the deviation must exceed
+//     0.25 * implied.
+//   - cacheGate(repaired) must be TRUE, which needs reconcileEnergy to
+//     actually rewrite enerc. It only does that past max(0.25 * implied, 85).
+// So the fixture has to clear BOTH, i.e. deviation > max(0.25 * implied, 85).
+// Anything between the two thresholds is returned unrepaired and would fail
+// the second assertion, not pass it.
+//
+// implied here is 165 kcal = 690.36 kJ, so the bar is max(172.59, 85) = 172.59.
+// 1.5x (50% over) gives a deviation of 345.18 — twice the bar — and was
+// already chosen against the 25% repair threshold, so it survives the gate
+// change unaltered. The value was NOT adjusted to make the assertion pass;
+// it was checked against both thresholds and still clears them.
 const bad = { ...consistent, enerc: 165 * KJ * 1.5 };
 assert.equal(cacheGate(bad), false, "raw answer must fail");
 assert.equal(
   cacheGate(reconcileEnergy(bad, "test food")),
   true,
   "repaired answer passes — proof the gate must see the raw value first",
+);
+
+// The one place the two tolerances still differ, and the reason the band
+// between them is narrow rather than empty: reconcileEnergy has an absolute
+// floor (ENERGY_FLOOR_KJ, 85 kJ) and cacheGate has none. Below ~340 kJ of
+// implied energy the gate is the stricter of the two, so a low-energy answer
+// can be shown unrepaired and still refused by the cache.
+// 2P + 0F + 10C implies 48 kcal = 200.8 kJ. A deviation of 60 kJ is 30% —
+// past the gate's 25% — but under the 85 kJ floor, so nothing is repaired.
+const lowEnergy = {
+  name: "test drink",
+  protcnt: 2,
+  fatce: 0,
+  choavldf: 10,
+  fibtg: 0,
+};
+const implied = 48 * KJ;
+const shownButNotCached = { ...lowEnergy, enerc: +(implied + 60).toFixed(1) };
+assert.equal(
+  cacheGate(shownButNotCached),
+  false,
+  "30% over: refused by the gate",
+);
+assert.equal(
+  reconcileEnergy(shownButNotCached, "test drink").enerc,
+  shownButNotCached.enerc,
+  "under the 85 kJ floor: shown to the user unrepaired",
 );
 
 // ── quorum check and consolidation ──────────────────────────────────────────

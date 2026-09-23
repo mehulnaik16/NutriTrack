@@ -105,16 +105,31 @@ const KJ_PER_KCAL = 4.184;
  * How far a cacheable answer's stated energy may sit from what its own macros
  * imply.
  *
- * Deliberately stricter than ENERGY_TOL (0.25) in foodAiSchema.ts, and doing a
- * different job. That one repairs a bad value so the user still sees an
- * answer, because this path only runs when local search found nothing. This
- * one decides whether the answer is solid enough to count toward the three
- * that make a food permanent. A borderline answer is shown and not cached.
+ * The SAME figure as ENERGY_TOL in foodAiSchema.ts, deliberately: the cache
+ * learns exactly what the app is willing to put in front of a user. An answer
+ * good enough to show is good enough to count toward the three that make a
+ * food permanent, and an answer too inconsistent to cache had no business
+ * being shown either.
  *
- * 10% costs roughly 6% of genuine foods by the measurement recorded on
- * ENERGY_TOL — an acceptable price for a row that outlives the search.
+ * This was 0.1, on the reasoning that a row outliving its search deserves a
+ * stricter test than one that is merely displayed. Measured against live model
+ * output, that cost far more than it was thought to. Across 39 answers from 12
+ * foods the 10% gate rejected 19 of them — 49%, against the ~6% its own note
+ * predicted. The 6% was measured on IFCT catalogue rows, which are
+ * human-curated and internally consistent by construction; model output is not
+ * that population. It also rejected answers that were simply right: banana
+ * came back at 372 kJ/100 g, the correct value, against an Atwater-implied
+ * 414.6 — a 10.3% miss. The 4/9/4 approximation overestimates fruit and
+ * high-fibre foods, so the strict gate was biased against precisely the foods
+ * whose real values are best established.
+ *
+ * One asymmetry survives the change. reconcileEnergy also carries an absolute
+ * floor (ENERGY_FLOOR_KJ, 85 kJ) and this has none, so below roughly 340 kJ of
+ * implied energy the gate is still the tighter of the two. That is intended: a
+ * relative test on a near-zero energy is meaningless, and a food that small is
+ * cheap to ask about again.
  */
-export const CACHE_ENERGY_TOL = 0.1;
+export const CACHE_ENERGY_TOL = 0.25;
 
 /**
  * Is this single answer internally consistent enough to be cached?
