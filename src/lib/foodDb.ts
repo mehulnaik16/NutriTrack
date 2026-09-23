@@ -98,7 +98,23 @@ export function rank(item: IFCTItem, q: string): number {
   return 5;
 }
 
-/** Local search over the combined database. */
+/**
+ * 0 for a curated extraFoods row (every code there is prefixed "X"), 1 for
+ * anything else. Curated rows are cooked dishes with a piece weight; the raw
+ * corpus rows sharing their names ("Idli", "Naan", "Dhokla") are neither.
+ */
+export const curatedFirst = (it: IFCTItem) => (it.code.startsWith("X") ? 0 : 1);
+
+/**
+ * Local search over the combined database.
+ *
+ * Two rows with the same name tie on rank and on name, and ITEMS lists the
+ * IFCT corpus before extraFoods, so the raw row used to win every such tie:
+ * "idli" opened on ASC144 (138 kcal, no piece weight) instead of the curated
+ * XE004. Names compare case-insensitively so "Masala dosa" and "Masala Dosa"
+ * tie too, and only then does the curated row go first. Rank and name still
+ * decide everything else, so a query with one clear match is untouched.
+ */
 export function searchFoods(query: string, limit = 8): IFCTItem[] {
   const term = query.trim().toLowerCase();
   if (term.length < 2) return [];
@@ -107,7 +123,14 @@ export function searchFoods(query: string, limit = 8): IFCTItem[] {
     const r = rank(it, term);
     if (r < 5) matches.push({ item: it, r });
   }
-  matches.sort((a, b) => a.r - b.r || a.item.name.localeCompare(b.item.name));
+  matches.sort(
+    (a, b) =>
+      a.r - b.r ||
+      a.item.name.localeCompare(b.item.name, undefined, {
+        sensitivity: "base",
+      }) ||
+      curatedFirst(a.item) - curatedFirst(b.item),
+  );
   return matches.slice(0, limit).map((m) => m.item);
 }
 

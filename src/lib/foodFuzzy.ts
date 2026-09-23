@@ -19,7 +19,7 @@
  */
 
 import Fuse from "fuse.js";
-import { ITEMS, type IFCTItem } from "./foodDb.ts";
+import { ITEMS, curatedFirst, type IFCTItem } from "./foodDb.ts";
 import { catalogAliases } from "./foodCache.ts";
 
 /**
@@ -198,6 +198,47 @@ export function strongFoods(query: string, limit = 5): IFCTItem[] {
     .sort((a, b) => b.sim - a.sim)
     .slice(0, limit)
     .map((m) => m.item);
+}
+
+/** A name reduced to lowercase words: "Roti / Chapati" -> "roti chapati". */
+const plain = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+/**
+ * Every whole name a row answers to: "Roti / Chapati" is both "roti" and
+ * "chapati", "Poha (cooked)" is "poha". Parenthetical text is dropped, never
+ * matched on — in "Subway Italian BMT (Chicken)" it names an ingredient, not
+ * the food.
+ */
+const wholeNames = (it: IFCTItem) =>
+  it.name.replace(/\([^)]*\)/g, " ").split("/").map(plain).filter(Boolean);
+
+/**
+ * The one catalog row a food name IS, for callers that pick without a human
+ * looking: a voice or photo log decides someone's calories from this.
+ *
+ * strongFoods is confident enough to show a list, not to choose from one — it
+ * keeps every row that merely contains the word. Its first hit for "coffee" is
+ * a KFC mousse cake, for "water" a watermelon, for "milk" a fish, for "sugar"
+ * black coffee (no sugar), for "dal" raw dry Bengal gram at 329 kcal/100 g. So
+ * its candidates must also pass an identity check: the name, in full, is one
+ * of the row's whole names. Where two rows qualify, the curated extraFoods row
+ * wins, as it does in searchFoods, because it carries the piece weight a
+ * counted log needs.
+ *
+ * Undefined means the catalog does not hold that food by that name, and the
+ * caller asks the server — the cache, then the model — instead of guessing.
+ */
+export function catalogFood(name: string): IFCTItem | undefined {
+  const term = plain(name);
+  if (!term) return undefined;
+  const hits = strongFoods(name, 40).filter((it) =>
+    wholeNames(it).includes(term),
+  );
+  return hits.sort((a, b) => curatedFirst(a) - curatedFirst(b))[0];
 }
 
 /**

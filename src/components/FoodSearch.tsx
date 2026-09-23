@@ -48,11 +48,10 @@ import { strongFoods, similarity } from "@/lib/foodFuzzy";
 import { toLocalISO } from "@/lib/dates";
 import {
   type IFCTItem,
-  ITEMS,
   defaultQtyFor,
   kcalOf,
   KJ_PER_KCAL,
-  rank,
+  searchFoods,
 } from "@/lib/foodDb";
 import {
   type Unit,
@@ -340,16 +339,13 @@ export const FoodSearch = forwardRef<
   const suggestions = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (term.length < 2) return [];
-    const matches: { item: IFCTItem; r: number }[] = [];
-    for (const it of ITEMS) {
-      const r = rank(it, term);
-      if (r < 5) matches.push({ item: it, r });
-    }
-    matches.sort((a, b) => a.r - b.r || a.item.name.localeCompare(b.item.name));
     // Substring first, because it is exact and instant. Only when it finds
     // nothing is the typo-tolerant pass worth running — and that pass is what
     // keeps a food we already hold from ever reaching the paid model.
-    if (matches.length > 0) return matches.slice(0, 12).map((m) => m.item);
+    // searchFoods rather than a copy of it, so its curated-row tiebreak
+    // reaches this list too.
+    const matches = searchFoods(term, 12);
+    if (matches.length > 0) return matches;
     return strongFoods(term, 8);
   }, [q]);
 

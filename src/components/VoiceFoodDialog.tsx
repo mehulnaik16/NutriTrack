@@ -35,7 +35,8 @@ import {
   serverAiFoodSearchInline,
   type FoodSearchEngine,
 } from "@/lib/ai";
-import { searchFoods, kcalOf, type IFCTItem } from "@/lib/foodDb";
+import { kcalOf, type IFCTItem } from "@/lib/foodDb";
+import { catalogFood } from "@/lib/foodFuzzy";
 import { toGrams, pieceGrams, type UnitFood } from "@/lib/foodUnits";
 import type { MealPicker } from "@/components/PhotoFoodDialog";
 
@@ -107,38 +108,54 @@ export function gramsFor(it: ParsedVoiceItem, food: UnitFood): number {
 }
 
 /**
- * Resolve one parsed name to macros through the same tiers a typed search
- * uses: the bundled catalog first — free, local, the same search FoodSearch's
- * own suggestions run — and only on a miss does this reach
- * serverAiFoodSearchInline, which itself checks the user's correction and the
- * verified cache before ever calling a model. Skipping the catalog step would
- * send a food already in the bundle, like "idli", into that round trip for
- * nothing.
+ * Resolve a food name that no human will pick from a list — spoken, or read
+ * off a photo — to one food, per 100 g with energy in kJ, exactly as a typed
+ * search hands it over.
+ *
+ * The bundled catalog first, free and local, but only on an identity match
+ * (catalogFood): a list for a person to choose from can afford a loose match,
+ * an automatic pick cannot. Anything else goes to serverAiFoodSearchInline,
+ * which checks the user's correction and the verified cache before ever
+ * calling a model.
  *
  * Returns null when nothing resolves. A confident zero is worse than an
- * admitted gap — the caller surfaces these rather than logging them silently.
+ * admitted gap — callers surface these rather than logging them silently.
+ */
+export async function resolveFood(
+  name: string,
+  engine: FoodSearchEngine,
+): Promise<IFCTItem | null> {
+  const local = catalogFood(name);
+  if (local) return local;
+  try {
+    const { items: found } = await serverAiFoodSearchInline({
+      data: { query: name, engine },
+    });
+    return found[0] ?? null;
+  } catch (e) {
+    console.error("Food resolution failed:", name, e);
+    return null;
+  }
+}
+
+/**
+ * One parsed voice item, priced through resolveFood. The item is renamed to
+ * the food it resolved to, so the review list shows what will actually be
+ * logged — "Coffee biscuit" under a spoken "coffee" is then visible, not
+ * silent.
  */
 export async function resolveVoiceItem(
   it: ParsedVoiceItem,
   engine: FoodSearchEngine,
 ): Promise<VoiceFoodItem | null> {
-  let food: IFCTItem | undefined = searchFoods(it.food_name, 1)[0];
-  if (!food) {
-    try {
-      const { items: found } = await serverAiFoodSearchInline({
-        data: { query: it.food_name, engine },
-      });
-      food = found[0];
-    } catch (e) {
-      console.error("Voice item resolution failed:", it.food_name, e);
-    }
-  }
+  const food = await resolveFood(it.food_name, engine);
   if (!food) return null;
 
   const grams = gramsFor(it, food);
   const ratio = grams / 100;
   return {
     ...it,
+    food_name: food.name,
     quantity_g: grams,
     // kcalOf() converts the catalog/cache's kJ `enerc` to kcal (÷ KJ_PER_KCAL)
     // internally — food_logs and VoiceFoodItem are both kcal.

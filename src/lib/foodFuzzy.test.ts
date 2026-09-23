@@ -17,7 +17,9 @@ import {
   isComposite,
   similarity,
   altNames,
+  catalogFood,
 } from "./foodFuzzy.ts";
+import { searchFoods } from "./foodDb.ts";
 
 const top = (q: string) => strongFoods(q, 3)[0]?.name ?? "";
 const hits = (q: string) => strongFoods(q, 3).length;
@@ -161,5 +163,26 @@ assert.deepEqual(altNames("A., Kash. Baajra; Kan. Sajje; Tam. Kambu"), [
   "Kambu",
 ]);
 assert.deepEqual(altNames(""), []);
+
+// ── catalogFood: the automatic pick voice and photo logs make ──────────────
+// Each of these used to log a different food that merely contains the word
+// (coffee -> Coffee biscuit, water -> Water Chestnut, milk -> Milk cake, egg ->
+// a sandwich, sugar -> sugarcane juice). No catalog row IS any of them, so
+// they must go to the server rather than be guessed.
+for (const q of ["coffee", "water", "milk", "egg", "sugar", "dal", "chicken"])
+  assert.equal(catalogFood(q), undefined, `${q} must fall through`);
+// Where a raw corpus row and a curated row share a name, the curated one —
+// with its piece weight — is the pick, and searchFoods puts it first too.
+for (const [q, code] of [
+  ["idli", "XE004"],
+  ["Naan", "XE031"],
+  ["dhokla", "XE104"],
+]) {
+  assert.equal(catalogFood(q)?.code, code, `${q} -> ${code}`);
+  assert.equal(searchFoods(q, 1)[0]?.code, code, `searchFoods ${q} -> ${code}`);
+}
+// Slash names and a parenthetical qualifier still count as the name.
+assert.equal(catalogFood("roti")?.code, "XE030");
+assert.equal(catalogFood("poha")?.code, "XE010");
 
 console.log("\n✅ All food-fuzzy tests passed.");
