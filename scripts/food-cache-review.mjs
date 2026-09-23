@@ -27,6 +27,11 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
+// The app's own threshold, not a copy of it: it is scale-dependent (2 for
+// today's small user base, 3 once it reaches 1k–10k users), and a copy here
+// would drift the day it moves. Node strips the types, as it does for the
+// repo's node:assert test files.
+import { MIN_DISTINCT_USERS, QUORUM_SIZE } from "../src/lib/foodCache.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 try {
@@ -142,10 +147,6 @@ const pending = await read(
     .select("canonical_key, food_class, food_name, created_at, user_hash"),
 );
 
-// Must match MIN_DISTINCT_USERS in src/lib/foodCache.ts (scale-dependent: 2
-// for today's small user base, 3 once it reaches 1k–10k users).
-const MIN_DISTINCT_USERS = 2;
-
 // Grouped as recordAnswer groups them: by key AND class. Answers that agree on
 // the key but not the class never count toward the same three. A group needs
 // three answers from at least MIN_DISTINCT_USERS different people.
@@ -167,5 +168,5 @@ for (const p of pending) {
 console.log(`\n=== Short of quorum: ${groups.size} foods ===`);
 for (const [id, g] of [...groups].sort((a, b) => b[1].n - a[1].n))
   console.log(
-    `${id}  — ${g.n}/3 answers, ${g.users.size}/${MIN_DISTINCT_USERS} people, since ${day(g.first)}  (${g.name})`,
+    `${id}  — ${g.n}/${QUORUM_SIZE} answers, ${g.users.size}/${MIN_DISTINCT_USERS} people, since ${day(g.first)}  (${g.name})`,
   );
