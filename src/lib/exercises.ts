@@ -35,7 +35,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Reverse Barbell Curl",
     "TRX Bicep Curl",
     "Zottman Curl",
-    "Zottman Preacher Curl"
+    "Zottman Preacher Curl",
   ],
   back: [
     "Barbell Row",
@@ -90,7 +90,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Loop Band Lat Pulldown",
     "Loop Band Standing Single Arm Row",
     "Renegade Row",
-    "TRX Inverted Row"
+    "TRX Inverted Row",
   ],
   chest: [
     "Barbell Bench Press",
@@ -139,7 +139,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Loop Band Standing Chest Press",
     "Loop Band Standing Incline Chest Press",
     "Dumbbell Pullover",
-    "TRX Chest Press"
+    "TRX Chest Press",
   ],
   shoulders: [
     "Barbell Shoulder Press",
@@ -194,7 +194,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Pike Push Up",
     "Rope Slam",
     "TRX Rear Delt Fly",
-    "Handstand Push-ups (assisted)"
+    "Handstand Push-ups (assisted)",
   ],
   triceps: [
     "Assisted Dip",
@@ -231,7 +231,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Tricep Pushdown",
     "Tricep Pushdown V Bar",
     "TRX Tricep Extension",
-    "Underhand Tricep Extension"
+    "Underhand Tricep Extension",
   ],
   abs: [
     "Ab Wheel Rollout",
@@ -286,7 +286,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "V Up",
     "Vertical Knee Raise",
     "Vertical Leg Raise",
-    "Medicine Ball Slams"
+    "Medicine Ball Slams",
   ],
   glutes: [
     "Barbell Glute Bridge",
@@ -312,7 +312,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Plate-Loaded Glute Kickback",
     "Single Leg Smith Machine Reverse Kickback",
     "Smith Machine Reverse Kickback",
-    "Stair Stepper"
+    "Stair Stepper",
   ],
   hamstrings: [
     "Barbell Romanian Deadlift",
@@ -336,7 +336,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Plate-Loaded Standing Leg Curl",
     "Seated Leg Curl",
     "Single Leg Lying Hamstring Curl",
-    "Single Leg Seated Curl"
+    "Single Leg Seated Curl",
   ],
   quads: [
     "Back Squat",
@@ -397,7 +397,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Squat Jump",
     "TRX Pistol Squat",
     "Wall Ball",
-    "Wall Sit"
+    "Wall Sit",
   ],
   calves: [
     "Barbell Calf Raise",
@@ -420,7 +420,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Tibialis Raise",
     "Farmer Walk on Toes",
     "Deficit Calf Raise (Step)",
-    "Pogo Jumps"
+    "Pogo Jumps",
   ],
   lowerback: [
     "Back Extension",
@@ -434,7 +434,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Stability Ball Back Extension",
     "Jefferson Curl",
     "Seated Good Morning",
-    "Weighted Back Extension"
+    "Weighted Back Extension",
   ],
   traps: [
     "Barbell Shrug",
@@ -453,7 +453,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Dumbbell Farmer's Walk",
     "Power Shrug",
     "Kirk Shrug",
-    "Overhead Shrug"
+    "Overhead Shrug",
   ],
   forearms: [
     "Palms Down Barbell Wrist Curl",
@@ -471,7 +471,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Gripper Squeeze",
     "Fat Grip Dumbbell Hold",
     "Suitcase Carry",
-    "Finger Curls"
+    "Finger Curls",
   ],
   abductors: [
     "Cable Hip Abduction",
@@ -485,7 +485,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Standing Side Leg Raise",
     "Curtsy Lunge",
     "Side Plank Hip Abduction",
-    "Cable Standing Hip Abduction"
+    "Cable Standing Hip Abduction",
   ],
   adductors: [
     "Machine Adduction",
@@ -496,7 +496,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Sumo Squat (Wide Stance)",
     "Adductor Squeeze (Ball)",
     "Lying Adduction Leg Raise",
-    "Banded Adduction"
+    "Banded Adduction",
   ],
 };
 

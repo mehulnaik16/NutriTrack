@@ -36,17 +36,19 @@ import { z } from "zod";
  *     character word can occupy five UTF-16 code units.
  */
 export function sanitizeFoodQuery(raw: string): string {
-  return raw
-    .normalize("NFC")
-    .slice(0, 300)
-    // Control characters only. The zero-width joiners are category Cf, not
-    // Cc, so they survive this by definition - which they must, because they
-    // are letter-forming in Devanagari, Kannada, Tamil and their neighbours.
-    .replace(/\p{Cc}/gu, " ")
-    // The delimiter breakers and the string-escape characters.
-    .replace(/[<>`\\]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    raw
+      .normalize("NFC")
+      .slice(0, 300)
+      // Control characters only. The zero-width joiners are category Cf, not
+      // Cc, so they survive this by definition - which they must, because they
+      // are letter-forming in Devanagari, Kannada, Tamil and their neighbours.
+      .replace(/\p{Cc}/gu, " ")
+      // The delimiter breakers and the string-escape characters.
+      .replace(/[<>`\\]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 // Layer 2: the system prompt. The model is told the query is untrusted data,
@@ -292,10 +294,7 @@ const AiFoodItem = z
     // An off-list value degrades to "" exactly like canonical_key does above:
     // still a valid item, still shown to the user, just not grouped under a
     // key — an off-list class must never itself poison a cache group.
-    food_class: z
-      .enum(FOOD_CLASS_VALUES)
-      .or(z.literal(""))
-      .catch(""),
+    food_class: z.enum(FOOD_CLASS_VALUES).or(z.literal("")).catch(""),
     aliases: z.array(z.string().max(120)).max(12).catch([]),
     basis: z.enum(["100g", "piece"]).catch("100g"),
   })
@@ -304,9 +303,9 @@ const AiFoodItem = z
     // The same two rules unitsFor() applies to catalog rows, enforced here so
     // an AI row cannot claim a unit the converter is unable to honour: "g" is
     // always valid, and "pcs" without a piece weight makes toGrams() return 0.
-    units: [...new Set<(typeof UNIT_VALUES)[number]>(["g", ...it.units])].filter(
-      (u) => u !== "pcs" || it.piece_g !== undefined,
-    ),
+    units: [
+      ...new Set<(typeof UNIT_VALUES)[number]>(["g", ...it.units]),
+    ].filter((u) => u !== "pcs" || it.piece_g !== undefined),
   }));
 
 const AiFoodResponse = z.object({
@@ -359,18 +358,30 @@ export const ENERGY_FLOOR_KJ = 85;
  * better. Add the missing field if drink logging ever matters.
  */
 export function reconcileEnergy<
-  T extends { enerc: number; protcnt: number; fatce: number; choavldf: number; name: string },
+  T extends {
+    enerc: number;
+    protcnt: number;
+    fatce: number;
+    choavldf: number;
+    name: string;
+  },
 >(it: T, query: string): T {
   const implied = atwaterKJ(it);
-  if (Math.abs(it.enerc - implied) <= Math.max(ENERGY_TOL * implied, ENERGY_FLOOR_KJ)) {
+  if (
+    Math.abs(it.enerc - implied) <=
+    Math.max(ENERGY_TOL * implied, ENERGY_FLOOR_KJ)
+  ) {
     return it;
   }
-  console.warn("[ai-food-search] energy/macro mismatch — recomputed from macros", {
-    query,
-    name: it.name,
-    returned: it.enerc,
-    implied: Math.round(implied),
-  });
+  console.warn(
+    "[ai-food-search] energy/macro mismatch — recomputed from macros",
+    {
+      query,
+      name: it.name,
+      returned: it.enerc,
+      implied: Math.round(implied),
+    },
+  );
   return { ...it, enerc: +implied.toFixed(1) };
 }
 
@@ -425,7 +436,10 @@ export function reconcileEnergy<
  * `JSON.parse` can legally return the JS value `null`, and callers need to
  * tell "found nothing" from "found a literal null" apart.
  */
-export function extractJsonObject(raw: string): { value: unknown; count: number } {
+export function extractJsonObject(raw: string): {
+  value: unknown;
+  count: number;
+} {
   const candidates: unknown[] = [];
   let from = 0;
   while (from < raw.length) {
@@ -512,21 +526,30 @@ export function validateFoodSlots(
   // All-zero macros are the classic injection signature — real food always has
   // energy. Everything that survives then gets its energy reconciled.
   const slots = result.data.items.map((item) =>
-    item.enerc === 0 && item.protcnt === 0 && item.fatce === 0 && item.choavldf === 0
+    item.enerc === 0 &&
+    item.protcnt === 0 &&
+    item.fatce === 0 &&
+    item.choavldf === 0
       ? null
       : reconcileEnergy(item, query),
   );
   const items = slots.filter((s): s is AiFoodItemOut => s !== null);
 
   if (items.length < slots.length) {
-    console.warn("[ai-food-search] rejected all-zero item(s) — possible injection attempt", {
-      query,
-    });
+    console.warn(
+      "[ai-food-search] rejected all-zero item(s) — possible injection attempt",
+      {
+        query,
+      },
+    );
   }
   return { kind: result.data.kind, items, slots };
 }
 
-export function validateFoodResponse(raw: unknown, query: string): AiFoodResult | null {
+export function validateFoodResponse(
+  raw: unknown,
+  query: string,
+): AiFoodResult | null {
   const v = validateFoodSlots(raw, query);
   return v && { kind: v.kind, items: v.items };
 }
@@ -545,5 +568,5 @@ export function validateFoodResponse(raw: unknown, query: string): AiFoodResult 
  * ceiling billed on actual output, so the larger figure costs nothing on a
  * short answer.
  */
-export const maxTokensFor = (composite: boolean): number => (composite ? 1400 : 900);
-
+export const maxTokensFor = (composite: boolean): number =>
+  composite ? 1400 : 900;

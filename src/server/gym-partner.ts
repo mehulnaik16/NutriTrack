@@ -433,7 +433,7 @@ export async function pushEntitlement(
     accessUntil: (profile as any)?.access_until ?? null,
     hasPaid: extra?.hasPaid ?? false,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto
-    tier: extra?.tier ?? ((profile as any)?.selected_plan ?? null),
+    tier: extra?.tier ?? (profile as any)?.selected_plan ?? null,
     // Never raised here: sync_gym_member() keeps whatever was decided at first
     // link, so this value cannot promote an unattributed member into a paying
     // one.

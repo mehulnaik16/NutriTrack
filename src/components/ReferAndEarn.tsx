@@ -99,7 +99,9 @@ export function ReferAndEarnPage({
   /** bonus_premium_days as the fold computed it. null until the read lands. */
   const [creditedDays, setCreditedDays] = useState<number | null>(null);
   /** bonus_trial_days, same source and same reason — see freeDays below. */
-  const [creditedTrialDays, setCreditedTrialDays] = useState<number | null>(null);
+  const [creditedTrialDays, setCreditedTrialDays] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -162,7 +164,9 @@ export function ReferAndEarnPage({
   const processing = subscribed.filter((r) =>
     isPremiumProcessing(r.subscribed_at),
   );
-  const cleared = subscribed.filter((r) => !isPremiumProcessing(r.subscribed_at));
+  const cleared = subscribed.filter(
+    (r) => !isPremiumProcessing(r.subscribed_at),
+  );
   // What the fold actually granted, clawbacks and holds included. The count
   // above is what the rows imply; this is what the database says, and the
   // database is the authority.
@@ -423,10 +427,7 @@ export function ReferAndEarnPage({
               </span>
             </div>
             <Progress
-              value={Math.min(
-                100,
-                (premiumDays / MAX_PREMIUM_DAYS) * 100,
-              )}
+              value={Math.min(100, (premiumDays / MAX_PREMIUM_DAYS) * 100)}
               className="mt-2 h-2 bg-muted"
               indicatorClassName="bg-[var(--fat)]"
             />
@@ -482,8 +483,6 @@ export function ReferAndEarnPage({
             )}
           </div>
         </section>
-
-
 
         {/* ── Full-page explainer + legal ───────────────────────────── */}
         <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">

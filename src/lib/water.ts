@@ -70,7 +70,10 @@ export async function loadWaterPrefs(userId: string): Promise<WaterPrefs> {
 }
 
 /** Persist water prefs to localStorage (for instant reads) and the DB (for other devices). */
-export async function saveWaterPrefs(userId: string, prefs: WaterPrefs): Promise<void> {
+export async function saveWaterPrefs(
+  userId: string,
+  prefs: WaterPrefs,
+): Promise<void> {
   writeLocal(prefs);
   await supabase
     .from("user_profiles")

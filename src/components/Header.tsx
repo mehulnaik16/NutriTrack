@@ -47,7 +47,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 
@@ -118,7 +123,9 @@ function StreakDialog({
             <div className="absolute inset-0 rounded-full bg-accent/25 blur-2xl" />
             <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-xl glow-accent animate-in zoom-in duration-500">
               <Icon className="absolute h-24 w-24 opacity-10" />
-              <span className="z-10 font-display text-5xl font-bold">{count}</span>
+              <span className="z-10 font-display text-5xl font-bold">
+                {count}
+              </span>
             </div>
           </div>
           <DialogTitle className="mb-1 font-display text-2xl font-bold tracking-tight">
@@ -163,14 +170,49 @@ function StreakDialog({
 function DayRow({ dates, src }: { dates: Set<string>; src: string }) {
   const week = lastSevenDays();
   return (
-    <div style={{ background: "#fff", borderRadius: 10, padding: "8px 10px", display: "flex", justifyContent: "space-between" }}>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 10,
+        padding: "8px 10px",
+        display: "flex",
+        justifyContent: "space-between",
+      }}
+    >
       {week.map((d) => {
         const active = dates.has(d.iso);
         return (
-          <div key={d.iso} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: "#6B7280" }}>{d.letter}</span>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: active ? "#FFFFFF" : "#E5E7EB", border: active ? "1px solid #E5E7EB" : "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {active && <img src={src} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} />}
+          <div
+            key={d.iso}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#6B7280" }}>
+              {d.letter}
+            </span>
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: active ? "#FFFFFF" : "#E5E7EB",
+                border: active ? "1px solid #E5E7EB" : "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {active && (
+                <img
+                  src={src}
+                  alt=""
+                  style={{ width: 16, height: 16, objectFit: "contain" }}
+                />
+              )}
             </div>
           </div>
         );
@@ -193,16 +235,34 @@ function DashboardStreakDialog({
   trigger: React.ReactNode;
 }) {
   const foodSubtitle =
-    foodStreak === 0 ? "Start logging food today!" : `${foodStreak} days in a row. Keep the chain alive.`;
+    foodStreak === 0
+      ? "Start logging food today!"
+      : `${foodStreak} days in a row. Keep the chain alive.`;
   const workoutSubtitle =
-    workoutStreak === 0 ? "Log a workout to start your streak!" : `${workoutStreak} days in a row. Amazing consistency!`;
+    workoutStreak === 0
+      ? "Log a workout to start your streak!"
+      : `${workoutStreak} days in a row. Amazing consistency!`;
 
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="border-0 bg-transparent p-0 shadow-none sm:max-w-[360px] [&>button]:text-black [&>button]:opacity-100">
-        <div style={{ background: "#FFFFFF", borderRadius: 20, padding: 20, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
-          <DialogTitle style={{ fontWeight: 700, fontSize: 20, color: "#1C1C1E", margin: "0 0 3px" }}>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: 20,
+            padding: 20,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+          }}
+        >
+          <DialogTitle
+            style={{
+              fontWeight: 700,
+              fontSize: 20,
+              color: "#1C1C1E",
+              margin: "0 0 3px",
+            }}
+          >
             A Daily Streak
           </DialogTitle>
           <p style={{ fontSize: 13, color: "#6B7280", margin: "0 0 16px" }}>
@@ -210,56 +270,189 @@ function DashboardStreakDialog({
           </p>
 
           {/* Top summary: leaf + flame side by side */}
-          <div style={{ display: "flex", alignItems: "flex-end", marginBottom: 16 }}>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              marginBottom: 16,
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
               <div style={{ position: "relative", width: 80, height: 80 }}>
-                <img src="/leaf.png" alt="Food Streak" style={{ width: 80, height: 80, objectFit: "contain" }} />
-                <span style={{ position: "absolute", top: "43%", left: "43%", transform: "translate(-50%, -50%)", fontWeight: 800, fontSize: 26, color: "#fff", lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}>
+                <img
+                  src="/leaf.png"
+                  alt="Food Streak"
+                  style={{ width: 80, height: 80, objectFit: "contain" }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "43%",
+                    left: "43%",
+                    transform: "translate(-50%, -50%)",
+                    fontWeight: 800,
+                    fontSize: 26,
+                    color: "#fff",
+                    lineHeight: 1,
+                    textShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                  }}
+                >
                   {foodStreak}
                 </span>
               </div>
-              <span style={{ fontWeight: 700, fontSize: 13, color: "#1C1C1E" }}>Food Streak</span>
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#1C1C1E" }}>
+                Food Streak
+              </span>
             </div>
 
-            <div style={{ width: 1, height: 72, background: "#E5E7EB", flexShrink: 0, margin: "0 4px 22px" }} />
+            <div
+              style={{
+                width: 1,
+                height: 72,
+                background: "#E5E7EB",
+                flexShrink: 0,
+                margin: "0 4px 22px",
+              }}
+            />
 
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
               <div style={{ position: "relative", width: 80, height: 80 }}>
-                <img src="/fire image.png" alt="Workout Streak" style={{ width: 80, height: 80, objectFit: "contain" }} />
-                <span style={{ position: "absolute", top: "52%", left: "50%", transform: "translate(-50%, -50%)", fontWeight: 800, fontSize: 26, color: "#fff", lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}>
+                <img
+                  src="/fire image.png"
+                  alt="Workout Streak"
+                  style={{ width: 80, height: 80, objectFit: "contain" }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "52%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    fontWeight: 800,
+                    fontSize: 26,
+                    color: "#fff",
+                    lineHeight: 1,
+                    textShadow: "0 1px 4px rgba(0,0,0,0.35)",
+                  }}
+                >
                   {workoutStreak}
                 </span>
               </div>
-              <span style={{ fontWeight: 700, fontSize: 13, color: "#1C1C1E" }}>Workout Streak</span>
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#1C1C1E" }}>
+                Workout Streak
+              </span>
             </div>
           </div>
 
           {/* Food Streak detail card */}
-          <div style={{ background: "#F4FAF4", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <img src="/leaf.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+          <div
+            style={{
+              background: "#F4FAF4",
+              borderRadius: 14,
+              padding: "12px 14px",
+              marginBottom: 10,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 10,
+              }}
+            >
+              <img
+                src="/leaf.png"
+                alt=""
+                style={{
+                  width: 36,
+                  height: 36,
+                  objectFit: "contain",
+                  flexShrink: 0,
+                }}
+              />
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1E" }}>Food Streak</div>
-                <div style={{ fontSize: 11.5, color: "#6B7280" }}>{foodSubtitle}</div>
+                <div
+                  style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1E" }}
+                >
+                  Food Streak
+                </div>
+                <div style={{ fontSize: 11.5, color: "#6B7280" }}>
+                  {foodSubtitle}
+                </div>
               </div>
             </div>
             <DayRow dates={foodDates} src="/leaf.png" />
           </div>
 
           {/* Workout Streak detail card */}
-          <div style={{ background: "#FFF5EC", borderRadius: 14, padding: "12px 14px", marginBottom: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <img src="/fire image.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+          <div
+            style={{
+              background: "#FFF5EC",
+              borderRadius: 14,
+              padding: "12px 14px",
+              marginBottom: 14,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 10,
+              }}
+            >
+              <img
+                src="/fire image.png"
+                alt=""
+                style={{
+                  width: 36,
+                  height: 36,
+                  objectFit: "contain",
+                  flexShrink: 0,
+                }}
+              />
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1E" }}>Workout Streak</div>
-                <div style={{ fontSize: 11.5, color: "#6B7280" }}>{workoutSubtitle}</div>
+                <div
+                  style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1E" }}
+                >
+                  Workout Streak
+                </div>
+                <div style={{ fontSize: 11.5, color: "#6B7280" }}>
+                  {workoutSubtitle}
+                </div>
               </div>
             </div>
             <DayRow dates={workoutDates} src="/fire image.png" />
           </div>
 
-          <p style={{ textAlign: "center", fontSize: 11.5, color: "#6B7280", margin: 0, lineHeight: 1.5 }}>
-            Complete a lesson, log your food, or finish a workout to keep your streaks going and earn badges!
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: 11.5,
+              color: "#6B7280",
+              margin: 0,
+              lineHeight: 1.5,
+            }}
+          >
+            Complete a lesson, log your food, or finish a workout to keep your
+            streaks going and earn badges!
           </p>
         </div>
       </DialogContent>
@@ -313,9 +506,12 @@ export function Header({
       setFoodDates(
         new Set(
           (fData ?? [])
-            .filter((d: any) => d.logged_at && localISO(new Date(d.logged_at)) === d.date)
-            .map((d: any) => d.date)
-        )
+            .filter(
+              (d: any) =>
+                d.logged_at && localISO(new Date(d.logged_at)) === d.date,
+            )
+            .map((d: any) => d.date),
+        ),
       );
     };
     fetchDates();
@@ -326,15 +522,36 @@ export function Header({
     [workoutDates, foodDates],
   );
 
-  const workoutStreak = useMemo(() => computeStreak(workoutDates), [workoutDates]);
+  const workoutStreak = useMemo(
+    () => computeStreak(workoutDates),
+    [workoutDates],
+  );
   const foodStreak = useMemo(() => computeStreak(foodDates), [foodDates]);
-  const overallStreak = useMemo(() => computeStreak(overallDates), [overallDates]);
+  const overallStreak = useMemo(
+    () => computeStreak(overallDates),
+    [overallDates],
+  );
 
   const streakCfg = pathname.includes("/workout")
-    ? { count: workoutStreak, title: "Workout Streak", icon: Dumbbell, dates: workoutDates }
+    ? {
+        count: workoutStreak,
+        title: "Workout Streak",
+        icon: Dumbbell,
+        dates: workoutDates,
+      }
     : pathname.includes("/food")
-      ? { count: foodStreak, title: "Food Streak", icon: Utensils, dates: foodDates }
-      : { count: overallStreak, title: "Day Streak", icon: Flame, dates: overallDates };
+      ? {
+          count: foodStreak,
+          title: "Food Streak",
+          icon: Utensils,
+          dates: foodDates,
+        }
+      : {
+          count: overallStreak,
+          title: "Day Streak",
+          icon: Flame,
+          dates: overallDates,
+        };
 
   const chipStyle =
     streakCfg.count > 7
@@ -345,10 +562,14 @@ export function Header({
 
   const [isIsroTheme, setIsIsroTheme] = useState(false);
   useEffect(() => {
-    const check = () => setIsIsroTheme(document.documentElement.classList.contains("theme-isro"));
+    const check = () =>
+      setIsIsroTheme(document.documentElement.classList.contains("theme-isro"));
     check();
     const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     return () => observer.disconnect();
   }, []);
 
@@ -363,9 +584,13 @@ export function Header({
         <div className="w-full bg-[#080c16] border-b border-[#1f2e45] px-3 py-1 flex items-center justify-between text-[10px] font-mono text-[#94a3b8]">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse" />
-            <span className="text-[#FF671F] font-bold">ISRO ISTRAC // MOX-2</span>
+            <span className="text-[#FF671F] font-bold">
+              ISRO ISTRAC // MOX-2
+            </span>
             <span className="hidden sm:inline text-slate-500">|</span>
-            <span className="hidden sm:inline text-slate-400">GROUND STATION: BENGALURU</span>
+            <span className="hidden sm:inline text-slate-400">
+              GROUND STATION: BENGALURU
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-slate-400">
@@ -404,7 +629,9 @@ export function Header({
           <div className="mr-1 hidden flex-col items-end text-right lg:flex">
             {name && (
               <span className="text-sm font-semibold">
-                {pathname === "/hub" ? `Welcome to Hub, ${name} 🙏` : `Hey, ${name} 👋`}
+                {pathname === "/hub"
+                  ? `Welcome to Hub, ${name} 🙏`
+                  : `Hey, ${name} 👋`}
               </span>
             )}
             <span className="text-xs text-muted-foreground">{today}</span>
@@ -455,7 +682,11 @@ export function Header({
                 onClick={() => navigate({ to: "/profile" })}
                 aria-label="Profile"
               >
-                {name ? name[0]?.toUpperCase() : <UserIcon className="h-4 w-4" />}
+                {name ? (
+                  name[0]?.toUpperCase()
+                ) : (
+                  <UserIcon className="h-4 w-4" />
+                )}
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -495,7 +726,11 @@ export function Header({
       {user && (
         <div className="mx-auto flex max-w-7xl items-center justify-between px-3 pb-2 text-xs text-muted-foreground lg:hidden overflow-hidden">
           <span className="truncate font-medium min-w-0 mr-2">
-            {name ? (pathname === "/hub" ? `Welcome to Hub, ${name} 🙏` : `Hey, ${name} 👋`) : "Welcome back"}
+            {name
+              ? pathname === "/hub"
+                ? `Welcome to Hub, ${name} 🙏`
+                : `Hey, ${name} 👋`
+              : "Welcome back"}
           </span>
           <span className="shrink-0">{today}</span>
         </div>

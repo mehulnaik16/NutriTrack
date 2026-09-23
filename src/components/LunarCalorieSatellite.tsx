@@ -13,7 +13,11 @@ interface LunarCalorieSatelliteProps {
   remaining: number;
 }
 
-export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalorieSatelliteProps) {
+export function LunarCalorieSatellite({
+  totals,
+  target,
+  remaining,
+}: LunarCalorieSatelliteProps) {
   const calories = Math.max(0, Math.round(totals.calories || 0));
   const calorieTarget = Math.max(1, target || 2000);
   const ratio = calories / calorieTarget;
@@ -83,7 +87,13 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
             </clipPath>
 
             {/* Glowing Laser Trail Filter */}
-            <filter id="sat-laser-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <filter
+              id="sat-laser-glow"
+              x="-20%"
+              y="-20%"
+              width="140%"
+              height="140%"
+            >
               <feGaussianBlur stdDeviation="3" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
@@ -96,21 +106,39 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
             </radialGradient>
 
             {/* Saffron Laser Trajectory Gradient */}
-            <linearGradient id="sat-laser-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient
+              id="sat-laser-grad"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
               <stop offset="0%" stopColor="#FF671F" />
               <stop offset="65%" stopColor="#FF671F" />
               <stop offset="100%" stopColor="#FBBF24" />
             </linearGradient>
 
             {/* Gold MLI Foil Texture for Satellite Body */}
-            <linearGradient id="sat-gold-foil" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient
+              id="sat-gold-foil"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
               <stop offset="0%" stopColor="#F59E0B" />
               <stop offset="45%" stopColor="#FBBF24" />
               <stop offset="100%" stopColor="#B45309" />
             </linearGradient>
 
             {/* Solar Array Blue Cells Gradient */}
-            <linearGradient id="sat-solar-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient
+              id="sat-solar-grad"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
               <stop offset="0%" stopColor="#1E3A8A" />
               <stop offset="40%" stopColor="#2563EB" />
               <stop offset="80%" stopColor="#1D4ED8" />
@@ -118,7 +146,13 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
             </linearGradient>
 
             {/* Parabolic Dish Antenna Gradient */}
-            <linearGradient id="sat-dish-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient
+              id="sat-dish-grad"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
               <stop offset="0%" stopColor="#F8FAFC" />
               <stop offset="70%" stopColor="#CBD5E1" />
               <stop offset="100%" stopColor="#64748B" />
@@ -140,21 +174,78 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
           />
 
           {/* Cardinal Axis Markers */}
-          <line x1={cx} y1="4" x2={cx} y2="13" stroke="#FF671F" strokeWidth="1.5" />
-          <line x1={cx} y1="327" x2={cx} y2="336" stroke="#38bdf8" strokeWidth="1.5" />
-          <line x1="4" y1={cy} x2="13" y2={cy} stroke="#64748b" strokeWidth="1.5" />
-          <line x1="327" y1={cy} x2="336" y2={cy} stroke="#64748b" strokeWidth="1.5" />
+          <line
+            x1={cx}
+            y1="4"
+            x2={cx}
+            y2="13"
+            stroke="#FF671F"
+            strokeWidth="1.5"
+          />
+          <line
+            x1={cx}
+            y1="327"
+            x2={cx}
+            y2="336"
+            stroke="#38bdf8"
+            strokeWidth="1.5"
+          />
+          <line
+            x1="4"
+            y1={cy}
+            x2="13"
+            y2={cy}
+            stroke="#64748b"
+            strokeWidth="1.5"
+          />
+          <line
+            x1="327"
+            y1={cy}
+            x2="336"
+            y2={cy}
+            stroke="#64748b"
+            strokeWidth="1.5"
+          />
 
-          <text x={cx} y="11" textAnchor="middle" fill="#FF671F" fontSize="7" fontFamily="monospace" fontWeight="bold">
+          <text
+            x={cx}
+            y="11"
+            textAnchor="middle"
+            fill="#FF671F"
+            fontSize="7"
+            fontFamily="monospace"
+            fontWeight="bold"
+          >
             000° N
           </text>
-          <text x={cx} y="335" textAnchor="middle" fill="#38bdf8" fontSize="7" fontFamily="monospace">
+          <text
+            x={cx}
+            y="335"
+            textAnchor="middle"
+            fill="#38bdf8"
+            fontSize="7"
+            fontFamily="monospace"
+          >
             180° S
           </text>
-          <text x="3" y={cy + 2.5} textAnchor="start" fill="#64748b" fontSize="7" fontFamily="monospace">
+          <text
+            x="3"
+            y={cy + 2.5}
+            textAnchor="start"
+            fill="#64748b"
+            fontSize="7"
+            fontFamily="monospace"
+          >
             270° W
           </text>
-          <text x="337" y={cy + 2.5} textAnchor="end" fill="#64748b" fontSize="7" fontFamily="monospace">
+          <text
+            x="337"
+            y={cy + 2.5}
+            textAnchor="end"
+            fill="#64748b"
+            fontSize="7"
+            fontFamily="monospace"
+          >
             090° E
           </text>
 
@@ -255,7 +346,15 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
 
           {/* Orbital Insertion Point (12 o'clock / 000° N) */}
           <circle cx={cx} cy={cy - orbitR} r="3" fill="#FF671F" />
-          <circle cx={cx} cy={cy - orbitR} r="5.5" fill="none" stroke="#FF671F" strokeWidth="1" opacity="0.6" />
+          <circle
+            cx={cx}
+            cy={cy - orbitR}
+            r="5.5"
+            fill="none"
+            stroke="#FF671F"
+            strokeWidth="1"
+            opacity="0.6"
+          />
 
           {/* =================================================== */}
           {/* ISRO CHANDRAYAAN ORBITER SATELLITE (VECTOR MODEL)   */}
@@ -267,16 +366,57 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
           >
             {/* Ion Thruster Particle Exhaust Plume (trailing behind) */}
             <g opacity="0.85">
-              <line x1="-14" y1="0" x2="-22" y2="0" stroke="#00F0FF" strokeWidth="2" strokeLinecap="round" opacity="0.9" />
-              <line x1="-14" y1="-2" x2="-19" y2="-2" stroke="#FF671F" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
-              <line x1="-14" y1="2" x2="-19" y2="2" stroke="#FF671F" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
-              <circle cx="-16" cy="0" r="2.5" fill="#00F0FF" opacity="0.6" filter="blur(1px)" />
+              <line
+                x1="-14"
+                y1="0"
+                x2="-22"
+                y2="0"
+                stroke="#00F0FF"
+                strokeWidth="2"
+                strokeLinecap="round"
+                opacity="0.9"
+              />
+              <line
+                x1="-14"
+                y1="-2"
+                x2="-19"
+                y2="-2"
+                stroke="#FF671F"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                opacity="0.75"
+              />
+              <line
+                x1="-14"
+                y1="2"
+                x2="-19"
+                y2="2"
+                stroke="#FF671F"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                opacity="0.75"
+              />
+              <circle
+                cx="-16"
+                cy="0"
+                r="2.5"
+                fill="#00F0FF"
+                opacity="0.6"
+                filter="blur(1px)"
+              />
             </g>
 
             {/* Left Solar Panel Wing (Extended Upper) */}
             <g>
               {/* Panel Strut Bracket */}
-              <line x1="0" y1="-6" x2="0" y2="-10" stroke="#94A3B8" strokeWidth="1.2" />
+              <line
+                x1="0"
+                y1="-6"
+                x2="0"
+                y2="-10"
+                stroke="#94A3B8"
+                strokeWidth="1.2"
+              />
               {/* Solar Array Main Body */}
               <rect
                 x="-5.5"
@@ -289,15 +429,46 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
                 strokeWidth="0.6"
               />
               {/* Photovoltaic Cell Grid Lines */}
-              <line x1="-5.5" y1="-20" x2="5.5" y2="-20" stroke="#93C5FD" strokeWidth="0.5" opacity="0.8" />
-              <line x1="-5.5" y1="-15" x2="5.5" y2="-15" stroke="#93C5FD" strokeWidth="0.5" opacity="0.8" />
-              <line x1="0" y1="-25" x2="0" y2="-10" stroke="#93C5FD" strokeWidth="0.5" opacity="0.8" />
+              <line
+                x1="-5.5"
+                y1="-20"
+                x2="5.5"
+                y2="-20"
+                stroke="#93C5FD"
+                strokeWidth="0.5"
+                opacity="0.8"
+              />
+              <line
+                x1="-5.5"
+                y1="-15"
+                x2="5.5"
+                y2="-15"
+                stroke="#93C5FD"
+                strokeWidth="0.5"
+                opacity="0.8"
+              />
+              <line
+                x1="0"
+                y1="-25"
+                x2="0"
+                y2="-10"
+                stroke="#93C5FD"
+                strokeWidth="0.5"
+                opacity="0.8"
+              />
             </g>
 
             {/* Right Solar Panel Wing (Extended Lower) */}
             <g>
               {/* Panel Strut Bracket */}
-              <line x1="0" y1="6" x2="0" y2="10" stroke="#94A3B8" strokeWidth="1.2" />
+              <line
+                x1="0"
+                y1="6"
+                x2="0"
+                y2="10"
+                stroke="#94A3B8"
+                strokeWidth="1.2"
+              />
               {/* Solar Array Main Body */}
               <rect
                 x="-5.5"
@@ -310,9 +481,33 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
                 strokeWidth="0.6"
               />
               {/* Photovoltaic Cell Grid Lines */}
-              <line x1="-5.5" y1="15" x2="5.5" y2="15" stroke="#93C5FD" strokeWidth="0.5" opacity="0.8" />
-              <line x1="-5.5" y1="20" x2="5.5" y2="20" stroke="#93C5FD" strokeWidth="0.5" opacity="0.8" />
-              <line x1="0" y1="10" x2="0" y2="25" stroke="#93C5FD" strokeWidth="0.5" opacity="0.8" />
+              <line
+                x1="-5.5"
+                y1="15"
+                x2="5.5"
+                y2="15"
+                stroke="#93C5FD"
+                strokeWidth="0.5"
+                opacity="0.8"
+              />
+              <line
+                x1="-5.5"
+                y1="20"
+                x2="5.5"
+                y2="20"
+                stroke="#93C5FD"
+                strokeWidth="0.5"
+                opacity="0.8"
+              />
+              <line
+                x1="0"
+                y1="10"
+                x2="0"
+                y2="25"
+                stroke="#93C5FD"
+                strokeWidth="0.5"
+                opacity="0.8"
+              />
             </g>
 
             {/* Main Satellite Bus Chassis (Gold MLI Foil Cube) */}
@@ -328,13 +523,36 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
             />
 
             {/* Foil Thermal Quilting Highlight Lines */}
-            <line x1="-8" y1="0" x2="8" y2="0" stroke="#FBBF24" strokeWidth="0.5" opacity="0.7" />
-            <line x1="0" y1="-7" x2="0" y2="7" stroke="#FBBF24" strokeWidth="0.5" opacity="0.7" />
+            <line
+              x1="-8"
+              y1="0"
+              x2="8"
+              y2="0"
+              stroke="#FBBF24"
+              strokeWidth="0.5"
+              opacity="0.7"
+            />
+            <line
+              x1="0"
+              y1="-7"
+              x2="0"
+              y2="7"
+              stroke="#FBBF24"
+              strokeWidth="0.5"
+              opacity="0.7"
+            />
 
             {/* High-Gain Parabolic Communications Dish (Pointing inward toward Moon/Earth) */}
             <g transform="translate(2, -1)">
               {/* Antenna Mast Gimbal */}
-              <line x1="4" y1="1" x2="8" y2="2" stroke="#CBD5E1" strokeWidth="1" />
+              <line
+                x1="4"
+                y1="1"
+                x2="8"
+                y2="2"
+                stroke="#CBD5E1"
+                strokeWidth="1"
+              />
               {/* Parabolic Reflector Dish */}
               <ellipse
                 cx="9"
@@ -351,7 +569,14 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
             </g>
 
             {/* Optical Payloads / Star Tracker Sensors (Front edge) */}
-            <circle cx="8" cy="-4" r="1.4" fill="#0f172a" stroke="#ffffff" strokeWidth="0.5" />
+            <circle
+              cx="8"
+              cy="-4"
+              r="1.4"
+              fill="#0f172a"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+            />
             <circle cx="8" cy="-4" r="0.6" fill="#00f0ff" />
 
             {/* Mini Indian Tricolor Indicator on Chassis */}
@@ -416,7 +641,11 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
         <div className="text-[10px] font-mono font-semibold tracking-wider">
           {remaining > 0 ? (
             <span className="text-emerald-400">
-              ORBITAL DELTA: <span className="font-bold">{Math.round(remaining).toLocaleString()} KCAL</span> REMAINING
+              ORBITAL DELTA:{" "}
+              <span className="font-bold">
+                {Math.round(remaining).toLocaleString()} KCAL
+              </span>{" "}
+              REMAINING
             </span>
           ) : remaining === 0 ? (
             <span className="text-emerald-300 font-bold">
@@ -424,7 +653,8 @@ export function LunarCalorieSatellite({ totals, target, remaining }: LunarCalori
             </span>
           ) : (
             <span className="text-[#FF671F] font-bold">
-              SURPLUS PROP_BURN: +{Math.abs(Math.round(remaining)).toLocaleString()} KCAL
+              SURPLUS PROP_BURN: +
+              {Math.abs(Math.round(remaining)).toLocaleString()} KCAL
             </span>
           )}
         </div>

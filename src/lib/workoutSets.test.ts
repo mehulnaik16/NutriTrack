@@ -56,12 +56,18 @@ assert.equal(
   formatSet({ reps: "8", weight: "60", unit: "kg", kind: "weighted" }),
   "8 reps @ 60 kg",
 );
-assert.equal(formatSet({ reps: "20", rpe: 7, kind: "bodyweight" }), "20 reps · RPE 7");
+assert.equal(
+  formatSet({ reps: "20", rpe: 7, kind: "bodyweight" }),
+  "20 reps · RPE 7",
+);
 assert.equal(
   formatSet({ reps: "10", weight: "5", unit: "kg", kind: "bodyweight" }),
   "10 reps +5kg",
 );
-assert.equal(formatSet({ duration_seconds: 150, rpe: 8, kind: "isometric" }), "2:30 · RPE 8");
+assert.equal(
+  formatSet({ duration_seconds: 150, rpe: 8, kind: "isometric" }),
+  "2:30 · RPE 8",
+);
 assert.equal(
   formatSet({ reps: "8", weight: "20", unit: "kg", kind: "assisted" }),
   "8 reps · −20kg assist",
@@ -86,14 +92,26 @@ assert.equal(
   summarizeSets("weighted", [{ weight: "100", reps: "5" }]).label,
   "Est. 1RM from these sets",
 );
-assert.equal(summarizeSets("weighted", [{ weight: "100", reps: "5" }]).value, "116.7 kg");
-assert.equal(summarizeSets("bodyweight", [{ reps: "10" }, { reps: "12" }]).value, "22 reps");
 assert.equal(
-  summarizeSets("isometric", [{ duration_seconds: 60 }, { duration_seconds: 90 }]).value,
+  summarizeSets("weighted", [{ weight: "100", reps: "5" }]).value,
+  "116.7 kg",
+);
+assert.equal(
+  summarizeSets("bodyweight", [{ reps: "10" }, { reps: "12" }]).value,
+  "22 reps",
+);
+assert.equal(
+  summarizeSets("isometric", [
+    { duration_seconds: 60 },
+    { duration_seconds: 90 },
+  ]).value,
   "2:30",
 );
 // Assisted: 1RM is meaningless when the weight is what makes it easier.
-assert.equal(summarizeSets("assisted", [{ reps: "8", weight: "20" }]).value, "8 reps");
+assert.equal(
+  summarizeSets("assisted", [{ reps: "8", weight: "20" }]).value,
+  "8 reps",
+);
 // An empty form must not produce NaN.
 assert.equal(summarizeSets("bodyweight", []).value, "0 reps");
 assert.equal(summarizeSets("isometric", []).value, "0:00");

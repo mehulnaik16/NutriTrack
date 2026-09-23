@@ -51,8 +51,7 @@ export function ScrollableDayRow({
     if (!row || !pill) return;
     // scrollLeft directly, never scrollIntoView — the latter can scroll the
     // page vertically when this row is below the fold.
-    const target =
-      pill.offsetLeft - row.clientWidth / 2 + pill.clientWidth / 2;
+    const target = pill.offsetLeft - row.clientWidth / 2 + pill.clientWidth / 2;
     row.scrollTo({ left: target, behavior: "smooth" });
     // Keyed on activeIdx alone — adding `children` would re-run this on every
     // parent render and fight the user mid-drag.

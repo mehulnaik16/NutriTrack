@@ -74,7 +74,12 @@ import { loadMealNames } from "@/lib/meals";
 import { uploadWeightPhoto } from "@/services/storage";
 import { todayLocal, toLocalISO } from "@/lib/dates";
 import { formatQty } from "@/lib/foodUnits";
-import { calcBMR, calcTDEE, calcCalorieTarget, calcMacros } from "@/lib/nutrition";
+import {
+  calcBMR,
+  calcTDEE,
+  calcCalorieTarget,
+  calcMacros,
+} from "@/lib/nutrition";
 import { getTelemetryLabel } from "@/lib/telemetry";
 
 // Route-level lock. Dashboard is not mounted while access has lapsed, so none
@@ -242,7 +247,12 @@ function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<string>(today());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [streak, setStreak] = useState(0);
-  const [userMeals, setUserMeals] = useState<string[]>(["Breakfast", "Lunch", "Dinner", "Snack"]);
+  const [userMeals, setUserMeals] = useState<string[]>([
+    "Breakfast",
+    "Lunch",
+    "Dinner",
+    "Snack",
+  ]);
 
   // Meal names: DB-first (survives cache/session clear), then localStorage.
   useEffect(() => {
@@ -293,42 +303,45 @@ function Dashboard() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [{ data: p }, { data: t }, { data: m }, { data: w }, { data: wp }, { data: fav }] =
-      await Promise.all([
-        supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("food_logs")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("date", selectedDate)
-          .order("logged_at"),
-        supabase
-          .from("food_logs")
-          .select("*")
-          .eq("user_id", user.id)
-          .gte("date", thirtyDaysAgo())
-          .lte("date", today()),
-        supabase
-          .from("weight_entries")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("date", { ascending: true }),
-        supabase
-          .from("workout_plans")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from("saved_meals")
-          .select("name")
-          .eq("user_id", user.id),
-      ]);
+    const [
+      { data: p },
+      { data: t },
+      { data: m },
+      { data: w },
+      { data: wp },
+      { data: fav },
+    ] = await Promise.all([
+      supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("food_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("date", selectedDate)
+        .order("logged_at"),
+      supabase
+        .from("food_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("date", thirtyDaysAgo())
+        .lte("date", today()),
+      supabase
+        .from("weight_entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: true }),
+      supabase
+        .from("workout_plans")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from("saved_meals").select("name").eq("user_id", user.id),
+    ]);
 
     // An OAuth user who has not finished onboarding has no profile row. Without
     // this the render below spins forever, since it waits on `profile`.
@@ -364,13 +377,15 @@ function Dashboard() {
       const freshTarget = calcCalorieTarget(freshTdee, p.goal, p.gender);
       const freshMacros = calcMacros(freshTarget, p.goal, p.weight_kg);
       if (
-        p.bmr !== freshBmr || p.tdee !== freshTdee ||
+        p.bmr !== freshBmr ||
+        p.tdee !== freshTdee ||
         p.daily_calorie_target !== freshTarget ||
         p.protein_target_g !== freshMacros.protein ||
         p.fiber_target_g !== freshMacros.fiber
       ) {
         const patch = {
-          bmr: freshBmr, tdee: freshTdee,
+          bmr: freshBmr,
+          tdee: freshTdee,
           daily_calorie_target: freshTarget,
           protein_target_g: freshMacros.protein,
           carbs_target_g: freshMacros.carbs,
@@ -869,90 +884,94 @@ function Dashboard() {
                         <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
                           {items.map((l) => {
                             const isFav = favoriteNames.has(l.food_name);
-                              return (
-                                <div
-                                  key={l.id}
-                                  className="p-3 hover:bg-muted/20 transition-colors group"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-semibold truncate">
-                                        {l.food_name}
-                                      </div>
-                                      <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                        <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
-                                          {formatQty(l.quantity_g, l.unit, l.unit_quantity)}
-                                        </span>
-                                        <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
-                                          {Math.round(l.calories)} kcal
-                                        </span>
-                                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                                          P{Math.round(l.protein_g)}
-                                        </span>
-                                        <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
-                                          C{Math.round(l.carbs_g)}
-                                        </span>
-                                        <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                                          F{Math.round(l.fat_g)}
-                                        </span>
-                                      </div>
+                            return (
+                              <div
+                                key={l.id}
+                                className="p-3 hover:bg-muted/20 transition-colors group"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-semibold truncate">
+                                      {l.food_name}
                                     </div>
-                                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-0.5">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className={`h-9 w-9 transition-all ${
-                                          isFav
-                                            ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                                            : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                        }`}
-                                        title={
-                                          isFav
-                                            ? "Remove from Favorites"
-                                            : "Save to Favorites"
-                                        }
-                                        onClick={() => saveFoodAsFavorite(l)}
-                                      >
-                                        <Heart
-                                          className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
-                                        />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
-                                        title="Log again"
-                                        onClick={() => relogFood(l)}
-                                      >
-                                        <RotateCcw className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                        title="Modify"
-                                        onClick={() =>
-                                          searchRef.current?.editLog(l)
-                                        }
-                                      >
-                                        <PenTool className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                        title="Delete"
-                                        onClick={() => deleteLog(l.id)}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
+                                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                      <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
+                                        {formatQty(
+                                          l.quantity_g,
+                                          l.unit,
+                                          l.unit_quantity,
+                                        )}
+                                      </span>
+                                      <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                        {Math.round(l.calories)} kcal
+                                      </span>
+                                      <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                        P{Math.round(l.protein_g)}
+                                      </span>
+                                      <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                        C{Math.round(l.carbs_g)}
+                                      </span>
+                                      <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                        F{Math.round(l.fat_g)}
+                                      </span>
                                     </div>
                                   </div>
+                                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-0.5">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className={`h-9 w-9 transition-all ${
+                                        isFav
+                                          ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                          : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                      }`}
+                                      title={
+                                        isFav
+                                          ? "Remove from Favorites"
+                                          : "Save to Favorites"
+                                      }
+                                      onClick={() => saveFoodAsFavorite(l)}
+                                    >
+                                      <Heart
+                                        className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
+                                      />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                      title="Log again"
+                                      onClick={() => relogFood(l)}
+                                    >
+                                      <RotateCcw className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-9 w-9 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                      title="Modify"
+                                      onClick={() =>
+                                        searchRef.current?.editLog(l)
+                                      }
+                                    >
+                                      <PenTool className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                      title="Delete"
+                                      onClick={() => deleteLog(l.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                            );
+                          })}
                         </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -962,9 +981,12 @@ function Dashboard() {
                     <div className="mx-auto w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mb-3">
                       <Flame className="h-6 w-6 text-accent opacity-80" />
                     </div>
-                    <h3 className="font-bold text-lg mb-1">No food logged yet</h3>
+                    <h3 className="font-bold text-lg mb-1">
+                      No food logged yet
+                    </h3>
                     <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
-                      Use the search bar above to start tracking your meals today.
+                      Use the search bar above to start tracking your meals
+                      today.
                     </p>
                   </div>
                 )}

@@ -29,7 +29,12 @@ export interface WorkoutPrefs {
   cardioActivities: string[]; // "Running" | "Cycling" | "Swimming"
   musclesPerWorkout: 1 | 2 | 3 | "not_sure";
   preferredWorkoutTime: number; // minutes
-  preferredTrainingPlan: "ai_generated" | "library" | "custom" | "skip" | "none";
+  preferredTrainingPlan:
+    | "ai_generated"
+    | "library"
+    | "custom"
+    | "skip"
+    | "none";
   /** Current display unit (editable in Profile → Workout details). */
   weightUnit: WeightUnit;
   distanceUnit: DistanceUnit;
@@ -108,7 +113,8 @@ function fromRow(row: any): WorkoutPrefs {
     },
     trainingDaysPerWeek: row.training_days_per_week,
     cardioActivities: row.cardio_activities ?? [],
-    musclesPerWorkout: muscles === "not_sure" ? "not_sure" : (Number(muscles) as 1 | 2 | 3),
+    musclesPerWorkout:
+      muscles === "not_sure" ? "not_sure" : (Number(muscles) as 1 | 2 | 3),
     preferredWorkoutTime: row.preferred_workout_time_min,
     preferredTrainingPlan: row.preferred_training_plan,
     weightUnit: row.weight_unit ?? "kg",
@@ -218,5 +224,7 @@ export function isRecommendedCardio(
 ): boolean {
   if (!prefs || prefs.cardioActivities.length === 0) return false;
   const a = activity.toLowerCase();
-  return prefs.cardioActivities.some((c) => a.includes(c.toLowerCase()) || c.toLowerCase().includes(a));
+  return prefs.cardioActivities.some(
+    (c) => a.includes(c.toLowerCase()) || c.toLowerCase().includes(a),
+  );
 }

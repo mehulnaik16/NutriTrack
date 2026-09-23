@@ -11,7 +11,14 @@
 import { supabase } from "@/integrations/client";
 
 export const DEFAULT_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"];
-const BASE_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack", "Meal 5", "Meal 6"];
+const BASE_MEALS = [
+  "Breakfast",
+  "Lunch",
+  "Dinner",
+  "Snack",
+  "Meal 5",
+  "Meal 6",
+];
 
 /** Generic names for a given count, when the user has none saved. */
 export function defaultMealsForCount(n: number): string[] {
@@ -54,7 +61,8 @@ export async function loadMealNames(userId: string): Promise<string[] | null> {
 
   if (dbFreq != null && dbFreq > 0) {
     // Legacy: only the count was in the DB, names in localStorage.
-    const names = local && local.length === dbFreq ? local : defaultMealsForCount(dbFreq);
+    const names =
+      local && local.length === dbFreq ? local : defaultMealsForCount(dbFreq);
     // Backfill the new column so it survives the next cache clear.
     await saveMealNames(userId, names);
     return names;
@@ -69,7 +77,10 @@ export async function loadMealNames(userId: string): Promise<string[] | null> {
 }
 
 /** Persist meal names (and the derived count) to the DB and localStorage. */
-export async function saveMealNames(userId: string, names: string[]): Promise<void> {
+export async function saveMealNames(
+  userId: string,
+  names: string[],
+): Promise<void> {
   const clean = names.map((n) => n.trim()).filter(Boolean);
   if (clean.length === 0) return;
   await supabase

@@ -177,13 +177,10 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
     // JWT, so auth.uid() is null there and the function raises 'Unauthorized' —
     // which is exactly what every Buy click used to surface as a toast.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-    const { error } = await (userClient.rpc as any)(
-      "register_subscription",
-      {
-        p_provider_subscription_id: subscriptionId,
-        p_tier: data.tier,
-      },
-    );
+    const { error } = await (userClient.rpc as any)("register_subscription", {
+      p_provider_subscription_id: subscriptionId,
+      p_tier: data.tier,
+    });
     // A bare rethrow of error.message is what made this read as a one-word
     // mystery in the UI. Name the step that failed.
     if (error) {
@@ -227,9 +224,8 @@ export const serverCancelSubscription = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!sub) throw new Error("No active subscription to cancel");
 
-    const { cancelSubscription: cancelAtRazorpay } = await import(
-      "@/server/razorpay"
-    );
+    const { cancelSubscription: cancelAtRazorpay } =
+      await import("@/server/razorpay");
     await cancelAtRazorpay(sub.provider_subscription_id);
 
     // The status is not written here. Razorpay sends subscription.cancelled and

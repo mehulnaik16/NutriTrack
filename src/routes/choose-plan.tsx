@@ -64,7 +64,8 @@ function ChoosePlan() {
         <div className="mx-auto flex h-14 max-w-md items-center gap-3 px-4">
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 truncate font-display text-sm font-bold">
-              <PencilRuler className="h-4 w-4 text-accent" /> Choose your workout plan
+              <PencilRuler className="h-4 w-4 text-accent" /> Choose your
+              workout plan
             </p>
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Pick how you want to train
@@ -99,7 +100,10 @@ function ChoosePlan() {
           </span>
         </OptionCard>
 
-        <OptionCard active={choice === "custom"} onClick={() => setChoice("custom")}>
+        <OptionCard
+          active={choice === "custom"}
+          onClick={() => setChoice("custom")}
+        >
           <span className="flex items-center gap-2 text-sm font-semibold">
             <PencilRuler className="h-4 w-4 text-accent" /> Build My Own Workout
           </span>
@@ -108,9 +112,13 @@ function ChoosePlan() {
           </span>
         </OptionCard>
 
-        <OptionCard active={choice === "library"} onClick={() => setChoice("library")}>
+        <OptionCard
+          active={choice === "library"}
+          onClick={() => setChoice("library")}
+        >
           <span className="flex items-center gap-2 text-sm font-semibold">
-            <Library className="h-4 w-4 text-accent" /> Choose from Workout Library
+            <Library className="h-4 w-4 text-accent" /> Choose from Workout
+            Library
           </span>
           <span className="mt-1 block text-xs text-muted-foreground">
             Browse ready-made routines and start one.

@@ -115,10 +115,7 @@ export function isRestDay(day: any): boolean {
  * (max selected on any day, clamped 1–3 → hides unused columns)
  */
 export function tableColumnCount(days: { muscles?: string[] }[]): number {
-  const max = days.reduce(
-    (m, d) => Math.max(m, activeMuscles(d).length),
-    0,
-  );
+  const max = days.reduce((m, d) => Math.max(m, activeMuscles(d).length), 0);
   return Math.min(Math.max(max, 1), MAX_MUSCLES_PER_DAY);
 }
 
@@ -132,9 +129,7 @@ export function gridIdsForMuscles(muscles: StandardMuscle[]): Set<string> {
 }
 
 /** Build the stored plan JSON from 7 days of selections. */
-export function buildCustomPlan(
-  selections: StandardMuscle[][],
-): CustomPlan {
+export function buildCustomPlan(selections: StandardMuscle[][]): CustomPlan {
   const days: CustomPlanDay[] = selections.map((sel, i) => {
     const act = sel.filter((m) => m !== "Rest Day");
     const rest = act.length === 0;

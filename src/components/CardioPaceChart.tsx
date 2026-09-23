@@ -42,10 +42,7 @@ interface ChartDatum {
   rounds: number | null;
 }
 
-function buildChartData(
-  logs: any[],
-  category: CardioCategory,
-): ChartDatum[] {
+function buildChartData(logs: any[], category: CardioCategory): ChartDatum[] {
   return logs.map((l) => {
     const ex =
       l.exercises_done &&
@@ -83,7 +80,9 @@ function ChartPanel({
 }) {
   // Filter out nulls for metrics that might be absent
   const filtered =
-    config.metric === "pace" || config.metric === "avgPower" || config.metric === "rounds"
+    config.metric === "pace" ||
+    config.metric === "avgPower" ||
+    config.metric === "rounds"
       ? data.filter((d) => (d as any)[config.metric] !== null)
       : data;
 
@@ -96,7 +95,8 @@ function ChartPanel({
   }
 
   const paceFormatter = (v: any) => {
-    if (config.metric === "pace") return [formatPace(Number(v)), config.label.split(" —")[0]];
+    if (config.metric === "pace")
+      return [formatPace(Number(v)), config.label.split(" —")[0]];
     return [`${v} ${config.unit}`, config.label.split(" —")[0]];
   };
 
@@ -112,8 +112,18 @@ function ChartPanel({
         >
           {/* SVG glow filter for the data line */}
           <defs>
-            <filter id={`glow-${config.metric}`} x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+            <filter
+              id={`glow-${config.metric}`}
+              x="-20%"
+              y="-20%"
+              width="140%"
+              height="140%"
+            >
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="3"
+                result="blur"
+              />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />

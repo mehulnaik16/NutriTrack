@@ -54,9 +54,33 @@ export interface Metric {
 }
 
 export const METRICS: readonly Metric[] = [
-  { id: "biceps", label: "Biceps", emoji: "💪", img: "/images/biceps%20final.png", min: 15, max: 70, sided: true },
-  { id: "chest", label: "Chest", emoji: "🫁", img: "/images/chestfinal.png", min: 50, max: 200, sided: false },
-  { id: "thigh", label: "Thigh", emoji: "🦵", img: "/images/legs.png", min: 30, max: 120, sided: true },
+  {
+    id: "biceps",
+    label: "Biceps",
+    emoji: "💪",
+    img: "/images/biceps%20final.png",
+    min: 15,
+    max: 70,
+    sided: true,
+  },
+  {
+    id: "chest",
+    label: "Chest",
+    emoji: "🫁",
+    img: "/images/chestfinal.png",
+    min: 50,
+    max: 200,
+    sided: false,
+  },
+  {
+    id: "thigh",
+    label: "Thigh",
+    emoji: "🦵",
+    img: "/images/legs.png",
+    min: 30,
+    max: 120,
+    sided: true,
+  },
   {
     id: "abdomen",
     label: "Abdomen",

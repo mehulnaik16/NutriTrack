@@ -1,4 +1,8 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { WorkoutGate } from "@/components/WorkoutGate";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Loader2, PencilRuler, X } from "lucide-react";
@@ -239,7 +243,9 @@ function CustomPlanEditor() {
                         } ${isRestOption ? "col-span-2" : ""}`}
                       >
                         <MuscleIcon muscle={m} className="h-6 w-6" />
-                        <span className={`min-w-0 flex-1 truncate font-semibold ${selected ? "text-accent" : ""}`}>
+                        <span
+                          className={`min-w-0 flex-1 truncate font-semibold ${selected ? "text-accent" : ""}`}
+                        >
                           {m}
                         </span>
                         {selected && isRestOption && (
@@ -263,7 +269,9 @@ function CustomPlanEditor() {
                     disabled={saving}
                     className="flex-1 rounded-full bg-accent font-bold text-accent-foreground hover:bg-accent/90"
                   >
-                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {saving ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
                     Save {plan.days[editingDayIdx].day}
                   </Button>
                 </div>

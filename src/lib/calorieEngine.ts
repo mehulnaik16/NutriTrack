@@ -83,7 +83,11 @@ function num(v: unknown): number | null {
  * NaN, so every exit clamps to a non-negative integer — a stored negative or
  * NaN burn corrupts every daily total downstream.
  */
-function res(kcal: number, method: CalcMethod, confidence: Confidence): CalorieResult {
+function res(
+  kcal: number,
+  method: CalcMethod,
+  confidence: Confidence,
+): CalorieResult {
   return {
     kcal: Number.isFinite(kcal) ? Math.max(0, Math.round(kcal)) : 0,
     method,
@@ -93,11 +97,28 @@ function res(kcal: number, method: CalcMethod, confidence: Confidence): CalorieR
 
 // ── Exercise archetype mapping ───────────────────────────────────────────────
 
-type Archetype = "treadmill" | "run" | "walk" | "cycling" | "swimming"
-  | "stair" | "jump_rope" | "rower" | "skierg" | "elliptical" | "air_bike"
-  | "strength" | "tabata_interval"
-  | "yoga" | "stretching" | "dance" | "zumba" | "sports_badminton"
-  | "sports_cricket" | "sports_football" | "generic_cardio";
+type Archetype =
+  | "treadmill"
+  | "run"
+  | "walk"
+  | "cycling"
+  | "swimming"
+  | "stair"
+  | "jump_rope"
+  | "rower"
+  | "skierg"
+  | "elliptical"
+  | "air_bike"
+  | "strength"
+  | "tabata_interval"
+  | "yoga"
+  | "stretching"
+  | "dance"
+  | "zumba"
+  | "sports_badminton"
+  | "sports_cricket"
+  | "sports_football"
+  | "generic_cardio";
 
 const EXERCISE_ARCHETYPE: Record<string, Archetype> = {};
 function map(names: string[], arch: Archetype) {
@@ -132,7 +153,10 @@ function archetypeOf(exercise: string): Archetype {
   // glutes in EXERCISES_DB and "Jump Rope" under calves, but both are cardio
   // machines — checking cardio first keeps them off the strength path without a
   // separate blacklist that could drift.
-  return EXERCISE_ARCHETYPE[key] ?? (MUSCLE_OF.has(key) ? "strength" : "generic_cardio");
+  return (
+    EXERCISE_ARCHETYPE[key] ??
+    (MUSCLE_OF.has(key) ? "strength" : "generic_cardio")
+  );
 }
 
 /**
@@ -177,7 +201,11 @@ const MAX_POWER_W = 800;
  * Checked against the Compendium's own wattage bands for stationary rowing:
  * 75 W -> 340 kcal/h here vs 350 at its 5.0 MET; 125 W -> 520 vs 525 at 7.5 MET.
  */
-function powerKcal(watts: number, weight_kg: number, duration_min: number): number {
+function powerKcal(
+  watts: number,
+  weight_kg: number,
+  duration_min: number,
+): number {
   const work_kJ = (watts * 60 * duration_min) / 1000;
   return work_kJ + 1.0 * weight_kg * (duration_min / 60);
 }
@@ -212,14 +240,25 @@ function hrCeilingMet(arch: Archetype): number {
   return tiered ? tiered.hard * 1.5 : 18.0;
 }
 
-function heartRateKcal(hr: number, weight: number, age: number, gender: string, duration: number): number {
+function heartRateKcal(
+  hr: number,
+  weight: number,
+  age: number,
+  gender: string,
+  duration: number,
+): number {
   // "Other" and anything unrecognised take the male equation, matching calcBMR
   // in lib/nutrition.ts so the two never disagree for the same profile.
   // Note: Keytel et al. (2005) specifies a negative coefficient for female weight.
   if (gender === "Female") {
-    return ((-20.4022 + 0.4472 * hr - 0.1263 * weight + 0.074 * age) / 4.184) * duration;
+    return (
+      ((-20.4022 + 0.4472 * hr - 0.1263 * weight + 0.074 * age) / 4.184) *
+      duration
+    );
   }
-  const raw = ((-55.0969 + 0.6309 * hr + 0.1988 * weight + 0.2017 * age) / 4.184) * duration;
+  const raw =
+    ((-55.0969 + 0.6309 * hr + 0.1988 * weight + 0.2017 * age) / 4.184) *
+    duration;
   return raw * MALE_KEYTEL_BIAS;
 }
 
@@ -227,7 +266,11 @@ function heartRateKcal(hr: number, weight: number, age: number, gender: string, 
 
 /** Cycling speed brackets: [max_kmh, MET] pairs, ordered ascending. */
 const CYCLING_BRACKETS: [number, number][] = [
-  [16, 4.0], [19, 6.8], [22, 8.0], [25, 10.0], [Infinity, 12.0],
+  [16, 4.0],
+  [19, 6.8],
+  [22, 8.0],
+  [25, 10.0],
+  [Infinity, 12.0],
 ];
 
 function bracketMet(speed: number, brackets: [number, number][]): number {
@@ -253,15 +296,23 @@ const MAX_SPEED: Partial<Record<Archetype, number>> = {
  * Omits the 3.5 ml/kg/min resting baseline so energy is purely active burn,
  * ensuring the same distance does not inflate over longer durations and double-count BMR.
  */
-function acsmRunKcalMin(speed_kmh: number, weight_kg: number, grade: number): number {
-  const speed_mmin = speed_kmh * 1000 / 60; // m/min
+function acsmRunKcalMin(
+  speed_kmh: number,
+  weight_kg: number,
+  grade: number,
+): number {
+  const speed_mmin = (speed_kmh * 1000) / 60; // m/min
   const vo2_net = 0.2 * speed_mmin + 0.9 * speed_mmin * grade;
   return (vo2_net * weight_kg) / 200;
 }
 
 /** ACSM walking net VO2 equation (omits 3.5 ml/kg/min resting baseline). */
-function acsmWalkKcalMin(speed_kmh: number, weight_kg: number, grade: number): number {
-  const speed_mmin = speed_kmh * 1000 / 60;
+function acsmWalkKcalMin(
+  speed_kmh: number,
+  weight_kg: number,
+  grade: number,
+): number {
+  const speed_mmin = (speed_kmh * 1000) / 60;
   const vo2_net = 0.1 * speed_mmin + 1.8 * speed_mmin * grade;
   return (vo2_net * weight_kg) / 200;
 }
@@ -286,17 +337,26 @@ function acsmWalkKcalMin(speed_kmh: number, weight_kg: number, grade: number): n
 export const MUSCLE_MET: Record<string, number> = {
   // Multi-joint, largest mass — squat, deadlift, hip thrust. Implied by 02040
   // (circuit incl. kettlebells, minimal rest, vigorous, 7.5 bout) unblended.
-  quads: 9.0, hamstrings: 9.0, glutes: 9.0,
+  quads: 9.0,
+  hamstrings: 9.0,
+  glutes: 9.0,
   // Large but seated or supported — rows, pulldowns, pull-ups.
   back: 8.0,
   // Upper-body press and pull. 02032 (circuit, body weight, 6.0 bout) unblended.
-  chest: 7.0, shoulders: 7.0,
+  chest: 7.0,
+  shoulders: 7.0,
   // Shrugs, back extensions, banded hip work — short range, moderate mass.
-  traps: 5.5, lowerback: 5.5, abductors: 5.5, adductors: 5.5,
+  traps: 5.5,
+  lowerback: 5.5,
+  abductors: 5.5,
+  adductors: 5.5,
   // Dynamic ab work. 02022 calisthenics moderate (push ups, sit ups) 3.8 bout.
   abs: 5.0,
   // Single-joint, small mass. Below the 02054 resistance floor of 3.5 bout.
-  biceps: 4.5, triceps: 4.5, forearms: 4.5, calves: 4.5,
+  biceps: 4.5,
+  triceps: 4.5,
+  forearms: 4.5,
+  calves: 4.5,
 };
 
 /** Unresolved exercise name — the last-resort MET, reported as low confidence. */
@@ -330,7 +390,9 @@ const REST_MET = 1.5;
  * resistance entry: 3.5/5.0 = 0.7 light (02054), 6.0/5.0 = 1.2 vigorous (02050).
  */
 const STRENGTH_INTENSITY: Record<"light" | "default" | "hard", number> = {
-  light: 0.7, default: 1.0, hard: 1.2,
+  light: 0.7,
+  default: 1.0,
+  hard: 1.2,
 };
 
 /**
@@ -345,11 +407,21 @@ const STRENGTH_INTENSITY: Record<"light" | "default" | "hard", number> = {
  * exercise if that ever matters more than the data cost.
  */
 export const LOAD_REF: Record<string, number> = {
-  glutes: 1.2, quads: 1.0, calves: 1.0, hamstrings: 0.9,
-  chest: 0.8, traps: 0.8, back: 0.7,
-  shoulders: 0.5, abductors: 0.5, adductors: 0.5,
-  triceps: 0.3, lowerback: 0.3,
-  biceps: 0.25, forearms: 0.25, abs: 0.2,
+  glutes: 1.2,
+  quads: 1.0,
+  calves: 1.0,
+  hamstrings: 0.9,
+  chest: 0.8,
+  traps: 0.8,
+  back: 0.7,
+  shoulders: 0.5,
+  abductors: 0.5,
+  adductors: 0.5,
+  triceps: 0.3,
+  lowerback: 0.3,
+  biceps: 0.25,
+  forearms: 0.25,
+  abs: 0.2,
 };
 
 /** One rep is roughly 1 s lifting and 2 s lowering. Reps are all the form
@@ -361,7 +433,11 @@ const DEFAULT_REST_SEC = 60;
 
 // ── Level 4: Tiered MET tables ───────────────────────────────────────────────
 
-interface TieredMet { light: number; default: number; hard: number; }
+interface TieredMet {
+  light: number;
+  default: number;
+  hard: number;
+}
 
 // Ergometer tiers follow the Compendium's own effort and wattage bands:
 // stationary rowing 5.0 / 7.5 / 11.0, elliptical 5.0 moderate and 9.0 vigorous,
@@ -369,25 +445,25 @@ interface TieredMet { light: number; default: number; hard: number; }
 // code of its own and is anchored to stationary cycling's wattage bands, which
 // understates it slightly since it drives the arms as well.
 const TIERED_MET: Partial<Record<Archetype, TieredMet>> = {
-  yoga:              { light: 2.5, default: 3.0, hard: 4.0 },
-  stretching:        { light: 2.3, default: 2.5, hard: 3.5 },
-  rower:             { light: 5.0, default: 7.5, hard: 11.0 },
-  skierg:            { light: 6.8, default: 10.5, hard: 14.0 },
-  elliptical:        { light: 3.5, default: 5.0, hard: 9.0 },
-  air_bike:          { light: 6.0, default: 9.0, hard: 13.0 },
-  swimming:          { light: 5.5, default: 7.0, hard: 9.5 },
-  zumba:             { light: 5.5, default: 7.0, hard: 8.5 },
-  dance:             { light: 4.5, default: 6.0, hard: 8.0 },
-  sports_badminton:  { light: 4.5, default: 5.5, hard: 7.0 },
-  sports_cricket:    { light: 3.5, default: 4.8, hard: 7.0 },
-  sports_football:   { light: 6.0, default: 8.0, hard: 10.0 },
-  tabata_interval:   { light: 8.0, default: 10.0, hard: 13.0 },
+  yoga: { light: 2.5, default: 3.0, hard: 4.0 },
+  stretching: { light: 2.3, default: 2.5, hard: 3.5 },
+  rower: { light: 5.0, default: 7.5, hard: 11.0 },
+  skierg: { light: 6.8, default: 10.5, hard: 14.0 },
+  elliptical: { light: 3.5, default: 5.0, hard: 9.0 },
+  air_bike: { light: 6.0, default: 9.0, hard: 13.0 },
+  swimming: { light: 5.5, default: 7.0, hard: 9.5 },
+  zumba: { light: 5.5, default: 7.0, hard: 8.5 },
+  dance: { light: 4.5, default: 6.0, hard: 8.0 },
+  sports_badminton: { light: 4.5, default: 5.5, hard: 7.0 },
+  sports_cricket: { light: 3.5, default: 4.8, hard: 7.0 },
+  sports_football: { light: 6.0, default: 8.0, hard: 10.0 },
+  tabata_interval: { light: 8.0, default: 10.0, hard: 13.0 },
   // The Compendium's resistance ladder used verbatim: 02054 multiple exercises
   // 8-15 reps 3.5 / 02052 squats, deadlift 5.0 / 02050 power lifting or body
   // building, vigorous 6.0. Whole-bout convention, rest included, so this is
   // only reached when no set rows were supplied. It also gives strength a
   // 9.0 MET heart-rate ceiling for free via hrCeilingMet().
-  strength:          { light: 3.5, default: 5.0, hard: 6.0 },
+  strength: { light: 3.5, default: 5.0, hard: 6.0 },
 };
 
 /** Flat MET for locomotion archetypes logged without a usable distance. */
@@ -399,11 +475,14 @@ const FALLBACK_MET: Partial<Record<Archetype, number>> = {
 };
 
 /** Map user-facing intensity strings to tier keys. */
-function intensityTier(intensity: string | null | undefined): "light" | "default" | "hard" {
+function intensityTier(
+  intensity: string | null | undefined,
+): "light" | "default" | "hard" {
   if (!intensity) return "default";
   const lower = intensity.toLowerCase();
   if (lower === "light" || lower === "casual") return "light";
-  if (lower === "vigorous" || lower === "training" || lower === "hard") return "hard";
+  if (lower === "vigorous" || lower === "training" || lower === "hard")
+    return "hard";
   return "default"; // Moderate, Competitive, or unknown
 }
 
@@ -468,7 +547,12 @@ export function summarizeStrength(
   // per-exercise strength standard is needed. Isometrics and bodyweight work
   // have no external load to judge, so they sit at the default tier.
   let tier: "light" | "default" | "hard" = "default";
-  if (mean_load_kg != null && body_weight_kg > 0 && group != null && LOAD_REF[group] != null) {
+  if (
+    mean_load_kg != null &&
+    body_weight_kg > 0 &&
+    group != null &&
+    LOAD_REF[group] != null
+  ) {
     const ratio = mean_load_kg / body_weight_kg;
     const ref = LOAD_REF[group];
     // Assistance inverts the scale: more of it means less bodyweight lifted,
@@ -478,14 +562,17 @@ export function summarizeStrength(
     else if (ratio > 1.4 * ref) tier = "hard";
   }
 
-  const base = kind === "isometric"
-    ? ISOMETRIC_MET
-    : (group != null ? MUSCLE_MET[group] ?? STRENGTH_DEFAULT_MET : STRENGTH_DEFAULT_MET)
-      * (kind === "assisted" ? ASSISTED_FACTOR : 1);
+  const base =
+    kind === "isometric"
+      ? ISOMETRIC_MET
+      : (group != null
+          ? (MUSCLE_MET[group] ?? STRENGTH_DEFAULT_MET)
+          : STRENGTH_DEFAULT_MET) * (kind === "assisted" ? ASSISTED_FACTOR : 1);
 
   return {
     active_sec,
-    rest_sec: (num(rest_sec_each) ?? DEFAULT_REST_SEC) * Math.max(0, sets.length - 1),
+    rest_sec:
+      (num(rest_sec_each) ?? DEFAULT_REST_SEC) * Math.max(0, sets.length - 1),
     met: base * STRENGTH_INTENSITY[tier],
     mean_load_kg,
     tier,
@@ -512,18 +599,28 @@ export type ConfidenceTier = "high" | "medium" | "low";
  * still carries the Compendium's between-subject spread of roughly 25%; a
  * defaulted MET is a guess at the exercise on top of that.
  */
-const BAND: Record<ConfidenceTier, number> = { high: 0.10, medium: 0.20, low: 0.30 };
+const BAND: Record<ConfidenceTier, number> = {
+  high: 0.1,
+  medium: 0.2,
+  low: 0.3,
+};
 
 export function calorieRange(
   kcal: number,
   tier: ConfidenceTier,
 ): { low: number; high: number } {
   const b = BAND[tier];
-  return { low: Math.max(0, Math.round(kcal * (1 - b))), high: Math.round(kcal * (1 + b)) };
+  return {
+    low: Math.max(0, Math.round(kcal * (1 - b))),
+    high: Math.round(kcal * (1 + b)),
+  };
 }
 
 /** Which band a finished result earns. */
-export function confidenceTier(method: CalcMethod, met_resolved: boolean): ConfidenceTier {
+export function confidenceTier(
+  method: CalcMethod,
+  met_resolved: boolean,
+): ConfidenceTier {
   if (method === "HEART_RATE") return "high";
   return met_resolved ? "medium" : "low";
 }
@@ -541,7 +638,12 @@ export function calculateCalories(
 
   // No duration or no body weight means there is nothing to scale — report zero
   // rather than letting NaN propagate into the log.
-  if (duration_min == null || duration_min <= 0 || weight_kg == null || weight_kg <= 0) {
+  if (
+    duration_min == null ||
+    duration_min <= 0 ||
+    weight_kg == null ||
+    weight_kg <= 0
+  ) {
     return res(0, "GENERIC", "estimated");
   }
 
@@ -555,7 +657,12 @@ export function calculateCalories(
   // Work actually done on the flywheel beats every regression below it: there
   // is no resistance level, cadence or fitness assumption left to get wrong.
   const watts = num(inputs.avg_power_w);
-  if (watts != null && watts >= MIN_POWER_W && watts <= MAX_POWER_W && POWER_ARCHETYPES.has(arch)) {
+  if (
+    watts != null &&
+    watts >= MIN_POWER_W &&
+    watts <= MAX_POWER_W &&
+    POWER_ARCHETYPES.has(arch)
+  ) {
     return res(powerKcal(watts, weight_kg, duration_min), "POWER", "measured");
   }
 
@@ -567,17 +674,30 @@ export function calculateCalories(
   // same whichever formula runs. Heart rate therefore bills only the active
   // minutes, with rest added on top — otherwise a long rest would be charged
   // at the working heart rate, which is exactly where Keytel over-reads most.
-  const strength = arch === "strength"
-    ? summarizeStrength(exercise, inputs.strength_sets ?? [], inputs.rest_sec, weight_kg)
-    : null;
+  const strength =
+    arch === "strength"
+      ? summarizeStrength(
+          exercise,
+          inputs.strength_sets ?? [],
+          inputs.rest_sec,
+          weight_kg,
+        )
+      : null;
 
-  if (hr_bpm != null && hr_bpm >= 85 && hr_bpm <= 210 && !isShortInterval(arch, duration_min)) {
+  if (
+    hr_bpm != null &&
+    hr_bpm >= 85 &&
+    hr_bpm <= 210 &&
+    !isShortInterval(arch, duration_min)
+  ) {
     const rest_min = strength ? strength.rest_sec / 60 : 0;
     const active_min = Math.max(0, duration_min - rest_min);
-    const hrKcal = heartRateKcal(hr_bpm, weight_kg, age, gender, active_min)
-      + restKcal(rest_min, weight_kg);
+    const hrKcal =
+      heartRateKcal(hr_bpm, weight_kg, age, gender, active_min) +
+      restKcal(rest_min, weight_kg);
     const ceiling = hrCeilingMet(arch) * weight_kg * hours;
-    if (hrKcal > 0) return res(Math.min(hrKcal, ceiling), "HEART_RATE", "measured");
+    if (hrKcal > 0)
+      return res(Math.min(hrKcal, ceiling), "HEART_RATE", "measured");
   }
 
   // ── Level 1b: Strength sets (Formula A) ──
@@ -589,7 +709,11 @@ export function calculateCalories(
     // active phase rather than inventing extra rest.
     const active_min = Math.max(0, duration_min - rest_min);
     const active_kcal = (active_min * (strength.met * 3.5 * weight_kg)) / 200;
-    return res(active_kcal + restKcal(rest_min, weight_kg), "STRENGTH_SETS", "estimated");
+    return res(
+      active_kcal + restKcal(rest_min, weight_kg),
+      "STRENGTH_SETS",
+      "estimated",
+    );
   }
 
   // ── Level 2: Speed-based (locomotion with distance) ──
@@ -600,11 +724,19 @@ export function calculateCalories(
       if (arch === "treadmill") {
         const grade = (num(inputs.incline_pct) ?? 0) / 100;
         const fn = speed_kmh < 6.0 ? acsmWalkKcalMin : acsmRunKcalMin;
-        return res(fn(speed_kmh, weight_kg, grade) * duration_min, "ACSM_TREADMILL", "estimated");
+        return res(
+          fn(speed_kmh, weight_kg, grade) * duration_min,
+          "ACSM_TREADMILL",
+          "estimated",
+        );
       }
       if (arch === "run") {
         const fn = speed_kmh < 6.0 ? acsmWalkKcalMin : acsmRunKcalMin;
-        return res(fn(speed_kmh, weight_kg, 0) * duration_min, "ACSM_RUN", "estimated");
+        return res(
+          fn(speed_kmh, weight_kg, 0) * duration_min,
+          "ACSM_RUN",
+          "estimated",
+        );
       }
       if (arch === "walk") {
         // ACSM's walking equation is only valid to 100 m/min (6.0 km/h). Above
@@ -612,10 +744,18 @@ export function calculateCalories(
         // is either a jog or a race walk — both of which the running equation
         // is the validated one for. Same switch run and treadmill already use.
         const fn = speed_kmh < 6.0 ? acsmWalkKcalMin : acsmRunKcalMin;
-        return res(fn(speed_kmh, weight_kg, 0) * duration_min, "ACSM_WALK", "estimated");
+        return res(
+          fn(speed_kmh, weight_kg, 0) * duration_min,
+          "ACSM_WALK",
+          "estimated",
+        );
       }
       if (arch === "cycling") {
-        return res(bracketMet(speed_kmh, CYCLING_BRACKETS) * weight_kg * hours, "SPEED_MET", "estimated");
+        return res(
+          bracketMet(speed_kmh, CYCLING_BRACKETS) * weight_kg * hours,
+          "SPEED_MET",
+          "estimated",
+        );
       }
     }
     // Implausible speed: fall through to the MET tables.
@@ -624,13 +764,19 @@ export function calculateCalories(
   // ── Level 3: Vertical / rep work ──
   // No vertical_meters or skip-rate field exists on the board yet, so both use
   // their slow-pace MET.
-  if (arch === "stair") return res(9.0 * weight_kg * hours, "VERTICAL", "estimated");
-  if (arch === "jump_rope") return res(11.0 * weight_kg * hours, "VERTICAL", "estimated");
+  if (arch === "stair")
+    return res(9.0 * weight_kg * hours, "VERTICAL", "estimated");
+  if (arch === "jump_rope")
+    return res(11.0 * weight_kg * hours, "VERTICAL", "estimated");
 
   // ── Level 4: Tiered MET fallback ──
   const tiered = TIERED_MET[arch];
   if (tiered) {
-    return res(tiered[intensityTier(inputs.intensity)] * weight_kg * hours, "TIER_MET", "estimated");
+    return res(
+      tiered[intensityTier(inputs.intensity)] * weight_kg * hours,
+      "TIER_MET",
+      "estimated",
+    );
   }
 
   const flat = FALLBACK_MET[arch];

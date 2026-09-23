@@ -47,7 +47,13 @@ const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /** Small metric icon: anatomy image when available, else the emoji. */
-function MetricIcon({ metric, className = "h-5 w-5" }: { metric: Metric; className?: string }) {
+function MetricIcon({
+  metric,
+  className = "h-5 w-5",
+}: {
+  metric: Metric;
+  className?: string;
+}) {
   if (!metric.img) return <span aria-hidden>{metric.emoji}</span>;
   return (
     <img
@@ -128,7 +134,9 @@ export function BodyMeasurementsPage({
   const outOfRange = useMemo(
     () =>
       METRICS.flatMap((m) =>
-        fieldKeys(m).filter((k) => k in staged && !inRangeMetric(m.id, staged[k])),
+        fieldKeys(m).filter(
+          (k) => k in staged && !inRangeMetric(m.id, staged[k]),
+        ),
       ),
     [staged],
   );
@@ -363,7 +371,8 @@ export function BodyMeasurementsPage({
                           className="flex items-center justify-between text-sm"
                         >
                           <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                            <MetricIcon metric={m} className="h-4 w-4" /> {m.label}
+                            <MetricIcon metric={m} className="h-4 w-4" />{" "}
+                            {m.label}
                           </span>
                           <span className="font-display font-semibold">
                             {values} cm

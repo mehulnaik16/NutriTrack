@@ -41,7 +41,12 @@ const RESTING_KCAL = 1.0 * MAN.weight_kg * HOURS;
 let checks = 0;
 const failures: string[] = [];
 
-function inMetRange(kcal: number, metMin: number, metMax: number, label: string) {
+function inMetRange(
+  kcal: number,
+  metMin: number,
+  metMax: number,
+  label: string,
+) {
   checks++;
   const lo = metMin * MAN.weight_kg * HOURS - RESTING_KCAL;
   const hi = metMax * MAN.weight_kg * HOURS;
@@ -50,7 +55,7 @@ function inMetRange(kcal: number, metMin: number, metMax: number, label: string)
   if (!ok) {
     failures.push(
       `${label}: ${kcal} kcal (${impliedMet.toFixed(1)} MET) outside ` +
-      `${Math.round(lo)}-${Math.round(hi)} kcal (${metMin}-${metMax} MET)`,
+        `${Math.round(lo)}-${Math.round(hi)} kcal (${metMin}-${metMax} MET)`,
     );
   }
   return { ok, impliedMet };
@@ -72,120 +77,202 @@ interface Card {
 const CARDS: Card[] = [
   // ── Distance & Locomotion ──
   {
-    name: "Treadmill running", inputs: { duration_min: MINUTES, distance_km: 5 },
-    metMin: 9.0, metMax: 11.5, source: "running 6 mph 9.8, 6.7 mph 10.5",
+    name: "Treadmill running",
+    inputs: { duration_min: MINUTES, distance_km: 5 },
+    metMin: 9.0,
+    metMax: 11.5,
+    source: "running 6 mph 9.8, 6.7 mph 10.5",
   },
   {
-    name: "Outdoor run", inputs: { duration_min: MINUTES, distance_km: 5 },
-    metMin: 9.0, metMax: 11.5, source: "running 6 mph 9.8, 6.7 mph 10.5",
+    name: "Outdoor run",
+    inputs: { duration_min: MINUTES, distance_km: 5 },
+    metMin: 9.0,
+    metMax: 11.5,
+    source: "running 6 mph 9.8, 6.7 mph 10.5",
   },
   {
-    name: "Outdoor walk", inputs: { duration_min: MINUTES, distance_km: 2.5 },
-    metMin: 3.0, metMax: 5.0, source: "walking 3.0 mph 3.5, 3.4 mph 3.6, 4.0 mph 5.0",
+    name: "Outdoor walk",
+    inputs: { duration_min: MINUTES, distance_km: 2.5 },
+    metMin: 3.0,
+    metMax: 5.0,
+    source: "walking 3.0 mph 3.5, 3.4 mph 3.6, 4.0 mph 5.0",
   },
   {
-    name: "Cycling", inputs: { duration_min: MINUTES, distance_km: 9 },
-    metMin: 6.0, metMax: 8.0, source: "bicycling 10-11.9 mph 6.8, 12-13.9 mph 8.0",
+    name: "Cycling",
+    inputs: { duration_min: MINUTES, distance_km: 9 },
+    metMin: 6.0,
+    metMax: 8.0,
+    source: "bicycling 10-11.9 mph 6.8, 12-13.9 mph 8.0",
   },
   {
-    name: "Swimming", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 5.8, metMax: 8.3, source: "swimming laps freestyle moderate 5.8-8.3",
+    name: "Swimming",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 5.8,
+    metMax: 8.3,
+    source: "swimming laps freestyle moderate 5.8-8.3",
   },
   {
-    name: "Stair climbing", inputs: { duration_min: MINUTES },
-    metMin: 8.0, metMax: 11.0, source: "stair treadmill ergometer general 9.3",
+    name: "Stair climbing",
+    inputs: { duration_min: MINUTES },
+    metMin: 8.0,
+    metMax: 11.0,
+    source: "stair treadmill ergometer general 9.3",
   },
   // ── Machine Ergometers ──
   {
-    name: "Rowing machine", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 5.0, metMax: 8.5, source: "rowing stationary <100 W 5.0, 100-149 W 7.5",
+    name: "Rowing machine",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 5.0,
+    metMax: 8.5,
+    source: "rowing stationary <100 W 5.0, 100-149 W 7.5",
   },
   {
-    name: "SkiErg", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 6.5, metMax: 11.0, source: "ski machine general 6.8, ski ergometer double poling 10.5",
+    name: "SkiErg",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 6.5,
+    metMax: 11.0,
+    source: "ski machine general 6.8, ski ergometer double poling 10.5",
   },
   {
-    name: "Elliptical", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 4.0, metMax: 6.5, source: "elliptical trainer moderate 5.0",
+    name: "Elliptical",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 4.0,
+    metMax: 6.5,
+    source: "elliptical trainer moderate 5.0",
   },
   {
-    name: "Assault Bike", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 7.0, metMax: 11.0, source: "stationary cycling 100-149 W 8.8, 150-199 W 10.5",
+    name: "Assault Bike",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 7.0,
+    metMax: 11.0,
+    source: "stationary cycling 100-149 W 8.8, 150-199 W 10.5",
   },
   // ── Mind-Body & Flow ──
   {
-    name: "Yoga & Pilates", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 2.0, metMax: 4.5, source: "hatha yoga 2.5, power yoga 4.0, Pilates 3.0",
+    name: "Yoga & Pilates",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 2.0,
+    metMax: 4.5,
+    source: "hatha yoga 2.5, power yoga 4.0, Pilates 3.0",
   },
   {
-    name: "Stretching", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 2.0, metMax: 3.0, source: "stretching / mild flexibility 2.3",
+    name: "Stretching",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 2.0,
+    metMax: 3.0,
+    source: "stretching / mild flexibility 2.3",
   },
   // ── Sports & Games ──
   {
-    name: "Badminton", inputs: { duration_min: MINUTES, intensity: "Competitive" },
-    metMin: 4.0, metMax: 7.5, source: "badminton social 4.5, competitive 7.0",
+    name: "Badminton",
+    inputs: { duration_min: MINUTES, intensity: "Competitive" },
+    metMin: 4.0,
+    metMax: 7.5,
+    source: "badminton social 4.5, competitive 7.0",
   },
   {
-    name: "Cricket", inputs: { duration_min: MINUTES, intensity: "Competitive" },
-    metMin: 4.0, metMax: 6.0, source: "cricket batting / bowling 4.8",
+    name: "Cricket",
+    inputs: { duration_min: MINUTES, intensity: "Competitive" },
+    metMin: 4.0,
+    metMax: 6.0,
+    source: "cricket batting / bowling 4.8",
   },
   {
-    name: "Football", inputs: { duration_min: MINUTES, intensity: "Competitive" },
-    metMin: 6.0, metMax: 10.5, source: "soccer casual 7.0, competitive 10.0",
+    name: "Football",
+    inputs: { duration_min: MINUTES, intensity: "Competitive" },
+    metMin: 6.0,
+    metMax: 10.5,
+    source: "soccer casual 7.0, competitive 10.0",
   },
   // ── Dance & Choreography ──
   {
-    name: "Dancing", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 4.0, metMax: 8.0, source: "dancing general 4.5-5.5, aerobic 7.3",
+    name: "Dancing",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 4.0,
+    metMax: 8.0,
+    source: "dancing general 4.5-5.5, aerobic 7.3",
   },
   {
-    name: "Zumba", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 5.5, metMax: 9.0, source: "aerobic dance 6.5-8.8",
+    name: "Zumba",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 5.5,
+    metMax: 9.0,
+    source: "aerobic dance 6.5-8.8",
   },
   {
-    name: "Hip-Hop", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 4.0, metMax: 8.0, source: "dancing general / aerobic 4.5-7.3",
+    name: "Hip-Hop",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 4.0,
+    metMax: 8.0,
+    source: "dancing general / aerobic 4.5-7.3",
   },
   {
-    name: "Dance Cardio", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 4.0, metMax: 8.0, source: "dancing general / aerobic 4.5-7.3",
+    name: "Dance Cardio",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 4.0,
+    metMax: 8.0,
+    source: "dancing general / aerobic 4.5-7.3",
   },
   // ── Interval & High-Intensity ──
   {
-    name: "HIIT", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 7.0, metMax: 12.5, source: "circuit training vigorous 7.5, calisthenics vigorous 7.5",
+    name: "HIIT",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 7.0,
+    metMax: 12.5,
+    source: "circuit training vigorous 7.5, calisthenics vigorous 7.5",
   },
   {
-    name: "Jump rope", inputs: { duration_min: MINUTES },
-    metMin: 8.5, metMax: 12.5, source: "rope skipping slow 8.8, general 11.0, fast 12.3",
+    name: "Jump rope",
+    inputs: { duration_min: MINUTES },
+    metMin: 8.5,
+    metMax: 12.5,
+    source: "rope skipping slow 8.8, general 11.0, fast 12.3",
   },
   {
-    name: "Tabata", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 7.0, metMax: 14.0, source: "circuit training vigorous 7.5, vigorous intervals to 14",
+    name: "Tabata",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 7.0,
+    metMax: 14.0,
+    source: "circuit training vigorous 7.5, vigorous intervals to 14",
   },
   {
-    name: "EMOM", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 6.0, metMax: 12.5, source: "circuit training moderate 5.0 to vigorous 7.5",
+    name: "EMOM",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 6.0,
+    metMax: 12.5,
+    source: "circuit training moderate 5.0 to vigorous 7.5",
   },
   {
-    name: "AMRAP", inputs: { duration_min: MINUTES, intensity: "Moderate" },
-    metMin: 6.0, metMax: 12.5, source: "circuit training moderate 5.0 to vigorous 7.5",
+    name: "AMRAP",
+    inputs: { duration_min: MINUTES, intensity: "Moderate" },
+    metMin: 6.0,
+    metMax: 12.5,
+    source: "circuit training moderate 5.0 to vigorous 7.5",
   },
 ];
 
 // ── R1: every card in the catalog has a reference range ─────────────────────
 {
   const covered = new Set(CARDS.map((c) => c.name));
-  const missing = CARDIO_CATALOG.filter((a) => !covered.has(a.name)).map((a) => a.name);
-  assert.deepStrictEqual(missing, [], `Cards with no published reference range: ${missing.join(", ")}`);
-  console.log(`✓ R1 coverage: all ${CARDIO_CATALOG.length} catalog activities have a reference range`);
+  const missing = CARDIO_CATALOG.filter((a) => !covered.has(a.name)).map(
+    (a) => a.name,
+  );
+  assert.deepStrictEqual(
+    missing,
+    [],
+    `Cards with no published reference range: ${missing.join(", ")}`,
+  );
+  console.log(
+    `✓ R1 coverage: all ${CARDIO_CATALOG.length} catalog activities have a reference range`,
+  );
 }
 
 // ── R2: every card, both genders, no heart rate ─────────────────────────────
 {
   console.log(`\n── R2: no heart rate — 70 kg, 30 y, ${MINUTES} min ──`);
-  console.log("activity              man    woman  implied MET  published range");
+  console.log(
+    "activity              man    woman  implied MET  published range",
+  );
   for (const c of CARDS) {
     const m = calculateCalories(c.name, c.inputs, MAN);
     const w = calculateCalories(c.name, c.inputs, WOMAN);
@@ -193,12 +280,13 @@ const CARDS: Card[] = [
     inMetRange(w.kcal, c.metMin, c.metMax, `R2 ${c.name} (woman)`);
     // Without heart rate nothing in the engine reads gender, so these must match.
     assert.strictEqual(
-      m.kcal, w.kcal,
+      m.kcal,
+      w.kcal,
       `R2 ${c.name}: gender must not change a non-HR estimate (${m.kcal} vs ${w.kcal})`,
     );
     console.log(
       `${c.name.padEnd(20)} ${String(m.kcal).padStart(5)}  ${String(w.kcal).padStart(5)}` +
-      `  ${rm.impliedMet.toFixed(1).padStart(10)}  ${c.metMin}-${c.metMax} MET  ${rm.ok ? "" : "  <-- OUT"}`,
+        `  ${rm.impliedMet.toFixed(1).padStart(10)}  ${c.metMin}-${c.metMax} MET  ${rm.ok ? "" : "  <-- OUT"}`,
     );
   }
 }
@@ -220,7 +308,8 @@ const CARDS: Card[] = [
 
     // Cards whose own ceiling is below the generic HR window are capped on
     // purpose — a 140 bpm yoga session still cannot cost 9 MET of work.
-    const capped = m.method === "HEART_RATE" && m.kcal < HR_MET_MIN * MAN.weight_kg * HOURS;
+    const capped =
+      m.method === "HEART_RATE" && m.kcal < HR_MET_MIN * MAN.weight_kg * HOURS;
     if (m.method === "HEART_RATE" && !capped) {
       inMetRange(m.kcal, HR_MET_MIN, HR_MET_MAX, `R3 ${c.name} (man, HR)`);
       inMetRange(w.kcal, HR_MET_MIN, HR_MET_MAX, `R3 ${c.name} (woman, HR)`);
@@ -228,13 +317,13 @@ const CARDS: Card[] = [
       if (ratio > 1.25) {
         failures.push(
           `R3 ${c.name}: man/woman ratio ${ratio.toFixed(2)} at identical mass, age and ` +
-          `heart rate — physiology supports roughly 1.1`,
+            `heart rate — physiology supports roughly 1.1`,
         );
       }
     }
     console.log(
       `${c.name.padEnd(20)} ${String(m.kcal).padStart(5)}  ${String(w.kcal).padStart(5)}` +
-      `  ${ratio.toFixed(2).padStart(9)}  ${m.method}${capped ? " (capped)" : ""}`,
+        `  ${ratio.toFixed(2).padStart(9)}  ${m.method}${capped ? " (capped)" : ""}`,
     );
   }
 }
@@ -249,36 +338,70 @@ const CARDS: Card[] = [
     [225, 14.0, "rowing stationary >=200 W, very vigorous"],
   ];
   for (const [watts, met, label] of bands) {
-    const r = calculateCalories("Rowing machine", { duration_min: 60, avg_power_w: watts }, MAN);
+    const r = calculateCalories(
+      "Rowing machine",
+      { duration_min: 60, avg_power_w: watts },
+      MAN,
+    );
     const reference = met * MAN.weight_kg;
     const deviation = (r.kcal - reference) / reference;
     checks++;
-    assert.strictEqual(r.method, "POWER", `R4 ${watts} W should use the power path`);
+    assert.strictEqual(
+      r.method,
+      "POWER",
+      `R4 ${watts} W should use the power path`,
+    );
     if (Math.abs(deviation) > 0.15) {
-      failures.push(`R4 ${watts} W: ${r.kcal} kcal/h vs ${Math.round(reference)} published (${(deviation * 100).toFixed(0)}%)`);
+      failures.push(
+        `R4 ${watts} W: ${r.kcal} kcal/h vs ${Math.round(reference)} published (${(deviation * 100).toFixed(0)}%)`,
+      );
     }
     console.log(
       `${String(watts).padStart(3)} W  ${String(r.kcal).padStart(4)} kcal/h  vs ` +
-      `${String(Math.round(reference)).padStart(4)} at ${met} MET  ` +
-      `(${(deviation * 100).toFixed(0)}%)  ${label}`,
+        `${String(Math.round(reference)).padStart(4)} at ${met} MET  ` +
+        `(${(deviation * 100).toFixed(0)}%)  ${label}`,
     );
   }
 
   // Power beats heart rate: a strap reading high must not override the flywheel.
-  const both = calculateCalories("Rowing machine", {
-    duration_min: 30, avg_power_w: 150, hr_bpm: 165,
-  }, MAN);
+  const both = calculateCalories(
+    "Rowing machine",
+    {
+      duration_min: 30,
+      avg_power_w: 150,
+      hr_bpm: 165,
+    },
+    MAN,
+  );
   assert.strictEqual(both.method, "POWER", "R4 power must outrank heart rate");
   assert.strictEqual(both.confidence, "measured");
 
   // An elliptical's watts come off a resistance curve, not a force measurement.
-  const fake = calculateCalories("Elliptical", { duration_min: 30, avg_power_w: 150 }, MAN);
-  assert.notStrictEqual(fake.method, "POWER", "R4 elliptical watts must not drive the power path");
+  const fake = calculateCalories(
+    "Elliptical",
+    { duration_min: 30, avg_power_w: 150 },
+    MAN,
+  );
+  assert.notStrictEqual(
+    fake.method,
+    "POWER",
+    "R4 elliptical watts must not drive the power path",
+  );
 
   // Junk wattage falls through instead of billing a 4000 kcal session.
-  const junk = calculateCalories("Rowing machine", { duration_min: 30, avg_power_w: 5000 }, MAN);
-  assert.notStrictEqual(junk.method, "POWER", "R4 implausible watts must fall through");
-  console.log("✓ R4 power outranks HR, elliptical excluded, junk wattage rejected");
+  const junk = calculateCalories(
+    "Rowing machine",
+    { duration_min: 30, avg_power_w: 5000 },
+    MAN,
+  );
+  assert.notStrictEqual(
+    junk.method,
+    "POWER",
+    "R4 implausible watts must fall through",
+  );
+  console.log(
+    "✓ R4 power outranks HR, elliptical excluded, junk wattage rejected",
+  );
 }
 
 // ── R5: the walk equation switches at 6 km/h ────────────────────────────────
@@ -287,28 +410,49 @@ const CARDS: Card[] = [
 {
   console.log("\n── R5: outdoor walk across the 6 km/h boundary ──");
   for (const speed of [4, 5, 5.9, 6.1, 8, 10]) {
-    const walk = calculateCalories("Outdoor walk", {
-      duration_min: MINUTES, distance_km: speed * HOURS,
-    }, MAN);
-    const run = calculateCalories("Outdoor run", {
-      duration_min: MINUTES, distance_km: speed * HOURS,
-    }, MAN);
+    const walk = calculateCalories(
+      "Outdoor walk",
+      {
+        duration_min: MINUTES,
+        distance_km: speed * HOURS,
+      },
+      MAN,
+    );
+    const run = calculateCalories(
+      "Outdoor run",
+      {
+        duration_min: MINUTES,
+        distance_km: speed * HOURS,
+      },
+      MAN,
+    );
     checks++;
     if (speed >= 6.1 && walk.kcal !== run.kcal) {
-      failures.push(`R5 ${speed} km/h: walk ${walk.kcal} != run ${run.kcal} above the switch`);
+      failures.push(
+        `R5 ${speed} km/h: walk ${walk.kcal} != run ${run.kcal} above the switch`,
+      );
     }
-    console.log(`${String(speed).padStart(4)} km/h  walk ${String(walk.kcal).padStart(4)}  run ${String(run.kcal).padStart(4)}`);
+    console.log(
+      `${String(speed).padStart(4)} km/h  walk ${String(walk.kcal).padStart(4)}  run ${String(run.kcal).padStart(4)}`,
+    );
   }
 
   // Monotonic: walking faster can never earn fewer calories, up to the cap.
   let previous = 0;
   for (let speed = 3; speed <= 11.9; speed += 0.5) {
-    const r = calculateCalories("Outdoor walk", {
-      duration_min: MINUTES, distance_km: speed * HOURS,
-    }, MAN);
+    const r = calculateCalories(
+      "Outdoor walk",
+      {
+        duration_min: MINUTES,
+        distance_km: speed * HOURS,
+      },
+      MAN,
+    );
     checks++;
     if (r.kcal < previous) {
-      failures.push(`R5 monotonicity: ${speed} km/h gives ${r.kcal}, less than the step below (${previous})`);
+      failures.push(
+        `R5 monotonicity: ${speed} km/h gives ${r.kcal}, less than the step below (${previous})`,
+      );
     }
     previous = r.kcal;
   }
@@ -320,25 +464,48 @@ const CARDS: Card[] = [
   const at = (name: string, intensity: string) =>
     calculateCalories(name, { duration_min: MINUTES, intensity }, MAN).kcal;
 
-  const moderate = ["Rowing machine", "SkiErg", "Elliptical", "Assault Bike"].map((n) => at(n, "Moderate"));
-  assert.strictEqual(new Set(moderate).size, 4, `R6 ergometers must differ: ${moderate.join(", ")}`);
+  const moderate = [
+    "Rowing machine",
+    "SkiErg",
+    "Elliptical",
+    "Assault Bike",
+  ].map((n) => at(n, "Moderate"));
+  assert.strictEqual(
+    new Set(moderate).size,
+    4,
+    `R6 ergometers must differ: ${moderate.join(", ")}`,
+  );
 
   // Intensity is now reachable from the form, so the tiers must actually move.
-  for (const name of ["Rowing machine", "SkiErg", "Elliptical", "Assault Bike"]) {
+  for (const name of [
+    "Rowing machine",
+    "SkiErg",
+    "Elliptical",
+    "Assault Bike",
+  ]) {
     const light = at(name, "Light");
     const mod = at(name, "Moderate");
     const hard = at(name, "Vigorous");
     checks++;
-    assert.ok(light < mod && mod < hard, `R6 ${name}: tiers must increase (${light}/${mod}/${hard})`);
+    assert.ok(
+      light < mod && mod < hard,
+      `R6 ${name}: tiers must increase (${light}/${mod}/${hard})`,
+    );
   }
-  console.log(`\n✓ R6 ergometers differentiated: rower ${moderate[0]}, SkiErg ${moderate[1]}, elliptical ${moderate[2]}, air bike ${moderate[3]} kcal`);
+  console.log(
+    `\n✓ R6 ergometers differentiated: rower ${moderate[0]}, SkiErg ${moderate[1]}, elliptical ${moderate[2]}, air bike ${moderate[3]} kcal`,
+  );
 }
 
 // ── R7: the heart-rate ceiling holds ────────────────────────────────────────
 // 165 bpm during yoga is heat, caffeine or a bad strap reading — not 12 MET of
 // mechanical work. The estimate is held to what the activity can cost.
 {
-  const yoga = calculateCalories("Yoga & Pilates", { duration_min: MINUTES, hr_bpm: 165 }, MAN);
+  const yoga = calculateCalories(
+    "Yoga & Pilates",
+    { duration_min: MINUTES, hr_bpm: 165 },
+    MAN,
+  );
   const ceiling = 4.0 * 1.5 * MAN.weight_kg * HOURS; // hard tier 4.0 MET x 1.5
   checks++;
   assert.ok(
@@ -347,11 +514,17 @@ const CARDS: Card[] = [
   );
 
   // A ceiling must not clip an activity that genuinely costs that much.
-  const hiit = calculateCalories("HIIT", { duration_min: MINUTES, hr_bpm: 175 }, MAN);
+  const hiit = calculateCalories(
+    "HIIT",
+    { duration_min: MINUTES, hr_bpm: 175 },
+    MAN,
+  );
   checks++;
   assert.strictEqual(hiit.method, "HEART_RATE");
   inMetRange(hiit.kcal, 6.0, 19.5, "R7 HIIT at 175 bpm");
-  console.log(`✓ R7 ceiling: yoga at 165 bpm held to ${yoga.kcal} kcal, HIIT at 175 bpm free at ${hiit.kcal} kcal`);
+  console.log(
+    `✓ R7 ceiling: yoga at 165 bpm held to ${yoga.kcal} kcal, HIIT at 175 bpm free at ${hiit.kcal} kcal`,
+  );
 }
 
 // ── R8: single exercises land just under the published resistance band ─────
@@ -390,29 +563,40 @@ const CARDS: Card[] = [
 
   for (const [name, sets, reps, loadRatio] of SESSIONS) {
     const rows = Array.from({ length: sets }, () => ({
-      reps, weight_kg: loadRatio * MAN.weight_kg,
+      reps,
+      weight_kg: loadRatio * MAN.weight_kg,
     }));
     const s = summarizeStrength(name, rows, 60, MAN.weight_kg);
-    if (s == null) { failures.push(`R8 ${name}: no session summary`); continue; }
+    if (s == null) {
+      failures.push(`R8 ${name}: no session summary`);
+      continue;
+    }
 
     const total_min = strengthDurationMin(s);
-    const r = calculateCalories(name, {
-      duration_min: total_min, rest_sec: 60, strength_sets: rows,
-    }, MAN);
+    const r = calculateCalories(
+      name,
+      {
+        duration_min: total_min,
+        rest_sec: 60,
+        strength_sets: rows,
+      },
+      MAN,
+    );
 
     checks++;
     const hours = total_min / 60;
     const impliedMet = r.kcal / (MAN.weight_kg * hours);
-    const ok = impliedMet >= 2.5 && impliedMet <= 6.0 && r.method === "STRENGTH_SETS";
+    const ok =
+      impliedMet >= 2.5 && impliedMet <= 6.0 && r.method === "STRENGTH_SETS";
     if (!ok) {
       failures.push(
         `R8 ${name}: ${impliedMet.toFixed(1)} MET outside 2.5-6.0 single-exercise band ` +
-        `(${r.kcal} kcal over ${total_min.toFixed(1)} min, method ${r.method})`,
+          `(${r.kcal} kcal over ${total_min.toFixed(1)} min, method ${r.method})`,
       );
     }
     console.log(
       `${name.padEnd(25)} ${(MUSCLE_OF.get(name.toLowerCase()) ?? "?").padEnd(12)}` +
-      ` ${String(r.kcal).padStart(4)}  ${impliedMet.toFixed(1).padStart(10)}${ok ? "" : "  <-- OUT"}`,
+        ` ${String(r.kcal).padStart(4)}  ${impliedMet.toFixed(1).padStart(10)}${ok ? "" : "  <-- OUT"}`,
     );
   }
 }
@@ -435,34 +619,46 @@ const CARDS: Card[] = [
   ];
   for (const [name, sets, reps, loadRatio] of WORKOUT) {
     const rows = Array.from({ length: sets }, () => ({
-      reps, weight_kg: loadRatio * MAN.weight_kg,
+      reps,
+      weight_kg: loadRatio * MAN.weight_kg,
     }));
     const s = summarizeStrength(name, rows, 60, MAN.weight_kg);
-    if (s == null) { failures.push(`R9 ${name}: no session summary`); continue; }
+    if (s == null) {
+      failures.push(`R9 ${name}: no session summary`);
+      continue;
+    }
     const total_min = strengthDurationMin(s);
     minutes += total_min;
-    kcal += calculateCalories(name, {
-      duration_min: total_min, rest_sec: 60, strength_sets: rows,
-    }, MAN).kcal;
+    kcal += calculateCalories(
+      name,
+      {
+        duration_min: total_min,
+        rest_sec: 60,
+        strength_sets: rows,
+      },
+      MAN,
+    ).kcal;
   }
   checks++;
   const impliedMet = kcal / (MAN.weight_kg * (minutes / 60));
   if (impliedMet < 3.0 || impliedMet > 6.0) {
     failures.push(
       `R9 full session: ${impliedMet.toFixed(1)} MET outside the published 3.0-6.0 ` +
-      `(${kcal} kcal over ${minutes.toFixed(0)} min)`,
+        `(${kcal} kcal over ${minutes.toFixed(0)} min)`,
     );
   }
   console.log(
     `6 exercises, ${minutes.toFixed(0)} min, ${kcal} kcal -> ${impliedMet.toFixed(1)} MET ` +
-    `(published 3.0-6.0)`,
+      `(published 3.0-6.0)`,
   );
 }
 
 // ── Result ──────────────────────────────────────────────────────────────────
 console.log(`\n${"─".repeat(72)}`);
 if (failures.length > 0) {
-  console.log(`\n${failures.length} of ${checks} checks fell outside the published range:\n`);
+  console.log(
+    `\n${failures.length} of ${checks} checks fell outside the published range:\n`,
+  );
   for (const f of failures) console.log(`  ✗ ${f}`);
   process.exit(1);
 }

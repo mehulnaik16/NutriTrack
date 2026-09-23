@@ -112,7 +112,11 @@ assert.equal(monthlyRate(YEARLY, effectivePrice(YEARLY, true)), 71);
 // which is when handle_razorpay_event() flips the row to 'subscribed'.
 assert.equal(giftApplies("pending", "yearly"), true);
 assert.equal(giftApplies("trial", "yearly"), true);
-assert.equal(giftApplies("subscribed", "yearly"), false, "spent once, never again");
+assert.equal(
+  giftApplies("subscribed", "yearly"),
+  false,
+  "spent once, never again",
+);
 // Never referred at all.
 assert.equal(giftApplies(null, "yearly"), false);
 assert.equal(giftApplies(undefined, "yearly"), false);
@@ -133,7 +137,11 @@ const SIGNUP_LINK = { source: "signup", gift_spent_at: null };
 const PROFILE_LINK = { source: "profile", gift_spent_at: null };
 const SPENT_LINK = { source: "signup", gift_spent_at: "2026-09-01T00:00:00Z" };
 
-const DOCTOR_LINK = { source: "signup", gift_spent_at: null, partner_type: "doctor" };
+const DOCTOR_LINK = {
+  source: "signup",
+  gift_spent_at: null,
+  partner_type: "doctor",
+};
 const UGC_LINK = { source: "signup", gift_spent_at: null, partner_type: "ugc" };
 
 assert.equal(activeGift({ gymLink: SIGNUP_LINK, planId: "yearly" }), "gym");
@@ -144,18 +152,27 @@ assert.equal(activeGift({ gymLink: SIGNUP_LINK, planId: "yearly" }), "gym");
 assert.equal(activeGift({ gymLink: DOCTOR_LINK, planId: "yearly" }), "doctor");
 assert.equal(activeGift({ gymLink: UGC_LINK, planId: "yearly" }), "ugc");
 assert.equal(
-  activeGift({ gymLink: { ...DOCTOR_LINK, source: "profile" }, planId: "yearly" }),
+  activeGift({
+    gymLink: { ...DOCTOR_LINK, source: "profile" },
+    planId: "yearly",
+  }),
   null,
   "a doctor's code entered from the profile page earns nothing either",
 );
 assert.equal(
-  activeGift({ gymLink: { ...UGC_LINK, gift_spent_at: "2026-09-01T00:00:00Z" }, planId: "yearly" }),
+  activeGift({
+    gymLink: { ...UGC_LINK, gift_spent_at: "2026-09-01T00:00:00Z" },
+    planId: "yearly",
+  }),
   null,
   "spent once, for a creator too",
 );
 // An unrecognised value must not invent a fourth kind of gift.
 assert.equal(
-  activeGift({ gymLink: { ...SIGNUP_LINK, partner_type: "hospital" }, planId: "yearly" }),
+  activeGift({
+    gymLink: { ...SIGNUP_LINK, partner_type: "hospital" },
+    planId: "yearly",
+  }),
   "gym",
 );
 
@@ -171,7 +188,11 @@ assert.equal(
   null,
   "a code entered from the profile page never earns anything",
 );
-assert.equal(activeGift({ gymLink: SPENT_LINK, planId: "yearly" }), null, "spent once");
+assert.equal(
+  activeGift({ gymLink: SPENT_LINK, planId: "yearly" }),
+  null,
+  "spent once",
+);
 assert.equal(activeGift({ planId: "yearly" }), null, "no code at all, no gift");
 
 // Yearly only, for BOTH kinds. The ₹150 must never reach ₹249 or ₹499.
@@ -192,7 +213,11 @@ for (const tier of ["monthly", "quarterly"]) {
 // any gym added afterwards — so this pairing is the one a real account reaches
 // after joining a gym from its profile page. It must read as the friend gift.
 assert.equal(
-  activeGift({ referralStatus: "trial", gymLink: PROFILE_LINK, planId: "yearly" }),
+  activeGift({
+    referralStatus: "trial",
+    gymLink: PROFILE_LINK,
+    planId: "yearly",
+  }),
   "friend",
 );
 

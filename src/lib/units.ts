@@ -13,13 +13,17 @@
 export type WeightUnit = "kg" | "lbs";
 export type DistanceUnit = "km" | "mile";
 
-export const weightToKg = (v: number, u: WeightUnit) => (u === "lbs" ? v / 2.2 : v);
-export const kgToWeight = (v: number, u: WeightUnit) => (u === "lbs" ? v * 2.2 : v);
+export const weightToKg = (v: number, u: WeightUnit) =>
+  u === "lbs" ? v / 2.2 : v;
+export const kgToWeight = (v: number, u: WeightUnit) =>
+  u === "lbs" ? v * 2.2 : v;
 export const convWeight = (v: number, from: WeightUnit, to: WeightUnit) =>
   kgToWeight(weightToKg(v, from), to);
 
-export const distToKm = (v: number, u: DistanceUnit) => (u === "mile" ? v * 1.6 : v);
-export const kmToDist = (v: number, u: DistanceUnit) => (u === "mile" ? v / 1.6 : v);
+export const distToKm = (v: number, u: DistanceUnit) =>
+  u === "mile" ? v * 1.6 : v;
+export const kmToDist = (v: number, u: DistanceUnit) =>
+  u === "mile" ? v / 1.6 : v;
 export const convDist = (v: number, from: DistanceUnit, to: DistanceUnit) =>
   kmToDist(distToKm(v, from), to);
 

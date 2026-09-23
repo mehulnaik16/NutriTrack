@@ -1,4 +1,8 @@
-import { MUSCLE_EMOJI, MUSCLE_IMG, type StandardMuscle } from "@/lib/musclePlan";
+import {
+  MUSCLE_EMOJI,
+  MUSCLE_IMG,
+  type StandardMuscle,
+} from "@/lib/musclePlan";
 
 /**
  * Small emoji-sized muscle-group icon. Renders the anatomy reference image when

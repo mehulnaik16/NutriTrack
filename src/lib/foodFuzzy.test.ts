@@ -85,7 +85,9 @@ const hits = (q: string) => strongFoods(q, 3).length;
       `F4 "${typed}" should reach ${expected}, got "${name || "(nothing)"}"`,
     );
   }
-  console.log(`✓ F4 regional names resolve: sajje/kambu → Bajra, jonna → Jowar`);
+  console.log(
+    `✓ F4 regional names resolve: sajje/kambu → Bajra, jonna → Jowar`,
+  );
 }
 
 // ── F5: a brand item is findable without naming the brand ──────────────────
@@ -128,8 +130,14 @@ const hits = (q: string) => strongFoods(q, 3).length;
   const refs = referenceFoods("palak paneer with roti").map((i) =>
     i.name.toLowerCase(),
   );
-  assert.ok(refs.some((n) => n.includes("paneer")), `F7 no paneer in ${refs}`);
-  assert.ok(refs.some((n) => n.includes("roti")), `F7 no roti in ${refs}`);
+  assert.ok(
+    refs.some((n) => n.includes("paneer")),
+    `F7 no paneer in ${refs}`,
+  );
+  assert.ok(
+    refs.some((n) => n.includes("roti")),
+    `F7 no roti in ${refs}`,
+  );
   assert.ok(refs.length <= 5, "F7 reference block must stay within 5 rows");
   console.log(`✓ F7 "palak paneer with roti" grounds on both halves`);
 }
@@ -245,7 +253,9 @@ for (const [q, wrong] of [
     top("kaali mirch").toLowerCase().includes("pepper"),
     `F10 "kaali mirch" should reach black pepper, got "${top("kaali mirch") || "(nothing)"}"`,
   );
-  console.log(`✓ F10 tag-shaped regional names survive: kallu → Toddy, kaali mirch → Pepper`);
+  console.log(
+    `✓ F10 tag-shaped regional names survive: kallu → Toddy, kaali mirch → Pepper`,
+  );
 }
 
 console.log("\n✅ All food-fuzzy tests passed.");

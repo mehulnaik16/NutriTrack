@@ -72,14 +72,19 @@ export function CustomPlanTable({
                       {rest ? (
                         c === 0 ? (
                           <span className="inline-flex items-center gap-1.5 italic text-muted-foreground">
-                            <MuscleIcon muscle="Rest Day" className="h-4 w-4" /> Rest Day
+                            <MuscleIcon muscle="Rest Day" className="h-4 w-4" />{" "}
+                            Rest Day
                           </span>
                         ) : (
                           <span className="text-muted-foreground/40">-</span>
                         )
                       ) : act[c] ? (
                         <span className="inline-flex items-center gap-1.5 font-medium">
-                          <MuscleIcon muscle={act[c] as StandardMuscle} className="h-4 w-4" /> {act[c]}
+                          <MuscleIcon
+                            muscle={act[c] as StandardMuscle}
+                            className="h-4 w-4"
+                          />{" "}
+                          {act[c]}
                         </span>
                       ) : (
                         <span className="text-muted-foreground/40">-</span>
@@ -106,4 +111,3 @@ export function CustomPlanTable({
     </div>
   );
 }
-

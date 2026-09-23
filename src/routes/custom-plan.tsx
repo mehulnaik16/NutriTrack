@@ -1,4 +1,8 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { WorkoutGate } from "@/components/WorkoutGate";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -188,7 +192,11 @@ function CustomPlanBuilder() {
             className="h-9 w-9 rounded-full"
             disabled={saving}
             onClick={() =>
-              confirming ? setConfirming(false) : day > 1 ? setDay(day - 1) : router.history.back()
+              confirming
+                ? setConfirming(false)
+                : day > 1
+                  ? setDay(day - 1)
+                  : router.history.back()
             }
             aria-label="Back"
           >
@@ -207,7 +215,9 @@ function CustomPlanBuilder() {
         <div className="h-1 w-full bg-muted">
           <div
             className="h-full bg-accent transition-all duration-500 ease-out glow-accent-sm"
-            style={{ width: confirming ? "100%" : `${(day / TOTAL_DAYS) * 100}%` }}
+            style={{
+              width: confirming ? "100%" : `${(day / TOTAL_DAYS) * 100}%`,
+            }}
           />
         </div>
       </div>
@@ -245,9 +255,7 @@ function CustomPlanBuilder() {
                       key={d.day}
                       className="border-b border-border/50 transition-colors last:border-b-0"
                     >
-                      <td className="px-3 py-2 font-semibold">
-                        {d.day}
-                      </td>
+                      <td className="px-3 py-2 font-semibold">{d.day}</td>
                       {Array.from({ length: colCount }, (_, c) => (
                         <td key={c} className="px-3 py-2">
                           {d.isRest ? (
@@ -256,7 +264,9 @@ function CustomPlanBuilder() {
                                 Rest Day
                               </span>
                             ) : (
-                              <span className="text-muted-foreground/40">-</span>
+                              <span className="text-muted-foreground/40">
+                                -
+                              </span>
                             )
                           ) : d.muscles[c] ? (
                             <span className="font-medium">{d.muscles[c]}</span>
@@ -278,8 +288,8 @@ function CustomPlanBuilder() {
               <p className="mb-4 mt-1 text-sm text-muted-foreground">
                 Pick whichever day you're actually doing today — this is a
                 repeating cycle, not tied to the calendar, so "Day 1" doesn't
-                have to mean Monday. You can always change this later from
-                the Workout page.
+                have to mean Monday. You can always change this later from the
+                Workout page.
               </p>
               <div className="grid grid-cols-1 gap-2">
                 {previewDays.map((d, i) => (
@@ -303,124 +313,132 @@ function CustomPlanBuilder() {
             </div>
           </>
         ) : (
-        <>
-        <div
-          key={day}
-          className="animate-in fade-in slide-in-from-right-4 duration-300"
-        >
-          <h2 className="font-display text-2xl font-bold tracking-tight">
-            Day {day}
-          </h2>
-          <p className="mb-5 mt-1 text-sm text-muted-foreground">
-            Pick up to {MAX_MUSCLES_PER_DAY} muscle groups — or make it a rest
-            day. Leaving it empty also counts as rest.
-          </p>
+          <>
+            <div
+              key={day}
+              className="animate-in fade-in slide-in-from-right-4 duration-300"
+            >
+              <h2 className="font-display text-2xl font-bold tracking-tight">
+                Day {day}
+              </h2>
+              <p className="mb-5 mt-1 text-sm text-muted-foreground">
+                Pick up to {MAX_MUSCLES_PER_DAY} muscle groups — or make it a
+                rest day. Leaving it empty also counts as rest.
+              </p>
 
-          {/* ── The 9 standardized options ── */}
-          <div className="grid grid-cols-2 gap-2.5">
-            {STANDARD_MUSCLE_GROUPS.map((m) => {
-              const selectedIdx = selections.indexOf(m);
-              const selected = selectedIdx !== -1;
-              const isRestOption = m === "Rest Day";
-              const dimmed = isRestSelected && !isRestOption;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => toggle(m)}
-                  className={`relative flex items-center gap-2 rounded-2xl border-2 p-3.5 text-left transition-all duration-200 ${
-                    selected
-                      ? "border-accent bg-accent/10 glow-accent-sm"
-                      : dimmed
-                        ? "border-border bg-card opacity-40"
-                        : "border-border bg-card hover:border-muted-foreground/40"
-                  } ${isRestOption ? "col-span-2" : ""}`}
-                >
-                  <MuscleIcon muscle={m} className="h-7 w-7" />
-                  <span
-                    className={`min-w-0 flex-1 truncate text-sm font-semibold ${
-                      selected ? "text-accent" : ""
-                    }`}
-                  >
-                    {m}
-                  </span>
-                  {selected && !isRestOption && (
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent font-display text-[10px] font-bold text-accent-foreground">
-                      {selectedIdx + 1}
-                    </span>
-                  )}
-                  {selected && isRestOption && (
-                    <Check className="h-4 w-4 shrink-0 text-accent" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+              {/* ── The 9 standardized options ── */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {STANDARD_MUSCLE_GROUPS.map((m) => {
+                  const selectedIdx = selections.indexOf(m);
+                  const selected = selectedIdx !== -1;
+                  const isRestOption = m === "Rest Day";
+                  const dimmed = isRestSelected && !isRestOption;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => toggle(m)}
+                      className={`relative flex items-center gap-2 rounded-2xl border-2 p-3.5 text-left transition-all duration-200 ${
+                        selected
+                          ? "border-accent bg-accent/10 glow-accent-sm"
+                          : dimmed
+                            ? "border-border bg-card opacity-40"
+                            : "border-border bg-card hover:border-muted-foreground/40"
+                      } ${isRestOption ? "col-span-2" : ""}`}
+                    >
+                      <MuscleIcon muscle={m} className="h-7 w-7" />
+                      <span
+                        className={`min-w-0 flex-1 truncate text-sm font-semibold ${
+                          selected ? "text-accent" : ""
+                        }`}
+                      >
+                        {m}
+                      </span>
+                      {selected && !isRestOption && (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent font-display text-[10px] font-bold text-accent-foreground">
+                          {selectedIdx + 1}
+                        </span>
+                      )}
+                      {selected && isRestOption && (
+                        <Check className="h-4 w-4 shrink-0 text-accent" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-        {/* ── Live plan preview (dynamic columns) ── */}
-        <div className="mt-8">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Your week so far
-          </p>
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-3 py-2 font-bold uppercase tracking-wider text-muted-foreground">
-                    Days
-                  </th>
-                  {Array.from({ length: colCount }, (_, i) => (
-                    <th
-                      key={i}
-                      className="px-3 py-2 font-bold uppercase tracking-wider text-muted-foreground"
-                    >
-                      Muscle {i + 1}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {previewDays.map((d, i) => (
-                  <tr
-                    key={d.day}
-                    className={`border-b border-border/50 transition-colors last:border-b-0 ${
-                      i === day - 1 ? "bg-accent/10" : ""
-                    }`}
-                  >
-                    <td
-                      className={`px-3 py-2 font-semibold ${
-                        i === day - 1 ? "text-accent" : ""
-                      }`}
-                    >
-                      {d.day}
-                    </td>
-                    {Array.from({ length: colCount }, (_, c) => (
-                      <td key={c} className="px-3 py-2">
-                        {!d.touched && i >= day ? (
-                          <span className="text-muted-foreground/40">·</span>
-                        ) : d.isRest ? (
-                          c === 0 ? (
-                            <span className="italic text-muted-foreground">
-                              Rest Day
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground/40">-</span>
-                          )
-                        ) : d.muscles[c] ? (
-                          <span className="font-medium">{d.muscles[c]}</span>
-                        ) : (
-                          <span className="text-muted-foreground/40">-</span>
-                        )}
-                      </td>
+            {/* ── Live plan preview (dynamic columns) ── */}
+            <div className="mt-8">
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Your week so far
+              </p>
+              <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="px-3 py-2 font-bold uppercase tracking-wider text-muted-foreground">
+                        Days
+                      </th>
+                      {Array.from({ length: colCount }, (_, i) => (
+                        <th
+                          key={i}
+                          className="px-3 py-2 font-bold uppercase tracking-wider text-muted-foreground"
+                        >
+                          Muscle {i + 1}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewDays.map((d, i) => (
+                      <tr
+                        key={d.day}
+                        className={`border-b border-border/50 transition-colors last:border-b-0 ${
+                          i === day - 1 ? "bg-accent/10" : ""
+                        }`}
+                      >
+                        <td
+                          className={`px-3 py-2 font-semibold ${
+                            i === day - 1 ? "text-accent" : ""
+                          }`}
+                        >
+                          {d.day}
+                        </td>
+                        {Array.from({ length: colCount }, (_, c) => (
+                          <td key={c} className="px-3 py-2">
+                            {!d.touched && i >= day ? (
+                              <span className="text-muted-foreground/40">
+                                ·
+                              </span>
+                            ) : d.isRest ? (
+                              c === 0 ? (
+                                <span className="italic text-muted-foreground">
+                                  Rest Day
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground/40">
+                                  -
+                                </span>
+                              )
+                            ) : d.muscles[c] ? (
+                              <span className="font-medium">
+                                {d.muscles[c]}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/40">
+                                -
+                              </span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        </>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </main>
 

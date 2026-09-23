@@ -18,7 +18,8 @@ import { ACHIEVEMENT_BY_ID, computeTotalXP, levelFromXP } from "@/lib/xpConfig";
    any signed-in user could award themselves all 19.
 ═══════════════════════════════════════════════════════════════════════ */
 
-const rpc = (fn: string, args?: Record<string, unknown>) => (supabase.rpc as any)(fn, args);
+const rpc = (fn: string, args?: Record<string, unknown>) =>
+  (supabase.rpc as any)(fn, args);
 const initial = (n: string | null) => (n?.trim()?.[0] ?? "?").toUpperCase();
 
 export function RankPage() {
@@ -37,7 +38,11 @@ export function RankPage() {
     // xp. Water and saved-meal counts are no longer fetched here — they were
     // only ever inputs to the client-side eligibility test.
     const [prof, food, workouts, weights, synced] = await Promise.all([
-      supabase.from("user_profiles").select("full_name").eq("id", uid).maybeSingle(),
+      supabase
+        .from("user_profiles")
+        .select("full_name")
+        .eq("id", uid)
+        .maybeSingle(),
       supabase.from("food_logs").select("date, logged_at").eq("user_id", uid),
       supabase.from("workout_logs").select("date").eq("user_id", uid),
       supabase.from("weight_entries").select("date").eq("user_id", uid),
@@ -47,18 +52,24 @@ export function RankPage() {
     const foodRows = (food.data ?? []) as any[];
     const workoutRows = (workouts.data ?? []) as any[];
     const weightRows = (weights.data ?? []) as any[];
-    const earned = (synced.data ?? []) as { achievement_id: string; xp: number }[];
+    const earned = (synced.data ?? []) as {
+      achievement_id: string;
+      xp: number;
+    }[];
 
     // A "log" for XP = one food, workout, or weight entry. Water is excluded.
     // Back-dated food logs (logged_at ≠ date) do not earn XP.
     const todayLoggedFood = foodRows.filter(
-      (r) => r.logged_at && toLocalISO(new Date(r.logged_at)) === r.date
+      (r) => r.logged_at && toLocalISO(new Date(r.logged_at)) === r.date,
     );
-    const logCount = todayLoggedFood.length + workoutRows.length + weightRows.length;
+    const logCount =
+      todayLoggedFood.length + workoutRows.length + weightRows.length;
 
     // Streak badge counters: total 7-day streaks' worth of distinct logged days.
     setFoodBadges(Math.floor(new Set(foodRows.map((r) => r.date)).size / 7));
-    setWorkoutBadges(Math.floor(new Set(workoutRows.map((r) => r.date)).size / 7));
+    setWorkoutBadges(
+      Math.floor(new Set(workoutRows.map((r) => r.date)).size / 7),
+    );
 
     // Popup only for unlocks that happen while using the app — the very first
     // load seeds already-earned achievements silently (no flood). The previously
@@ -76,21 +87,32 @@ export function RankPage() {
       earned
         .filter((e) => !before.has(e.achievement_id))
         .forEach((e) =>
-          toast(`Achievement Unlocked! ${ACHIEVEMENT_BY_ID[e.achievement_id]?.title ?? "New badge"}`, {
-            description: `+${e.xp} XP earned!`,
-            icon: "🏅",
-            duration: 4000,
-          })
+          toast(
+            `Achievement Unlocked! ${ACHIEVEMENT_BY_ID[e.achievement_id]?.title ?? "New badge"}`,
+            {
+              description: `+${e.xp} XP earned!`,
+              icon: "🏅",
+              duration: 4000,
+            },
+          ),
         );
     }
     try {
-      localStorage.setItem(seenKey, JSON.stringify(earned.map((e) => e.achievement_id)));
+      localStorage.setItem(
+        seenKey,
+        JSON.stringify(earned.map((e) => e.achievement_id)),
+      );
     } catch {
       /* storage full / blocked — toasts are cosmetic, carry on */
     }
 
     setName((prof.data as any)?.full_name ?? null);
-    setTotalXP(computeTotalXP(logCount, earned.map((e) => e.xp)));
+    setTotalXP(
+      computeTotalXP(
+        logCount,
+        earned.map((e) => e.xp),
+      ),
+    );
     setLoading(false);
   }, [user]);
 
@@ -99,11 +121,16 @@ export function RankPage() {
   }, [load]);
 
   const { level, xpIntoCurrentLevel, xpForLevel } = levelFromXP(totalXP);
-  const pct = Math.min(100, Math.round((xpIntoCurrentLevel / xpForLevel) * 100));
+  const pct = Math.min(
+    100,
+    Math.round((xpIntoCurrentLevel / xpForLevel) * 100),
+  );
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl font-bold tracking-tight">Achievements</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight">
+        Achievements
+      </h1>
 
       {/* ── Profile card ── */}
       <div className="rounded-2xl border border-border bg-card p-6">
@@ -113,7 +140,9 @@ export function RankPage() {
             <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-accent/60 bg-muted font-display text-3xl font-bold text-accent">
               {initial(name)}
             </div>
-            <p className="font-display text-sm font-bold leading-tight text-center">{name || "Anonymous"}</p>
+            <p className="font-display text-sm font-bold leading-tight text-center">
+              {name || "Anonymous"}
+            </p>
             <span className="inline-block rounded-full bg-muted px-3 py-0.5 text-xs font-semibold text-muted-foreground">
               Level {level}
             </span>
@@ -124,7 +153,8 @@ export function RankPage() {
             <div className="flex items-center gap-1.5">
               <span className="text-base">⚡</span>
               <span className="text-sm font-bold tabular-nums">
-                {xpIntoCurrentLevel.toLocaleString()}/{xpForLevel.toLocaleString()} XP
+                {xpIntoCurrentLevel.toLocaleString()}/
+                {xpForLevel.toLocaleString()} XP
               </span>
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
@@ -133,7 +163,9 @@ export function RankPage() {
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <p className="text-xs text-muted-foreground">{pct}% to next level</p>
+            <p className="text-xs text-muted-foreground">
+              {pct}% to next level
+            </p>
           </div>
         </div>
       </div>
@@ -182,13 +214,19 @@ function StreakBadge({
 }) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-5">
-      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
       {count >= 1 ? (
         <>
-          <div className={`flex h-14 w-14 items-center justify-center rounded-full ${color}`}>
+          <div
+            className={`flex h-14 w-14 items-center justify-center rounded-full ${color}`}
+          >
             {icon}
           </div>
-          <span className="font-display text-2xl font-bold tabular-nums">{count}</span>
+          <span className="font-display text-2xl font-bold tabular-nums">
+            {count}
+          </span>
         </>
       ) : (
         <>

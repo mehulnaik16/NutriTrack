@@ -1,6 +1,15 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Gift, Lock, Share2, ShieldCheck, PartyPopper, Lightbulb, Smartphone } from "lucide-react";
+import {
+  ArrowLeft,
+  Gift,
+  Lock,
+  Share2,
+  ShieldCheck,
+  PartyPopper,
+  Lightbulb,
+  Smartphone,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -100,9 +109,9 @@ function HowItWorks() {
 
         {/* STEP 1 */}
         <Step icon={Lock} n={1} title="Get Your Permanent ID">
-          When you join, we create a unique code just for you — like
-          RAH38291. Your permanent ID is generated from your name plus a unique
-          number. It never changes, so you can share it anywhere. 🔒
+          When you join, we create a unique code just for you — like RAH38291.
+          Your permanent ID is generated from your name plus a unique number. It
+          never changes, so you can share it anywhere. 🔒
         </Step>
 
         {/* STEP 2 */}
@@ -129,25 +138,30 @@ function HowItWorks() {
               STEP 4: Rewards Unlock Instantly 🎉
             </h3>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground">Two ways you both win:</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Two ways you both win:
+          </p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-accent/30 bg-accent/10 p-3">
               <p className="text-xs font-bold">📱 Free Trial Track</p>
               <p className="mt-1.5 text-xs text-muted-foreground">
-                You get +{DAYS_PER_REFERRAL} free trial days for every friend who
-                signs up and completes onboarding. Days add up horizontally — no
-                minimum threshold. Accrual stops at {MAX_FREE_DAYS} days (your{" "}
-                {capReferral}th referral), but you can keep referring as many
-                friends as you like.
+                You get +{DAYS_PER_REFERRAL} free trial days for every friend
+                who signs up and completes onboarding. Days add up horizontally
+                — no minimum threshold. Accrual stops at {MAX_FREE_DAYS} days
+                (your {capReferral}th referral), but you can keep referring as
+                many friends as you like.
               </p>
             </div>
             <div className="rounded-xl border border-[var(--fat)]/30 bg-[var(--fat)]/10 p-3">
               <p className="text-xs font-bold">💰 Subscription Track</p>
               <p className="mt-1.5 text-xs text-muted-foreground">
-                You get {PREMIUM_DAYS_PER_SUBSCRIPTION} free premium days per paid
-                subscription — no limit. Your friend gets ₹
+                You get {PREMIUM_DAYS_PER_SUBSCRIPTION} free premium days per
+                paid subscription — no limit. Your friend gets ₹
                 {REFEREE_DISCOUNT_RUPEES} OFF the Yearly plan
-                {yearly && discounted ? ` (₹${yearly.price} → ₹${discounted})` : ""}.
+                {yearly && discounted
+                  ? ` (₹${yearly.price} → ₹${discounted})`
+                  : ""}
+                .
               </p>
             </div>
           </div>
@@ -165,8 +179,10 @@ function HowItWorks() {
             </li>
             <li className="flex gap-2">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-              Your code works for everyone, but the ₹{REFEREE_DISCOUNT_RUPEES} OFF
-              is only for new users.
+              Your code works for everyone, but the ₹{
+                REFEREE_DISCOUNT_RUPEES
+              }{" "}
+              OFF is only for new users.
             </li>
             <li className="flex gap-2">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />

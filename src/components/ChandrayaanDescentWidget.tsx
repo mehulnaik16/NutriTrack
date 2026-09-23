@@ -1,5 +1,12 @@
 import React from "react";
-import { Rocket, Satellite, Radio, Compass, ArrowDown, CheckCircle2 } from "lucide-react";
+import {
+  Rocket,
+  Satellite,
+  Radio,
+  Compass,
+  ArrowDown,
+  CheckCircle2,
+} from "lucide-react";
 
 interface ChandrayaanDescentWidgetProps {
   currentWeight?: number | null;
@@ -16,7 +23,8 @@ export function ChandrayaanDescentWidget({
 }: ChandrayaanDescentWidgetProps) {
   const cur = currentWeight ? Number(currentWeight) : 75.0;
   const goal = goalWeight ? Number(goalWeight) : 70.0;
-  const delta = currentWeight && goalWeight ? Number((cur - goal).toFixed(1)) : null;
+  const delta =
+    currentWeight && goalWeight ? Number((cur - goal).toFixed(1)) : null;
 
   // Calculate descent ratio (0 = high orbit LOI, 1 = touchdown at target)
   // Assume a typical journey might span 10kg delta
@@ -114,7 +122,14 @@ export function ChandrayaanDescentWidget({
             { cx: 130, cy: 90, r: 0.7 },
             { cx: 210, cy: 60, r: 0.8 },
           ].map((s, idx) => (
-            <circle key={idx} cx={s.cx} cy={s.cy} r={s.r} fill="#94a3b8" opacity="0.6" />
+            <circle
+              key={idx}
+              cx={s.cx}
+              cy={s.cy}
+              r={s.r}
+              fill="#94a3b8"
+              opacity="0.6"
+            />
           ))}
 
           {/* Lunar South Pole Curved Surface */}
@@ -126,9 +141,33 @@ export function ChandrayaanDescentWidget({
           />
 
           {/* Lunar surface craters */}
-          <ellipse cx="80" cy="184" rx="22" ry="4" fill="#1e293b" stroke="#334155" strokeWidth="0.8" />
-          <ellipse cx="200" cy="180" rx="16" ry="3" fill="#1e293b" stroke="#334155" strokeWidth="0.8" />
-          <ellipse cx="320" cy="187" rx="28" ry="4" fill="#1e293b" stroke="#334155" strokeWidth="0.8" />
+          <ellipse
+            cx="80"
+            cy="184"
+            rx="22"
+            ry="4"
+            fill="#1e293b"
+            stroke="#334155"
+            strokeWidth="0.8"
+          />
+          <ellipse
+            cx="200"
+            cy="180"
+            rx="16"
+            ry="3"
+            fill="#1e293b"
+            stroke="#334155"
+            strokeWidth="0.8"
+          />
+          <ellipse
+            cx="320"
+            cy="187"
+            rx="28"
+            ry="4"
+            fill="#1e293b"
+            stroke="#334155"
+            strokeWidth="0.8"
+          />
 
           {/* Shiv Shakti Point Landing Beacon Marker */}
           <circle cx={p2.x} cy={p2.y + 22} r="14" fill="url(#touchdownGlow)" />
@@ -165,7 +204,14 @@ export function ChandrayaanDescentWidget({
           />
 
           {/* Phase Waypoint 1: LOI (Lunar Orbit Insertion) */}
-          <circle cx={p0.x} cy={p0.y} r="3.5" fill="#FF671F" stroke="#080C16" strokeWidth="1.5" />
+          <circle
+            cx={p0.x}
+            cy={p0.y}
+            r="3.5"
+            fill="#FF671F"
+            stroke="#080C16"
+            strokeWidth="1.5"
+          />
           <text
             x={p0.x}
             y={p0.y - 8}
@@ -179,7 +225,14 @@ export function ChandrayaanDescentWidget({
           </text>
 
           {/* Phase Waypoint 2: Rough Braking Phase */}
-          <circle cx={145} cy={60} r="3" fill="#FBBF24" stroke="#080C16" strokeWidth="1.5" />
+          <circle
+            cx={145}
+            cy={60}
+            r="3"
+            fill="#FBBF24"
+            stroke="#080C16"
+            strokeWidth="1.5"
+          />
           <text
             x={145}
             y={52}
@@ -192,7 +245,14 @@ export function ChandrayaanDescentWidget({
           </text>
 
           {/* Phase Waypoint 3: Fine Braking Phase */}
-          <circle cx={225} cy={95} r="3" fill="#38BDF8" stroke="#080C16" strokeWidth="1.5" />
+          <circle
+            cx={225}
+            cy={95}
+            r="3"
+            fill="#38BDF8"
+            stroke="#080C16"
+            strokeWidth="1.5"
+          />
           <text
             x={225}
             y={88}
@@ -244,18 +304,71 @@ export function ChandrayaanDescentWidget({
 
             {/* High Gain Communication Antenna Dish */}
             <circle cx="0" cy="-12" r="2.5" fill="#38BDF8" />
-            <line x1="0" y1="-10" x2="0" y2="-14" stroke="#38BDF8" strokeWidth="0.8" />
+            <line
+              x1="0"
+              y1="-10"
+              x2="0"
+              y2="-14"
+              stroke="#38BDF8"
+              strokeWidth="0.8"
+            />
 
             {/* Solar Panels (Wings) */}
-            <rect x="-14" y="-2" width="5" height="10" rx="0.5" fill="#1E3A8A" stroke="#3B82F6" strokeWidth="0.5" />
-            <rect x="9" y="-2" width="5" height="10" rx="0.5" fill="#1E3A8A" stroke="#3B82F6" strokeWidth="0.5" />
+            <rect
+              x="-14"
+              y="-2"
+              width="5"
+              height="10"
+              rx="0.5"
+              fill="#1E3A8A"
+              stroke="#3B82F6"
+              strokeWidth="0.5"
+            />
+            <rect
+              x="9"
+              y="-2"
+              width="5"
+              height="10"
+              rx="0.5"
+              fill="#1E3A8A"
+              stroke="#3B82F6"
+              strokeWidth="0.5"
+            />
 
             {/* 4 Landing Legs & Footpads */}
-            <line x1="-7" y1="12" x2="-12" y2="18" stroke="#94A3B8" strokeWidth="1.2" />
-            <line x1="-14" y1="18" x2="-10" y2="18" stroke="#CBD5E1" strokeWidth="1.5" />
+            <line
+              x1="-7"
+              y1="12"
+              x2="-12"
+              y2="18"
+              stroke="#94A3B8"
+              strokeWidth="1.2"
+            />
+            <line
+              x1="-14"
+              y1="18"
+              x2="-10"
+              y2="18"
+              stroke="#CBD5E1"
+              strokeWidth="1.5"
+            />
 
-            <line x1="7" y1="12" x2="12" y2="18" stroke="#94A3B8" strokeWidth="1.2" />
-            <line x1="10" y1="18" x2="14" y2="18" stroke="#CBD5E1" strokeWidth="1.5" />
+            <line
+              x1="7"
+              y1="12"
+              x2="12"
+              y2="18"
+              stroke="#94A3B8"
+              strokeWidth="1.2"
+            />
+            <line
+              x1="10"
+              y1="18"
+              x2="14"
+              y2="18"
+              stroke="#CBD5E1"
+              strokeWidth="1.5"
+            />
 
             {/* Stamped Live Payload Mass Badge above lander */}
             <rect
@@ -352,7 +465,9 @@ export function ChandrayaanDescentWidget({
             )}
           </div>
           <span className="text-[9px] font-mono text-muted-foreground block mt-0.5">
-            {delta !== null && delta <= 0 ? "TARGET REACHED" : `${Math.abs(delta || 0)} ${unit} REMAIN`}
+            {delta !== null && delta <= 0
+              ? "TARGET REACHED"
+              : `${Math.abs(delta || 0)} ${unit} REMAIN`}
           </span>
         </div>
       </div>

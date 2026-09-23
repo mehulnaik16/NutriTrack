@@ -74,14 +74,18 @@ function WorkoutLibrary() {
         {WORKOUT_LIBRARY.map((l) => (
           <button
             key={l.id}
-            onClick={() => navigate({ to: "/workout-library", search: { lib: l.id } })}
+            onClick={() =>
+              navigate({ to: "/workout-library", search: { lib: l.id } })
+            }
             className="card-lift flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-accent/40"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-xs font-bold text-accent">
               {l.id}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">{l.name}</span>
+              <span className="block truncate text-sm font-semibold">
+                {l.name}
+              </span>
               <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                 {l.blurb}
               </span>
@@ -119,7 +123,10 @@ function PreviewView({ plan }: { plan: LibraryPlan }) {
         await supabase
           .from("workout_plans")
           .delete()
-          .in("id", old.map((o: any) => o.id));
+          .in(
+            "id",
+            old.map((o: any) => o.id),
+          );
       }
       const { error } = await supabase.from("workout_plans").insert({
         user_id: user.id,
@@ -157,7 +164,9 @@ function PreviewView({ plan }: { plan: LibraryPlan }) {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-sm font-bold">{plan.name}</p>
+            <p className="truncate font-display text-sm font-bold">
+              {plan.name}
+            </p>
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               {plan.plan.days_per_week} training days/week
             </p>
@@ -210,7 +219,9 @@ function PreviewView({ plan }: { plan: LibraryPlan }) {
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold text-muted-foreground">
                     {i + 1}
                   </span>
-                  <span className="truncate text-sm font-semibold">{ex.name}</span>
+                  <span className="truncate text-sm font-semibold">
+                    {ex.name}
+                  </span>
                 </div>
                 <span className="shrink-0 text-xs font-bold text-muted-foreground">
                   {ex.sets} × {ex.reps}

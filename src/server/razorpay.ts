@@ -347,7 +347,9 @@ export async function cancelSubscription(
     method: "POST",
     body: { cancel_at_cycle_end: atCycleEnd ? 1 : 0 },
   });
-  return { status: typeof json.status === "string" ? json.status : "cancelled" };
+  return {
+    status: typeof json.status === "string" ? json.status : "cancelled",
+  };
 }
 
 /**

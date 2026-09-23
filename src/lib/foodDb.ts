@@ -140,4 +140,3 @@ export function searchFoods(query: string, limit = 8): IFCTItem[] {
   );
   return matches.slice(0, limit).map((m) => m.item);
 }
-
