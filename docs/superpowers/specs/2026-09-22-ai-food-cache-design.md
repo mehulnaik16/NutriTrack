@@ -1,7 +1,9 @@
 # AI Food Cache — Design
 
 Date: 2026-09-22
-Status: approved for planning
+Status: approved for planning; amended during implementation — every reversal
+is recorded, with its evidence, under "Decisions after approval" at the end,
+and the sections below have been corrected to match.
 
 ## Purpose
 
@@ -69,7 +71,7 @@ Several contradict the original brief, and the design follows the code.
 - **Energy is stored in kilojoules** throughout the catalog (`enerc`), converted
   at display time by `kcalOf`. The cache stores kJ for the same reason; mixing
   units would silently misreport a day's intake by a factor of 4.184.
-- `pg_trgm` is not installed on the project. `pgvector` is not needed.
+- `pg_trgm` is not installed on the project (this feature's first migration installs it). `pgvector` is not needed.
 
 ## Scope
 
@@ -89,15 +91,25 @@ Four tiers are read in order. The first three cost nothing.
    This is `main_food_db`. It is never written to by any part of this pipeline;
    additions arrive only through the weekly manual review as a reviewed commit.
 2. **`ai_flagged`** — the searching user's own correction, if they have one.
+   A correction exists only for a verified row, so it is read once that row is
+   found, and replaces the row's numbers for this user alone.
 3. **`ai_verified`** — the shared trusted tier, three independent agreeing
    answers consolidated into one row.
 4. **AI call** — last resort, and its answer becomes a row in `ai_unverified`.
 
+Before any of the server tiers, the typed search checks the user's own
+`saved_meals` (see "Personal names").
+
 Code is split so the judgement logic can be tested without a database:
 
-- `src/lib/foodCache.ts` — pure functions only: canonical key, search key,
-  Atwater gate, quorum check, alias cross-check, personal-name detection. No
-  imports from the server, no network, no Supabase.
+- `src/lib/foodCache.ts` — pure functions only: Atwater gate, quorum check,
+  consolidation, catalog alias parsing, personal-name detection. No imports
+  from the server, no network, no Supabase. The client imports it, so it must
+  never import the transliteration library.
+- `src/server/foodCacheKeys.ts` — the pure functions that need transliteration:
+  script detection, search key, alias cross-check. Kept under `src/server` so
+  `importProtection` makes a client import a build error: the browser never
+  romanises, and the library is ~189 KB.
 - `src/server/foodCache.ts` — all database access, using the service-role
   client. Server-only, kept out of the client bundle by the same
   `importProtection` rule that protects `src/server/gemini.ts`.
@@ -142,15 +154,19 @@ One row per verified food. The three source rows are deleted on consolidation.
 |---|---|---|
 | `canonical_key` | text pk | |
 | `search_key` | text | |
-| `food_name` | text | |
-| `food_class` | text | |
-| `basis`, `piece_g` | | as above |
+| `food_name` | text | the most common of the three answers' names |
+| `food_class` | text | one of the 13 closed values |
+| `basis`, `piece_g` | | the majority basis; the median `piece_g` |
 | `enerc`, `protcnt`, `fatce`, `choavldf`, `fibtg` | numeric | the mean of the three answers |
 | `aliases` | text[] | only aliases that survived the 2-of-3 cross-check |
+| `alias_keys` | text[] | `search_key` of the row and of every alias — what cross-script lookup matches exactly |
 | `models` | text[] | the three models that produced it |
 | `verified_at` | timestamptz | |
 
-Indexes: GIN `gin_trgm_ops` on `search_key`, GIN on `aliases`.
+Indexes: GIN `gin_trgm_ops` on `search_key` (used by the `ai_verified_similar`
+function, the same-script typo backstop), GIN on `aliases`, GIN on
+`alias_keys`. The verification pipeline only ever inserts a row here, never
+updates one; only the weekly manual review changes a verified row.
 
 ### `ai_flagged`
 
@@ -162,7 +178,7 @@ and is also the signal the weekly review reads.
 | `id` | uuid pk | |
 | `user_id` | uuid | |
 | `canonical_key` | text | the `ai_verified` row corrected |
-| `enerc`, `protcnt`, `fatce`, `choavldf`, `fibtg` | numeric | the user's values |
+| `enerc`, `protcnt`, `fatce`, `choavldf`, `fibtg` | numeric | the user's values, per 100 g with energy in kJ, whatever the row's basis |
 | `edited_at` | timestamptz | |
 
 Unique on `(user_id, canonical_key)`.
@@ -189,27 +205,40 @@ cross-script matching entirely for this step — and it costs nothing, because
 under organic timing an unverified search fires an AI call regardless of what a
 pre-match would have said.
 
-`pg_trgm` is still load-bearing for the **known-food lookup** in step 1, which
-is the one place a hit must be recognised before any AI call happens.
+The **known-food lookup** is the one place a hit must be recognised before any
+AI call happens. It runs in four steps, surest first, and the first three are
+exact: the query's `search_key` against `canonical_key`, then against
+`search_key`, then containment in `alias_keys`. The alias step is the
+cross-script path: a Kannada query and the model's own Kannada alias for the
+food romanise to the same key and match exactly, with no threshold. A step
+that matches two different verified rows is ambiguous and is a miss, never
+settled by whichever row the database returns first.
 
-**Thresholds.** A same-script match needs `similarity >= 0.7`, which is a typo
-tolerance. A cross-script match — the query's detected script differs from the
-stored name's original script — needs `>= 0.85`, because transliteration noise
-is a different and less trustworthy error class than a fat-fingered typo.
+**Similarity is only a same-script typo backstop**, the fourth step:
+`pg_trgm` similarity `>= 0.7`, or `>= 0.85` when the query's script differs
+from the stored name's. It cannot be the cross-script matcher, because on
+`pg_trgm` true cross-script pairs score below pairs of different foods (see
+"Decisions after approval"). The two numbers are deliberately strict; a
+near-miss costs one AI call.
 
-**`food_class` is an absolute guard.** A `search_key` match alone never serves a
-cached value. If the keys match but `food_class` disagrees, it is a miss: route
-to a new group and a new AI call rather than silently serving the wrong food.
+**`food_class` guards grouping, not lookup.** It is one of 13 closed values,
+and only answers that agree on it count toward the same group, so three
+answers about two different foods that collided on one key are never averaged
+into one row. At lookup time there is nothing to compare it with — the query
+carries no class, the class being part of what the model is asked for — so a
+verified row is served on its key alone. It is a coarse guard: two foods in
+one bucket ("curry" holds malai kofta and chicken kofta) still group together
+if their keys collide.
 
 ## Per-search flow
 
-1. The client searches the bundled catalog. A hit ends here, as today: instant,
-   no network, no cost.
+1. The client searches the bundled catalog, then the user's own saved meals. A
+   hit ends here: instant, no network, no cost.
 2. On a miss, `runFoodSearch` runs server-side. Personal names branch off here
    (see below).
-3. Look up `ai_flagged` for this user, then `ai_verified`, by `canonical_key`,
-   alias, or `search_key` similarity at the thresholds above, with `food_class`
-   agreement required. A hit is served at no cost and is not marked estimated.
+3. Look up `ai_verified` by the four steps above. On a hit, this user's
+   `ai_flagged` correction for that row, if any, replaces its five numbers.
+   A hit is served at no cost and is not marked estimated.
 4. On a miss, call the AI — one call, the same prompt every time, with no
    reference whatsoever to any existing row in the group. Independence is the
    property the whole quorum rests on.
@@ -217,12 +246,19 @@ to a new group and a new AI call rather than silently serving the wrong food.
    discarded: no row is written, the group does not advance, and the user is
    served whatever the normal no-result path serves today.
 6. On a pass, insert the row under its `canonical_key` group and serve it
-   immediately, tagged "estimated".
+   immediately, tagged "estimated". Three exceptions are served but never
+   written: a key that is already verified (its row is final), a reply that
+   contained more than one JSON object (an echoed few-shot example would
+   validate cleanly and could be cached under the wrong key), and a second
+   item of the same key and class within one reply (not an independent
+   answer).
 7. If the group now holds three rows, run the quorum check. All five macros
-   passing consolidates the group into one `ai_verified` row and deletes the
-   three sources. Any macro failing deletes all three rows and empties the
-   group; the next matching search starts again at entry one. This is
-   delete-and-restart, never a sliding window.
+   passing consolidates the group into one `ai_verified` row — the mean of
+   each macro, the median `piece_g`, the majority `basis`, the most common
+   name — inserted only if no row holds that key, never overwriting one — and
+   deletes the three sources. Any macro failing deletes all three rows and
+   empties the group; the next matching search starts again at entry one.
+   This is delete-and-restart, never a sliding window.
 
 Verification timing is **organic**: slots two and three fill only when real
 users search that food again. Total spend is the same either way for foods
@@ -237,7 +273,7 @@ Atwater gate tests **one answer against itself** and runs on every call. The
 quorum tests **three answers against each other** and runs only once a group is
 full. Neither number is derived from the other and they must not be blended.
 
-**Atwater and mass balance — ±10%, two-tier.** The repository already gates
+**Atwater and mass balance — ±25%, two-tier.** The repository already gates
 energy in `reconcileEnergy` (`src/lib/foodAiSchema.ts`) at `ENERGY_TOL = 0.25`
 with an absolute floor of `ENERGY_FLOOR_KJ = 85`, and it *repairs* rather than
 rejects: a mismatched `enerc` is recomputed from the macros, because this path
@@ -248,11 +284,17 @@ blank screen. Its comment records the measurement behind 25% — against all
 
 Those two jobs are separated rather than merged. What the user sees does not
 change: `reconcileEnergy` still repairs at ±25% and an answer is always
-rendered. The cache gate is a second, stricter check that decides only whether
-an answer is trustworthy enough to *count toward the three* — the reported
-energy must sit within **±10%** of `4·protein + 9·fat + 4·carbohydrate`, and
+rendered. The cache gate is a second check that decides only whether an
+answer is trustworthy enough to *count toward the three* — the reported energy
+must sit within **±25%** of `4·protein + 9·fat + 4·carbohydrate`, and
 `protein + fat + carbohydrate + fibre` must not exceed 100 g per 100 g. An
 answer that fails is shown to the user and simply not cached.
+
+The tolerance is the same ±25% as `reconcileEnergy`, by the product owner's
+decision after ±10% was measured rejecting half of all model answers (see
+"Decisions after approval"): the cache learns exactly what the app is willing
+to show. One asymmetry remains: the cache gate has no 85 kJ absolute floor, so
+below roughly 340 kJ of implied energy it is the tighter of the two.
 
 **Order is load-bearing.** The cache gate runs on the **raw model answer**,
 before `reconcileEnergy` touches it. Run afterwards it is a no-op, because a
@@ -284,18 +326,21 @@ A personal or possessive name — "my shake", "my chicken biryani", and the
 equivalent possessive forms in Indic scripts — must never reach
 `ai_unverified`, `ai_verified` or the alias set, whether it hits or misses.
 
-1. Fuzzy-match the name against that user's own `saved_meals` rows. This runs
-   client-side with the existing `foodFuzzy` helper: the rows are already
-   readable under per-user RLS, so there is no server round trip and no
-   `pg_trgm` involvement.
-2. A match returns the saved values at no cost.
-3. A miss calls the AI and shows a real estimate. The answer is served and
-   nothing shared is written.
+1. Fuzzy-match **every** query — possessive or not — against that user's own
+   `saved_meals` rows, before any server call. This runs client-side with the
+   existing `foodFuzzy` helper: the rows are already readable under per-user
+   RLS, so there is no server round trip and no `pg_trgm` involvement.
+2. A match returns the saved values at no cost, and the query never reaches
+   the server.
+3. A miss calls the AI and shows a real estimate. For a name detected as
+   personal the answer is served and nothing shared is written.
 4. **Auto-save on log, not on search.** Searching a personal name saves
    nothing. If the user actually logs the item, the estimate is written into
-   their own `saved_meals` under that name, so the next search of it is a free
-   step-2 hit. A search without a log is not a strong enough signal to save, and
-   keeps costing an AI call by design.
+   their own `saved_meals` under **the words they typed** — never under the
+   model's corrected name, which for "my shake" is "Protein Shake" and is not
+   personal at all — so the next search of it is a free step-2 hit. A search
+   without a log is not a strong enough signal to save, and keeps costing an
+   AI call by design.
 
 ### How a personal name is detected
 
@@ -307,7 +352,10 @@ name into a shared table permanently. Three signals, checked in order.
 signal.** If the query fuzzy-matches one of this user's `saved_meals` names at
 `>= 0.8`, it is personal, whatever language it is in and whether or not it
 carries a possessive. This needs no linguistics at all and already covers the
-common case of someone re-typing a meal they have logged before.
+common case of someone re-typing a meal they have logged before. It needs the
+user's own rows, so it lives in the search component (`FoodSearch`), checked
+for every query before any server call; the server-side detector
+(`isPersonalName`) implements signals 2 and 3 only.
 
 **2. A possessive marker in the original script.** Matching runs on the text as
 typed, before any romanisation, because transliteration is exactly where these
@@ -337,17 +385,31 @@ fixed spellings, and fuzzy-matching them would catch real food names.
 `amar`, `maru`, `majha`. Tokens shorter than three characters are excluded from
 this list, which is why Tamil `என்` and Telugu `నా` are detected in their own
 script but their romanisations `en` and `naa` are not — two-letter tokens
-collide with ordinary words and food names far too often to be trusted.
+collide with ordinary words and food names far too often to be trusted. (`my`
+is the one two-letter exception: it is unambiguous in English.)
+
+A leading `<word>'s` or `<word>’s` possessive also marks a personal name —
+"mom's shake", "amma's rasam", "grandma’s curry" — except where the possessor
+names a real food: the brands the bundled catalog lists this way (McDonald's,
+Wendy's, Domino's; 309 rows), other common packaged brands, and dishes whose
+own name is possessive ("shepherd's pie", "lady's finger"). That exclusion list
+is fixed, and a brand missing from it ("Mother's Recipe") is treated as
+personal — the cheap direction. No name in the bundled catalog is flagged.
 
 **Ties break toward personal.** The two errors are not symmetric: a false
 positive costs one user one AI call and one row the shared cache never gains,
 while a false negative writes somebody's private meal name into a shared table
 for good. When a marker matches ambiguously, treat the query as personal.
 
-This is a heuristic and it will miss unusual phrasings. That is acceptable
-because the shared pipeline's own rules are the real protection: nothing enters
-`ai_verified` without three independent answers agreeing, so a personal name
-that slips past detection almost never converges anyway.
+This is a heuristic and it will miss unusual phrasings, and **the quorum is
+not a backstop for what it misses.** `ai_unverified` records no user, and the
+three answers can all come from the same model at temperature 0.1. One user
+searching a non-possessive private name ("post-gym shake") three times, before
+ever saving it, can fill a quorum on their own; the model reads it as a real
+food the same way each time, the answers agree, and the private name becomes a
+shared verified row. Requiring the three answers to come from three different
+users would close this, at the cost of slower convergence while the user base
+is small — a product decision that is open, not taken.
 
 ## Voice and photo logs
 
@@ -355,11 +417,26 @@ that slips past detection almost never converges anyway.
 so voice and photo logs bypass the search path completely and can neither feed
 nor benefit from the cache.
 
-The prompt changes to return **names and quantities only**. Each parsed name is
-then routed through the normal path — bundled catalog, then `ai_flagged`, then
-`ai_verified`, then AI. Cached items cost nothing, and the parse call itself
-gets cheaper because it no longer emits macros. Typed composite queries use the
-free `COMPOSITE_SPLIT` regex the same way, one cache lookup per split item.
+The prompt changes to return **names and quantities only**, and the photo
+prompt to the food's name and estimated weight only. Each name is then routed
+through one resolver (`resolveFood`), shared by voice and photo — bundled
+catalog, then `ai_verified` with the user's `ai_flagged` correction, then AI.
+Cached items cost nothing, and the parse call itself gets cheaper because it
+no longer emits macros. The resolved food is per 100 g with energy in kJ, the
+same object a typed search hands over, and the review screens show its name.
+
+The catalog step is stricter here than in typed search. A typed query shows a
+list and a person picks; a spoken or photographed name is picked
+automatically, so it takes a catalog row only when the name **is** that row's
+name (a slash alternative counts, a parenthetical qualifier is dropped), and on
+a tie the curated `extraFoods` row. Anything looser picks a different food that
+merely contains the word — "coffee" was Coffee biscuit, "water" Water Chestnut,
+"milk" Milk cake — so everything else goes to the server.
+
+Typed composite queries are not split before the cache: the whole query goes
+to one lookup and, on a miss, one model call that returns several items.
+`COMPOSITE_SPLIT` only sizes that call's token budget and splits the query for
+its reference rows.
 
 Using that regex to split speech as well was considered and rejected: it is
 weaker than the model at parsing messy spoken sentences, and the extra saving is
@@ -404,19 +481,26 @@ Two existing helpers are reused rather than rewritten: `altNames` in
 the same file holds a Levenshtein `similarity` function that the alias
 cross-check needs. Both are currently private and get exported.
 
-Pure functions in `src/lib/foodCache.ts` get tests beside the existing
+Pure functions in `src/lib/foodCache.ts` and `src/server/foodCacheKeys.ts`
+get tests in `src/lib/foodCache.test.ts`, beside the existing
 `foodUnits.test.ts` and `foodFuzzy.test.ts`:
 
-- canonical key and search key, including Indic script input
+- search key, including Indic script input
 - the alias parser on both catalog shapes: a `lang` row and a parenthetical
   `name` row, plus a row with neither
-- the Atwater gate at the ±10% boundary, the 100 g mass balance, zero energy
-- the quorum check, including the near-zero fibre floor
+- the Atwater gate at the ±25% boundary, the 100 g mass balance, zero energy
+- the quorum check, including the near-zero fibre floor, and the consolidated
+  identity (median `piece_g`, majority `basis`, most common name)
 - the alias cross-check, including a single-source alias being dropped
 - personal-name detection: English `my X`, a Kannada `ನನ್ನ X`, a Hindi `मेरा X`,
-  a `saved_meals` match with no possessive at all, and a food name containing
-  the letters `en` or `naa` that must **not** be flagged
-- `food_class` disagreement forcing a miss despite a key match
+  a leading `<word>'s`, a food name containing the letters `en` or `naa` that
+  must **not** be flagged, brand possessives that must not be flagged, and no
+  name in the bundled catalog flagged
+
+What is not a pure function is verified live against the database instead: a
+`food_class` disagreement keeping an answer out of a group, a verified row
+surviving a later group under its key, and an ambiguous alias being a miss.
+The `saved_meals` match is component logic in `FoodSearch`.
 
 ## Build order
 
@@ -440,5 +524,66 @@ Pure functions in `src/lib/foodCache.ts` get tests beside the existing
 - A food whose answers never converge retries without a cap. Cost is bounded by
   real query volume. Accepted.
 - Romanisation is lossy, so two different foods can collide on `search_key`.
-  Mitigated by `food_class` agreement and the stricter cross-script threshold,
+  Mitigated by exact key matching with no threshold to loosen, by refusing a
+  key two verified rows share, and by `food_class` agreement within a group —
   not by loosening the match.
+- A personal name that detection misses can reach `ai_verified` through one
+  user's repeated searches (see "Personal names"). Open, pending the product
+  owner's decision on a distinct-user quorum.
+
+## Decisions after approval
+
+Each of these reverses or sharpens something the approved design said. The
+sections above have been corrected to match; this is the record of why.
+
+1. **Cache gate ±10% → ±25%.** Measured on live model output, 12 foods, 39
+   answers: the ±10% gate rejected 19 answers (49%), and 7 of the 12 foods never
+   assembled three rows. Its predicted ~6% rejection rate had been measured on
+   curated IFCT rows, not model output. It also rejected correct values:
+   banana at 372 kJ/100 g, the right figure, sat 10.3% below the Atwater
+   estimate of 414.6, because 4/9/4 overestimates fruit and high-fibre foods.
+   The product owner set the gate to ±25%, matching `reconcileEnergy`. On a
+   36-food, 109-call re-run the gate rejected 8 of 117 items (6.8%).
+2. **Cross-script matching moved from `pg_trgm` similarity to exact alias
+   keys.** The 0.7/0.85 thresholds were calibrated on Levenshtein similarity,
+   but the lookup runs on trigram similarity, which scores true cross-script
+   pairs below pairs of different foods: idhli/idli 0.375 against naan/paneer
+   naan 0.417 and chicken biryani/chicken pulao 0.364; tatte idli/thatte idli
+   0.643. No threshold separates the two. `alias_keys` holds the normalised key
+   of the row and every agreed alias, and matches exactly; live, a Kannada
+   query hit an English-keyed row through it where similarity scored 0.643.
+3. **Similarity demoted to a same-script typo backstop**, the last lookup step,
+   with its thresholds kept deliberately strict: a near-miss costs one AI call,
+   a loose threshold serves the wrong food.
+4. **`food_class` became a closed 13-value list, and is a grouping guard, not
+   a lookup guard.** As free text the model rephrased it per call, and 10 of 36
+   foods never formed a group, 8 of them with `canonical_key` agreeing. With
+   the closed list: zero cross-call disagreement across 30 calls, and 8 of those
+   10 foods formed a full group. At lookup the query carries no class to
+   compare, so "a key match with a disagreeing class is a miss" was never
+   implementable; the guard applies where answers are grouped.
+5. **Corrections are stored per 100 g, energy in kJ, whatever the basis.**
+   `basis = 'piece'` says a food is countable and carries `piece_g`; it does not
+   change what the numbers mean. Every reader scales cache macros by
+   grams ÷ 100, so a per-piece correction would be served as if per 100 g.
+6. **The pipeline never overwrites a verified row.** A later group under the
+   same key replaced the row whole: a "sugar-free lassi" answered as "lassi"
+   would swap in the variant's numbers, and the new group's aliases would wipe
+   every earlier cross-script spelling. Answers for a verified key are not
+   staged, and promotion is an insert that does nothing on conflict. Only the
+   weekly manual review changes a verified row. The non-macro fields of a
+   promotion — `piece_g`, `basis`, `food_name` — are no longer copied from the
+   first answer: `piece_g` multiplies every pieces log permanently, so it is
+   the median of the three, with the majority basis and the most common name.
+7. **Ambiguous multi-object replies are served but not cached.** The model has
+   echoed the prompt's reference block and could echo one of its six
+   schema-valid few-shot examples before its answer; the extractor serves the
+   last complete object, and a reply with more than one is never recorded,
+   because an echoed example would validate cleanly and be cached under the
+   wrong key and class for good.
+8. **Automatic picks need an exact catalog name; saved meals are checked for
+   every query; personal names are saved under the typed words.** Found in the
+   final review: voice logged "coffee" as Coffee biscuit (624 kcal for a
+   150 g cup); the saved-meal signal only ran after a possessive had already
+   matched; and auto-save tested the model's corrected name, so it never fired
+   for an AI estimate.
