@@ -231,4 +231,21 @@ for (const [q, wrong] of [
 ])
   assert.notEqual(catalogFood(q)?.name, wrong, `${q} must not log ${wrong}`);
 
+// ── F10: a regional name shaped like a language tag is not stripped ─────────
+// Toddy's lang ends "Mal., Tam., Tel. Kallu." — a capital, four lowercase
+// letters and a dot, the same shape as "Kash." The old tag pattern deleted it,
+// so "kallu" found nothing locally and went to the paid model. "Kaali Mirch."
+// lost its second word the same way.
+{
+  assert.ok(
+    top("kallu").toLowerCase().includes("toddy"),
+    `F10 "kallu" should reach Toddy, got "${top("kallu") || "(nothing)"}"`,
+  );
+  assert.ok(
+    top("kaali mirch").toLowerCase().includes("pepper"),
+    `F10 "kaali mirch" should reach black pepper, got "${top("kaali mirch") || "(nothing)"}"`,
+  );
+  console.log(`✓ F10 tag-shaped regional names survive: kallu → Toddy, kaali mirch → Pepper`);
+}
+
 console.log("\n✅ All food-fuzzy tests passed.");

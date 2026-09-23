@@ -46,11 +46,21 @@ interface Indexed {
 }
 
 /**
- * Leading language abbreviations: "Kan.", "Tam.", "A.", "Kash.", "E." A comma
- * follows when several languages share one alias ("A., Kash. Baajra"), so it
- * is stripped along with the abbreviation, not left dangling on the name.
+ * The language tags this catalog actually uses, derived from every populated
+ * `lang` field in ifct2017.json rather than guessed.
+ *
+ * A closed list, matched only at the START of each ";"-separated part, and
+ * possibly several at once ("Mal., Tam., Tel. Kallu."). The old pattern
+ * stripped ANY capital letter plus up to four lowercase letters ending in a
+ * dot, anywhere in the part, so a regional name that happened to fit that shape
+ * vanished: Toddy's "Kallu." was deleted outright, as was the last name of 80+
+ * other rows ("U. Bajra."), and "Kaali Mirch." was cut to "Kaali". Every lost
+ * name turned a free local match into a paid AI call. A comma after a tag,
+ * when several languages share one name ("A., Kash. Baajra"), is stripped
+ * with the tags rather than left dangling on the name.
  */
-const LANG_PREFIX = /\b[A-Z][a-z]{0,4}\.,?\s*/g;
+const LANG_TAGS = "A|B|E|G|H|K|Kan|Kash|Kh|Kon|M|Mal|Mar|N|O|P|S|Tam|Tel|U";
+const LANG_PREFIX = new RegExp(`^\\s*(?:(?:${LANG_TAGS})\\.\\s*,?\\s*)+`);
 
 /**
  * "A., Kash. Baajra; B. Bajra; E. Pearl millet; Kan. Sajje"
