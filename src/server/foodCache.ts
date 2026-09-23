@@ -148,8 +148,10 @@ export async function lookupCache(opts: {
     // Two rows, not one: a step that matches two different foods is
     // ambiguous, and must be seen to be refused rather than settled by
     // whichever row the database happens to return first.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a builder on one of the untyped tables above
-    const upToTwo = async (what: string, query: any): Promise<VerifiedRow[]> => {
+    const upToTwo = async (
+      what: string,
+      query: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- a builder on one of the untyped tables above
+    ): Promise<VerifiedRow[]> => {
       const { data, error } = await query.limit(2);
       warn(`ai_verified ${what} read failed`, error);
       return data ?? [];

@@ -214,7 +214,11 @@ const plain = (s: string) =>
  * the food.
  */
 const wholeNames = (it: IFCTItem) =>
-  it.name.replace(/\([^)]*\)/g, " ").split("/").map(plain).filter(Boolean);
+  it.name
+    .replace(/\([^)]*\)/g, " ")
+    .split("/")
+    .map(plain)
+    .filter(Boolean);
 
 /**
  * The one catalog row a food name IS, for callers that pick without a human
