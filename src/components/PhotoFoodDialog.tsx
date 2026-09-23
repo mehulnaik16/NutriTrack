@@ -34,19 +34,25 @@ import {
   serverGeminiVision,
   serverGroqVision,
 } from "@/lib/ai";
-import { type IFCTItem, KJ_PER_KCAL } from "@/lib/foodDb";
+import { type IFCTItem, kcalOf } from "@/lib/foodDb";
+import { resolveFood } from "@/components/VoiceFoodDialog";
 
+/**
+ * What the vision model is trusted with: which food, and how much of it. Its
+ * macros are not asked for — the name is resolved like a spoken one, through
+ * the catalog, the user's correction, the verified cache and only then a
+ * text-model estimate, so a photo log both feeds the cache and benefits from
+ * it.
+ */
 interface AIFoodResult {
   food_name: string;
   estimated_weight_g: number;
-  calories_per_100g: number;
-  protein_per_100g: number;
-  carbs_per_100g: number;
-  fat_per_100g: number;
-  fiber_per_100g?: number;
   confidence: "high" | "medium" | "low";
   notes: string;
 }
+
+/** A recognised photo: what the model saw, and the food that resolved to. */
+type Recognised = AIFoodResult & { item: IFCTItem };
 
 /** What the caller receives: a per-100 g food plus the weight on the plate. */
 export interface PhotoFoodResult {
@@ -98,15 +104,11 @@ async function recognizeFoodFromImage(
 {
   "food_name": "specific food name",
   "estimated_weight_g": number,
-  "calories_per_100g": number,
-  "protein_per_100g": number,
-  "carbs_per_100g": number,
-  "fat_per_100g": number,
-  "fiber_per_100g": number,
   "confidence": "high" or "medium" or "low",
   "notes": "portion sizing assumptions"
 }
-A human palm is ~18cm — use it as a size reference if visible. Use accurate nutritional values for Indian foods.`;
+Name the food and estimate its weight only. Do NOT return calories or any macro value: those are looked up separately, from a verified database wherever one exists.
+A human palm is ~18cm — use it as a size reference if visible.`;
 
   const { result: raw } = await VISION_FN[provider]({
     data: { prompt, base64, mimeType },
@@ -121,20 +123,6 @@ A human palm is ~18cm — use it as a size reference if visible. Use accurate nu
     throw new Error("AI did not return nutrition data. Please retry.");
   return JSON.parse(jsonMatch[0]) as AIFoodResult;
 }
-
-/** The model quotes per 100 g, which is the basis every food in the app uses. */
-const toItem = (r: AIFoodResult): IFCTItem => ({
-  code: "ai",
-  name: r.food_name,
-  scie: "",
-  lang: "",
-  grup: "AI",
-  enerc: r.calories_per_100g * KJ_PER_KCAL,
-  protcnt: r.protein_per_100g,
-  fatce: r.fat_per_100g,
-  choavldf: r.carbs_per_100g,
-  fibtg: r.fiber_per_100g || 0,
-});
 
 const MacroGrid = ({ items }: { items: { label: string; val: string }[] }) => (
   <div className="grid grid-cols-5 gap-2 text-center text-xs">
@@ -167,7 +155,7 @@ export function PhotoFoodDialog({
   provider?: VisionProvider;
 }) {
   const webcamRef = useRef<Webcam>(null);
-  const [aiResult, setAiResult] = useState<AIFoodResult | null>(null);
+  const [aiResult, setAiResult] = useState<Recognised | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -188,7 +176,19 @@ export function PhotoFoodDialog({
         "image/jpeg",
         provider,
       );
-      setAiResult(result);
+      // The resolver a spoken name goes through, so the item handed to
+      // onConfirm is per 100 g with energy in kJ — exactly what a typed
+      // search hands over. The text engine follows the vision provider, so
+      // each photo button stays one model family end to end.
+      const item = await resolveFood(
+        result.food_name,
+        provider === "groq" ? "groq" : "gemini",
+      );
+      if (!item)
+        throw new Error(
+          `no nutrition data for "${result.food_name}" — add it via search.`,
+        );
+      setAiResult({ ...result, item });
       setWeightInput(String(result.estimated_weight_g ?? ""));
     } catch (e) {
       toast.error(
@@ -208,10 +208,7 @@ export function PhotoFoodDialog({
     }
     setBusy(true);
     try {
-      await onConfirm({
-        item: toItem(aiResult),
-        grams,
-      });
+      await onConfirm({ item: aiResult.item, grams });
     } finally {
       setBusy(false);
     }
@@ -275,7 +272,17 @@ export function PhotoFoodDialog({
           {aiResult && !analyzing && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{aiResult.food_name}</h3>
+                <div className="min-w-0">
+                  <h3 className="font-semibold">{aiResult.item.name}</h3>
+                  {/* What the photo was read as, when the food it resolved
+                      to is named differently — so a substitution shows. */}
+                  {aiResult.item.name.toLowerCase() !==
+                    aiResult.food_name.toLowerCase() && (
+                    <p className="text-[10px] text-muted-foreground">
+                      for "{aiResult.food_name}"
+                    </p>
+                  )}
+                </div>
                 <Badge
                   variant={
                     aiResult.confidence === "high" ? "default" : "outline"
@@ -287,27 +294,28 @@ export function PhotoFoodDialog({
               </div>
               <MacroGrid
                 items={(() => {
-                  const w = Math.max(0, parseFloat(weightInput) || 0);
+                  const r = Math.max(0, parseFloat(weightInput) || 0) / 100;
+                  const it = aiResult.item;
                   return [
                     {
                       label: "Calories",
-                      val: `${Math.round((aiResult.calories_per_100g * w) / 100)} kcal`,
+                      val: `${Math.round(kcalOf(it) * r)} kcal`,
                     },
                     {
                       label: "Protein",
-                      val: `${((aiResult.protein_per_100g * w) / 100).toFixed(1)}g`,
+                      val: `${((it.protcnt ?? 0) * r).toFixed(1)}g`,
                     },
                     {
                       label: "Carbs",
-                      val: `${((aiResult.carbs_per_100g * w) / 100).toFixed(1)}g`,
+                      val: `${((it.choavldf ?? 0) * r).toFixed(1)}g`,
                     },
                     {
                       label: "Fat",
-                      val: `${((aiResult.fat_per_100g * w) / 100).toFixed(1)}g`,
+                      val: `${((it.fatce ?? 0) * r).toFixed(1)}g`,
                     },
                     {
                       label: "Fiber",
-                      val: `${(((aiResult.fiber_per_100g || 0) * w) / 100).toFixed(1)}g`,
+                      val: `${((it.fibtg ?? 0) * r).toFixed(1)}g`,
                     },
                   ];
                 })()}

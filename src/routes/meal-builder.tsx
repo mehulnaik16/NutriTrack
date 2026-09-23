@@ -89,8 +89,8 @@ interface BuilderItem {
  * out. A quantity of 0 or less yields all-zero bases rather than Infinity — the
  * row lands editable instead of rendering NaN and poisoning the totals.
  *
- * `code: "ai"` matches what the photo flow synthesises: no piece weight, so no
- * `pcs` unit, and no density, so volume units behave as water.
+ * `code: "ai"` carries no piece weight, so no `pcs` unit, and no density, so
+ * volume units behave as water.
  */
 const voiceToItem = (v: VoiceFoodItem): IFCTItem => {
   const per100 = v.quantity_g > 0 ? 100 / v.quantity_g : 0;
