@@ -7,7 +7,8 @@
 
    Everything here is a pure function: no network, no Supabase, no API key. */
 import assert from "node:assert";
-import { scriptOf, searchKey, catalogAliases } from "./foodCache.ts";
+import { catalogAliases } from "./foodCache.ts";
+import { scriptOf, searchKey } from "../server/foodCacheKeys.ts";
 
 // ── script detection ───────────────────────────────────────────────────────
 assert.equal(scriptOf("thatte idli"), "Latin");
@@ -21,16 +22,18 @@ assert.equal(scriptOf("2 ಇಡ್ಲಿ"), "Kannada");
 // ── search key ─────────────────────────────────────────────────────────────
 assert.equal(searchKey("Thatte Idli"), "thatte idli");
 assert.equal(searchKey("  Curd   Rice!  "), "curd rice");
-// The whole point: a native-script name and its romanisation must land close
-// enough for pg_trgm to see them as the same food.
+// A native-script name must romanise to a plain Latin key.
 const kn = searchKey("ಇಡ್ಲಿ");
 assert.ok(kn.startsWith("idl"), `expected an idli-like key, got ${kn}`);
 assert.equal(searchKey(""), "");
 
-// Cross-script matching is the point of this module: a Kannada name and its
-// English spelling must land close enough for pg_trgm/similarity to see them
-// as the same food. ITRANS alone scored "tattè idli" vs "thatte idli" at
-// 0.73, below the 0.85 cross-script threshold; IAST + deburring fixes it.
+// Cross-script lookup is an EXACT match on these keys: a Kannada query and
+// the model's Kannada alias for the same food must produce the same string,
+// because lookupCache compares them with alias_keys containment, not a
+// similarity score (pg_trgm could not separate cross-script spellings from
+// different foods — see SIM_SAME_SCRIPT in src/server/foodCache.ts). So the
+// key is pinned exactly. IAST + deburring gives a clean Latin key where ITRANS
+// left accents ("tattè") and untransliterated Tamil letters behind.
 assert.equal(searchKey("ತಟ್ಟೆ ಇಡ್ಲಿ"), "tatte idli");
 // No native-script character may survive romanisation — ITRANS used to leave
 // Tamil "ன்" untransliterated inside an otherwise-Latin key.
@@ -219,7 +222,7 @@ assert.deepEqual(
 );
 
 // ── alias cross-check ────────────────────────────────────────────────────────
-import { crossCheckAliases } from "./foodCache.ts";
+import { crossCheckAliases } from "../server/foodCacheKeys.ts";
 
 // Backed by two of three, with a spelling difference inside 0.9.
 assert.deepEqual(

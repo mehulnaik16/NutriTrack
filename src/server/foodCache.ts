@@ -26,12 +26,10 @@ import {
   type LoggedEdit,
   type Macros,
   consolidate,
-  crossCheckAliases,
   per100g,
   quorumPasses,
-  scriptOf,
-  searchKey,
 } from "@/lib/foodCache";
+import { crossCheckAliases, scriptOf, searchKey } from "./foodCacheKeys.ts";
 import { searchFoods } from "@/lib/foodDb";
 
 /** A match good enough to serve without calling the model. */
