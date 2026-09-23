@@ -48,13 +48,65 @@ export function checkRateLimit(userId: string) {
  *
  * `serverAiFoodSearch` and `serverAiFoodSearchInline` were byte-identical, so
  * every fix had to be made twice or silently reached only one caller.
+ *
+ * Exported so the cache path can be exercised end to end without a browser and
+ * without a request context: the two server functions below are the only
+ * callers in the app.
  */
-async function runFoodSearch(
+export async function runFoodSearch(
   rawQuery: string,
   engine: FoodSearchEngine = "groq",
+  userId?: string,
 ): Promise<AiFoodResult> {
   const cleanQuery = sanitizeFoodQuery(rawQuery);
   if (cleanQuery.length < 2) return { kind: "single", items: [] };
+
+  // Dynamic, like foodFuzzy below: foodCache imports the catalog transitively,
+  // and a static import here would drag it back into this module's graph.
+  const { isPersonalName, cacheGate } = await import("@/lib/foodCache");
+  // A private meal name never touches the shared cache, on a hit or a miss.
+  const personal = isPersonalName(cleanQuery);
+
+  if (!personal && userId) {
+    const { lookupCache } = await import("@/server/foodCache");
+    const hit = await lookupCache({ query: cleanQuery, userId });
+    if (hit) {
+      // "pcs" without a piece weight makes toGrams() return 0, so the unit is
+      // only offered when the cached row actually carries one.
+      const piece_g = hit.piece_g ?? undefined;
+      return {
+        kind: "single",
+        items: [
+          {
+            heard: cleanQuery,
+            name: hit.food_name,
+            lang: "",
+            confidence: "high" as const,
+            units:
+              piece_g === undefined
+                ? ["g" as const]
+                : ["g" as const, "pcs" as const],
+            piece_g,
+            serving_g: 100,
+            code: "ai-fallback" as const,
+            scie: "",
+            grup: hit.food_class || "AI Fallback",
+            enerc: hit.enerc,
+            protcnt: hit.protcnt,
+            fatce: hit.fatce,
+            choavldf: hit.choavldf,
+            fibtg: hit.fibtg,
+            // Empty on purpose: a served hit is not a fresh opinion, so
+            // nothing downstream may record it as one.
+            canonical_key: "",
+            food_class: hit.food_class,
+            aliases: [],
+            basis: hit.basis,
+          },
+        ],
+      };
+    }
+  }
 
   // Imported inside the handler, beside groq, so the catalog is not pulled into
   // this module's static graph — foodDb imports nothing from here any more, and
@@ -93,28 +145,36 @@ async function runFoodSearch(
   // reads it. Gemini takes one string because generateContent has no system
   // role; the order is unchanged, so the model still sees the reference data
   // before the untrusted query.
-  const raw =
-    engine === "gemini"
-      ? await (
-          await import("@/server/gemini")
-        ).geminiText({
-          prompt: [FOOD_SEARCH_SYSTEM, userMsg].join("\n\n"),
-          max_tokens,
-          temperature: 0.1,
-        })
-      : await (
-          await import("@/server/groq")
-        ).groqChat({
-          model: "openai/gpt-oss-120b",
-          messages: [
-            { role: "system", content: FOOD_SEARCH_SYSTEM },
-            { role: "user", content: userMsg },
-          ],
-          max_tokens,
-          temperature: 0.1,
-          reasoning_effort: "low",
-          response_format: { type: "json_object" },
-        });
+  // `model` is recorded beside every cached answer, so it is read from the
+  // module the branch already imports rather than a second literal. The Gemini
+  // id must come from that dynamic import and never from a top-level one:
+  // vite.config.ts fails the build on any static path into **/server/**.
+  let model: string;
+  let raw: string;
+  if (engine === "gemini") {
+    const gemini = await import("@/server/gemini");
+    model = gemini.GEMINI_LITE_MODEL;
+    raw = await gemini.geminiText({
+      prompt: [FOOD_SEARCH_SYSTEM, userMsg].join("\n\n"),
+      max_tokens,
+      temperature: 0.1,
+    });
+  } else {
+    model = "openai/gpt-oss-120b";
+    raw = await (
+      await import("@/server/groq")
+    ).groqChat({
+      model,
+      messages: [
+        { role: "system", content: FOOD_SEARCH_SYSTEM },
+        { role: "user", content: userMsg },
+      ],
+      max_tokens,
+      temperature: 0.1,
+      reasoning_effort: "low",
+      response_format: { type: "json_object" },
+    });
+  }
 
   let parsed: unknown;
   try {
@@ -123,9 +183,58 @@ async function runFoodSearch(
     return { kind: "single", items: [] };
   }
 
-  return (
-    validateFoodResponse(parsed, cleanQuery) ?? { kind: "single", items: [] }
-  );
+  // The gate reads the RAW model answer. reconcileEnergy runs inside
+  // validateFoodResponse and rewrites enerc from the macros, so a repaired
+  // answer is Atwater-consistent by construction and gating it afterwards
+  // always passes — a silent no-op. src/lib/foodCache.test.ts pins this.
+  const rawItems = Array.isArray((parsed as { items?: unknown[] })?.items)
+    ? ((parsed as { items: Record<string, unknown>[] }).items ?? [])
+    : [];
+  const macrosOf = (it: Record<string, unknown>) => ({
+    enerc: Number(it.enerc),
+    protcnt: Number(it.protcnt),
+    fatce: Number(it.fatce),
+    choavldf: Number(it.choavldf),
+    fibtg: Number(it.fibtg),
+  });
+  const cacheable = rawItems.filter((it) => cacheGate(macrosOf(it)));
+
+  const result = validateFoodResponse(parsed, cleanQuery) ?? {
+    kind: "single" as const,
+    items: [],
+  };
+
+  if (!personal && cacheable.length) {
+    const { recordAnswers } = await import("@/server/foodCache");
+    // One batched call rather than a loop over recordAnswer: the batch dedupes
+    // by (canonical_key, food_class), which is what stops two items of a single
+    // response filling two of the three slots meant to hold three independent
+    // answers. Awaited rather than fired and forgotten — a serverless function
+    // may be frozen the moment it returns, losing an unawaited write.
+    await recordAnswers(
+      cacheable.flatMap((it) => {
+        const out = result.items.find((r) => r.name === it.name);
+        // No canonical_key means nothing to group it under; storing it under
+        // an empty key would pool unrelated foods together.
+        if (!out?.canonical_key) return [];
+        return [
+          {
+            canonical_key: out.canonical_key,
+            food_name: out.name,
+            food_class: out.food_class,
+            basis: out.basis,
+            piece_g: out.piece_g,
+            aliases: out.aliases,
+            engine,
+            model,
+            ...macrosOf(it),
+          },
+        ];
+      }),
+    );
+  }
+
+  return result;
 }
 
 /**
@@ -144,7 +253,7 @@ export const serverAiFoodSearch = createServerFn({ method: "POST" })
   .inputValidator((d: string) => d)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    return runFoodSearch(ctx.data);
+    return runFoodSearch(ctx.data, undefined, ctx.context.userId);
   });
 
 // ── AI Food Search (inline, for FoodSearch component) ────────────────────────
@@ -159,7 +268,7 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
   )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    return runFoodSearch(ctx.data.query, ctx.data.engine);
+    return runFoodSearch(ctx.data.query, ctx.data.engine, ctx.context.userId);
   });
 
 // ── AI Chat (generic — used by WeeklyReport, weight motivation, workout plan, voice parse) ──
