@@ -39,7 +39,7 @@ import {
   setsOf as readSets,
   setWeightIn,
 } from "@/lib/workoutSets";
-import { getCachedWorkoutPrefs } from "@/lib/workoutPrefs";
+import { useCachedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
 import { round1 } from "@/lib/units";
 
 /** exercise name (lowercased) → muscle-group key, built once from EXERCISES_DB. */
@@ -102,7 +102,7 @@ const computePace = (
 export function WorkoutLogHistory() {
   const { user } = useAuth();
   // Lists show the CURRENT unit; the progress graph stays in the ORIGINAL unit.
-  const unitPrefs = user ? getCachedWorkoutPrefs(user.id) : null;
+  const unitPrefs = useCachedWorkoutPrefs(user?.id);
   const weightUnit = unitPrefs?.weightUnit ?? "kg";
   const origUnit = unitPrefs?.origWeightUnit ?? "kg";
   const [allLogs, setAllLogs] = useState<Log[]>([]);

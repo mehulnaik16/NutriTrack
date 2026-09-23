@@ -21,7 +21,7 @@ import {
   WEIGHT_KG,
   validateMeasurement,
 } from "@/lib/measurements";
-import { getCachedWorkoutPrefs } from "@/lib/workoutPrefs";
+import { useCachedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
 import { type WeightUnit, kgToWeight, weightToKg, round1 } from "@/lib/units";
 import { Header } from "@/components/Header";
 import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
@@ -111,7 +111,7 @@ function WeightPage() {
 
   // Body weight is stored canonically in kg (BMI/calorie math needs it). The page
   // DISPLAYS the current unit; its chart plots the original unit. Helpers below.
-  const unitPrefs = user ? getCachedWorkoutPrefs(user.id) : null;
+  const unitPrefs = useCachedWorkoutPrefs(user?.id);
   const weightUnit = unitPrefs?.weightUnit ?? "kg";
   const origWeightUnit = unitPrefs?.origWeightUnit ?? "kg";
   const disp = (kg: number) => round1(kgToWeight(kg, weightUnit)); // kg → shown value
