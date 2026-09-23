@@ -169,7 +169,18 @@ assert.deepEqual(altNames(""), []);
 // (coffee -> Coffee biscuit, water -> Water Chestnut, milk -> Milk cake, egg ->
 // a sandwich, sugar -> sugarcane juice). No catalog row IS any of them, so
 // they must go to the server rather than be guessed.
-for (const q of ["coffee", "water", "milk", "egg", "sugar", "dal", "chicken"])
+for (const q of [
+  "coffee",
+  "water",
+  "milk",
+  "egg",
+  "sugar",
+  "dal",
+  "chicken",
+  "chai",
+  "tea",
+  "rice",
+])
   assert.equal(catalogFood(q), undefined, `${q} must fall through`);
 // Where a raw corpus row and a curated row share a name, the curated one —
 // with its piece weight — is the pick, and searchFoods puts it first too.
@@ -181,8 +192,43 @@ for (const [q, code] of [
   assert.equal(catalogFood(q)?.code, code, `${q} -> ${code}`);
   assert.equal(searchFoods(q, 1)[0]?.code, code, `searchFoods ${q} -> ${code}`);
 }
-// Slash names and a parenthetical qualifier still count as the name.
-assert.equal(catalogFood("roti")?.code, "XE030");
-assert.equal(catalogFood("poha")?.code, "XE010");
+// A spaced " / " separates names, and a curated row's bracket is its default
+// state, so these still count as the name.
+for (const [q, code] of [
+  ["roti", "XE030"],
+  ["chapati", "XE030"],
+  ["poha", "XE010"],
+  ["paneer", "XE083"],
+  ["curd", "XE160"],
+  ["dahi", "XE160"],
+])
+  assert.equal(catalogFood(q)?.code, code, `${q} -> ${code}`);
+// Bare-name rows: whichever row is plainly this food, by its own name.
+for (const q of ["banana", "dosa"])
+  assert.equal(catalogFood(q)?.name.split(" (")[0].toLowerCase(), q, q);
+// Raw IFCT rows use an UNSPACED "/" for a spelling variant of the last word
+// and brackets for qualifiers. Neither may turn one word into a different
+// food: each of these used to log the named row with no model call.
+for (const [q, wrong] of [
+  ["paratha", "Potato parantha/paratha (Aloo ka parantha/paratha)"],
+  ["lassi", "Lassi (salted)"],
+  ["jackfruit", "Jackfruit/Kathal (dry)"],
+  ["kathal", "Jackfruit/Kathal (dry)"],
+  ["eggplant", "Eggplant/Brinjal rice (Vangi bhat)"],
+  ["okra", "Okra/Lady's fingers fry (Bhindi sabzi/sabji/subji)"],
+  ["pakoda", "Potato pakora/pakoda (Aloo pakoda)"],
+  ["chilla", "Moong dal stuffed cheela/chilla (Moong dal ka cheela/chilla)"],
+  ["cheela", "Gram flour chilla/cheela (Besan chilla/cheela)"],
+  ["khichri", "Sago khitchdi/khichri (Sabudana khitchdi/khichri)"],
+  ["tikka", "Paneer shaslik/tikka"],
+  ["imli", "Saunth/Sonth chutney with tamarind/imli"],
+  ["ghiya", "Ghiya/Lauki Kofta Curry"],
+  ["vadas", "Sago cutlet/vadas (Sabudana cutlet/vadas)"],
+  ["fudge", "Split bengal gram burfi/fudge (Channa dal burfi)"],
+  ["puree", "Banana groundnut paste/puree"],
+  ["omlet", "Plain omelette/omlet"],
+  ["biriyani", "Mutton biryani/biriyani"],
+])
+  assert.notEqual(catalogFood(q)?.name, wrong, `${q} must not log ${wrong}`);
 
 console.log("\n✅ All food-fuzzy tests passed.");

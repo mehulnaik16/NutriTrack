@@ -20,7 +20,7 @@
 
 import Fuse from "fuse.js";
 import { ITEMS, curatedFirst, type IFCTItem } from "./foodDb.ts";
-import { catalogAliases } from "./foodCache.ts";
+import { catalogAliases, isAliasGroup } from "./foodCache.ts";
 
 /**
  * Confident enough to answer from the catalog and skip the model entirely.
@@ -208,15 +208,28 @@ const plain = (s: string) =>
     .trim();
 
 /**
- * Every whole name a row answers to: "Roti / Chapati" is both "roti" and
- * "chapati", "Poha (cooked)" is "poha". Parenthetical text is dropped, never
- * matched on — in "Subway Italian BMT (Chicken)" it names an ingredient, not
- * the food.
+ * Every whole name a row answers to. The catalog's two corpora write names
+ * differently, and reading one as the other logs the wrong food:
+ *
+ * - Only a SPACED " / " separates alternative names, as the curated rows write
+ *   it: "Roti / Chapati" is both "roti" and "chapati". Raw IFCT rows use an
+ *   unspaced "/" for a spelling variant of the last word alone — "Potato
+ *   parantha/paratha" is never plain "paratha", "Eggplant/Brinjal rice" never
+ *   plain "eggplant" — so an unspaced slash splits nothing.
+ * - A bracket is dropped only when it holds a measurement ("(1 piece = 80g)",
+ *   as isAliasGroup decides). On a raw IFCT row any other bracket is a
+ *   qualifier that makes it a different food — "Lassi (salted)" at 19 kcal is
+ *   not "lassi", "Jackfruit/Kathal (dry)" at 481 not "jackfruit" — so it stays
+ *   part of the name. On a curated (X) row it is the hand-picked default
+ *   state the row was written for — "Paneer (raw)", "Poha (cooked)" — and is
+ *   dropped, so those still answer to the bare word.
  */
 const wholeNames = (it: IFCTItem) =>
   it.name
-    .replace(/\([^)]*\)/g, " ")
-    .split("/")
+    .replace(/\(([^)]*)\)/g, (all, inner: string) =>
+      it.code.startsWith("X") || !isAliasGroup(inner) ? " " : all,
+    )
+    .split(" / ")
     .map(plain)
     .filter(Boolean);
 

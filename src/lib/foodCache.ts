@@ -16,7 +16,7 @@ import { altNames } from "./foodFuzzy.ts";
  * "Roti (1 medium = 40g)" is a measurement; "Curd rice (Dahi bhaat/...)" is an
  * alias list. Digits and "=" mark the former.
  */
-const isAliasGroup = (inner: string) => !/[0-9=]/.test(inner);
+export const isAliasGroup = (inner: string) => !/[0-9=]/.test(inner);
 
 /**
  * Every alias a catalog row carries, in whichever of the two shapes it uses.
