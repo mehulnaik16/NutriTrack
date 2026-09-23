@@ -221,6 +221,45 @@ assert.deepEqual(
   macro({ enerc: 700 }),
 );
 
+// consolidateIdentity: the fields quorum never compares are voted on, not
+// copied from whichever answer arrived first.
+import { consolidateIdentity } from "./foodCache.ts";
+const ans = (
+  food_name: string,
+  basis: "100g" | "piece",
+  piece_g: number | string | null,
+) => ({ food_name, basis, piece_g });
+// An outlier first answer's piece weight (120 g against ~40 g) is not stored:
+// piece_g multiplies every pieces log of the food, permanently.
+assert.deepEqual(
+  consolidateIdentity([
+    ans("Thatte Idli", "piece", 120),
+    ans("Thatte idli", "piece", 42),
+    ans("Thatte idli", "100g", "40"), // PostgREST may return numeric as text
+  ]),
+  { food_name: "Thatte idli", basis: "piece", piece_g: 42 },
+);
+// Majority basis; median of the piece weights that exist; a three-way name
+// tie keeps the earliest answer's.
+assert.deepEqual(
+  consolidateIdentity([
+    ans("Lassi", "100g", null),
+    ans("Sweet lassi", "100g", 250),
+    ans("Punjabi lassi", "piece", 300),
+  ]),
+  { food_name: "Lassi", basis: "100g", piece_g: 275 },
+);
+// No piece weight in any answer stays null, never 0 (0 g per piece would
+// log any count of pieces as nothing).
+assert.equal(
+  consolidateIdentity([
+    ans("Poha", "100g", null),
+    ans("Poha", "100g", null),
+    ans("Poha", "100g", null),
+  ]).piece_g,
+  null,
+);
+
 // ── alias cross-check ────────────────────────────────────────────────────────
 import { crossCheckAliases } from "../server/foodCacheKeys.ts";
 

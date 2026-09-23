@@ -10,7 +10,7 @@
  *
  * DEPLOY ORDER: the supabase/migrations for this feature must be applied before
  * this file ships. Reads degrade safely if they are not — a missing column is
- * logged and falls through to the AI call — but the promotion upsert fails, so
+ * logged and falls through to the AI call — but the promotion insert fails, so
  * nothing ever reaches ai_verified and the cache stays permanently empty while
  * search goes on looking perfectly healthy.
  *
@@ -26,20 +26,22 @@ import {
   type LoggedEdit,
   type Macros,
   consolidate,
+  consolidateIdentity,
   per100g,
   quorumPasses,
 } from "@/lib/foodCache";
 import { crossCheckAliases, scriptOf, searchKey } from "./foodCacheKeys.ts";
 import { searchFoods } from "@/lib/foodDb";
 
-/** A match good enough to serve without calling the model. */
+/**
+ * A match good enough to serve without calling the model. Always a verified
+ * row: nothing still awaiting quorum is ever served from here.
+ */
 export type CachedFood = Macros & {
   food_name: string;
   food_class: string;
   basis: "100g" | "piece";
   piece_g: number | null;
-  /** False for a row still awaiting quorum, which the UI tags "estimated". */
-  verified: boolean;
 };
 
 export type UnverifiedRow = Macros & {
@@ -99,7 +101,7 @@ type GroupRow = Macros & {
  * is exact and has no threshold to tune.
  *
  * Both numbers were originally calibrated against Levenshtein similarity — the
- * measure the JS helper in lib/foodCache.ts uses — which scores these same
+ * measure of `similarity` in lib/foodFuzzy.ts — which scores these same
  * pairs far higher. They were never right for pg_trgm. They are kept because
  * being too strict here is harmless: a same-script near-miss just costs one AI
  * call, which is what would have happened anyway.
@@ -143,6 +145,16 @@ export async function lookupCache(opts: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts omits these service-role-only tables
     const table = (name: string) => db.from(name as any) as any;
 
+    // Two rows, not one: a step that matches two different foods is
+    // ambiguous, and must be seen to be refused rather than settled by
+    // whichever row the database happens to return first.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a builder on one of the untyped tables above
+    const upToTwo = async (what: string, query: any): Promise<VerifiedRow[]> => {
+      const { data, error } = await query.limit(2);
+      warn(`ai_verified ${what} read failed`, error);
+      return data ?? [];
+    };
+
     // Two plain .eq() reads rather than one interpolated `.or()` filter.
     // searchKey emits multi-word keys ("dahi bhaat"), and an `or` expression
     // is a syntax string: values are spliced into a logic tree where `,`,
@@ -151,22 +163,16 @@ export async function lookupCache(opts: {
     // costs a paid AI call for a food already in the cache. .eq() sends the
     // value as its own parameter, where nothing in it can be syntax.
     const exact = (column: "search_key" | "canonical_key") =>
-      table("ai_verified").select("*").eq(column, key).limit(1).maybeSingle();
+      upToTwo(column, table("ai_verified").select("*").eq(column, key));
 
     // Cheapest and surest first. The first three steps are exact matches on the
-    // normalised key and cannot be wrong; only the fourth guesses.
+    // normalised key; only the fourth guesses.
 
     // 1. canonical_key — the primary key, a btree lookup.
-    const byCanonical = await exact("canonical_key");
-    warn("ai_verified canonical_key read failed", byCanonical.error);
-    let row: VerifiedRow | null = byCanonical.data;
+    let rows = await exact("canonical_key");
 
     // 2. search_key — the row's own display name, normalised.
-    if (!row) {
-      const bySearch = await exact("search_key");
-      warn("ai_verified search_key read failed", bySearch.error);
-      row = bySearch.data;
-    }
+    if (!rows.length) rows = await exact("search_key");
 
     // 3. alias_keys — every other spelling the quorum agreed on, normalised the
     //    same way the query was. This is the cross-script path, and it is the
@@ -174,15 +180,18 @@ export async function lookupCache(opts: {
     //    query and a stored alias "ತಟ್ಟೆ ಇಡ್ಲಿ" both normalise to "tatte idli",
     //    so they match exactly, with no threshold in the way. Similarity cannot
     //    do this job — see the note on SIM_SAME_SCRIPT for the measurements.
-    if (!row) {
-      const byAlias = await table("ai_verified")
-        .select("*")
-        .contains("alias_keys", [key])
-        .limit(1)
-        .maybeSingle();
-      warn("ai_verified alias_keys read failed", byAlias.error);
-      row = byAlias.data;
-    }
+    if (!rows.length)
+      rows = await upToTwo(
+        "alias_keys",
+        table("ai_verified").select("*").contains("alias_keys", [key]),
+      );
+
+    // An exact key that two verified foods both answer to — "idli" as an
+    // alias of thatte idli and of rava idli — names neither of them. A miss,
+    // as in flagFood: it costs one model call, a guess costs a wrong food.
+    // Returned outright, so the similarity step cannot pick one either.
+    if (rows.length > 1) return null;
+    let row: VerifiedRow | null = rows[0] ?? null;
 
     // 4. Similarity, last: a same-script typo backstop and nothing more.
     if (!row) {
@@ -221,7 +230,6 @@ export async function lookupCache(opts: {
       food_class: row.food_class,
       basis: row.basis,
       piece_g: row.piece_g == null ? null : Number(row.piece_g),
-      verified: true,
     };
   } catch (err) {
     console.warn("[food-cache] lookup failed, falling through to AI", err);
@@ -279,10 +287,13 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
       return;
     }
 
-    // food_class is an absolute collision guard. Romanisation is lossy, so two
-    // genuinely different foods can land on one canonical_key by coincidence —
-    // and three answers about two different foods must never be averaged into
-    // one verified row. Only rows agreeing with this answer's class count.
+    // food_class is a grouping guard. Two genuinely different foods can land
+    // on one canonical_key by coincidence, and three answers about two
+    // different foods must never be averaged into one verified row, so only
+    // rows agreeing with this answer's class count. It is a coarse guard, not
+    // an absolute one: the class is one of 13 broad buckets, and two foods in
+    // the same bucket ("curry" holds malai kofta and chicken kofta alike)
+    // still group together if their keys collide.
     const { data: all, error: groupError } = await unverified()
       .select("*")
       .eq("canonical_key", row.canonical_key)
@@ -316,19 +327,30 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
         ...new Set([rowKey, ...aliases.map(searchKey)].filter(Boolean)),
       ];
 
-      const { error } = await table("ai_verified").upsert({
-        canonical_key: row.canonical_key,
-        search_key: rowKey,
-        food_name: group[0].food_name,
-        food_class: group[0].food_class,
-        basis: group[0].basis,
-        piece_g: group[0].piece_g,
-        ...consolidate(macroRows),
-        aliases,
-        alias_keys: aliasKeys,
-        models: group.map((g) => g.model),
-      });
-      warn("ai_verified upsert failed", error);
+      // An insert that does nothing on conflict, never an overwrite. The
+      // pipeline must not change a verified row: a later group under the same
+      // key ("sugar-free lassi" answered as "lassi") would replace its numbers
+      // with a variant's, and its aliases — and with them every spelling that
+      // already matched — with the new group's. recordAnswers skips a key that
+      // is already verified; this is the backstop for a race with it. Only
+      // the weekly manual review changes a verified row.
+      const { error } = await table("ai_verified").upsert(
+        {
+          canonical_key: row.canonical_key,
+          search_key: rowKey,
+          // Median piece_g, majority basis, most common name: piece_g
+          // multiplies every pieces log of this food for good, so one
+          // outlier answer must not be what gets stored.
+          ...consolidateIdentity(group),
+          food_class: row.food_class,
+          ...consolidate(macroRows),
+          aliases,
+          alias_keys: aliasKeys,
+          models: group.map((g) => g.model),
+        },
+        { onConflict: "canonical_key", ignoreDuplicates: true },
+      );
+      warn("ai_verified insert failed", error);
       // Leave the group standing if the promotion did not land, so the next
       // answer retries it instead of the food restarting from zero.
       if (error) return;
@@ -368,6 +390,13 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
  * be filled by a later search making a fresh call, which is the only thing that
  * makes them independent.
  *
+ * A food that is already verified is not staged at all: its row is final as
+ * far as this pipeline goes (see the promotion insert in recordAnswer), so a
+ * new group under its key could only ever be thrown away. One read for the
+ * whole batch; it runs inside the caller's CACHE_RECORD_MS budget like every
+ * other write here. If it fails, nothing is staged — a lost answer only
+ * delays quorum.
+ *
  * This lives here rather than at the caller so that every future caller gets it
  * — a caller that loops over `recordAnswer` itself would silently reintroduce
  * the hole. Deliberately sequential: each answer has to read back the group the
@@ -375,11 +404,29 @@ export async function recordAnswer(row: UnverifiedRow): Promise<void> {
  */
 export async function recordAnswers(rows: UnverifiedRow[]): Promise<void> {
   try {
+    const keys = [
+      ...new Set((rows ?? []).map((r) => r?.canonical_key).filter(Boolean)),
+    ];
+    if (!keys.length) return;
+    const { supabaseAdmin: db } = await import("@/integrations/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts omits these service-role-only tables
+    const { data: done, error } = await (db.from("ai_verified" as any) as any)
+      .select("canonical_key")
+      .in("canonical_key", keys);
+    if (error) {
+      warn("ai_verified read failed, answers served but not cached", error);
+      return;
+    }
+    const verified = new Set(
+      ((done ?? []) as { canonical_key: string }[]).map((r) => r.canonical_key),
+    );
+
     const seen = new Set<string>();
     for (const row of rows ?? []) {
-      //   cannot occur in either field, so it cannot fuse two distinct
-      // pairs into one key.
-      const slot = `${row?.canonical_key} ${row?.food_class}`;
+      if (verified.has(row?.canonical_key)) continue;
+      // JSON, not a joined string: no separator character can be assumed
+      // absent from two fields the model wrote.
+      const slot = JSON.stringify([row?.canonical_key, row?.food_class]);
       if (seen.has(slot)) continue;
       seen.add(slot);
       await recordAnswer(row);
@@ -403,12 +450,13 @@ export async function recordAnswers(rows: UnverifiedRow[]): Promise<void> {
  *      row's own display name ("Thatte Idli (plate idli)"), which is not the
  *      canonical key and does not normalise to any stored key.
  *   2. search_key: the logged name is the canonical name itself.
- *   3. alias_keys: a voice log keeps the words the user said ("ತಟ್ಟೆ ಇಡ್ಲಿ"),
- *      which is how lookupCache found the row in the first place.
+ *   3. alias_keys: the entry was logged under another spelling of the food —
+ *      voice logs made before they stored the resolved name kept the words
+ *      the user said ("ತಟ್ಟೆ ಇಡ್ಲಿ").
  * A step matching two different rows is ambiguous and flags nothing.
  *
  * A bundled catalog food is never a cache food, and is ruled out first with
- * the same searchFoods() the voice path resolves through. Without that, a
+ * searchFoods(), the typed search's own catalog match. Without that, a
  * generic alias would capture it: the prompt itself teaches "idli" as an alias
  * of thatte idli, so an edit to a catalog Idli would land on thatte idli.
  *

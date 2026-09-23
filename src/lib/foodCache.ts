@@ -213,6 +213,42 @@ export function consolidate(rows: Macros[]): Macros {
   return out;
 }
 
+/**
+ * The non-macro fields of an agreeing group, which quorumPasses never
+ * compares: median piece_g, majority basis, and the most common food_name
+ * (the earliest answer's on a tie). Taking all three from the first answer
+ * let a single answer's piece weight — which multiplies every pieces log of
+ * the food, permanently — through unchecked. Changes only what is stored,
+ * never whether the group promotes.
+ */
+export function consolidateIdentity(
+  group: readonly {
+    food_name: string;
+    basis: "100g" | "piece";
+    piece_g: number | string | null;
+  }[],
+): { food_name: string; basis: "100g" | "piece"; piece_g: number | null } {
+  const pieces = group
+    .map((g) => Number(g.piece_g))
+    .filter((n) => n > 0)
+    .sort((a, b) => a - b);
+  const mid = pieces.length >> 1;
+  const piece_g = !pieces.length
+    ? null
+    : pieces.length % 2
+      ? pieces[mid]
+      : (pieces[mid - 1] + pieces[mid]) / 2;
+
+  const pieceVotes = group.filter((g) => g.basis === "piece").length;
+  const basis = pieceVotes * 2 > group.length ? "piece" : "100g";
+
+  const count = (n: string) => group.filter((g) => g.food_name === n).length;
+  let food_name = group[0]?.food_name ?? "";
+  for (const g of group) if (count(g.food_name) > count(food_name)) food_name = g.food_name;
+
+  return { food_name, basis, piece_g };
+}
+
 /** One edited food_logs entry: whole-portion kcal and grams, as logged. */
 export type LoggedEdit = {
   food_name: string;
