@@ -54,6 +54,13 @@ export interface IFCTItem {
   piece_g?: number;
   /** Grams per millilitre, for a food with no DENSITY entry. */
   density?: number;
+  /**
+   * What the user typed when this row was fetched. Set on the client, never
+   * by the model: a personal name is saved under these words, not under
+   * `name`, which is the model's corrected English ("Protein Shake" for "my
+   * shake").
+   */
+  query?: string;
 }
 
 export const KJ_PER_KCAL = 4.184;

@@ -373,20 +373,21 @@ export const FoodSearch = forwardRef<
   const handleAiFallback = async () => {
     if (q.trim().length < 2) return;
 
-    // A private meal name is answered from the user's own saved meals when
-    // it can be, and never reaches the shared cache either way. The match
-    // runs here, client-side, rather than on the server, because savedMeals
-    // is already loaded under per-user RLS — no round trip, no pg_trgm. A
-    // miss falls through to the AI path below like any other query.
-    if (isPersonalName(q)) {
-      const own = savedMeals.find(
-        (m) => similarity(m.name.toLowerCase(), q.toLowerCase()) >= 0.8,
-      );
-      if (own) {
-        await logSavedMeal(own);
-        setQ("");
-        return;
-      }
+    // The user's own saved meals come first, for EVERY query, possessive or
+    // not: a query matching one of them is that user's own meal whatever it
+    // says ("post-gym shake" is as private as "my shake"), so it is answered
+    // here with the saved values and never sent to the server, where it could
+    // join the shared cache. Client-side because savedMeals is already loaded
+    // under per-user RLS — no round trip. A miss goes on to the AI path, where
+    // isPersonalName still keeps a possessive out of the shared tables.
+    const typed = q.trim();
+    const own = savedMeals.find(
+      (m) => similarity(m.name.toLowerCase(), typed.toLowerCase()) >= 0.8,
+    );
+    if (own) {
+      await logSavedMeal(own);
+      setQ("");
+      return;
     }
 
     setSearching(true);
@@ -403,7 +404,11 @@ export const FoodSearch = forwardRef<
         setAiSuggestions([]);
         return;
       }
-      setAiSuggestions((items || []) as IFCTItem[]);
+      // Each suggestion remembers what was typed for it, so a personal name
+      // can be saved under the user's words when it is logged (see logFood).
+      setAiSuggestions(
+        ((items || []) as IFCTItem[]).map((it) => ({ ...it, query: typed })),
+      );
     } catch (e: any) {
       console.error("AI fallback failed", e);
     } finally {
@@ -507,9 +512,14 @@ export const FoodSearch = forwardRef<
       // same whole-log kcal totals just inserted above — saved_meals is
       // whole-meal kcal, never per-100g/kJ, so nothing here is converted or
       // divided by quantity.
-      if (!insertErr && isPersonalName(item.name)) {
+      // Tested on, and saved under, what the user TYPED. An AI item's own
+      // name is the model's corrected English — "Protein Shake" for "my
+      // shake" — which is never personal, so testing it never fired. A
+      // custom food's name is the user's own typing already.
+      const typed = item.code === "custom" ? item.name : item.query?.trim();
+      if (!insertErr && typed && isPersonalName(typed)) {
         await saveFavoriteMeal({
-          name: item.name,
+          name: typed,
           calories: cal,
           protein_g: p,
           carbs_g: c,
@@ -528,7 +538,7 @@ export const FoodSearch = forwardRef<
 
   /**
    * Log a saved meal at its stored totals. The one place a saved_meals row
-   * turns into a food_logs row — the Favourites list and a personal-name
+   * turns into a food_logs row — the Favourites list and a saved-meal
    * search match (handleAiFallback) both call this rather than each logging
    * it their own way, so the two can't drift apart.
    */

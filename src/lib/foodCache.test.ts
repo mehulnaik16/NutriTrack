@@ -335,6 +335,49 @@ assert.equal(isPersonalName("ನನ್ನಶೇಕ್"), true); // "my shake", n
 assert.equal(isPersonalName("My-shake"), true);
 assert.equal(isPersonalName("My_shake"), true);
 
+// ── "<word>'s" possessive: somebody's own version of a dish ───────────────
+for (const q of [
+  "mom's shake",
+  "amma's rasam",
+  "grandma’s curry", // curly apostrophe, as phone keyboards type it
+  "Priya's salad",
+  "MOM'S DAL",
+  "nani's",
+])
+  assert.equal(isPersonalName(q), true, q);
+// Real foods with a leading possessive must not be flagged: brands and dishes
+// whose own name is possessive. Also a possessive that is not leading.
+for (const q of [
+  "McDonald's McVeggie Burger",
+  "Wendy's Frosty",
+  "Domino's farmhouse pizza",
+  "Haldiram's aloo bhujia",
+  "Lay's classic salted",
+  "Kellogg's corn flakes",
+  "Hershey's chocolate syrup",
+  "Nando's peri peri chicken",
+  "shepherd's pie",
+  "lady's finger fry", // okra
+  "devil's food cake",
+  "chicken 65",
+  "ben and jerry's ice cream",
+])
+  assert.equal(isPersonalName(q), false, q);
+// Known miss, recorded rather than hidden: with no apostrophe there is no
+// possessive to see. The saved-meals match in FoodSearch is what catches a
+// name like this once the user has logged it.
+assert.equal(isPersonalName("moms shake"), false);
+// No name in the bundled catalog — 2,675 real foods, 309 of them led by a
+// brand possessive — is flagged.
+{
+  const { ITEMS } = await import("./foodDb.ts");
+  const flagged = ITEMS.filter((it) => isPersonalName(it.name));
+  assert.deepEqual(
+    flagged.map((it) => it.name),
+    [],
+  );
+}
+
 // ── pairing raw answers with their validated identity ─────────────────────
 // runFoodSearch gates the RAW numbers of each model item and records the
 // VALIDATED identity of that same item. These pin how the two are paired.

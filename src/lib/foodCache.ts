@@ -244,7 +244,8 @@ export function consolidateIdentity(
 
   const count = (n: string) => group.filter((g) => g.food_name === n).length;
   let food_name = group[0]?.food_name ?? "";
-  for (const g of group) if (count(g.food_name) > count(food_name)) food_name = g.food_name;
+  for (const g of group)
+    if (count(g.food_name) > count(food_name)) food_name = g.food_name;
 
   return { food_name, basis, piece_g };
 }
@@ -369,6 +370,29 @@ const LATIN_POSSESSIVES = [
 ];
 
 /**
+ * Leading "<word>'s" possessives that name a real food rather than a person:
+ * the three brands the bundled catalog lists this way (McDonald's, Wendy's,
+ * Domino's — 309 rows), other common packaged brands, and dishes whose own
+ * name is possessive ("shepherd's pie"; "lady's finger" is okra).
+ * ponytail: a fixed list. A brand missing from it — "Mother's Recipe",
+ * "Mom's Magic" — is treated as personal, which costs that search one
+ * uncached AI call: the cheap direction. Add brands here as they turn up.
+ */
+const FOOD_POSSESSORS = [
+  "mcdonald",
+  "wendy",
+  "domino",
+  "haldiram",
+  "kellogg",
+  "lay",
+  "hershey",
+  "nando",
+  "shepherd",
+  "lady",
+  "devil",
+];
+
+/**
  * Is this someone's private meal name rather than a food?
  *
  * Nothing that returns true may reach ai_unverified, ai_verified or an alias
@@ -383,6 +407,10 @@ const LATIN_POSSESSIVES = [
  * model makes consistently. A private name the model reads as a real food the
  * same way three times over can still be promoted. This check is the guard
  * that matters; treat the quorum as a second line, not a safety net.
+ *
+ * The spec's strongest signal — the query matching one of the user's own
+ * saved_meals — is not in here, because it needs that user's rows: FoodSearch
+ * checks it on the client for every query, before any server call.
  */
 export function isPersonalName(query: string): boolean {
   const text = query.trim();
@@ -398,6 +426,12 @@ export function isPersonalName(query: string): boolean {
     )
   )
     return true;
+
+  // "mom's shake", "amma's rasam", "grandma’s curry": whoever the leading
+  // word names, a possessive in that position means somebody's own version
+  // of a dish. Straight or curly apostrophe, since phone keyboards emit both.
+  const owner = text.toLowerCase().match(/^(\p{L}+)['’]s(?!\p{L})/u)?.[1];
+  if (owner && !FOOD_POSSESSORS.includes(owner)) return true;
 
   // The leading run of letters, not the leading whitespace-delimited token:
   // "My-shake" and "My_shake" must isolate "my", not fail as one glued
