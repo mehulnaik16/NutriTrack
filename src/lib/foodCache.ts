@@ -273,6 +273,52 @@ export function consolidate(rows: Macros[]): Macros {
   return out;
 }
 
+/** One edited food_logs entry: whole-portion kcal and grams, as logged. */
+export type LoggedEdit = {
+  food_name: string;
+  quantity_g: number;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+};
+
+/**
+ * A logged entry's totals, put back on the basis the cache stores: per 100 g,
+ * energy in kJ. lookupCache swaps an ai_flagged row's numbers straight in for
+ * the verified row's, so a correction stored on any other basis would be
+ * served as if it were per 100 g.
+ *
+ * That holds for a 'piece' row too. `basis` says a food is countable and
+ * carries piece_g; it does not change what the numbers mean. The model is told
+ * "every value is per 100 g ... never per serving" whatever the basis, and
+ * every reader (runFoodSearch, macrosFor in FoodSearch, resolveVoiceItem)
+ * scales them by grams / 100. quantity_g is already grams — a count of pieces
+ * was converted with piece_g when it was logged — so no piece arithmetic is
+ * needed, and dividing by a piece count here would store per-piece numbers
+ * that every reader then misreads as per-100 g.
+ *
+ * Null when the result is not a food: zero grams, or more energy or more of
+ * one macro per 100 g than anything can hold — the same ceilings the model's
+ * own answers are held to in foodAiSchema.ts.
+ */
+export function per100g(edit: LoggedEdit): Macros | null {
+  if (!(edit.quantity_g > 0)) return null;
+  const f = 100 / edit.quantity_g;
+  const out: Macros = {
+    enerc: +(edit.calories * KJ_PER_KCAL * f).toFixed(2),
+    protcnt: +(edit.protein_g * f).toFixed(2),
+    fatce: +(edit.fat_g * f).toFixed(2),
+    choavldf: +(edit.carbs_g * f).toFixed(2),
+    fibtg: +(edit.fiber_g * f).toFixed(2),
+  };
+  if (!MACROS.every((m) => out[m] >= 0)) return null;
+  if (out.enerc > 3766) return null; // 900 kcal/100 g: pure fat
+  if (MACROS.some((m) => m !== "enerc" && out[m] > 100)) return null;
+  return out;
+}
+
 /** How close two spellings must be to count as the same alias. */
 export const ALIAS_SIM = 0.9;
 

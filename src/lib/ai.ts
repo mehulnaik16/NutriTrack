@@ -20,6 +20,8 @@ import {
   type AiFoodResult,
   type AiFoodItemOut,
 } from "@/lib/foodAiSchema";
+import type { LoggedEdit } from "@/lib/foodCache";
+import { QUANTITY_G } from "@/lib/foodUnits";
 
 // ── Rate Limiter (30 requests/min per user, in-memory) ───────────────────────
 // Resets per Vercel serverless instance lifecycle — free, zero deps, stops
@@ -347,6 +349,57 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
     return runFoodSearch(ctx.data.query, ctx.data.engine, ctx.context.userId);
+  });
+
+// ── Food correction ─────────────────────────────────────────────────────────
+// A user editing the macros of a logged verified food overrides it for
+// themselves. The shared ai_verified row is deliberately left alone: one person
+// cannot change a food for everybody else, or push them back onto paid calls.
+
+/**
+ * The handler's work, exported for the same reason as runFoodSearch: so it can
+ * be driven end to end without a request context. Never throws.
+ *
+ * On the cache-write budget: two sequential round trips (three parallel reads,
+ * then one upsert) against the ten that budget was sized for. The food_logs
+ * edit is saved before this runs, so running over costs only the correction.
+ */
+export function recordCorrection(
+  userId: string,
+  edit: LoggedEdit,
+): Promise<string | null> {
+  return withinBudget(
+    "correction abandoned, food_logs edit kept",
+    CACHE_RECORD_MS,
+    async () =>
+      (await import("@/server/foodCache")).flagFood({ ...edit, userId }),
+    null,
+  );
+}
+
+// Totals of one food_logs row, bounded exactly as the table's own constraints
+// bound them (food_logs_macros_range, food_logs_quantity_g_range), so any row
+// the app could have saved is accepted and nothing else is.
+const macroTotal = z.number().finite().min(0).max(2000);
+
+export const serverFlagFood = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(
+    z.object({
+      // Not trimmed: step 1 of the match is the verbatim display name.
+      food_name: z.string().min(1).max(200),
+      quantity_g: z.number().finite().gt(0).max(QUANTITY_G.max),
+      calories: z.number().finite().min(0).max(20000),
+      protein_g: macroTotal,
+      carbs_g: macroTotal,
+      fat_g: macroTotal,
+      fiber_g: macroTotal,
+    }),
+  )
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    // userId from the verified session only — never from the request body.
+    await recordCorrection(ctx.context.userId, ctx.data);
   });
 
 // ── AI Chat (generic — used by WeeklyReport, weight motivation, workout plan, voice parse) ──

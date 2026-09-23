@@ -38,7 +38,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
-import { serverAiFoodSearchInline, type FoodSearchEngine } from "@/lib/ai";
+import {
+  serverAiFoodSearchInline,
+  serverFlagFood,
+  type FoodSearchEngine,
+} from "@/lib/ai";
 import { isPersonalName } from "@/lib/foodCache";
 import { strongFoods, similarity } from "@/lib/foodFuzzy";
 import { toLocalISO } from "@/lib/dates";
@@ -457,6 +461,34 @@ export const FoodSearch = forwardRef<
         })
         .eq("id", editLogId);
       error = updateErr;
+      // Only an edit that changed the numbers is a correction. A quantity- or
+      // meal-only edit leaves them at what the log itself implies, and
+      // flagging it would pin this user to the log's old numbers — possibly
+      // an estimate from before the food was verified — for good. Whether the
+      // food is a verified one at all is the server's call: food_logs records
+      // no provenance, so serverFlagFood works it out from the name.
+      const implied = macrosFor(item, grams);
+      const saved = { cal, p, c, f, fib };
+      const corrected = (Object.keys(saved) as (keyof typeof saved)[]).some(
+        (k) => saved[k] !== implied[k],
+      );
+      if (!updateErr && corrected) {
+        // Not awaited, every failure swallowed: the edit above is already
+        // saved, and a correction that does not land only costs the override.
+        serverFlagFood({
+          data: {
+            food_name: item.name,
+            quantity_g: grams,
+            calories: cal,
+            protein_g: p,
+            carbs_g: c,
+            fat_g: f,
+            fiber_g: fib,
+          },
+        }).catch((e) =>
+          console.warn("[food-cache] correction not recorded", e),
+        );
+      }
     } else {
       const { error: insertErr } = await supabase.from("food_logs").insert({
         user_id: userId,

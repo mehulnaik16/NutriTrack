@@ -459,4 +459,49 @@ const rowsFor = (reply: { items: unknown[] }) =>
   assert.equal(rowsFor(idli(" idli "))[0]?.canonical_key, "idli");
 }
 
+// ── a correction goes back on the cache's own basis ────────────────────────
+import { per100g } from "./foodCache.ts";
+{
+  const edit = (quantity_g: number, t: number[]) => ({
+    food_name: "x",
+    quantity_g,
+    calories: t[0],
+    protein_g: t[1],
+    carbs_g: t[2],
+    fat_g: t[3],
+    fiber_g: t[4],
+  });
+  // What every reader does with a cache row: per 100 g, scaled by grams.
+  const served = (m: NonNullable<ReturnType<typeof per100g>>, g: number) =>
+    [m.enerc / 4.184, m.protcnt, m.choavldf, m.fatce, m.fibtg].map(
+      (v) => +((v * g) / 100).toFixed(2),
+    );
+
+  // '100g' row: 250 g logged at 400 kcal -> 160 kcal/100 g = 669.44 kJ.
+  const bowl = per100g(edit(250, [400, 10, 60, 12.5, 5]))!;
+  assert.deepEqual(bowl, {
+    enerc: 669.44,
+    protcnt: 4,
+    fatce: 5,
+    choavldf: 24,
+    fibtg: 2,
+  });
+  assert.deepEqual(served(bowl, 250), [400, 10, 60, 12.5, 5]);
+
+  // 'piece' row, piece_g 50: three rotis were logged as 150 g. Stored per
+  // 100 g like every other row, so serving the same 150 g gives back exactly
+  // what the user typed. Per piece (130 kcal) would come back as 195 kcal.
+  const rotis = per100g(edit(150, [390, 12, 66, 9, 6]))!;
+  assert.equal(rotis.enerc, 1087.84); // 260 kcal/100 g
+  assert.deepEqual(served(rotis, 150), [390, 12, 66, 9, 6]);
+
+  // Not a food: no grams, more than pure fat, a macro over 100 g per 100 g.
+  assert.equal(per100g(edit(0, [100, 1, 1, 1, 1])), null);
+  assert.equal(per100g(edit(10, [100, 0, 0, 10, 0])), null); // 1000 kcal/100 g
+  assert.equal(per100g(edit(10, [40, 11, 0, 0, 0])), null); // 110 g protein
+  assert.equal(per100g(edit(100, [NaN, 1, 1, 1, 1])), null);
+  // Pure fat is the ceiling, not over it.
+  assert.equal(per100g(edit(10, [90, 0, 0, 10, 0]))?.enerc, 3765.6);
+}
+
 console.log("foodCache: all assertions passed");

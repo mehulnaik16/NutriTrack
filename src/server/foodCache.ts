@@ -23,13 +23,16 @@
  */
 import {
   MACROS,
+  type LoggedEdit,
   type Macros,
   consolidate,
   crossCheckAliases,
+  per100g,
   quorumPasses,
   scriptOf,
   searchKey,
 } from "@/lib/foodCache";
+import { searchFoods } from "@/lib/foodDb";
 
 /** A match good enough to serve without calling the model. */
 export type CachedFood = Macros & {
@@ -388,5 +391,84 @@ export async function recordAnswers(rows: UnverifiedRow[]): Promise<void> {
       "[food-cache] batch write failed, answers served but not cached",
       err,
     );
+  }
+}
+
+/**
+ * Turn an edit of a logged food into this user's correction of it, when the
+ * food is a verified cache row.
+ *
+ * food_logs records no provenance, so which food was edited is worked out here
+ * from the logged name, by EXACT match only — a similar-looking match would
+ * attach one food's correction to another. In order, surest first:
+ *   1. food_name, verbatim: a food served from the cache is logged under the
+ *      row's own display name ("Thatte Idli (plate idli)"), which is not the
+ *      canonical key and does not normalise to any stored key.
+ *   2. search_key: the logged name is the canonical name itself.
+ *   3. alias_keys: a voice log keeps the words the user said ("ತಟ್ಟೆ ಇಡ್ಲಿ"),
+ *      which is how lookupCache found the row in the first place.
+ * A step matching two different rows is ambiguous and flags nothing.
+ *
+ * A bundled catalog food is never a cache food, and is ruled out first with
+ * the same searchFoods() the voice path resolves through. Without that, a
+ * generic alias would capture it: the prompt itself teaches "idli" as an alias
+ * of thatte idli, so an edit to a catalog Idli would land on thatte idli.
+ *
+ * No match is the normal case — a catalog food or an unverified estimate — and
+ * returns null quietly; otherwise the canonical_key flagged. Never throws: the
+ * food_logs edit has already been saved.
+ */
+export async function flagFood(
+  edit: LoggedEdit & { userId: string },
+): Promise<string | null> {
+  try {
+    if (searchFoods(edit.food_name, 1).length) return null;
+    const macros = per100g(edit);
+    if (!macros) return null;
+
+    const { supabaseAdmin: db } = await import("@/integrations/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts omits these service-role-only tables
+    const table = (name: string) => db.from(name as any) as any;
+    const verified = () =>
+      table("ai_verified").select("canonical_key").limit(2);
+    const none = { data: [], error: null };
+
+    const key = searchKey(edit.food_name);
+    const steps = await Promise.all([
+      verified().eq("food_name", edit.food_name),
+      key ? verified().eq("search_key", key) : none,
+      key ? verified().contains("alias_keys", [key]) : none,
+    ]);
+    const failed = steps.find((s) => s.error);
+    if (failed) {
+      // A step that errored might have matched a different row than the ones
+      // that answered, so no step's answer can be trusted.
+      warn("ai_verified read for a correction failed", failed.error);
+      return null;
+    }
+    const rows: { canonical_key: string }[] | undefined = steps.find(
+      (s) => s.data?.length,
+    )?.data;
+    if (!rows || rows.length !== 1) return null;
+    const canonical_key = rows[0].canonical_key;
+
+    const { error } = await table("ai_flagged").upsert(
+      {
+        user_id: edit.userId,
+        canonical_key,
+        ...macros,
+        // The column default only fires on insert; a re-correction is newer.
+        edited_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,canonical_key" },
+    );
+    if (error) {
+      warn("ai_flagged upsert failed, correction not saved", error);
+      return null;
+    }
+    return canonical_key;
+  } catch (err) {
+    console.warn("[food-cache] correction not saved", err);
+    return null;
   }
 }
