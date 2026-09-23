@@ -152,9 +152,14 @@ function WeightPage() {
 
     setProfile(p as Profile);
     setEntries((e as WeightEntry[]) ?? []);
-    if (p?.weight_kg) setWeight(String(disp(p.weight_kg)));
-    if (p?.goal_weight_kg) setGoalWeight(String(disp(p.goal_weight_kg)));
-  }, [user, navigate]);
+    // Converted with `weightUnit` directly, and listed as a dependency, rather
+    // than through `disp`: `disp` is a new function every render, and a stale
+    // one would fill these fields in the previous unit if the preference
+    // resolves after this callback was first created.
+    if (p?.weight_kg) setWeight(String(round1(kgToWeight(p.weight_kg, weightUnit))));
+    if (p?.goal_weight_kg)
+      setGoalWeight(String(round1(kgToWeight(p.goal_weight_kg, weightUnit))));
+  }, [user, navigate, weightUnit]);
 
   useEffect(() => {
     load();
