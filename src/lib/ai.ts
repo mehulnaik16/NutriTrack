@@ -13,7 +13,7 @@ import { z } from "zod";
 import { requireAccess } from "@/lib/access-middleware";
 import {
   sanitizeFoodQuery,
-  validateFoodResponse,
+  validateFoodSlots,
   maxTokensFor,
   FOOD_SEARCH_SYSTEM,
   type AiFoodResult,
@@ -45,6 +45,72 @@ export function checkRateLimit(userId: string) {
 }
 
 /**
+ * Time budgets for the two cache round-trips inside a food search.
+ *
+ * The whole search runs inside one Vercel Hobby function, which is killed at
+ * 10 s (see the same budget in gemini.ts and ops-agent.ts). The model call
+ * needs most of that. The cache exists to save money and must never be the
+ * reason a search fails, so each call gets a fixed slice and, when it runs
+ * over, is treated exactly like a cache that is down: a lookup becomes a miss
+ * and the model is asked, a write is abandoned and the answer still returned.
+ *
+ * Sized from latency measured against the live project from a laptop
+ * (task-11-report.md, "Fix 3"), which is if anything slower than Vercel to
+ * Supabase:
+ *   lookup — a miss is four sequential reads. Warm: median 207 ms. Cold, in
+ *     a fresh process paying module load, DNS and TLS first: median ~500 ms
+ *     over 12 runs, worst 1,384 ms. 2 s is ~1.4x the worst cold lookup seen.
+ *     1.5 s was considered and rejected: it sits ~8% above that worst case,
+ *     so a cold instance would regularly abandon a lookup that was about to
+ *     hit and pay for a model call instead.
+ *   record — a five-item meal is ten sequential round trips before any
+ *     promotion. Median 474 ms, worst 523 ms over 5 runs; each promotion adds
+ *     two more. 2 s is ~4x the worst seen.
+ *   model — the Gemini path alone: median 1.8 s, worst 2.5 s over 8 runs.
+ * Worst case, both budgets expiring: 2 + 2.5 + 2 = 6.5 s, leaving ~3.5 s of
+ * the 10 s for a cold start and a slow model day.
+ */
+const CACHE_LOOKUP_MS = 2000;
+const CACHE_RECORD_MS = 2000;
+
+/**
+ * Settle within `ms` whatever the cache does: on expiry or on any rejection,
+ * log and resolve to `fallback`.
+ *
+ * The work itself cannot be cancelled and is left running. It only reads or
+ * writes cache rows, so finishing late is harmless.
+ * ponytail: an abandoned write can be frozen with the serverless instance
+ * mid-group (inserted but not yet promoted, or promoted but not yet cleared).
+ * recordAnswer is not transactional, so this is the same partial state a
+ * crash would leave; move promotion into one SQL function if it ever matters.
+ */
+async function withinBudget<T>(
+  what: string,
+  ms: number,
+  work: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const expiry = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`[food-cache] ${what} (budget of ${ms} ms exceeded)`);
+      resolve(fallback);
+    }, ms);
+  });
+  try {
+    return await Promise.race([
+      work().catch((err) => {
+        console.warn(`[food-cache] ${what} (failed)`, err);
+        return fallback;
+      }),
+      expiry,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * One implementation, two endpoints.
  *
  * `serverAiFoodSearch` and `serverAiFoodSearchInline` were byte-identical, so
@@ -64,13 +130,21 @@ export async function runFoodSearch(
 
   // Dynamic, like foodFuzzy below: foodCache imports the catalog transitively,
   // and a static import here would drag it back into this module's graph.
-  const { isPersonalName, cacheGate } = await import("@/lib/foodCache");
+  const { isPersonalName, cacheableAnswers } = await import("@/lib/foodCache");
   // A private meal name never touches the shared cache, on a hit or a miss.
   const personal = isPersonalName(cleanQuery);
 
   if (!personal && userId) {
-    const { lookupCache } = await import("@/server/foodCache");
-    const hit = await lookupCache({ query: cleanQuery, userId });
+    const hit = await withinBudget(
+      "lookup abandoned, falling through to AI",
+      CACHE_LOOKUP_MS,
+      async () =>
+        (await import("@/server/foodCache")).lookupCache({
+          query: cleanQuery,
+          userId,
+        }),
+      null,
+    );
     if (hit) {
       // "pcs" without a piece weight makes toGrams() return 0, so the unit is
       // only offered when the cached row actually carries one.
@@ -188,55 +262,43 @@ export async function runFoodSearch(
     return { kind: "single", items: [] };
   }
 
-  // The gate reads the RAW model answer. reconcileEnergy runs inside
-  // validateFoodResponse and rewrites enerc from the macros, so a repaired
-  // answer is Atwater-consistent by construction and gating it afterwards
-  // always passes — a silent no-op. src/lib/foodCache.test.ts pins this.
-  const rawItems = Array.isArray((parsed as { items?: unknown[] })?.items)
-    ? ((parsed as { items: Record<string, unknown>[] }).items ?? [])
-    : [];
-  const macrosOf = (it: Record<string, unknown>) => ({
-    enerc: Number(it.enerc),
-    protcnt: Number(it.protcnt),
-    fatce: Number(it.fatce),
-    choavldf: Number(it.choavldf),
-    fibtg: Number(it.fibtg),
-  });
-  const cacheable = rawItems.filter((it) => cacheGate(macrosOf(it)));
+  const validated = validateFoodSlots(parsed, cleanQuery);
+  // Built field by field so the cache-only `slots` array never rides along in
+  // the RPC payload to the browser.
+  const result: AiFoodResult = validated
+    ? { kind: validated.kind, items: validated.items }
+    : { kind: "single", items: [] };
 
-  const result = validateFoodResponse(parsed, cleanQuery) ?? {
-    kind: "single" as const,
-    items: [],
-  };
-
-  if (!personal && cacheable.length) {
-    const { recordAnswers } = await import("@/server/foodCache");
-    // One batched call rather than a loop over recordAnswer: the batch dedupes
-    // by (canonical_key, food_class), which is what stops two items of a single
-    // response filling two of the three slots meant to hold three independent
-    // answers. Awaited rather than fired and forgotten — a serverless function
-    // may be frozen the moment it returns, losing an unawaited write.
-    await recordAnswers(
-      cacheable.flatMap((it) => {
-        const out = result.items.find((r) => r.name === it.name);
-        // No canonical_key means nothing to group it under; storing it under
-        // an empty key would pool unrelated foods together.
-        if (!out?.canonical_key) return [];
-        return [
-          {
-            canonical_key: out.canonical_key,
-            food_name: out.name,
-            food_class: out.food_class,
-            basis: out.basis,
-            piece_g: out.piece_g,
-            aliases: out.aliases,
-            engine,
-            model,
-            ...macrosOf(it),
-          },
-        ];
-      }),
+  if (!personal) {
+    // cacheableAnswers pairs each raw item with its own validation slot BY
+    // POSITION and gates the RAW numbers — gating after reconcileEnergy would
+    // be a silent no-op, since a repaired enerc passes by construction. The
+    // two-Koftas case in src/lib/foodCache.test.ts fails if cacheableAnswers
+    // gates a slot's repaired numbers instead of its first argument's. What
+    // no test sees is THIS call: that first argument must be the parsed
+    // reply's own items, never anything validation has touched. Nothing on
+    // this path dereferences a raw item that is not an object.
+    const rows = cacheableAnswers(
+      (parsed as { items?: unknown } | null)?.items,
+      validated?.slots ?? [],
     );
+    if (rows.length) {
+      // One batched call rather than a loop over recordAnswer: the batch
+      // dedupes by (canonical_key, food_class), which is what stops two items
+      // of a single response filling two of the three slots meant to hold
+      // three independent answers. Awaited rather than fired and forgotten — a
+      // serverless function may be frozen the moment it returns, losing an
+      // unawaited write — but only for as long as the budget allows.
+      await withinBudget(
+        "write abandoned, answer served but not cached",
+        CACHE_RECORD_MS,
+        async () =>
+          (await import("@/server/foodCache")).recordAnswers(
+            rows.map((r) => ({ ...r, engine, model })),
+          ),
+        undefined,
+      );
+    }
   }
 
   return result;

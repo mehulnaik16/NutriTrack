@@ -293,4 +293,170 @@ assert.equal(isPersonalName("ನನ್ನಶೇಕ್"), true); // "my shake", n
 assert.equal(isPersonalName("My-shake"), true);
 assert.equal(isPersonalName("My_shake"), true);
 
+// ── pairing raw answers with their validated identity ─────────────────────
+// runFoodSearch gates the RAW numbers of each model item and records the
+// VALIDATED identity of that same item. These pin how the two are paired.
+import { cacheableAnswers } from "./foodCache.ts";
+import { validateFoodSlots, validateFoodResponse } from "./foodAiSchema.ts";
+
+/** A complete model item; macros are per 100 g, enerc in kJ. */
+const answer = (over: Record<string, unknown>) => ({
+  heard: "q",
+  name: "x",
+  lang: "",
+  confidence: "high",
+  units: ["g"],
+  serving_g: 100,
+  code: "ai-fallback",
+  scie: "",
+  grup: "AI Fallback",
+  aliases: [],
+  basis: "100g",
+  ...over,
+});
+
+/** raw reply -> the rows the cache would store, exactly as ai.ts derives them. */
+const rowsFor = (reply: { items: unknown[] }) =>
+  cacheableAnswers(reply.items, validateFoodSlots(reply, "q")?.slots ?? []);
+
+// The two-Koftas case, from review. Both items are named "Kofta".
+//   A: malai kofta, a curry. 6P/20F/12C implies 1054.4 kJ; it claims 1600,
+//      51.7% over — so it FAILS the gate raw, and validation repairs it.
+//   B: chicken kofta, protein. 18P/12F/6C implies 853.5 kJ, and says so.
+// A join by name paired B's numbers with A's identity: it recorded
+// canonical_key "malai kofta", food_class "curry" with B's macros. At
+// temperature 0.1 that reply repeats word for word, so three identical wrong
+// rows could reach quorum and become permanent shared data.
+{
+  const reply = {
+    items: [
+      answer({
+        name: "Kofta",
+        canonical_key: "malai kofta",
+        food_class: "curry",
+        enerc: 1600,
+        protcnt: 6,
+        fatce: 20,
+        choavldf: 12,
+        fibtg: 2,
+      }),
+      answer({
+        name: "Kofta",
+        canonical_key: "chicken kofta",
+        food_class: "protein",
+        enerc: 853.5,
+        protcnt: 18,
+        fatce: 12,
+        choavldf: 6,
+        fibtg: 1,
+      }),
+    ],
+  };
+  const rows = rowsFor(reply);
+  // One row, not two: A's REPAIRED slot passes the gate by construction, so
+  // this also fails if the slot's numbers are gated instead of the raw ones.
+  assert.equal(rows.length, 1, "only B passes the gate on its raw numbers");
+  assert.equal(rows[0].canonical_key, "chicken kofta", "B's own identity");
+  assert.equal(rows[0].food_class, "protein");
+  assert.equal(rows[0].protcnt, 18, "B's own macros");
+  assert.equal(rows[0].enerc, 853.5);
+  assert.ok(
+    !rows.some((r) => r.canonical_key === "malai kofta"),
+    "A's identity must never be recorded with anyone's numbers",
+  );
+}
+
+// Positions shift when validation DROPS an item. An all-zero item is removed
+// from the list the user sees, so an index into that filtered list pairs every
+// later item with its neighbour's numbers: here, sambar's name on dosa's
+// macros. The slots keep a null in the dropped item's place instead.
+{
+  const reply = {
+    items: [
+      answer({
+        name: "Water",
+        canonical_key: "water",
+        food_class: "beverage",
+        enerc: 0,
+        protcnt: 0,
+        fatce: 0,
+        choavldf: 0,
+        fibtg: 0,
+      }),
+      answer({
+        name: "Masala dosa",
+        canonical_key: "masala dosa",
+        food_class: "breakfast dish",
+        enerc: 677,
+        protcnt: 3.3,
+        fatce: 7.8,
+        choavldf: 19.6,
+        fibtg: 2.5,
+      }),
+      answer({
+        name: "Sambar",
+        canonical_key: "sambar",
+        food_class: "curry",
+        enerc: 276,
+        protcnt: 3,
+        fatce: 2,
+        choavldf: 9,
+        fibtg: 2,
+      }),
+    ],
+  };
+  const v = validateFoodSlots(reply, "q");
+  assert.ok(v);
+  assert.equal(v.items.length, 2, "the all-zero item is dropped for the user");
+  assert.equal(v.slots.length, 3, "but keeps its slot, so positions hold");
+  assert.equal(v.slots[0], null);
+
+  const rows = rowsFor(reply);
+  const byKey = Object.fromEntries(rows.map((r) => [r.canonical_key, r]));
+  assert.equal(rows.length, 2);
+  assert.equal(byKey["masala dosa"].protcnt, 3.3, "dosa keeps dosa's numbers");
+  assert.equal(byKey["sambar"].protcnt, 3, "sambar keeps sambar's numbers");
+}
+
+// {"items":[null]} — a cache problem, never an error. Validation rejects it,
+// so no slots exist and nothing is dereferenced.
+{
+  assert.equal(validateFoodResponse({ items: [null] }, "q"), null);
+  assert.deepEqual(rowsFor({ items: [null] }), []);
+  // Even handed a slot, a raw entry that is not an object is skipped, not read.
+  const slot = {
+    name: "x",
+    canonical_key: "x",
+    food_class: "snack",
+    basis: "100g" as const,
+    aliases: [],
+  };
+  assert.deepEqual(cacheableAnswers([null], [slot]), []);
+  assert.deepEqual(cacheableAnswers(["idli"], [slot]), []);
+  assert.deepEqual(cacheableAnswers(undefined, []), []);
+  // Arrays that disagree in length cannot be paired by position: refuse.
+  assert.deepEqual(cacheableAnswers([{}, {}], [slot]), []);
+}
+
+// A key of only spaces is no key.
+{
+  const idli = (canonical_key: string) => ({
+    items: [
+      answer({
+        name: "Idli",
+        canonical_key,
+        food_class: "breakfast dish",
+        enerc: 376.6,
+        protcnt: 2.5,
+        fatce: 0.2,
+        choavldf: 19.5,
+        fibtg: 0.8,
+      }),
+    ],
+  });
+  assert.deepEqual(rowsFor(idli("   ")), [], "a whitespace key is not stored");
+  // And a real key is stored trimmed, so " idli " and "idli" share a group.
+  assert.equal(rowsFor(idli(" idli "))[0]?.canonical_key, "idli");
+}
+
 console.log("foodCache: all assertions passed");

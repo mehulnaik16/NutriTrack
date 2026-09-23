@@ -375,7 +375,24 @@ export function reconcileEnergy<
   return { ...it, enerc: +implied.toFixed(1) };
 }
 
-export function validateFoodResponse(raw: unknown, query: string): AiFoodResult | null {
+/**
+ * Validation that remembers where each item came from.
+ *
+ * `slots` has exactly one entry per item of the raw response, in the raw
+ * response's own order: the validated item, or null where it was dropped.
+ * `items` is the same list with the nulls removed — what the user is shown.
+ *
+ * The cache needs the pairing. It gates the RAW numbers of item i and records
+ * the validated identity of item i, and the all-zero filter below removes
+ * items, so an index into the filtered list silently pairs a food with its
+ * neighbour's numbers — and joining by name pairs two same-named foods with
+ * each other's. Keeping the slot makes the correspondence a fact of the data
+ * rather than something every caller has to re-derive.
+ */
+export function validateFoodSlots(
+  raw: unknown,
+  query: string,
+): (AiFoodResult & { slots: (AiFoodItemOut | null)[] }) | null {
   const result = AiFoodResponse.safeParse(raw);
   if (!result.success) {
     console.warn("[ai-food-search] schema validation failed", {
@@ -386,19 +403,24 @@ export function validateFoodResponse(raw: unknown, query: string): AiFoodResult 
   }
   // All-zero macros are the classic injection signature — real food always has
   // energy. Everything that survives then gets its energy reconciled.
-  const valid = result.data.items
-    .filter(
-      (item) =>
-        !(item.enerc === 0 && item.protcnt === 0 && item.fatce === 0 && item.choavldf === 0),
-    )
-    .map((item) => reconcileEnergy(item, query));
+  const slots = result.data.items.map((item) =>
+    item.enerc === 0 && item.protcnt === 0 && item.fatce === 0 && item.choavldf === 0
+      ? null
+      : reconcileEnergy(item, query),
+  );
+  const items = slots.filter((s): s is AiFoodItemOut => s !== null);
 
-  if (valid.length < result.data.items.length) {
+  if (items.length < slots.length) {
     console.warn("[ai-food-search] rejected all-zero item(s) — possible injection attempt", {
       query,
     });
   }
-  return { kind: result.data.kind, items: valid };
+  return { kind: result.data.kind, items, slots };
+}
+
+export function validateFoodResponse(raw: unknown, query: string): AiFoodResult | null {
+  const v = validateFoodSlots(raw, query);
+  return v && { kind: v.kind, items: v.items };
 }
 
 /**

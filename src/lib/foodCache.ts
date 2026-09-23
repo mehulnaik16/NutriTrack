@@ -164,6 +164,79 @@ export const MACROS = [
 ] as const;
 export type Macros = Record<(typeof MACROS)[number], number>;
 
+/** What validation made of one raw item — or null where it dropped it. */
+type ValidatedSlot = {
+  name: string;
+  canonical_key: string;
+  food_class: string;
+  basis: "100g" | "piece";
+  piece_g?: number;
+  aliases: string[];
+} | null;
+
+/** One answer fit to store: validated identity, raw numbers. */
+export type CacheableAnswer = Macros & {
+  canonical_key: string;
+  food_name: string;
+  food_class: string;
+  basis: "100g" | "piece";
+  piece_g?: number;
+  aliases: string[];
+};
+
+/**
+ * Pair each raw model item with what validation made of it, and keep the ones
+ * fit to cache.
+ *
+ * Pairing is by POSITION, against the slots validateFoodSlots returns: one
+ * slot per raw item, nulls where an item was dropped, so the two arrays line
+ * up by construction. Two joins that look reasonable are both wrong here:
+ *   - by name: two items called "Kofta" pin the first one's identity to the
+ *     second one's macros, and at temperature 0.1 a malformed reply repeats
+ *     word for word, so three identical wrong rows can reach quorum and become
+ *     permanent shared data;
+ *   - by index into the FILTERED item list: dropping an all-zero item shifts
+ *     every later item onto its neighbour's numbers.
+ * If the arrays ever disagree in length the pairing is a guess, and this
+ * refuses to guess.
+ *
+ * The gate reads the RAW numbers, never the slot's. Validation repairs enerc
+ * from the macros, and a repaired value passes the gate by construction, so
+ * gating the slot would admit exactly the answers the gate exists to refuse.
+ *
+ * Never dereferences a non-object: a reply of {"items":[null]} is a cache
+ * problem, and a cache problem costs money, never an error to the user.
+ */
+export function cacheableAnswers(
+  rawItems: unknown,
+  slots: readonly ValidatedSlot[],
+): CacheableAnswer[] {
+  if (!Array.isArray(rawItems) || rawItems.length !== slots.length) return [];
+  const out: CacheableAnswer[] = [];
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    const raw: unknown = rawItems[i];
+    if (!slot || !raw || typeof raw !== "object") continue;
+    // A key of only spaces is no key: it would group every such answer, of
+    // every food, under one row.
+    const canonical_key = slot.canonical_key.trim();
+    if (!canonical_key) continue;
+    const m = {} as Macros;
+    for (const k of MACROS) m[k] = Number((raw as Record<string, unknown>)[k]);
+    if (!cacheGate(m)) continue;
+    out.push({
+      canonical_key,
+      food_name: slot.name,
+      food_class: slot.food_class,
+      basis: slot.basis,
+      piece_g: slot.piece_g,
+      aliases: slot.aliases,
+      ...m,
+    });
+  }
+  return out;
+}
+
 /** How far each answer may sit from the group mean, per macro. */
 export const QUORUM_TOL = 0.05;
 
