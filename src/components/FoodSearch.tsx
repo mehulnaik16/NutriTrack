@@ -514,9 +514,11 @@ export const FoodSearch = forwardRef<
       // divided by quantity.
       // Tested on, and saved under, what the user TYPED. An AI item's own
       // name is the model's corrected English — "Protein Shake" for "my
-      // shake" — which is never personal, so testing it never fired. A
-      // custom food's name is the user's own typing already.
-      const typed = item.code === "custom" ? item.name : item.query?.trim();
+      // shake" — which is never personal, so testing it never fired.
+      // Never for a custom food: its "Save to My Meals" box already asked,
+      // and an unticked box is the user's answer — even for a possessive
+      // name like the field's own placeholder, "Mom's Chicken Curry".
+      const typed = item.code === "custom" ? undefined : item.query?.trim();
       if (!insertErr && typed && isPersonalName(typed)) {
         await saveFavoriteMeal({
           name: typed,
