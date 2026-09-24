@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Header } from "@/components/Header";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
+import { FastFoodDialog } from "@/components/FastFoodDialog";
 import { validateFoodLogCalories } from "@/lib/calorieLimits";
 import { PremiumGate } from "@/components/PremiumGate";
 import { useAuth } from "@/lib/auth";
@@ -31,6 +32,7 @@ import {
   Plus,
   X,
   ChefHat,
+  Pizza,
   Settings2,
   CopyPlus,
 } from "lucide-react";
@@ -125,6 +127,9 @@ function FoodPage() {
   const [loggedDates, setLoggedDates] = useState<Date[]>([]);
   const [profile, setProfile] = useState<Tables<"user_profiles"> | null>(null);
   const searchRef = useRef<FoodSearchRef>(null);
+  const [fastFoodOpen, setFastFoodOpen] = useState(false);
+  const [ffRestaurant, setFfRestaurant] = useState("");
+  const [ffMeal, setFfMeal] = useState("");
   const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
 
   // ── Meal Setup Questionnaire ──
@@ -692,7 +697,35 @@ function FoodPage() {
                 <ChefHat className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
                 <span className="font-bold text-sm">Create Custom Meal</span>
               </Button>
+              <Button
+                variant="outline"
+                className="mt-3 w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
+                onClick={() => setFastFoodOpen(true)}
+              >
+                <Pizza className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
+                <span className="font-bold text-sm">Fast Food Meal</span>
+              </Button>
             </div>
+            <FastFoodDialog
+              open={fastFoodOpen}
+              onOpenChange={setFastFoodOpen}
+              restaurant={ffRestaurant}
+              onRestaurantChange={setFfRestaurant}
+              meal={ffMeal}
+              onMealChange={setFfMeal}
+              onPick={(item) => {
+                setFastFoodOpen(false);
+                // Cancel comes back here with the words kept; a log clears them.
+                searchRef.current?.openFood(item, (logged) => {
+                  if (logged) {
+                    setFfRestaurant("");
+                    setFfMeal("");
+                  } else {
+                    setFastFoodOpen(true);
+                  }
+                });
+              }}
+            />
           </CardContent>
         </Card>
       </main>

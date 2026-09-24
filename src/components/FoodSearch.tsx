@@ -104,6 +104,11 @@ export interface FoodSearchRef {
   editLog: (log: EditableLog) => void;
   refreshFavorites: () => void;
   openForMeal: (meal: string) => void;
+  /**
+   * Open the log card on a food found elsewhere (Fast Food Meal). `onClose`
+   * hears whether it was logged, so the caller can come back on a cancel.
+   */
+  openFood: (item: IFCTItem, onClose?: (logged: boolean) => void) => void;
 }
 
 export const FoodSearch = forwardRef<
@@ -172,6 +177,13 @@ export const FoodSearch = forwardRef<
   const [editLogOldCalories, setEditLogOldCalories] = useState<number | null>(
     null,
   );
+  /** Whoever opened the log card through openFood, told once when it closes. */
+  const closeHook = useRef<((logged: boolean) => void) | null>(null);
+  const fireClose = (logged: boolean) => {
+    const hook = closeHook.current;
+    closeHook.current = null;
+    hook?.(logged);
+  };
 
   const loadSavedMeals = () => {
     supabase
@@ -265,6 +277,10 @@ export const FoodSearch = forwardRef<
       setOpen(true);
     },
     refreshFavorites: loadSavedMeals,
+    openFood: (item, onClose) => {
+      closeHook.current = onClose ?? null;
+      pickFood(item);
+    },
   }));
 
   // Custom Food
@@ -1197,6 +1213,7 @@ export const FoodSearch = forwardRef<
           if (!o) {
             setOpen(false);
             setSelected(null);
+            fireClose(false);
             setIsEditing(false);
             setEditLogId(null);
             setEditLogOldCalories(null);
@@ -1404,6 +1421,7 @@ export const FoodSearch = forwardRef<
                     );
                     setOpen(false);
                     setSelected(null);
+                    fireClose(true);
                     setQ("");
                     setIsEditing(false);
                     setEditLogId(null);

@@ -17,6 +17,8 @@ import {
   extractJsonObject,
   maxTokensFor,
   FOOD_SEARCH_SYSTEM,
+  FAST_FOOD_SYSTEM,
+  fastFoodQuery,
   type AiFoodResult,
   type AiFoodItemOut,
 } from "@/lib/foodAiSchema";
@@ -127,11 +129,14 @@ async function runFoodSearch(
   attempt: 1 | 2 | 3,
   /** 15 s for a typed search; less for the lookup inside a photo or voice log. */
   budgetMs: number,
+  /** A Fast Food Meal lookup: its own short prompt and this brand's rows. */
+  fastFood?: { restaurant: string; meal: string },
 ): Promise<AiFoodResult> {
   // The budget covers the whole search: cache lookup, every model the chain
   // tries, and the cache write.
   const started = Date.now();
-  const cleanQuery = sanitizeFoodQuery(rawQuery);
+  const ff = fastFood && fastFoodQuery(fastFood.restaurant, fastFood.meal);
+  const cleanQuery = ff ? ff.key : sanitizeFoodQuery(rawQuery);
   if (cleanQuery.length < 2) return { kind: "single", items: [] };
 
   // Dynamic, like foodFuzzy below: foodCache imports the catalog transitively,
@@ -202,7 +207,15 @@ async function runFoodSearch(
   // Pipe-delimited rather than JSON: five rows of JSON is ~400 tokens of
   // punctuation, and the model is being told to copy numbers, not parse shapes.
   // `fibtg` is an empty string on 95 restaurant rows, hence the coercion.
-  const refs = referenceFoods(cleanQuery, 5).map((it) =>
+  // A fast-food lookup sees at most 3 rows, and only the named brand's.
+  const brand = fastFood?.restaurant.trim().toLowerCase();
+  const refs = (
+    brand
+      ? referenceFoods(cleanQuery, 5)
+          .filter((it) => it.lang.toLowerCase() === brand)
+          .slice(0, 3)
+      : referenceFoods(cleanQuery, 5)
+  ).map((it) =>
     [
       it.name,
       it.lang ? it.lang.slice(0, 300) : null,
@@ -222,9 +235,9 @@ async function runFoodSearch(
   // untrusted string, and the last thing it reads is a food name.
   const userMsg =
     (refs.length ? `<reference>\n${refs.join("\n")}\n</reference>\n` : "") +
-    `<query>${cleanQuery}</query>`;
+    (ff ? ff.message : `<query>${cleanQuery}</query>`);
 
-  const max_tokens = maxTokensFor(isComposite(cleanQuery));
+  const max_tokens = maxTokensFor(!ff && isComposite(cleanQuery));
 
   // The model order and every retry/fallback rule live in server/aiRoutes.ts
   // and server/aiChain.ts. `model` is recorded beside every cached answer; the
@@ -233,7 +246,7 @@ async function runFoodSearch(
   const { searchChain, CACHEABLE_SEARCH_MODELS } =
     await import("@/server/aiRoutes");
   const answer = await searchChain(
-    FOOD_SEARCH_SYSTEM,
+    ff ? FAST_FOOD_SYSTEM : FOOD_SEARCH_SYSTEM,
     userMsg,
     max_tokens,
     budgetMs - (Date.now() - started),
@@ -346,6 +359,28 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
     checkRateLimit(ctx.context.userId);
     const { query, attempt = 1, budgetMs = 15_000 } = ctx.data;
     return runFoodSearch(query, ctx.context.userId, attempt, budgetMs);
+  });
+
+// ── Fast Food Meal ───────────────────────────────────────────────────────────
+// One menu item at one named restaurant, on FAST_FOOD_SYSTEM rather than the
+// general search prompt. Same models, rotation, budget and cache rules.
+
+export const serverFastFoodSearch = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(
+    z.object({
+      restaurant: z.string().min(1).max(80),
+      meal: z.string().min(1).max(120),
+      attempt: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    }),
+  )
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    const { restaurant, meal, attempt = 1 } = ctx.data;
+    return runFoodSearch("", ctx.context.userId, attempt, 15_000, {
+      restaurant,
+      meal,
+    });
   });
 
 // ── Food correction ─────────────────────────────────────────────────────────
