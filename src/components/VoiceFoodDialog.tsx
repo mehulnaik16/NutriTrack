@@ -25,16 +25,12 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -1029,54 +1025,16 @@ export function VoiceFoodDialog({
                         )}
                         {/* The bin sits beside the pencil, where a thumb can
                             land on the wrong one: removing asks first. */}
-                        <Popover
-                          open={confirmRemove === i}
-                          onOpenChange={(o) => setConfirmRemove(o ? i : null)}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Remove ${item.food_name}`}
+                          className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                          disabled={rowBusy}
+                          onClick={() => setConfirmRemove(i)}
                         >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Remove ${item.food_name}`}
-                              className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                              disabled={rowBusy}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            align="end"
-                            className="w-56 space-y-3 p-3"
-                          >
-                            <p className="text-sm">
-                              Remove{" "}
-                              <span className="font-medium">
-                                {item.food_name}
-                              </span>
-                              ?
-                            </p>
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setConfirmRemove(null)}
-                              >
-                                Keep
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  setConfirmRemove(null);
-                                  setRowEdit(null);
-                                  setItems(items.filter((_, n) => n !== i));
-                                }}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
                         {Math.round(item.calories)} kcal · P
@@ -1110,12 +1068,46 @@ export function VoiceFoodDialog({
                   ) : (
                     <Plus className="h-4 w-4" />
                   )}
-                  {confirmVerb} all {items.length} items
+                  {items.length === 1
+                    ? `${confirmVerb} 1 item`
+                    : `${confirmVerb} all ${items.length} items`}
                 </Button>
               </div>
             </div>
           )}
         </div>
+        {/* Centred confirmation for the bin, above this dialog. */}
+        <Dialog
+          open={confirmRemove !== null && !!items[confirmRemove]}
+          onOpenChange={(o) => !o && setConfirmRemove(null)}
+        >
+          <DialogContent className="max-w-xs gap-4 rounded-xl">
+            <DialogHeader className="text-center sm:text-center">
+              <DialogTitle>Remove this food?</DialogTitle>
+              <DialogDescription>
+                {confirmRemove !== null && items[confirmRemove]
+                  ? `${items[confirmRemove].food_name} will be taken off this list.`
+                  : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={() => setConfirmRemove(null)}>
+                Keep
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  const n = confirmRemove;
+                  setConfirmRemove(null);
+                  setRowEdit(null);
+                  setItems((prev) => prev.filter((_, k) => k !== n));
+                }}
+              >
+                Remove
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
