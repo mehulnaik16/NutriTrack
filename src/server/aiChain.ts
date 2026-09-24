@@ -102,9 +102,10 @@ const MIN_START_MS = 800;
 const PRIMARY_SHARE = 0.5;
 /**
  * Time a fallback leaves for the next live model. Seen live: lite stalled for
- * the full attempt cap and Groq, usually well under a second, never ran.
+ * the full attempt cap and Groq, which answered in ~1.5 s when given the
+ * chance, never ran.
  */
-const NEXT_RESERVE_MS = 1500;
+const NEXT_RESERVE_MS = 2000;
 /** The longest pre-retry pause below; the retry is skipped if it cannot fit. */
 const MAX_RETRY_PAUSE_MS = 700;
 
