@@ -147,6 +147,8 @@ export async function runChain(
   const capacityFailed = new Set<string>();
   let sawCapacity = false;
   let lastErr: unknown = null;
+  /** The model whose attempt just timed out, if the last attempt did. */
+  let justTimedOut: string | null = null;
 
   for (let i = 0; i < order.length; i++) {
     const s = order[i];
@@ -162,6 +164,9 @@ export async function runChain(
       .slice(i + 1)
       .some((n) => !deadProviders.has(n.provider) && !isCooled(n));
     if (isCooled(s) && liveAhead) continue;
+    // Retrying straight after a timeout only waits on the same stall again.
+    // Seen live on photo: lite hung, its retry hung, and Groq ran out of time.
+    if (s.retry && justTimedOut === s.model) continue;
 
     // The primary works inside its own window while a fallback is available;
     // a fallback leaves room for the next one. When that reserve would leave
@@ -199,6 +204,7 @@ export async function runChain(
       return { text, model: s.model, provider: s.provider, primary: i === 0 };
     } catch (e) {
       lastErr = e;
+      justTimedOut = isTimeout(e) ? s.model : null;
       const kind = classify(e);
       console.warn(
         `[ai-chain] ${opts.label} ${s.model} failed (${kind}) after ${Date.now() - attemptStart} ms`,

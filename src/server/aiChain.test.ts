@@ -277,4 +277,34 @@ r = await runChain([fail("p", 503), slowOk("lite", 1000, "gemini")], {
 });
 assert.equal(r.model, "lite", "the last step gets the rest of the budget");
 
+// 15. an immediate retry is skipped after a timeout: seen live on photo, lite
+// hung, its retry hung again, and Groq ran out of time. A retry that is not
+// immediate (search attempt 3's second 3.6) still runs, as the user ordered.
+_resetCooldowns();
+let hangCalls = 0;
+const hangCounted: Step = {
+  provider: "gemini",
+  model: "h",
+  run: (signal) => {
+    hangCalls++;
+    return hang("h").run(signal);
+  },
+};
+r = await runChain(
+  [hangCounted, { ...hangCounted, retry: true }, ok("groq", "x", "groq")],
+  { budgetMs: 4000, attemptMs: 500, label: "test" },
+);
+assert.equal(hangCalls, 1, "no immediate retry of a model that just timed out");
+assert.equal(r.model, "groq");
+_resetCooldowns();
+hangCalls = 0;
+await assert.rejects(
+  runChain([hangCounted, fail("mid", 503), { ...hangCounted, retry: true }], {
+    budgetMs: 4000,
+    attemptMs: 500,
+    label: "test",
+  }),
+);
+assert.equal(hangCalls, 2, "a later retry in the order still runs");
+
 console.log("aiChain: all checks passed");
