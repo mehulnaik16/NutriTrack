@@ -122,8 +122,10 @@ export async function resolveFood(name: string): Promise<IFCTItem | null> {
   const local = catalogFood(name);
   if (local) return local;
   try {
+    // Inside a photo or voice log, which must finish in 15 s: 7 s to read
+    // the photo or sentence, then this lookup's 8 s (server/aiRoutes.ts).
     const { items: found } = await serverAiFoodSearchInline({
-      data: { query: name },
+      data: { query: name, budgetMs: 8000 },
     });
     return found[0] ?? null;
   } catch (e) {

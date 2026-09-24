@@ -62,12 +62,24 @@ _resetCooldowns();
 let r = await runChain([ok("p"), ok("f")], opts);
 assert.deepEqual([r.model, r.primary], ["p", true]);
 
-// 2. primary 503 → retried once → fallback answers, not primary
+// 2. a retry is an explicit step: it runs although the first try just cooled
+// the model, and nothing retries on its own
 _resetCooldowns();
 const p503 = fail("p", 503);
-r = await runChain([p503, ok("lite")], opts);
-assert.equal(p503.calls, 2, "503 on primary gets exactly one retry");
+r = await runChain([p503, { ...p503, retry: true }, ok("lite")], opts);
+assert.equal(p503.calls, 2, "the retry step runs through a busy cooldown");
 assert.deepEqual([r.model, r.primary], ["lite", false]);
+_resetCooldowns();
+const once = fail("once", 503);
+await runChain([once, ok("lite")], opts);
+assert.equal(once.calls, 1, "no automatic retry without a retry step");
+
+// 2b. a retry step does not override a 429 cooldown: quota will not clear
+_resetCooldowns();
+const q = fail("q", 429, "gemini", 30_000, "minute");
+await runChain([q, ok("mid"), { ...q, retry: true }, ok("lite")], opts);
+await runChain([q, fail("mid2", 503), { ...q, retry: true }, ok("lite")], opts);
+assert.equal(q.calls, 1, "a rate-limited model is not retried");
 
 // 3. RPM 429 on primary: no retry, cooled for the next request
 _resetCooldowns();
@@ -173,7 +185,7 @@ const slowPrimary: Step = {
     return hang("slow").run(signal);
   },
 };
-r = await runChain([slowPrimary, ok("lite")], {
+r = await runChain([slowPrimary, { ...slowPrimary, retry: true }, ok("lite")], {
   budgetMs: 3000,
   attemptMs: 1500,
   label: "test",
@@ -225,14 +237,15 @@ assert.equal(
   "the last realistic attempt gets the remaining time",
 );
 
-// 13. the user's rule: two models failing on capacity sends Groq next, and
+// 13. with groqJump, two models failing on capacity sends Groq next, and
 // Gemini is tried again only if Groq also fails. Seen live on photo, where
 // Groq sat last and three Gemini timeouts used the whole budget first.
+const jump = { ...opts, groqJump: true };
 _resetCooldowns();
 const g3 = fail("g3", 503);
 r = await runChain(
   [fail("g1", 503), fail("g2", 503), g3, ok("groq", "x", "groq")],
-  opts,
+  jump,
 );
 assert.equal(r.model, "groq");
 assert.equal(g3.calls, 0, "Groq jumps ahead of the remaining Gemini models");
@@ -241,9 +254,27 @@ const g3b = fail("g3b", 503);
 await assert.rejects(
   runChain(
     [fail("g1", 503), fail("g2", 503), g3b, fail("groq", 503, "groq")],
-    opts,
+    jump,
   ),
 );
 assert.equal(g3b.calls, 1, "back to Gemini after Groq fails");
+// without groqJump the order is followed exactly (the user's search order)
+_resetCooldowns();
+const g3c = ok("g3c");
+r = await runChain(
+  [fail("g1", 503), fail("g2", 503), g3c, ok("groq", "x", "groq")],
+  opts,
+);
+assert.equal(r.model, "g3c", "no jump: Gemini lite goes before Groq");
+
+// 14. the last live model is not held to the per-attempt cap: with 15 s for
+// a search, lite as the last step may use everything the others left.
+_resetCooldowns();
+r = await runChain([fail("p", 503), slowOk("lite", 1000, "gemini")], {
+  budgetMs: 3000,
+  attemptMs: 300,
+  label: "test",
+});
+assert.equal(r.model, "lite", "the last step gets the rest of the budget");
 
 console.log("aiChain: all checks passed");

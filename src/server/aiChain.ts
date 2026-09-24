@@ -50,13 +50,20 @@ export interface Step {
   provider: Provider;
   model: string;
   run(signal: AbortSignal): Promise<string>;
+  /**
+   * A deliberate second try at a model already earlier in the chain. It runs
+   * through the busy cooldown its first try just set (a 503 may clear), never
+   * through a 429's (a quota will not), and it is the first thing dropped
+   * when time is short.
+   */
+  retry?: boolean;
 }
 
 export interface ChainResult {
   text: string;
   model: string;
   provider: Provider;
-  /** True only when the first step answered — the only answer the cache trusts. */
+  /** True when the first step answered. */
   primary: boolean;
 }
 
@@ -87,17 +94,16 @@ function classify(e: unknown): Kind {
 // Per instance. Fluid Compute reuses instances across requests, so at peak one
 // 503 spares the next requests on this instance from waiting on the same model.
 // ponytail: per-instance memory; a shared store (Redis) if cross-instance matters.
-const cooledUntil = new Map<string, number>();
+const cooledUntil = new Map<string, { until: number; busy: boolean }>();
 const BUSY_COOL_MS = 10_000;
 /** RPM windows are one minute; used when a 429 carries no retryDelay. */
 const LIMIT_COOL_MS = 60_000;
 /** Starting an attempt with less left than this only burns the budget. */
 const MIN_START_MS = 800;
 /**
- * The primary, retry included, may spend at most this share of the budget
- * while a fallback is still available. Seen live: under load Gemini took
- * seconds to return its 503, the retry then timed out, and the chain gave up
- * without ever trying the next model.
+ * The primary may spend at most this share of the budget while a fallback is
+ * still available. Seen live: under load Gemini took seconds to return its
+ * 503, and the chain gave up without ever trying the next model.
  */
 const PRIMARY_SHARE = 0.5;
 /**
@@ -106,18 +112,30 @@ const PRIMARY_SHARE = 0.5;
  * chance, never ran.
  */
 const NEXT_RESERVE_MS = 2000;
-/** The longest pre-retry pause below; the retry is skipped if it cannot fit. */
-const MAX_RETRY_PAUSE_MS = 700;
 
 export function _resetCooldowns() {
   cooledUntil.clear();
 }
 
-const isCooled = (s: Step) => (cooledUntil.get(s.model) ?? 0) > Date.now();
+function isCooled(s: Step) {
+  const c = cooledUntil.get(s.model);
+  if (!c || c.until <= Date.now()) return false;
+  return !(s.retry && c.busy);
+}
 
 export async function runChain(
   steps: Step[],
-  opts: { budgetMs: number; attemptMs: number; label: string },
+  opts: {
+    budgetMs: number;
+    attemptMs: number;
+    label: string;
+    /**
+     * The user's photo rule: once two models have failed on capacity, Groq is
+     * tried next and the remaining Gemini steps only if Groq fails too. Off
+     * for search, whose order the user set step by step.
+     */
+    groqJump?: boolean;
+  },
 ): Promise<ChainResult> {
   const start = Date.now();
   const deadline = start + opts.budgetMs;
@@ -129,7 +147,6 @@ export async function runChain(
   const capacityFailed = new Set<string>();
   let sawCapacity = false;
   let lastErr: unknown = null;
-  let retried = false;
 
   for (let i = 0; i < order.length; i++) {
     const s = order[i];
@@ -147,9 +164,11 @@ export async function runChain(
     if (isCooled(s) && liveAhead) continue;
 
     // The primary works inside its own window while a fallback is available;
-    // a fallback leaves room for the next one — unless that reserve would
-    // leave this attempt too little to answer, in which case it is the last
+    // a fallback leaves room for the next one. When that reserve would leave
+    // too little to answer, a retry is dropped, and any other step is the last
     // realistic attempt and takes everything left.
+    const reserved = remaining - NEXT_RESERVE_MS;
+    if (liveAhead && i > 0 && reserved < MIN_START_MS && s.retry) continue;
     const window = !liveAhead
       ? remaining
       : i === 0
@@ -157,8 +176,8 @@ export async function runChain(
             MIN_START_MS,
             Math.min(remaining, primaryDeadline - Date.now()),
           )
-        : remaining - NEXT_RESERVE_MS >= MIN_START_MS
-          ? remaining - NEXT_RESERVE_MS
+        : reserved >= MIN_START_MS
+          ? reserved
           : remaining;
 
     // Not AbortSignal.timeout: its timer is unref'd, so an otherwise idle
@@ -167,7 +186,8 @@ export async function runChain(
     const timer = setTimeout(
       () =>
         ctrl.abort(new DOMException(`${s.model} timed out`, "TimeoutError")),
-      Math.min(window, opts.attemptMs),
+      // The last live model is the last chance: it may use all that is left.
+      liveAhead ? Math.min(window, opts.attemptMs) : window,
     );
     const attemptStart = Date.now();
     try {
@@ -191,22 +211,6 @@ export async function runChain(
       if (kind === "bad") continue;
       sawCapacity = true;
       capacityFailed.add(s.model);
-      // One quick retry, primary only, and only for a 5xx: a timeout already
-      // spent its time, and a 429 will not clear in half a second.
-      if (
-        i === 0 &&
-        kind === "busy" &&
-        !isTimeout(e) &&
-        !retried &&
-        primaryDeadline - Date.now() >= MAX_RETRY_PAUSE_MS + MIN_START_MS
-      ) {
-        retried = true;
-        await new Promise((r) =>
-          setTimeout(r, MAX_RETRY_PAUSE_MS - Math.random() * 400),
-        );
-        i--;
-        continue;
-      }
       // RPM hit: step aside briefly; the primary is back once the minute
       // clears. RPD hit: the model is out until the daily reset, so the next
       // model carries the rest of the day.
@@ -217,12 +221,15 @@ export async function runChain(
           : http?.quota === "day"
             ? msUntilPacificMidnight()
             : (http?.retryAfterMs ?? LIMIT_COOL_MS);
-      cooledUntil.set(s.model, Date.now() + coolMs);
+      cooledUntil.set(s.model, {
+        until: Date.now() + coolMs,
+        busy: kind === "busy",
+      });
       // The user's rule: once two models have failed on capacity, Groq is
       // tried next, and the remaining Gemini models only if Groq fails too.
       // Gemini models share one overloaded backend far more than they share
       // one with Groq.
-      if (capacityFailed.size >= 2) {
+      if (opts.groqJump && capacityFailed.size >= 2) {
         const j = order.findIndex((n, k) => k > i + 1 && n.provider === "groq");
         if (j !== -1) order.splice(i + 1, 0, ...order.splice(j, 1));
       }

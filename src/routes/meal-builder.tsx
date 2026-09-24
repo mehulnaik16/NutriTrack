@@ -41,7 +41,8 @@ import {
   searchFoods,
 } from "@/lib/foodDb";
 import { strongFoods } from "@/lib/foodFuzzy";
-import { serverAiFoodSearch } from "@/lib/ai";
+import { serverAiFoodSearchInline } from "@/lib/ai";
+import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { toastAiError } from "@/lib/aiErrors";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { type Unit, defaultUnitFor, toGrams, unitsFor } from "@/lib/foodUnits";
@@ -129,6 +130,7 @@ function MealBuilderPage() {
   const aiWait = useWaitLabel(aiSearching, "Searching…", [
     "Still looking…",
     "Trying another model…",
+    "Still working…",
     "Almost there…",
   ]);
   const [saving, setSaving] = useState(false);
@@ -185,9 +187,13 @@ function MealBuilderPage() {
     if (query.trim().length < 2) return;
     setAiSearching(true);
     try {
-      const { items } = await serverAiFoodSearch({ data: query });
+      const { items } = await serverAiFoodSearchInline({
+        data: { query, attempt: searchAttempt() },
+      });
+      recordSearchOutcome(true);
       setAiSuggestions((items ?? []) as IFCTItem[]);
     } catch (e) {
+      recordSearchOutcome(false);
       toastAiError(e, "meal-builder AI search");
     } finally {
       setAiSearching(false);

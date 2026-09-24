@@ -69,6 +69,7 @@ import {
 import { isIsroTheme } from "@/lib/telemetry";
 import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
 import { toastAiError } from "@/lib/aiErrors";
+import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
 
 // Both carry a camera dependency — react-webcam here, @zxing/* via
@@ -135,6 +136,7 @@ export const FoodSearch = forwardRef<
   const searchWait = useWaitLabel(searching, "", [
     "Searching with AI…",
     "Checking another AI model…",
+    "Still working on it…",
     "Almost there…",
   ]);
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
@@ -391,8 +393,9 @@ export const FoodSearch = forwardRef<
     setSearching(true);
     try {
       const { kind, items } = await serverAiFoodSearchInline({
-        data: { query: q },
+        data: { query: q, attempt: searchAttempt() },
       });
+      recordSearchOutcome(true);
       if (kind === "meal" && items.length > 1) {
         // Several foods in one sentence. The pick-one list cannot express that,
         // but the voice review list already can — per-item quantities, edits
@@ -408,6 +411,7 @@ export const FoodSearch = forwardRef<
         ((items || []) as IFCTItem[]).map((it) => ({ ...it, query: typed })),
       );
     } catch (e) {
+      recordSearchOutcome(false);
       toastAiError(e, "AI food search");
     } finally {
       setSearching(false);

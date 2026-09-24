@@ -114,22 +114,22 @@ async function withinBudget<T>(
 }
 
 /**
- * One implementation, two endpoints.
+ * The food search behind every AI search box and every photo or voice lookup.
  *
- * `serverAiFoodSearch` and `serverAiFoodSearchInline` were byte-identical, so
- * every fix had to be made twice or silently reached only one caller.
- *
- * Deliberately NOT exported. The two server functions below are its only
- * callers, so the client build drops it along with their handlers. Exported,
+ * Deliberately NOT exported. serverAiFoodSearchInline is its only caller, so
+ * the client build drops it along with that handler. Exported,
  * it stays in the client module graph, and its `@/server/*` imports trip
  * TanStack Start's import protection: the dev server refuses to load any page.
  */
 async function runFoodSearch(
   rawQuery: string,
-  userId?: string,
+  userId: string | undefined,
+  attempt: 1 | 2 | 3,
+  /** 15 s for a typed search; less for the lookup inside a photo or voice log. */
+  budgetMs: number,
 ): Promise<AiFoodResult> {
-  // The user's 8 s covers the whole search: cache lookup, every model the
-  // chain tries, and the cache write.
+  // The budget covers the whole search: cache lookup, every model the chain
+  // tries, and the cache write.
   const started = Date.now();
   const cleanQuery = sanitizeFoodQuery(rawQuery);
   if (cleanQuery.length < 2) return { kind: "single", items: [] };
@@ -230,12 +230,14 @@ async function runFoodSearch(
   // and server/aiChain.ts. `model` is recorded beside every cached answer; the
   // chain reports which model actually answered. Dynamic import: vite.config.ts
   // fails the build on any static path into **/server/**.
-  const { searchChain, SEARCH_BUDGET_MS } = await import("@/server/aiRoutes");
+  const { searchChain, CACHEABLE_SEARCH_MODELS } =
+    await import("@/server/aiRoutes");
   const answer = await searchChain(
     FOOD_SEARCH_SYSTEM,
     userMsg,
     max_tokens,
-    SEARCH_BUDGET_MS - (Date.now() - started),
+    budgetMs - (Date.now() - started),
+    attempt,
   );
   const raw = answer.text;
   const { model, provider: engine } = answer;
@@ -282,10 +284,11 @@ async function runFoodSearch(
   // No userId, nothing staged: quorum counts distinct people (see
   // MIN_DISTINCT_USERS), and an answer nobody can be counted for could fill a
   // group alone. Both server functions pass ctx.context.userId.
-  // Only the primary model's answer is the cache's truth: a fallback Gemini
-  // answer is served but not recorded, and a Groq answer never is (the user
-  // judged its answers unreliable).
-  if (!personal && !ambiguous && userId && answer.primary) {
+  // Only the Flash models' answers are the cache's truth: a Lite answer is
+  // served but not recorded, and a Groq answer never is (the user judged its
+  // answers unreliable).
+  const cacheable = CACHEABLE_SEARCH_MODELS.includes(answer.model);
+  if (!personal && !ambiguous && userId && cacheable) {
     // cacheableAnswers pairs each raw item with its own validation slot BY
     // POSITION and gates the RAW numbers — gating after reconcileEnergy would
     // be a silent no-op, since a repaired enerc passes by construction. The
@@ -311,7 +314,7 @@ async function runFoodSearch(
         "write abandoned, answer served but not cached",
         Math.max(
           500,
-          Math.min(CACHE_RECORD_MS, SEARCH_BUDGET_MS - (Date.now() - started)),
+          Math.min(CACHE_RECORD_MS, budgetMs - (Date.now() - started)),
         ),
         async () =>
           (await import("@/server/foodCache")).recordAnswers(
@@ -328,26 +331,21 @@ async function runFoodSearch(
 
 // ── AI Food Search ───────────────────────────────────────────────────────────
 
-export const serverAiFoodSearch = createServerFn({ method: "POST" })
-  .middleware([requireAccess])
-  .inputValidator((d: string) => d)
-  .handler(async (ctx) => {
-    checkRateLimit(ctx.context.userId);
-    return runFoodSearch(ctx.data, ctx.context.userId);
-  });
-
-// ── AI Food Search (inline, for FoodSearch component) ────────────────────────
-
 export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
   .middleware([requireAccess])
   .inputValidator(
     z.object({
       query: z.string(),
+      /** Which try this is after failures; the chain's order rotates on it. */
+      attempt: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+      /** A photo or voice log passes its lookup budget; capped at a search's. */
+      budgetMs: z.number().int().min(3000).max(15_000).optional(),
     }),
   )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    return runFoodSearch(ctx.data.query, ctx.context.userId);
+    const { query, attempt = 1, budgetMs = 15_000 } = ctx.data;
+    return runFoodSearch(query, ctx.context.userId, attempt, budgetMs);
   });
 
 // ── Food correction ─────────────────────────────────────────────────────────
