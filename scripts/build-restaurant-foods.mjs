@@ -300,6 +300,39 @@ const SOURCES = [
   { file: "wendys.json",           brand: "Wendy's" },
 ];
 
+/**
+ * Domino's India publishes per-100 g figures but no weights, so one pizza or
+ * side is estimated. Anchor: Pizza Hut's stated personal (7") pizzas weigh
+ * 248-340 g in this same dataset. Regular is 7", Medium 10" (about twice the
+ * area), Large 12" (about three times). Plain cheese pizzas sit at the light
+ * end, topped ones higher. Marked serving_est, so the app shows "≈".
+ */
+const DOMINOS_PIZZA_G = {
+  plain: { R: 250, M: 480, L: 720 },
+  topped: { R: 300, M: 560, L: 840 },
+};
+const DOMINOS_SIZE = { R: "regular pizza", M: "medium pizza", L: "large pizza" };
+const DOMINOS_SIDES = [
+  [/stuffed garlic/i, 180, "pack"],
+  [/garlic bread/i, 110, "pack"],
+  [/taco/i, 120, "taco"],
+  [/lava cake/i, 100, "cake"],
+  [/wings/i, 150, "pack"],
+  [/strips/i, 130, "pack"],
+  [/parcel/i, 90, "parcel"],
+  [/calzone/i, 140, "pack"],
+];
+
+export function dominosServing(name) {
+  const size = /\((R|M|L)\)\s*$/.exec(name)?.[1];
+  if (size) {
+    const plain = /margherita|cheese & tomato/i.test(name) ? "plain" : "topped";
+    return { g: DOMINOS_PIZZA_G[plain][size], label: DOMINOS_SIZE[size] };
+  }
+  const side = DOMINOS_SIDES.find(([re]) => re.test(name));
+  return side ? { g: side[1], label: side[2] } : null;
+}
+
 const median = (a) => {
   const s = [...a].sort((x, y) => x - y);
   return s.length ? s[s.length >> 1] : null;
@@ -373,9 +406,12 @@ function main() {
       let macroScale, energyKcal100, servingG = null, isEst = false;
 
       if (per100g) {
-        // Domino's already publishes per-100 g and states no pack weight.
+        // Domino's already publishes per-100 g and states no pack weight, so
+        // the serving is an estimate (see dominosServing).
         macroScale = 1;
         energyKcal100 = m.kcal;
+        const s = dominosServing(rawName);
+        if (s) { servingG = s.g; isEst = true; }
       } else if (macrosPer100g) {
         if (!per100Energy || !stated) { drop(`per-100g source missing its basis (${brand})`); continue; }
         macroScale = 1;
@@ -425,7 +461,7 @@ function main() {
         choavldf: sc(m.carbs),
         fibtg: sc(m.fibre),
         ...(servingG ? { serving_g: servingG } : {}),
-        ...(servingG ? { serving_label: isEst ? `1 serving (≈${servingG} g)` : `1 serving (${servingG} g)` } : {}),
+        ...(servingG ? { serving_label: isEst ? `1 ${(per100g && dominosServing(rawName)?.label) || "serving"} (≈${servingG} g)` : `1 serving (${servingG} g)` } : {}),
         ...(isEst ? { serving_est: true } : {}),
       });
     }

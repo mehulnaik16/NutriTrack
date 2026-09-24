@@ -154,7 +154,7 @@ export function FastFoodDialog({
           )}
           <p className="text-xs text-muted-foreground">
             {brand
-              ? `Pick from ${brand}'s menu below, or type any item and search.`
+              ? `Pick from the ${brand} menu below, or type any item and search.`
               : "Don't see your restaurant? Type its full name, then the meal, and tap search. We'll look it up for you."}
           </p>
         </div>

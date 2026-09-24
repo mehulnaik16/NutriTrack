@@ -16,6 +16,7 @@ import {
   atwaterAgrees,
   repairPieceRows,
   plausibleForKind,
+  dominosServing,
 } from "./build-restaurant-foods.mjs";
 
 let passed = 0;
@@ -197,6 +198,14 @@ test("per-100g conversion round-trips back to the source serving", () => {
   const sourceKcal = 524, servingG = 215;
   const per100 = (sourceKcal / servingG) * 100;
   assert.ok(Math.abs((per100 * servingG) / 100 - sourceKcal) < 1e-9);
+});
+
+test("dominosServing sizes pizzas and sides, nothing else", () => {
+  assert.deepEqual(dominosServing("Margherita (R)"), { g: 250, label: "regular pizza" });
+  assert.deepEqual(dominosServing("Farm House (L)"), { g: 840, label: "large pizza" });
+  assert.equal(dominosServing("Stuffed Garlic Breadsticks").g, 180);
+  assert.equal(dominosServing("Garlic Breadsticks").g, 110);
+  assert.equal(dominosServing("Mystery Item"), null);
 });
 
 console.log(`${passed} checks passed`);
