@@ -235,7 +235,8 @@ function ccd() {
 //   "density": 250,            // kcal/100 g to estimate weights the brand omits
 //   "items": [
 //     { "name": "Whopper", "serving": "burger", "g": 270, "kcal": 620,
-//       "protein": 27, "carbs": 50, "fat": 34, "density": 230 }
+//       "protein": 27, "carbs": 50, "fat": 34, "density": 230,
+//       "label": "optional full portion text", "note": "why a figure differs" }
 //   ]
 // }
 // Every number is the brand's own, for the item as sold ("serving" is the
@@ -255,9 +256,11 @@ export function brandRows(d) {
   return d.items.map((it) => {
     const est = !it.g;
     const g = it.g || it.kcal / ((it.density ?? d.density) / 100);
-    return row(`${d.code}${String(++n).padStart(3, "0")}`, d.brand, it.name, g, est,
+    const r = row(`${d.code}${String(++n).padStart(3, "0")}`, d.brand, it.name, g, est,
       { kcal: it.kcal, protein: it.protein ?? null, carbs: it.carbs ?? null, fat: it.fat ?? null },
       it.serving);
+    // "label" replaces the whole portion text, e.g. "100 g, as published".
+    return it.label ? { ...r, serving_label: it.label } : r;
   });
 }
 
