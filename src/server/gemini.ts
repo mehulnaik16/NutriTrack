@@ -33,9 +33,13 @@ const VISION_MODEL = "gemini-3.6-flash";
  */
 const LITE_MODEL = "gemini-3.5-flash-lite";
 
+/** Answers the "Search AI" food lookup on every screen. */
+const SEARCH_MODEL = "gemini-3.7-flash";
+
 /** What the model is called in the UI and in errors, so a comparison is labelled. */
 export const GEMINI_VISION_MODEL = VISION_MODEL;
 export const GEMINI_LITE_MODEL = LITE_MODEL;
+export const GEMINI_SEARCH_MODEL = SEARCH_MODEL;
 
 /**
  * Thinking budget per model, because the floor is not the same on both.
@@ -51,6 +55,7 @@ export const GEMINI_LITE_MODEL = LITE_MODEL;
 const THINKING_BUDGET: Record<string, number> = {
   [VISION_MODEL]: 0,
   [LITE_MODEL]: 128,
+  [SEARCH_MODEL]: 0,
 };
 
 async function generate(opts: {
@@ -135,11 +140,12 @@ export async function geminiVision(opts: {
   });
 }
 
-/** Text-only, pinned to the cheap model — nothing here needs the big one. */
+/** Text-only. Defaults to the cheap model; food search passes SEARCH_MODEL. */
 export async function geminiText(opts: {
   prompt: string;
   max_tokens?: number;
   temperature?: number;
+  model?: string;
 }): Promise<string> {
-  return generate({ model: LITE_MODEL, ...opts });
+  return generate({ ...opts, model: opts.model ?? LITE_MODEL });
 }

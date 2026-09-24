@@ -126,7 +126,7 @@ async function withinBudget<T>(
  */
 async function runFoodSearch(
   rawQuery: string,
-  engine: FoodSearchEngine = "groq",
+  engine: FoodSearchEngine = "gemini",
   userId?: string,
 ): Promise<AiFoodResult> {
   const cleanQuery = sanitizeFoodQuery(rawQuery);
@@ -236,8 +236,9 @@ async function runFoodSearch(
   let raw: string;
   if (engine === "gemini") {
     const gemini = await import("@/server/gemini");
-    model = gemini.GEMINI_LITE_MODEL;
+    model = gemini.GEMINI_SEARCH_MODEL;
     raw = await gemini.geminiText({
+      model,
       prompt: [FOOD_SEARCH_SYSTEM, userMsg].join("\n\n"),
       max_tokens,
       temperature: 0.1,
@@ -337,13 +338,7 @@ async function runFoodSearch(
   return result;
 }
 
-/**
- * Which model answers a food search.
- *
- * Per-screen rather than global: the food page runs Gemini, and the dashboard's
- * copy of the same search box stays on Groq, so the two can be compared on the
- * same queries.
- */
+/** Which model answers a food search. Every screen uses Gemini; Groq is legacy. */
 export type FoodSearchEngine = "groq" | "gemini";
 
 // ── AI Food Search ───────────────────────────────────────────────────────────
