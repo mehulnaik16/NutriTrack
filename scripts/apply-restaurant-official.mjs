@@ -229,7 +229,40 @@ function ccd() {
   return [...mk(d.food, false), ...mk(d.beverages, true)];
 }
 
-const REPLACED = new Set(["Domino's", "KFC", "Cafe Coffee Day"]);
+// ── Any other brand: data/restaurant-official/brands/<brand>.json ───────────
+// {
+//   "brand": "Burger King", "code": "ZB", "source": "<url>", "basis": "...",
+//   "density": 250,            // kcal/100 g to estimate weights the brand omits
+//   "items": [
+//     { "name": "Whopper", "serving": "burger", "g": 270, "kcal": 620,
+//       "protein": 27, "carbs": 50, "fat": 34, "density": 230 }
+//   ]
+// }
+// Every number is the brand's own, for the item as sold ("serving" is the
+// brand's portion word: burger, regular, 6 pcs, cup, 100 ml...). "g" and the
+// macros may be omitted where the brand does not publish them; a missing "g"
+// is estimated from the item's or the file's density and marked "≈".
+const BRANDS_DIR = `${SRC}/brands`;
+function brandFiles() {
+  if (!fs.existsSync(BRANDS_DIR)) return [];
+  return fs
+    .readdirSync(BRANDS_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => JSON.parse(fs.readFileSync(`${BRANDS_DIR}/${f}`, "utf8")));
+}
+export function brandRows(d) {
+  let n = 0;
+  return d.items.map((it) => {
+    const est = !it.g;
+    const g = it.g || it.kcal / ((it.density ?? d.density) / 100);
+    return row(`${d.code}${String(++n).padStart(3, "0")}`, d.brand, it.name, g, est,
+      { kcal: it.kcal, protein: it.protein ?? null, carbs: it.carbs ?? null, fat: it.fat ?? null },
+      it.serving);
+  });
+}
+
+const BRANDS = brandFiles();
+const REPLACED = new Set(["Domino's", "KFC", "Cafe Coffee Day", ...BRANDS.map((b) => b.brand)]);
 
 /**
  * The scraped brands' duplicate names: exact repeats are dropped, and two
@@ -285,7 +318,7 @@ export function tidy(rows) {
 if (process.argv[1]?.endsWith("apply-restaurant-official.mjs")) {
   const rows = JSON.parse(fs.readFileSync(OUT, "utf8"));
   const kept = tidy(rows.filter((r) => !REPLACED.has(r.lang)));
-  const fresh = [...dominos(), ...kfc(), ...ccd()];
+  const fresh = [...dominos(), ...kfc(), ...ccd(), ...BRANDS.flatMap(brandRows)];
   fs.writeFileSync(OUT, JSON.stringify([...kept, ...fresh], null, 0) + "\n");
   const by = {};
   fresh.forEach((r) => (by[r.lang] = (by[r.lang] || 0) + 1));
