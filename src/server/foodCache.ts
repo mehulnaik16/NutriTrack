@@ -34,7 +34,13 @@ import {
   quorumPasses,
 } from "@/lib/foodCache";
 import { createHash } from "node:crypto";
-import { crossCheckAliases, scriptOf, searchKey } from "./foodCacheKeys.ts";
+import {
+  crossCheckAliases,
+  groupKey,
+  pickGroupKey,
+  scriptOf,
+  searchKey,
+} from "./foodCacheKeys.ts";
 import { searchFoods } from "@/lib/foodDb";
 
 /**
@@ -74,6 +80,9 @@ type VerifiedRow = Macros & {
 type GroupRow = Macros & {
   id: string;
   food_name: string;
+  canonical_key: string;
+  /** The wording-normalised key the group is built on. */
+  group_key: string | null;
   food_class: string;
   basis: "100g" | "piece";
   piece_g: number | null;
@@ -197,10 +206,18 @@ export async function lookupCache(opts: {
     //    query and a stored alias "ತಟ್ಟೆ ಇಡ್ಲಿ" both normalise to "tatte idli",
     //    so they match exactly, with no threshold in the way. Similarity cannot
     //    do this job — see the note on SIM_SAME_SCRIPT for the measurements.
+    //    The word-sorted form of the query goes in beside it, because a
+    //    promoted row stores the sorted form of every spelling its group agreed
+    //    on: that is what makes "protein blueberry shake" find a food verified
+    //    as "blueberry protein shake". Still an exact array match with no
+    //    threshold — overlaps() asks whether ANY candidate key is stored, which
+    //    is the same question contains() asked of one.
     if (!rows.length)
       rows = await upToTwo(
         "alias_keys",
-        table("ai_verified").select("*").contains("alias_keys", [key]),
+        table("ai_verified")
+          .select("*")
+          .overlaps("alias_keys", [...new Set([key, groupKey(opts.query)])]),
       );
 
     // An exact key that two verified foods both answer to — "idli" as an
@@ -282,6 +299,33 @@ export async function recordAnswer(
     const table = (name: string) => db.from(name as any) as any;
     const unverified = () => table("ai_unverified");
 
+    // Which group this answer belongs to. Not row.canonical_key: the model does
+    // not return a stable key for one food, so grouping on it kept every
+    // wording apart and nothing ever reached quorum. The open groups for this
+    // food_class are read first and the closest one within GROUP_SIM wins.
+    //
+    // A failed read must not fall back to a fresh group — that is how a food
+    // silently splits in two — so nothing is staged if it errors.
+    const { data: openRows, error: openError } = await unverified()
+      .select("group_key")
+      .eq("food_class", row.food_class);
+    if (openError) {
+      warn(
+        "ai_unverified open group read failed, answer not cached",
+        openError,
+      );
+      return;
+    }
+    const open = [
+      ...new Set(
+        ((openRows ?? []) as { group_key: string }[])
+          .map((r) => r.group_key)
+          .filter(Boolean),
+      ),
+    ];
+    const gkey = pickGroupKey(groupKey(row.canonical_key), open);
+    if (!gkey) return; // A key that normalises to nothing groups nothing.
+
     // At most PER_USER_CAP rows per person in one open group, so any
     // QUORUM_SIZE rows span MIN_DISTINCT_USERS people and a group can never
     // fill up on one user's searches. Enforced here, at staging, rather than
@@ -289,7 +333,7 @@ export async function recordAnswer(
     // sit at the head of the queue forever. A failed count stages nothing.
     const { count: mine, error: capError } = await unverified()
       .select("id", { count: "exact", head: true })
-      .eq("canonical_key", row.canonical_key)
+      .eq("group_key", gkey)
       .eq("food_class", row.food_class)
       .eq("user_hash", user_hash);
     if (capError || mine == null) {
@@ -304,6 +348,7 @@ export async function recordAnswer(
     const { error: insertError } = await unverified().insert({
       user_hash,
       canonical_key: row.canonical_key,
+      group_key: gkey,
       search_key: searchKey(row.canonical_key),
       food_name: row.food_name,
       food_class: row.food_class,
@@ -330,15 +375,17 @@ export async function recordAnswer(
     }
 
     // food_class is a grouping guard. Two genuinely different foods can land
-    // on one canonical_key by coincidence, and three answers about two
-    // different foods must never be averaged into one verified row, so only
-    // rows agreeing with this answer's class count. It is a coarse guard, not
-    // an absolute one: the class is one of 13 broad buckets, and two foods in
-    // the same bucket ("curry" holds malai kofta and chicken kofta alike)
-    // still group together if their keys collide.
+    // on one group_key by coincidence, and three answers about two different
+    // foods must never be averaged into one verified row, so only rows agreeing
+    // with this answer's class count. It matters more now than it did when the
+    // key had to match exactly: grouping tolerates wording differences, so the
+    // class is what stops "coconut" the fruit merging with a coconut drink.
+    // Still a coarse guard — the class is one of 13 broad buckets, and two foods
+    // in the same bucket ("curry" holds malai kofta and chicken kofta alike)
+    // group together if their keys are close enough.
     const { data: all, error: groupError } = await unverified()
       .select("*")
-      .eq("canonical_key", row.canonical_key)
+      .eq("group_key", gkey)
       .order("created_at", { ascending: true });
     warn("ai_unverified group read failed", groupError);
 
@@ -358,7 +405,10 @@ export async function recordAnswer(
     // barring a race between two of one user's own searches. A group short of
     // people is reset like a group that disagrees.
     if (enoughUsers(group) && quorumPasses(macroRows)) {
-      const rowKey = searchKey(row.canonical_key);
+      // The group's members no longer share one spelling, so the key to store
+      // is the majority one, not this last answer's.
+      const identity = consolidateIdentity(group);
+      const rowKey = searchKey(identity.canonical_key);
       const aliases = crossCheckAliases(group.map((g) => g.aliases ?? []));
 
       // alias_keys is every normalised form this row answers to, and it
@@ -368,8 +418,22 @@ export async function recordAnswer(
       // query for the name and another for the aliases. Derived with the same
       // searchKey() the lookup uses — if the two ever diverged the match would
       // silently stop working, so there is exactly one function for it.
+      //
+      // The word-sorted form of each goes in beside it, and so does every
+      // member's group_key: the group is the record of which spellings the
+      // pipeline decided were this food, so storing them is what lets a later
+      // query in any of those wordings hit the exact containment step instead
+      // of falling through to a paid call.
       const aliasKeys = [
-        ...new Set([rowKey, ...aliases.map(searchKey)].filter(Boolean)),
+        ...new Set(
+          [
+            rowKey,
+            groupKey(identity.canonical_key),
+            ...aliases.map(searchKey),
+            ...aliases.map(groupKey),
+            ...group.map((g) => g.group_key ?? ""),
+          ].filter(Boolean),
+        ),
       ];
 
       // An insert that does nothing on conflict, never an overwrite. The
@@ -381,12 +445,11 @@ export async function recordAnswer(
       // the weekly manual review changes a verified row.
       const { error } = await table("ai_verified").upsert(
         {
-          canonical_key: row.canonical_key,
-          search_key: rowKey,
-          // Median piece_g, majority basis, most common name: piece_g
+          // Median piece_g, majority basis, most common name and key: piece_g
           // multiplies every pieces log of this food for good, so one
           // outlier answer must not be what gets stored.
-          ...consolidateIdentity(group),
+          ...identity,
+          search_key: rowKey,
           food_class: row.food_class,
           ...consolidate(macroRows),
           aliases,
@@ -463,21 +526,26 @@ export async function recordAnswers(
     ];
     if (!keys.length) return;
     const { supabaseAdmin: db } = await import("@/integrations/client.server");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts omits these service-role-only tables
-    const { data: done, error } = await (db.from("ai_verified" as any) as any)
-      .select("canonical_key")
-      .in("canonical_key", keys);
+    // Matched on alias_keys, not canonical_key: a verified row is stored under
+    // the majority spelling of its group, so an answer naming the same food in
+    // another wording would miss an `in("canonical_key", …)` check and stage a
+    // group that can never promote — rows that then accumulate forever.
+    const { data: done, error } = await (db.from("ai_verified" as any) as any) // eslint-disable-line @typescript-eslint/no-explicit-any -- types.ts omits these service-role-only tables
+      .select("alias_keys")
+      .overlaps("alias_keys", [...new Set(keys.map(groupKey).filter(Boolean))]);
     if (error) {
       warn("ai_verified read failed, answers served but not cached", error);
       return;
     }
     const verified = new Set(
-      ((done ?? []) as { canonical_key: string }[]).map((r) => r.canonical_key),
+      ((done ?? []) as { alias_keys: string[] | null }[]).flatMap(
+        (r) => r.alias_keys ?? [],
+      ),
     );
 
     const seen = new Set<string>();
     for (const row of rows ?? []) {
-      if (verified.has(row?.canonical_key)) continue;
+      if (verified.has(groupKey(row?.canonical_key ?? ""))) continue;
       // JSON, not a joined string: no separator character can be assumed
       // absent from two fields the model wrote.
       const slot = JSON.stringify([row?.canonical_key, row?.food_class]);

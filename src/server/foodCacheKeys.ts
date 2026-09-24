@@ -76,6 +76,66 @@ export function searchKey(text: string): string {
     .replace(/\s+/g, " ");
 }
 
+/**
+ * The form staged answers are GROUPED on: searchKey with its words sorted.
+ *
+ * The model does not return a stable canonical_key. One photo session produced
+ * "protein blueberry shake" and "blueberry protein shake" for the same drink,
+ * which agreed on macros to within 1% and could never be compared because the
+ * write path grouped on exact key equality. Sorting the words collapses that.
+ *
+ * Sorting merges word ORDER and nothing else: "naan" and "paneer naan" keep
+ * different token sets, so this can never fold a food into a dish that merely
+ * contains it. Romanisation is inherited from searchKey, so a native-script
+ * name and its transliteration share a group key for free.
+ */
+export function groupKey(text: string): string {
+  return searchKey(text).split(" ").filter(Boolean).sort().join(" ");
+}
+
+/** How close two keys' wording must be to be treated as the same food. */
+export const GROUP_SIM = 0.9;
+
+/**
+ * The open group an answer joins: the closest existing key at or above
+ * GROUP_SIM, or its own key, which starts a new group.
+ *
+ * Measured on this database's own keys, after groupKey has sorted the words:
+ *
+ *   protein blueberry shake / blueberry protein shake   1.000  same food
+ *   thatte idli / tatte idli                            0.909  same food
+ *   dahi bhaat / dahi bhat                              0.900  same food
+ *   amul...blueberry / blueberry protein shake          0.821  DIFFERENT
+ *   flavoured milk / flavoured milkshake                0.737  DIFFERENT
+ *   coconut rice / coconut dal                          0.667  DIFFERENT
+ *   naan / paneer naan                                  0.364  DIFFERENT
+ *
+ * 0.9 sits 0.079 above the closest genuine split, and is the same measure and
+ * threshold ALIAS_SIM already uses. Branded keys stay separate on merit: the
+ * Amul shake answered 580 kJ against the generic 290, so they are not one food.
+ *
+ * Similarity is not transitive — A may match B and B match C while A and C do
+ * not — so the winner must not depend on which answer arrived first. Candidates
+ * are sorted and ties keep the earlier one, making the choice a function of the
+ * open groups alone. Same first-come anchoring crossCheckAliases uses below.
+ */
+export function pickGroupKey(key: string, open: readonly string[]): string {
+  let best = key;
+  let score = 0;
+  // ponytail: linear scan of the open groups for one food_class. Fine while
+  // the staging table is transient — a group is deleted as soon as it promotes
+  // or resets. Prefilter on trigrams if it ever holds thousands of open groups.
+  for (const candidate of [...open].sort()) {
+    const s = similarity(candidate, key);
+    // Strictly greater, so on a tie the earlier candidate in sorted order wins.
+    if (s >= GROUP_SIM && s > score) {
+      best = candidate;
+      score = s;
+    }
+  }
+  return best;
+}
+
 /** How close two spellings must be to count as the same alias. */
 export const ALIAS_SIM = 0.9;
 
