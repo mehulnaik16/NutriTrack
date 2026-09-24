@@ -225,4 +225,25 @@ assert.equal(
   "the last realistic attempt gets the remaining time",
 );
 
+// 13. the user's rule: two models failing on capacity sends Groq next, and
+// Gemini is tried again only if Groq also fails. Seen live on photo, where
+// Groq sat last and three Gemini timeouts used the whole budget first.
+_resetCooldowns();
+const g3 = fail("g3", 503);
+r = await runChain(
+  [fail("g1", 503), fail("g2", 503), g3, ok("groq", "x", "groq")],
+  opts,
+);
+assert.equal(r.model, "groq");
+assert.equal(g3.calls, 0, "Groq jumps ahead of the remaining Gemini models");
+_resetCooldowns();
+const g3b = fail("g3b", 503);
+await assert.rejects(
+  runChain(
+    [fail("g1", 503), fail("g2", 503), g3b, fail("groq", 503, "groq")],
+    opts,
+  ),
+);
+assert.equal(g3b.calls, 1, "back to Gemini after Groq fails");
+
 console.log("aiChain: all checks passed");

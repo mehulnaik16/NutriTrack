@@ -123,12 +123,16 @@ export async function runChain(
   const deadline = start + opts.budgetMs;
   const primaryDeadline = start + opts.budgetMs * PRIMARY_SHARE;
   const deadProviders = new Set<Provider>();
+  // Reordered below, so a copy: the caller's list is its own.
+  const order = [...steps];
+  /** Distinct models that failed on capacity during this request. */
+  const capacityFailed = new Set<string>();
   let sawCapacity = false;
   let lastErr: unknown = null;
   let retried = false;
 
-  for (let i = 0; i < steps.length; i++) {
-    const s = steps[i];
+  for (let i = 0; i < order.length; i++) {
+    const s = order[i];
     if (deadProviders.has(s.provider)) continue;
     const remaining = deadline - Date.now();
     if (remaining < MIN_START_MS) {
@@ -137,7 +141,7 @@ export async function runChain(
     }
     // A cooled model is skipped only while something uncooled is still ahead;
     // when everything is cooled, trying beats failing instantly.
-    const liveAhead = steps
+    const liveAhead = order
       .slice(i + 1)
       .some((n) => !deadProviders.has(n.provider) && !isCooled(n));
     if (isCooled(s) && liveAhead) continue;
@@ -186,6 +190,7 @@ export async function runChain(
       }
       if (kind === "bad") continue;
       sawCapacity = true;
+      capacityFailed.add(s.model);
       // One quick retry, primary only, and only for a 5xx: a timeout already
       // spent its time, and a 429 will not clear in half a second.
       if (
@@ -213,6 +218,14 @@ export async function runChain(
             ? msUntilPacificMidnight()
             : (http?.retryAfterMs ?? LIMIT_COOL_MS);
       cooledUntil.set(s.model, Date.now() + coolMs);
+      // The user's rule: once two models have failed on capacity, Groq is
+      // tried next, and the remaining Gemini models only if Groq fails too.
+      // Gemini models share one overloaded backend far more than they share
+      // one with Groq.
+      if (capacityFailed.size >= 2) {
+        const j = order.findIndex((n, k) => k > i + 1 && n.provider === "groq");
+        if (j !== -1) order.splice(i + 1, 0, ...order.splice(j, 1));
+      }
     } finally {
       clearTimeout(timer);
     }
