@@ -9,7 +9,7 @@
  */
 
 import { useRef, useState } from "react";
-import { Camera, Loader2, Plus, X } from "lucide-react";
+import { Camera, Loader2, Plus, Upload, X } from "lucide-react";
 import Webcam from "react-webcam";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,34 @@ const PHOTO_STAGES = [
   "Almost done…",
 ];
 
+/**
+ * A picked photo as a JPEG data URL no larger than 1280 px on its long side.
+ * Phone photos are often 4000 px and several MB; the server caps the image at
+ * ~8 MB and accepts only JPEG, PNG or WebP, so one re-encode covers both, and
+ * a HEIC the browser can display comes out as a JPEG too.
+ */
+async function toJpegDataUrl(file: File): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const scale = Math.min(
+      1,
+      1280 / Math.max(img.naturalWidth, img.naturalHeight),
+    );
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.naturalWidth * scale);
+    canvas.height = Math.round(img.naturalHeight * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context unavailable");
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 // ── AI image recognition ────────────────────────────────────────────────────
 async function recognizeFoodFromImage(
   base64: string,
@@ -137,6 +165,10 @@ export function PhotoFoodDialog({
   confirmLabel?: string;
 }) {
   const webcamRef = useRef<Webcam>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  /** How the photo on screen was taken, so the way back matches it. */
+  const [source, setSource] = useState<"camera" | "upload" | null>(null);
+  const [cameraFailed, setCameraFailed] = useState(false);
   const [aiResult, setAiResult] = useState<Recognised | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -146,14 +178,37 @@ export function PhotoFoodDialog({
   const [weightInput, setWeightInput] = useState("");
   const wait = useWaitLabel(analyzing, "Analysing food…", PHOTO_STAGES);
 
-  const capture = async () => {
+  // Capturing or uploading only shows the photo; nothing is sent until the
+  // person has looked at it and chosen Proceed.
+  const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (!imageSrc) return;
-
     setImagePreview(imageSrc);
+    setSource("camera");
+  };
+
+  const onFilePicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Cleared so picking the same file again still fires onChange.
+    e.target.value = "";
+    if (!file) return;
+    try {
+      setImagePreview(await toJpegDataUrl(file));
+      setSource("upload");
+      setAiResult(null);
+    } catch (err) {
+      console.error("Photo upload failed", err);
+      toast.error("Couldn't open that photo", {
+        description: "Try a JPG or PNG image.",
+      });
+    }
+  };
+
+  const proceed = async () => {
+    if (!imagePreview) return;
     setAnalyzing(true);
     try {
-      const base64 = imageSrc.split(",")[1];
+      const base64 = imagePreview.split(",")[1];
       const result = await recognizeFoodFromImage(base64, "image/jpeg");
       // The resolver a spoken name goes through, so the item handed to
       // onConfirm is per 100 g with energy in kJ — exactly what a typed
@@ -192,11 +247,18 @@ export function PhotoFoodDialog({
     }
   };
 
+  /** Back to the camera, or straight to the file picker for an upload. */
   const retake = () => {
     setAiResult(null);
-    setImagePreview(null);
     setWeightInput("");
+    if (source === "upload") {
+      fileRef.current?.click();
+      return;
+    }
+    setImagePreview(null);
+    setSource(null);
   };
+  const retakeLabel = source === "upload" ? "Re-upload" : "Retake";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,32 +271,60 @@ export function PhotoFoodDialog({
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Place your hand next to the food for better portion accuracy, then
-            snap a photo.
+            take or upload a photo.
           </p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFilePicked}
+          />
           {!imagePreview && (
-            <div className="relative overflow-hidden rounded-lg border-2 border-border bg-black min-h-[300px] flex items-center justify-center">
-              <Webcam
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                videoConstraints={{ facingMode: "environment" }}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-4 inset-x-0 flex justify-center">
-                <button
-                  onClick={capture}
-                  aria-label="Take photo"
-                  className="h-16 w-16 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg"
-                />
+            <div className="space-y-3">
+              <div className="relative overflow-hidden rounded-lg border-2 border-border bg-black min-h-[300px] flex items-center justify-center">
+                {cameraFailed ? (
+                  <p className="px-8 text-center text-sm text-white/80">
+                    The camera isn't available. Upload a photo of your food
+                    instead.
+                  </p>
+                ) : (
+                  <>
+                    <Webcam
+                      audio={false}
+                      ref={webcamRef}
+                      screenshotFormat="image/jpeg"
+                      videoConstraints={{ facingMode: "environment" }}
+                      onUserMediaError={() => setCameraFailed(true)}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-4 inset-x-0 flex justify-center">
+                      <button
+                        onClick={capture}
+                        aria-label="Take photo"
+                        className="h-16 w-16 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
+              <Button
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                className="w-full gap-2"
+              >
+                <Upload className="h-4 w-4" /> Upload a photo
+              </Button>
             </div>
           )}
           {imagePreview && (
             <div className="relative">
               <img
                 src={imagePreview}
-                alt="food"
-                className="w-full max-h-48 rounded-lg object-cover"
+                alt="Your food photo"
+                className={`w-full rounded-lg object-cover ${
+                  aiResult ? "max-h-48" : "max-h-80"
+                }`}
               />
               {analyzing && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/60">
@@ -249,6 +339,25 @@ export function PhotoFoodDialog({
                   )}
                 </div>
               )}
+            </div>
+          )}
+          {/* Look before sending: nothing is analysed until Proceed. */}
+          {imagePreview && !aiResult && !analyzing && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={retake} className="gap-1">
+                {source === "upload" ? (
+                  <Upload className="h-4 w-4" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+                {retakeLabel}
+              </Button>
+              <Button
+                onClick={proceed}
+                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                Proceed
+              </Button>
             </div>
           )}
           {aiResult && !analyzing && (
@@ -344,7 +453,7 @@ export function PhotoFoodDialog({
                   onClick={retake}
                   className="gap-1"
                 >
-                  <X className="h-3 w-3" /> Retake
+                  <X className="h-3 w-3" /> {retakeLabel}
                 </Button>
                 <Button
                   onClick={confirm}

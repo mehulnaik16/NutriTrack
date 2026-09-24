@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Mic, MicOff, Plus, Trash2 } from "lucide-react";
+import { Loader2, Mic, Plus, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,6 +70,23 @@ export interface VoiceFoodItem {
 }
 
 // ── Voice food logging ──────────────────────────────────────────────────────
+
+/** Longest anyone may speak in one go; recording stops and parses at this. */
+const MAX_SPEECH_MS = 60_000;
+/** A press shorter than this is a tap, not a hold. */
+const HOLD_MS = 350;
+/** A second tap within this of the first makes a double tap. */
+const DOUBLE_TAP_MS = 350;
+const MIC_HINT = "Hold to talk, or double-tap to talk longer";
+/** Circumference of the 60-second ring (r = 44 in a 96 viewBox). */
+const RING = 2 * Math.PI * 44;
+
+/**
+ * idle; hold (talking while pressed); pending (a quick tap, waiting to see
+ * whether a second one makes it a double tap); locked (double-tapped: talking
+ * hands-free until the next tap).
+ */
+type MicMode = "idle" | "hold" | "pending" | "locked";
 
 /** What the parse call returns now: names and quantities, no macros. */
 export type ParsedVoiceItem = Pick<
@@ -245,6 +262,21 @@ export function VoiceFoodDialog({
   const recogRef = useRef<SpeechRecognitionLike | null>(null);
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
+  // What the recogniser has heard, readable from timers and pointer handlers
+  // without waiting for a render.
+  const transcriptRef = useRef("");
+  const [mode, setMode] = useState<MicMode>("idle");
+  const modeRef = useRef<MicMode>("idle");
+  const setMicMode = (m: MicMode) => {
+    modeRef.current = m;
+    setMode(m);
+  };
+  const pressStart = useRef(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /** The press that locked or stopped recording must not also count as a release. */
+  const ignoreUp = useRef(false);
+  const [hint, setHint] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [items, setItems] = useState<VoiceFoodItem[]>(initialItems ?? []);
   const [parsing, setParsing] = useState(false);
   const parseWait = useWaitLabel(parsing, "Parsing food items…", [
@@ -267,9 +299,16 @@ export function VoiceFoodDialog({
     () => () => {
       recogRef.current?.abort?.();
       recogRef.current = null;
+      clearTimeout(tapTimer.current);
     },
     [],
   );
+
+  useEffect(() => {
+    if (!hint) return;
+    const t = setTimeout(() => setHint(false), 3000);
+    return () => clearTimeout(t);
+  }, [hint]);
 
   /** Stop the recogniser and nothing else. */
   const stopRecogniser = () => {
@@ -292,13 +331,96 @@ export function VoiceFoodDialog({
     }
   };
 
-  /** Only the microphone button parses. Dismissing must not spend a request. */
-  const stopAndParse = async () => {
+  /** Only the microphone button (or the 60 s limit) parses. Dismissing must not spend a request. */
+  const finish = async () => {
+    clearTimeout(tapTimer.current);
+    setMicMode("idle");
     stopRecogniser();
-    await parse(transcript);
+    await parse(transcriptRef.current);
+  };
+  // The 60 s timer reads this, so it always calls the current render's finish.
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
+
+  /** A lone quick tap: nothing was meant to be said, so nothing is parsed. */
+  const discard = () => {
+    recogRef.current?.abort?.();
+    recogRef.current = null;
+    setRecording(false);
+    setMicMode("idle");
+    setTranscript("");
+    transcriptRef.current = "";
+    setHint(true);
   };
 
-  const startRecording = () => {
+  const active = mode !== "idle";
+  useEffect(() => {
+    if (!active) {
+      setElapsed(0);
+      return;
+    }
+    const started = Date.now();
+    const iv = setInterval(() => {
+      const ms = Date.now() - started;
+      setElapsed(ms);
+      if (ms >= MAX_SPEECH_MS) {
+        clearInterval(iv);
+        void finishRef.current();
+      }
+    }, 200);
+    return () => clearInterval(iv);
+  }, [active]);
+
+  const onPressStart = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (parsing || e.button !== 0) return;
+    // Keeps the release on this button even if a finger slides off it.
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const m = modeRef.current;
+    if (m === "locked") {
+      ignoreUp.current = true;
+      void finish();
+      return;
+    }
+    if (m === "pending") {
+      // Second tap: keep the recording the first tap started, hands-free.
+      clearTimeout(tapTimer.current);
+      ignoreUp.current = true;
+      setMicMode("locked");
+      return;
+    }
+    setHint(false);
+    pressStart.current = Date.now();
+    setMicMode("hold");
+    if (!startRecording()) setMicMode("idle");
+  };
+
+  const onPressEnd = () => {
+    if (ignoreUp.current) {
+      ignoreUp.current = false;
+      return;
+    }
+    if (modeRef.current !== "hold") return;
+    if (Date.now() - pressStart.current >= HOLD_MS) {
+      void finish();
+      return;
+    }
+    setMicMode("pending");
+    tapTimer.current = setTimeout(discard, DOUBLE_TAP_MS);
+  };
+
+  /** Keyboard has no hold: Enter or Space starts hands-free, again stops. */
+  const onMicKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if ((e.key !== "Enter" && e.key !== " ") || e.repeat || parsing) return;
+    e.preventDefault();
+    if (modeRef.current === "idle") {
+      setHint(false);
+      setMicMode("locked");
+      if (!startRecording()) setMicMode("idle");
+    } else void finish();
+  };
+
+  /** Starts the recogniser; false when it could not. */
+  const startRecording = (): boolean => {
     const w = window as unknown as {
       SpeechRecognition?: new () => SpeechRecognitionLike;
       webkitSpeechRecognition?: new () => SpeechRecognitionLike;
@@ -306,8 +428,10 @@ export function VoiceFoodDialog({
     const Recogniser = w.SpeechRecognition ?? w.webkitSpeechRecognition;
 
     if (!Recogniser) {
-      toast.error("Live speech recognition is not supported in this browser.");
-      return;
+      toast.error("Voice logging isn't available in this browser", {
+        description: "Type what you ate in the search bar instead.",
+      });
+      return false;
     }
 
     try {
@@ -319,6 +443,7 @@ export function VoiceFoodDialog({
       recognition.onstart = () => {
         setRecording(true);
         setTranscript("");
+        transcriptRef.current = "";
       };
 
       recognition.onresult = (event) => {
@@ -327,15 +452,30 @@ export function VoiceFoodDialog({
           currentTranscript += event.results[i][0].transcript;
         }
         setTranscript(currentTranscript);
+        transcriptRef.current = currentTranscript;
       };
 
       recognition.onerror = (event) => {
         console.error("Speech recognition error", event.error);
+        // "aborted" is our own abort(): a discarded quick tap or a closed
+        // dialog, neither of which is a problem to report.
+        if (event.error === "aborted") return;
         if (event.error !== "no-speech") {
-          toast.error("Couldn't hear that clearly", {
-            description: "Check your microphone and try again.",
-          });
+          if (
+            event.error === "not-allowed" ||
+            event.error === "service-not-allowed"
+          )
+            toast.error("Microphone access is off", {
+              description:
+                "Allow microphone access for this app, then try again.",
+            });
+          else
+            toast.error("Couldn't hear that clearly", {
+              description: "Check your microphone and try again.",
+            });
           setRecording(false);
+          clearTimeout(tapTimer.current);
+          setMicMode("idle");
         }
       };
 
@@ -345,11 +485,13 @@ export function VoiceFoodDialog({
       // transcript the moment the user tapped again.
       recognition.start();
       recogRef.current = recognition;
+      return true;
     } catch (e) {
       console.error("Microphone start failed", e);
       toast.error("Couldn't start the microphone", {
         description: "Allow microphone access for this app, then try again.",
       });
+      return false;
     }
   };
 
@@ -371,8 +513,12 @@ export function VoiceFoodDialog({
           // onresult into a torn-down dialog.
           recogRef.current?.abort?.();
           recogRef.current = null;
+          clearTimeout(tapTimer.current);
+          setMicMode("idle");
+          setHint(false);
           setRecording(false);
           setTranscript("");
+          transcriptRef.current = "";
           setItems([]);
         }
         onOpenChange(o);
@@ -407,28 +553,97 @@ export function VoiceFoodDialog({
             <em>"I had 2 rotis, a bowl of dal, and a banana"</em>
           </p>
 
-          {/* Record button */}
-          <div className="flex justify-center">
-            <button
-              onClick={recording ? stopAndParse : startRecording}
-              disabled={parsing}
-              aria-label={recording ? "Stop recording" : "Start recording"}
-              className={`flex h-20 w-20 items-center justify-center rounded-full border-4 transition-all ${
-                recording
-                  ? "animate-pulse border-destructive bg-destructive/10"
-                  : "border-accent bg-accent/10 hover:bg-accent/20"
-              }`}
+          {/* Record button: hold to talk, or double-tap to talk hands-free.
+              The ring fills over the 60 seconds a recording may last. */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="relative h-24 w-24">
+              <svg
+                className="absolute inset-0 -rotate-90"
+                viewBox="0 0 96 96"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="44"
+                  fill="none"
+                  strokeWidth="4"
+                  className="stroke-border"
+                />
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="44"
+                  fill="none"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={RING}
+                  strokeDashoffset={
+                    RING * (1 - Math.min(1, elapsed / MAX_SPEECH_MS))
+                  }
+                  className={`transition-[stroke-dashoffset] duration-200 ease-linear motion-reduce:transition-none ${
+                    elapsed > MAX_SPEECH_MS - 10_000
+                      ? "stroke-destructive"
+                      : "stroke-accent"
+                  }`}
+                />
+              </svg>
+              <button
+                type="button"
+                onPointerDown={onPressStart}
+                onPointerUp={onPressEnd}
+                onPointerCancel={onPressEnd}
+                onKeyDown={onMicKey}
+                onContextMenu={(e) => e.preventDefault()}
+                disabled={parsing}
+                aria-label={
+                  mode === "locked"
+                    ? "Stop recording"
+                    : "Hold to record, or double-tap to record hands-free"
+                }
+                aria-pressed={active}
+                style={{ touchAction: "none", WebkitTouchCallout: "none" }}
+                className={`absolute inset-2 flex select-none items-center justify-center rounded-full transition-[transform,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 motion-reduce:transition-none ${
+                  mode === "hold"
+                    ? "scale-95 bg-accent/25"
+                    : active
+                      ? "bg-accent/20"
+                      : "bg-accent/10 hover:bg-accent/15"
+                }`}
+              >
+                {mode === "locked" ? (
+                  <Square className="h-6 w-6 fill-accent text-accent" />
+                ) : (
+                  <Mic className="h-8 w-8 text-accent" />
+                )}
+              </button>
+            </div>
+            <p
+              className="flex items-center gap-2 text-center text-xs text-muted-foreground"
+              aria-live="polite"
             >
-              {recording ? (
-                <MicOff className="h-8 w-8 text-destructive" />
-              ) : (
-                <Mic className="h-8 w-8 text-accent" />
+              <span className={hint ? "font-medium text-foreground" : ""}>
+                {mode === "hold"
+                  ? "Release to finish"
+                  : mode === "locked"
+                    ? "Tap to stop"
+                    : mode === "pending"
+                      ? "Tap again to talk longer"
+                      : MIC_HINT}
+              </span>
+              {active && (
+                <span
+                  className={`tabular-nums ${
+                    elapsed > MAX_SPEECH_MS - 10_000
+                      ? "text-destructive"
+                      : "text-foreground"
+                  }`}
+                >
+                  {`0:${String(Math.min(59, Math.floor(elapsed / 1000))).padStart(2, "0")} / 1:00`}
+                </span>
               )}
-            </button>
+            </p>
           </div>
-          <p className="text-center text-xs text-muted-foreground">
-            {recording ? "Recording… tap to stop" : "Tap to start recording"}
-          </p>
 
           {parsing && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
