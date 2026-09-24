@@ -1,0 +1,1296 @@
+{
+ "brand": "The Belgian Waffle Co",
+ "code": "ZW",
+ "source": "https://thebelgianwaffle.co/assets/images/nutritional-sheet.pdf (The Belgian Waffle Co. nutritional sheet)",
+ "basis": "Per serving with the brand's own serving size in g, as listed on its nutritional sheet. Rows whose names are unreadable in the PDF are left out.",
+ "density": 350,
+ "items": [
+  {
+   "name": "Honey Butter Waffle-Wich",
+   "serving": "serving",
+   "g": 96.0,
+   "kcal": 357.76,
+   "protein": 4.52,
+   "carbs": 53.04,
+   "fat": 14.17
+  },
+  {
+   "name": "Maple Butter Waffle-Wich",
+   "serving": "serving",
+   "g": 111.0,
+   "kcal": 424.42,
+   "protein": 4.52,
+   "carbs": 69.7,
+   "fat": 14.17
+  },
+  {
+   "name": "Almond Cocoa butter Waffle-Wich",
+   "serving": "serving",
+   "g": 118.0,
+   "kcal": 563.64,
+   "protein": 11.86,
+   "carbs": 55.58,
+   "fat": 32.65
+  },
+  {
+   "name": "Snickers Waffle-Wich",
+   "serving": "serving",
+   "g": 131.0,
+   "kcal": 567.86,
+   "protein": 9.88,
+   "carbs": 71.61,
+   "fat": 26.88
+  },
+  {
+   "name": "Naked Nutella Waffle-Wich",
+   "serving": "serving",
+   "g": 109.0,
+   "kcal": 470.87,
+   "protein": 7.17,
+   "carbs": 57.76,
+   "fat": 23.46
+  },
+  {
+   "name": "Kitkat Waffle-Wich",
+   "serving": "serving",
+   "g": 127.0,
+   "kcal": 538.16,
+   "protein": 8.48,
+   "carbs": 62.42,
+   "fat": 28.29
+  },
+  {
+   "name": "Belgian Chocomelt Dark Waffle-Wich",
+   "serving": "serving",
+   "g": 109.0,
+   "kcal": 493.64,
+   "protein": 6.1,
+   "carbs": 56.69,
+   "fat": 26.94
+  },
+  {
+   "name": "Belgian Chocomelt Milk Waffle-Wich",
+   "serving": "serving",
+   "g": 109.0,
+   "kcal": 435.54,
+   "protein": 8.59,
+   "carbs": 46.03,
+   "fat": 24.61
+  },
+  {
+   "name": "Coffee Mocha Waffle-Wich",
+   "serving": "serving",
+   "g": 109.0,
+   "kcal": 494.26,
+   "protein": 7.55,
+   "carbs": 55.4,
+   "fat": 26.94
+  },
+  {
+   "name": "Butterscotch Crunch Waffle-Wich",
+   "serving": "serving",
+   "g": 109.0,
+   "kcal": 478.74,
+   "protein": 7.43,
+   "carbs": 58.41,
+   "fat": 23.93
+  },
+  {
+   "name": "Triple Chocomelt Waff- Wich",
+   "serving": "serving",
+   "g": 147.0,
+   "kcal": 726.94,
+   "protein": 11.26,
+   "carbs": 75.51,
+   "fat": 42.21
+  },
+  {
+   "name": "Dark & White fantasy Waffle-Wich",
+   "serving": "serving",
+   "g": 112.0,
+   "kcal": 516.84,
+   "protein": 8.96,
+   "carbs": 57.75,
+   "fat": 27.78
+  },
+  {
+   "name": "Chocobite Overload Milk Waffle-Wich",
+   "serving": "serving",
+   "g": 112.0,
+   "kcal": 526.05,
+   "protein": 10.08,
+   "carbs": 56.03,
+   "fat": 29.07
+  },
+  {
+   "name": "Chocobite Overload Dark Waffle-Wich",
+   "serving": "serving",
+   "g": 112.0,
+   "kcal": 519.96,
+   "protein": 7.59,
+   "carbs": 59.9,
+   "fat": 27.78
+  },
+  {
+   "name": "Almond Brownie Waffle-Wich",
+   "serving": "serving",
+   "g": 122.0,
+   "kcal": 588.22,
+   "protein": 12.19,
+   "carbs": 58.23,
+   "fat": 34.06
+  },
+  {
+   "name": "Berry Red Velvet Waffle-Wich",
+   "serving": "serving",
+   "g": 155.0,
+   "kcal": 573.21,
+   "protein": 8.86,
+   "carbs": 74.29,
+   "fat": 26.74
+  },
+  {
+   "name": "Red Velvet Waffle-Wich",
+   "serving": "serving",
+   "g": 110.0,
+   "kcal": 502.74,
+   "protein": 8.63,
+   "carbs": 57.1,
+   "fat": 26.65
+  },
+  {
+   "name": "Lotus Biscoff Waffle-Wich",
+   "serving": "serving",
+   "g": 119.0,
+   "kcal": 580.35,
+   "protein": 6.98,
+   "carbs": 64.56,
+   "fat": 32.69
+  },
+  {
+   "name": "Kiki & Oreo Cream Waffle-Wich",
+   "serving": "serving",
+   "g": 113.0,
+   "kcal": 521.91,
+   "protein": 7.71,
+   "carbs": 62.67,
+   "fat": 26.71
+  },
+  {
+   "name": "Almond Flour Honey Butter Waffle-Wich",
+   "serving": "serving",
+   "g": 98.0,
+   "kcal": 395.61,
+   "protein": 4.55,
+   "carbs": 55.64,
+   "fat": 17.21
+  },
+  {
+   "name": "Almond Flour Maple Butter Waffle-Wich",
+   "serving": "serving",
+   "g": 113.0,
+   "kcal": 403.61,
+   "protein": 4.55,
+   "carbs": 57.64,
+   "fat": 17.21
+  },
+  {
+   "name": "A W lm ich o nd Flour Almond Cocoa Butter Waff-",
+   "serving": "serving",
+   "g": 121.0,
+   "kcal": 606.37,
+   "protein": 12.03,
+   "carbs": 58.65,
+   "fat": 35.96
+  },
+  {
+   "name": "A W lm ich o nd Flour snickers Chocolate Waff-",
+   "serving": "serving",
+   "g": 156.0,
+   "kcal": 606.04,
+   "protein": 9.95,
+   "carbs": 74.25,
+   "fat": 29.92
+  },
+  {
+   "name": "Almond Flour Naked nutella Waffle-Wich",
+   "serving": "serving",
+   "g": 109.0,
+   "kcal": 498.16,
+   "protein": 7.11,
+   "carbs": 59.21,
+   "fat": 25.87
+  },
+  {
+   "name": "Almond flour Kitkat Waffle-Wich",
+   "serving": "serving",
+   "g": 129.0,
+   "kcal": 609.01,
+   "protein": 8.69,
+   "carbs": 65.67,
+   "fat": 34.62
+  },
+  {
+   "name": "Almond Flour Coffee Mocha Waffle-Wich",
+   "serving": "serving",
+   "g": 111.0,
+   "kcal": 532.21,
+   "protein": 7.61,
+   "carbs": 58.0,
+   "fat": 29.98
+  },
+  {
+   "name": "Wich",
+   "serving": "serving",
+   "g": 111.0,
+   "kcal": 516.7,
+   "protein": 7.5,
+   "carbs": 61.01,
+   "fat": 26.97
+  },
+  {
+   "name": "Honey Butter Mini Pancakes",
+   "serving": "serving",
+   "g": 66.0,
+   "kcal": 211.42,
+   "protein": 2.08,
+   "carbs": 14.65,
+   "fat": 16.06
+  },
+  {
+   "name": "Maple Butter Mini Pancakes",
+   "serving": "serving",
+   "g": 66.0,
+   "kcal": 295.23,
+   "protein": 3.12,
+   "carbs": 24.94,
+   "fat": 20.33
+  },
+  {
+   "name": "Almond Cocoa butter Mini Pancakes",
+   "serving": "serving",
+   "g": 74.0,
+   "kcal": 346.12,
+   "protein": 7.14,
+   "carbs": 35.39,
+   "fat": 19.55
+  },
+  {
+   "name": "Naked Nutella Mini Pancakes",
+   "serving": "serving",
+   "g": 69.0,
+   "kcal": 294.47,
+   "protein": 4.53,
+   "carbs": 36.57,
+   "fat": 14.45
+  },
+  {
+   "name": "Kitkat Mini Pancakes",
+   "serving": "serving",
+   "g": 87.0,
+   "kcal": 386.5,
+   "protein": 5.87,
+   "carbs": 43.22,
+   "fat": 21.12
+  },
+  {
+   "name": "Belgian Chocomelt Milk Mini Pancakes",
+   "serving": "serving",
+   "g": 69.0,
+   "kcal": 311.25,
+   "protein": 5.35,
+   "carbs": 33.69,
+   "fat": 17.23
+  },
+  {
+   "name": "Belgian Chocomelt Dark Mini Pancakes",
+   "serving": "serving",
+   "g": 69.0,
+   "kcal": 329.5,
+   "protein": 3.73,
+   "carbs": 35.94,
+   "fat": 18.98
+  },
+  {
+   "name": "Coffee Mocha Mini Pancakes",
+   "serving": "serving",
+   "g": 69.0,
+   "kcal": 308.07,
+   "protein": 4.75,
+   "carbs": 35.19,
+   "fat": 16.48
+  },
+  {
+   "name": "Butterscotch Crunch Mini Pancakes",
+   "serving": "serving",
+   "g": 87.0,
+   "kcal": 398.34,
+   "protein": 5.92,
+   "carbs": 47.56,
+   "fat": 20.49
+  },
+  {
+   "name": "Triple Chocomelt Mini Pancakes",
+   "serving": "serving",
+   "g": 74.0,
+   "kcal": 347.42,
+   "protein": 5.8,
+   "carbs": 38.39,
+   "fat": 18.96
+  },
+  {
+   "name": "Dark & White fantasy Mini Pancakes",
+   "serving": "serving",
+   "g": 69.0,
+   "kcal": 315.61,
+   "protein": 5.51,
+   "carbs": 35.79,
+   "fat": 16.71
+  },
+  {
+   "name": "Chocobite Overload Milk Mini Pancakes",
+   "serving": "serving",
+   "g": 69.0,
+   "kcal": 317.42,
+   "protein": 4.72,
+   "carbs": 37.04,
+   "fat": 16.71
+  },
+  {
+   "name": "Chocobite Overload Dark Mini Pancakes",
+   "serving": "serving",
+   "g": 69.0,
+   "kcal": 170.68,
+   "protein": 4.72,
+   "carbs": 22.29,
+   "fat": 6.96
+  },
+  {
+   "name": "Lotus Biscoff Mini Pancakes",
+   "serving": "serving",
+   "g": 72.0,
+   "kcal": 319.0,
+   "protein": 4.2,
+   "carbs": 39.85,
+   "fat": 15.87
+  },
+  {
+   "name": "Kiki & Oreo Cream Mini Pancakes",
+   "serving": "serving",
+   "g": 69.0,
+   "kcal": 194.5,
+   "protein": 2.84,
+   "carbs": 22.96,
+   "fat": 10.15
+  },
+  {
+   "name": "Rocky Road Mini Pancake",
+   "serving": "serving",
+   "g": 135.0,
+   "kcal": 450.41,
+   "protein": 8.08,
+   "carbs": 48.65,
+   "fat": 24.83
+  },
+  {
+   "name": "Vanilla Ice Cream and Fudge Mini Pancakes",
+   "serving": "serving",
+   "g": 108.0,
+   "kcal": 206.14,
+   "protein": 3.61,
+   "carbs": 28.39,
+   "fat": 8.68
+  },
+  {
+   "name": "Chocolate Ice Cream and Fudge Mini Pancakes",
+   "serving": "serving",
+   "g": 108.0,
+   "kcal": 260.89,
+   "protein": 4.71,
+   "carbs": 34.34,
+   "fat": 11.63
+  },
+  {
+   "name": "Triple Cookies Mini Pancake",
+   "serving": "serving",
+   "g": 152.0,
+   "kcal": 518.2,
+   "protein": 8.6,
+   "carbs": 62.13,
+   "fat": 26.14
+  },
+  {
+   "name": "Choco Brownie Sundae Large",
+   "serving": "serving",
+   "g": 125.0,
+   "kcal": 298.28,
+   "protein": 6.56,
+   "carbs": 35.67,
+   "fat": 14.37
+  },
+  {
+   "name": "Choco Brownie Sundae Mini",
+   "serving": "serving",
+   "g": 77.0,
+   "kcal": 179.58,
+   "protein": 4.09,
+   "carbs": 20.24,
+   "fat": 9.14
+  },
+  {
+   "name": "Berry Red Velvet Sundae Large",
+   "serving": "serving",
+   "g": 143.0,
+   "kcal": 315.28,
+   "protein": 5.59,
+   "carbs": 44.01,
+   "fat": 12.98
+  },
+  {
+   "name": "Berry Red Velvet Sundae Mini",
+   "serving": "serving",
+   "g": 86.0,
+   "kcal": 166.96,
+   "protein": 2.95,
+   "carbs": 22.79,
+   "fat": 7.11
+  },
+  {
+   "name": "Lotus Biscoff Sundae Large",
+   "serving": "serving",
+   "g": 175.0,
+   "kcal": 362.37,
+   "protein": 5.08,
+   "carbs": 47.71,
+   "fat": 16.8
+  },
+  {
+   "name": "Lotus Biscoff Sundae Mini",
+   "serving": "serving",
+   "g": 104.0,
+   "kcal": 214.11,
+   "protein": 3.01,
+   "carbs": 28.24,
+   "fat": 9.9
+  },
+  {
+   "name": "Rocky Road Waffle-Wich",
+   "serving": "serving",
+   "g": 180.0,
+   "kcal": 681.75,
+   "protein": 13.71,
+   "carbs": 69.93,
+   "fat": 38.58
+  },
+  {
+   "name": "Vanilla Ice cream and Fudge Waffle-Wich",
+   "serving": "serving",
+   "g": 131.0,
+   "kcal": 345.29,
+   "protein": 6.22,
+   "carbs": 46.19,
+   "fat": 15.07
+  },
+  {
+   "name": "Triple Cookies Waffle-Wich",
+   "serving": "serving",
+   "g": 185.0,
+   "kcal": 672.68,
+   "protein": 11.39,
+   "carbs": 79.95,
+   "fat": 34.15
+  },
+  {
+   "name": "Almond Cocoa Butter (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 59.0,
+   "kcal": 281.82,
+   "protein": 5.93,
+   "carbs": 27.79,
+   "fat": 16.33
+  },
+  {
+   "name": "Belgian Chocomelt Milk (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 54.5,
+   "kcal": 217.77,
+   "protein": 4.3,
+   "carbs": 23.02,
+   "fat": 12.3
+  },
+  {
+   "name": "Red Velvet (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 55.0,
+   "kcal": 251.37,
+   "protein": 4.32,
+   "carbs": 28.55,
+   "fat": 13.32
+  },
+  {
+   "name": "Berry Red velvet (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 77.5,
+   "kcal": 286.6,
+   "protein": 4.43,
+   "carbs": 37.15,
+   "fat": 13.37
+  },
+  {
+   "name": "Naked Nutella (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 54.5,
+   "kcal": 235.44,
+   "protein": 3.59,
+   "carbs": 28.88,
+   "fat": 11.73
+  },
+  {
+   "name": "Chocobite Overload Dark (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 56.0,
+   "kcal": 259.98,
+   "protein": 3.79,
+   "carbs": 29.95,
+   "fat": 13.89
+  },
+  {
+   "name": "Dark & White Fantasy (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 56.0,
+   "kcal": 258.42,
+   "protein": 4.48,
+   "carbs": 28.87,
+   "fat": 13.89
+  },
+  {
+   "name": "Chocobite Overload milk (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 56.0,
+   "kcal": 259.98,
+   "protein": 3.79,
+   "carbs": 29.95,
+   "fat": 13.89
+  },
+  {
+   "name": "Belgian Chocomelt Dark (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 56.0,
+   "kcal": 246.82,
+   "protein": 3.05,
+   "carbs": 28.34,
+   "fat": 13.47
+  },
+  {
+   "name": "Kitkat Waffwich (Mini Waffle-Wich)",
+   "serving": "serving",
+   "g": 63.5,
+   "kcal": 269.08,
+   "protein": 4.24,
+   "carbs": 31.21,
+   "fat": 14.14
+  },
+  {
+   "name": "Blueberry Cheesecake Waffwich",
+   "serving": "serving",
+   "g": 62.5,
+   "kcal": 231.63,
+   "protein": 3.13,
+   "carbs": 30.39,
+   "fat": 10.84
+  },
+  {
+   "name": "Biscoff Cheesecake waffwich",
+   "serving": "serving",
+   "g": 56.5,
+   "kcal": 256.69,
+   "protein": 3.35,
+   "carbs": 28.54,
+   "fat": 14.34
+  },
+  {
+   "name": "Kitkat Mini Waffle-Wich",
+   "serving": "serving",
+   "g": 63.5,
+   "kcal": 269.08,
+   "protein": 4.24,
+   "carbs": 31.21,
+   "fat": 14.14
+  },
+  {
+   "name": "Strawberry Cheesecake Waffwich",
+   "serving": "serving",
+   "g": 62.5,
+   "kcal": 204.45,
+   "protein": 3.05,
+   "carbs": 23.67,
+   "fat": 10.84
+  },
+  {
+   "name": "Red Velvet Waffwich",
+   "serving": "serving",
+   "g": 55.0,
+   "kcal": 251.37,
+   "protein": 4.32,
+   "carbs": 28.55,
+   "fat": 13.32
+  },
+  {
+   "name": "Berry Red Velvet Waffwich",
+   "serving": "serving",
+   "g": 77.5,
+   "kcal": 286.6,
+   "protein": 4.43,
+   "carbs": 37.15,
+   "fat": 13.37
+  },
+  {
+   "name": "Kiki & Oreo Cream waffwich",
+   "serving": "serving",
+   "g": 56.5,
+   "kcal": 260.96,
+   "protein": 3.85,
+   "carbs": 31.34,
+   "fat": 13.36
+  },
+  {
+   "name": "Lotus Biscoff Waffwich",
+   "serving": "serving",
+   "g": 59.5,
+   "kcal": 290.17,
+   "protein": 3.49,
+   "carbs": 32.28,
+   "fat": 16.34
+  },
+  {
+   "name": "Death by Choco-rush cake single layer",
+   "serving": "serving",
+   "g": 296.0,
+   "kcal": 1503.9,
+   "protein": 24.53,
+   "carbs": 148.0,
+   "fat": 90.42
+  },
+  {
+   "name": "Death by Choco-rush cake double layer",
+   "serving": "serving",
+   "g": 532.0,
+   "kcal": 2632.07,
+   "protein": 46.03,
+   "carbs": 264.5,
+   "fat": 154.44
+  },
+  {
+   "name": "Berry red velvet Waffle cake single layer",
+   "serving": "serving",
+   "g": 313.0,
+   "kcal": 1301.39,
+   "protein": 20.7,
+   "carbs": 153.16,
+   "fat": 67.33
+  },
+  {
+   "name": "Berry red velvet Waffle cake double layer",
+   "serving": "serving",
+   "g": 595.0,
+   "kcal": 2455.34,
+   "protein": 39.0,
+   "carbs": 290.52,
+   "fat": 126.36
+  },
+  {
+   "name": "Kiki & Oreo Cream Waffle cake single",
+   "serving": "serving",
+   "g": 246.0,
+   "kcal": 1157.95,
+   "protein": 16.89,
+   "carbs": 137.22,
+   "fat": 60.17
+  },
+  {
+   "name": "Kiki & Oreo Cream Waffle Cake Double Layer",
+   "serving": "serving",
+   "g": 476.0,
+   "kcal": 2238.34,
+   "protein": 32.94,
+   "carbs": 262.94,
+   "fat": 117.2
+  },
+  {
+   "name": "Almond Brownie Waffle cake Single layer",
+   "serving": "serving",
+   "g": 266.0,
+   "kcal": 1311.14,
+   "protein": 26.11,
+   "carbs": 126.4,
+   "fat": 77.9
+  },
+  {
+   "name": "Almond Brownie Waffle Cake Double Layer",
+   "serving": "serving",
+   "g": 522.0,
+   "kcal": 2563.65,
+   "protein": 51.84,
+   "carbs": 247.3,
+   "fat": 151.9
+  },
+  {
+   "name": "Peri Peri Potato Pops",
+   "serving": "serving",
+   "g": 73.0,
+   "kcal": 125.56,
+   "protein": 2.15,
+   "carbs": 18.17,
+   "fat": 4.92
+  },
+  {
+   "name": "Cheese Potato Pops",
+   "serving": "serving",
+   "g": 74.0,
+   "kcal": 128.18,
+   "protein": 2.19,
+   "carbs": 18.56,
+   "fat": 5.02
+  },
+  {
+   "name": "Biscoff Cheesecake",
+   "serving": "serving",
+   "g": 113.0,
+   "kcal": 513.38,
+   "protein": 6.71,
+   "carbs": 57.09,
+   "fat": 28.69
+  },
+  {
+   "name": "Nutella Cheesecake",
+   "serving": "serving",
+   "g": 114.0,
+   "kcal": 507.93,
+   "protein": 7.31,
+   "carbs": 58.49,
+   "fat": 27.19
+  },
+  {
+   "name": "Blueberry Cheesecake",
+   "serving": "serving",
+   "g": 125.0,
+   "kcal": 463.27,
+   "protein": 6.25,
+   "carbs": 60.78,
+   "fat": 21.68
+  },
+  {
+   "name": "Strawberry Cheesecake",
+   "serving": "serving",
+   "g": 125.0,
+   "kcal": 408.91,
+   "protein": 6.1,
+   "carbs": 47.34,
+   "fat": 21.68
+  },
+  {
+   "name": "Oreo Shake",
+   "serving": "drink, 290 ml",
+   "g": 290.0,
+   "kcal": 324.52,
+   "protein": 7.82,
+   "carbs": 36.53,
+   "fat": 16.35
+  },
+  {
+   "name": "Belgian Chocomelt shake",
+   "serving": "serving",
+   "g": 280.0,
+   "kcal": 490.0,
+   "protein": 11.24,
+   "carbs": 42.88,
+   "fat": 30.39
+  },
+  {
+   "name": "Kitkat Shake",
+   "serving": "drink, 284 ml",
+   "g": 284.0,
+   "kcal": 430.81,
+   "protein": 9.05,
+   "carbs": 45.28,
+   "fat": 23.72
+  },
+  {
+   "name": "Blueberry White Choco shake",
+   "serving": "serving",
+   "g": 284.0,
+   "kcal": 359.21,
+   "protein": 7.14,
+   "carbs": 42.14,
+   "fat": 18.01
+  },
+  {
+   "name": "Nutella shake",
+   "serving": "serving",
+   "g": 276.0,
+   "kcal": 435.47,
+   "protein": 9.01,
+   "carbs": 43.29,
+   "fat": 25.14
+  },
+  {
+   "name": "Signature cold coffee",
+   "serving": "serving",
+   "g": 245.0,
+   "kcal": 200.07,
+   "protein": 7.64,
+   "carbs": 30.23,
+   "fat": 5.4
+  },
+  {
+   "name": "Lemon Ice Tea",
+   "serving": "drink, 321 ml",
+   "g": 321.0,
+   "kcal": 142.95,
+   "protein": 0.16,
+   "carbs": 35.53,
+   "fat": 0.02
+  },
+  {
+   "name": "Peach Ice Tea",
+   "serving": "drink, 321 ml",
+   "g": 321.0,
+   "kcal": 140.41,
+   "protein": 0.16,
+   "carbs": 34.89,
+   "fat": 0.02
+  },
+  {
+   "name": "Extra Nutella (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 161.7,
+   "protein": 1.89,
+   "carbs": 17.25,
+   "fat": 9.27
+  },
+  {
+   "name": "Kitkat bits (add-on)",
+   "serving": "serving",
+   "g": 18.0,
+   "kcal": 78.84,
+   "protein": 1.15,
+   "carbs": 8.53,
+   "fat": 4.64
+  },
+  {
+   "name": "Roasted Almond (add-on)",
+   "serving": "serving",
+   "g": 10.0,
+   "kcal": 57.5,
+   "protein": 2.115,
+   "carbs": 2.2,
+   "fat": 4.99
+  },
+  {
+   "name": "Snickers (add-on)",
+   "serving": "serving",
+   "g": 22.5,
+   "kcal": 110.48,
+   "protein": 1.99,
+   "carbs": 12.92,
+   "fat": 5.65
+  },
+  {
+   "name": "Biscoff Bits (add-on)",
+   "serving": "serving",
+   "g": 8.0,
+   "kcal": 35.84,
+   "protein": 0.392,
+   "carbs": 5.808,
+   "fat": 1.52
+  },
+  {
+   "name": "Oreo (add-on)",
+   "serving": "serving",
+   "g": 8.0,
+   "kcal": 38.64,
+   "protein": 0.42,
+   "carbs": 5.752,
+   "fat": 1.57
+  },
+  {
+   "name": "Chocolatey Sprinkles (add-on)",
+   "serving": "serving",
+   "g": 5.0,
+   "kcal": 23.55,
+   "protein": 0.2195,
+   "carbs": 3.3,
+   "fat": 1.05
+  },
+  {
+   "name": "Banana (add-on)",
+   "serving": "serving",
+   "g": 50.0,
+   "kcal": 52.5,
+   "protein": 0.55,
+   "carbs": 11.5,
+   "fat": 0.15
+  },
+  {
+   "name": "Vanilla Ice Cream (add-on)",
+   "serving": "serving",
+   "g": 50.0,
+   "kcal": 13.125,
+   "protein": 0.1375,
+   "carbs": 2.875,
+   "fat": 0.0375
+  },
+  {
+   "name": "Chocolate Ice Cream (add-on)",
+   "serving": "serving",
+   "g": 50.0,
+   "kcal": 61.55,
+   "protein": 1.25,
+   "carbs": 7.95,
+   "fat": 3.05
+  },
+  {
+   "name": "Milk Chococream Spread (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 180.0,
+   "protein": 2.88,
+   "carbs": 13.8,
+   "fat": 12.6
+  },
+  {
+   "name": "White Chococream Spread (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 173.7,
+   "protein": 2.1,
+   "carbs": 15.0,
+   "fat": 11.7
+  },
+  {
+   "name": "Dark Chococream Spread (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 174.3,
+   "protein": 1.143,
+   "carbs": 16.5,
+   "fat": 11.7
+  },
+  {
+   "name": "Cookies Crunch filling (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 171.3,
+   "protein": 2.262,
+   "carbs": 17.4,
+   "fat": 11.1
+  },
+  {
+   "name": "Butter Scotch Chococream Spread (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 165.6,
+   "protein": 2.07,
+   "carbs": 17.7,
+   "fat": 9.6
+  },
+  {
+   "name": "Coffee Chococream Spread (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 174.9,
+   "protein": 2.151,
+   "carbs": 15.6,
+   "fat": 11.7
+  },
+  {
+   "name": "Strawberry Cut Filling (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 46.38,
+   "protein": 0.15,
+   "carbs": 13.59,
+   "fat": 0.0
+  },
+  {
+   "name": "Blueberry Fruit Filling (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 54.87,
+   "protein": 0.15,
+   "carbs": 13.59,
+   "fat": 0.0
+  },
+  {
+   "name": "Mango Fruit Filling (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 43.5,
+   "protein": 0.18,
+   "carbs": 10.77,
+   "fat": 0.09
+  },
+  {
+   "name": "Cheese Filling (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 177.0,
+   "protein": 1.728,
+   "carbs": 13.5,
+   "fat": 12.9
+  },
+  {
+   "name": "Peanut filling (add-on)",
+   "serving": "serving",
+   "g": 30.0,
+   "kcal": 171.0,
+   "protein": 3.831,
+   "carbs": 15.3,
+   "fat": 10.5
+  },
+  {
+   "name": "Kitkat Affair",
+   "serving": "serving",
+   "g": 172.5,
+   "kcal": 645.86,
+   "protein": 10.31,
+   "carbs": 66.22,
+   "fat": 37.75
+  },
+  {
+   "name": "Kitkat Affair (2 servings)",
+   "serving": "serving",
+   "g": 86.25,
+   "kcal": 322.93,
+   "protein": 5.15,
+   "carbs": 33.11,
+   "fat": 18.87
+  },
+  {
+   "name": "Nutella Overload",
+   "serving": "serving",
+   "g": 160.0,
+   "kcal": 502.43,
+   "protein": 7.71,
+   "carbs": 60.46,
+   "fat": 25.53
+  },
+  {
+   "name": "Nutella Overload (2 servings)",
+   "serving": "serving",
+   "g": 80.0,
+   "kcal": 251.21,
+   "protein": 3.86,
+   "carbs": 30.23,
+   "fat": 12.76
+  },
+  {
+   "name": "Death By Choco-rush",
+   "serving": "serving",
+   "g": 227.0,
+   "kcal": 888.8,
+   "protein": 13.02,
+   "carbs": 113.54,
+   "fat": 42.51
+  },
+  {
+   "name": "Death By Choco-rush (2 servings)",
+   "serving": "serving",
+   "g": 113.5,
+   "kcal": 444.4,
+   "protein": 6.51,
+   "carbs": 56.77,
+   "fat": 21.25
+  },
+  {
+   "name": "Almond Fudge Brownie",
+   "serving": "serving",
+   "g": 166.0,
+   "kcal": 591.34,
+   "protein": 11.59,
+   "carbs": 59.14,
+   "fat": 34.27
+  },
+  {
+   "name": "Blueberry Cheesecake Waffle Roll",
+   "serving": "serving",
+   "g": 95.0,
+   "kcal": 305.07,
+   "protein": 2.72,
+   "carbs": 43.31,
+   "fat": 13.41
+  },
+  {
+   "name": "Triple chocomelt Waffle Roll",
+   "serving": "serving",
+   "g": 33.0,
+   "kcal": 151.08,
+   "protein": 2.04,
+   "carbs": 16.32,
+   "fat": 8.63
+  },
+  {
+   "name": "Kitkat Waffle Roll",
+   "serving": "serving",
+   "g": 34.0,
+   "kcal": 155.58,
+   "protein": 2.62,
+   "carbs": 15.98,
+   "fat": 9.02
+  },
+  {
+   "name": "Nutella Waffle Roll",
+   "serving": "serving",
+   "g": 33.0,
+   "kcal": 138.19,
+   "protein": 1.95,
+   "carbs": 17.7,
+   "fat": 6.62
+  },
+  {
+   "name": "Belgian Chocomelt Waffle Roll (Milk)",
+   "serving": "serving",
+   "g": 34.0,
+   "kcal": 156.63,
+   "protein": 2.7,
+   "carbs": 15.91,
+   "fat": 9.13
+  },
+  {
+   "name": "Belgian Chocomelt Waffle Roll (Dark)",
+   "serving": "serving",
+   "g": 33.0,
+   "kcal": 149.33,
+   "protein": 1.52,
+   "carbs": 17.22,
+   "fat": 8.26
+  },
+  {
+   "name": "Espresso - Single",
+   "serving": "cup, 30 ml",
+   "g": 30.0,
+   "kcal": 51.8,
+   "protein": 1.57,
+   "carbs": 8.16,
+   "fat": 1.43
+  },
+  {
+   "name": "Café Americano",
+   "serving": "cup, 180 ml",
+   "g": 180.0,
+   "kcal": 28.39,
+   "protein": 1.18,
+   "carbs": 5.77,
+   "fat": 0.07
+  },
+  {
+   "name": "Café Mocha",
+   "serving": "cup, 245 ml",
+   "g": 245.0,
+   "kcal": 183.74,
+   "protein": 7.04,
+   "carbs": 24.83,
+   "fat": 6.25
+  },
+  {
+   "name": "Café Latte",
+   "serving": "cup, 200 ml",
+   "g": 200.0,
+   "kcal": 113.13,
+   "protein": 5.69,
+   "carbs": 11.05,
+   "fat": 5.13
+  },
+  {
+   "name": "Cappuccino",
+   "serving": "cup, 180 ml",
+   "g": 180.0,
+   "kcal": 101.49,
+   "protein": 5.09,
+   "carbs": 10.09,
+   "fat": 4.53
+  },
+  {
+   "name": "Choco Cappuccino",
+   "serving": "cup, 200 ml",
+   "g": 200.0,
+   "kcal": 170.89,
+   "protein": 5.74,
+   "carbs": 24.83,
+   "fat": 5.4
+  },
+  {
+   "name": "Hot Choco - Classic",
+   "serving": "cup, 235 ml",
+   "g": 235.0,
+   "kcal": 248.79,
+   "protein": 8.3,
+   "carbs": 37.99,
+   "fat": 7.07
+  },
+  {
+   "name": "Hot Choco - Roasted Hazelnut",
+   "serving": "cup, 245 ml",
+   "g": 245.0,
+   "kcal": 283.59,
+   "protein": 8.3,
+   "carbs": 46.7,
+   "fat": 7.07
+  },
+  {
+   "name": "Blueberry white choco shake",
+   "serving": "serving",
+   "g": 298.0,
+   "kcal": 389.37,
+   "protein": 7.2,
+   "carbs": 50.04,
+   "fat": 17.82
+  },
+  {
+   "name": "Peach Tea",
+   "serving": "drink, 321 ml",
+   "g": 321.0,
+   "kcal": 140.41,
+   "protein": 0.16,
+   "carbs": 34.89,
+   "fat": 0.02
+  },
+  {
+   "name": "Lemon Tea",
+   "serving": "drink, 321 ml",
+   "g": 321.0,
+   "kcal": 142.95,
+   "protein": 0.16,
+   "carbs": 35.53,
+   "fat": 0.02
+  },
+  {
+   "name": "Choco Almond Fudge Shake",
+   "serving": "drink, 227 ml",
+   "g": 227.0,
+   "kcal": 227.87,
+   "protein": 5.01,
+   "carbs": 30.46,
+   "fat": 9.56
+  },
+  {
+   "name": "Very Berry Smoothie",
+   "serving": "serving",
+   "g": 150.0,
+   "kcal": 80.97,
+   "protein": 2.73,
+   "carbs": 11.3,
+   "fat": 2.76
+  },
+  {
+   "name": "Blueberry Chocolate shake",
+   "serving": "serving",
+   "g": 237.0,
+   "kcal": 276.49,
+   "protein": 5.36,
+   "carbs": 39.52,
+   "fat": 10.77
+  }
+ ]
+}
