@@ -207,15 +207,18 @@ async function runFoodSearch(
   // Pipe-delimited rather than JSON: five rows of JSON is ~400 tokens of
   // punctuation, and the model is being told to copy numbers, not parse shapes.
   // `fibtg` is an empty string on 95 restaurant rows, hence the coercion.
-  // A fast-food lookup sees at most 3 rows, and only the named brand's.
-  const brand = fastFood?.restaurant.trim().toLowerCase();
-  const refs = (
-    brand
-      ? referenceFoods(cleanQuery, 5)
-          .filter((it) => it.lang.toLowerCase() === brand)
-          .slice(0, 3)
-      : referenceFoods(cleanQuery, 5)
-  ).map((it) =>
+  // A fast-food lookup sees at most 3 rows, and only the named brand's, from
+  // the restaurant menus (which the everyday catalog no longer holds).
+  let refRows;
+  if (fastFood) {
+    const rdb = await import("@/lib/restaurantDb");
+    const { rows, brands } = await rdb.loadRestaurants();
+    const brand = rdb.exactBrand(brands, fastFood.restaurant);
+    refRows = brand ? rdb.menuMatches(rows, brand, fastFood.meal, 3) : [];
+  } else {
+    refRows = referenceFoods(cleanQuery, 5);
+  }
+  const refs = refRows.map((it) =>
     [
       it.name,
       it.lang ? it.lang.slice(0, 300) : null,

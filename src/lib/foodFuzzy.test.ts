@@ -90,17 +90,17 @@ const hits = (q: string) => strongFoods(q, 3).length;
   );
 }
 
-// ── F5: a brand item is findable without naming the brand ──────────────────
-// Restaurant rows are stored brand-first ("McDonald's McVeggie Burger"), so the
-// old prefix/substring search missed every query that started with the item.
+// ── F5: restaurant menus stay out of the everyday search ───────────────────
+// They are searched brand first in Fast Food Meal (restaurantDb.ts); in this
+// index they would slow every keystroke and crowd out plain foods.
 {
-  for (const q of ["veggie burger", "mcveggie"]) {
+  for (const q of ["mcveggie", "farmhouse pizza", "zinger"]) {
     assert.ok(
-      top(q).toLowerCase().includes("mcveggie"),
-      `F5 "${q}" should reach the McVeggie row, got "${top(q)}"`,
+      !/McDonald's|Domino's|KFC/.test(top(q)),
+      `F5 "${q}" reached a restaurant row: "${top(q)}"`,
     );
   }
-  console.log(`✓ F5 brand items found by item name alone`);
+  console.log(`✓ F5 restaurant menus are not in the main search`);
 }
 
 // ── F6: native script does not match, and that is correct ──────────────────

@@ -4,7 +4,7 @@
  * prompt (serverFastFoodSearch). The typed text lives in the parent, so it is
  * still there when the log card is cancelled and this dialog comes back.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, Pizza, Search, Store } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,14 @@ import { serverFastFoodSearch } from "@/lib/ai";
 import { toastAiError } from "@/lib/aiErrors";
 import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
-import { ITEMS, kcalOf, type IFCTItem } from "@/lib/foodDb";
-
-// Restaurant rows carry their brand in `lang` (see restaurantFoods.json).
-const BRAND_ROWS = ITEMS.filter((it) => it.grup.startsWith("Restaurant"));
-const BRANDS = [...new Set(BRAND_ROWS.map((it) => it.lang))].sort();
-
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+import { kcalOf, type IFCTItem } from "@/lib/foodDb";
+import {
+  brandHints as hintsFor,
+  exactBrand,
+  loadRestaurants,
+  menuMatches,
+  type RestaurantDb,
+} from "@/lib/restaurantDb";
 
 export function FastFoodDialog({
   open,
@@ -55,23 +56,24 @@ export function FastFoodDialog({
     "Almost there…",
   ]);
 
-  // "dominos" and "Domino's" are the same brand.
-  const brand = BRANDS.find((b) => norm(b) === norm(restaurant));
-  const brandHints = useMemo(() => {
-    const q = norm(restaurant);
-    if (!q || brand) return [];
-    return BRANDS.filter((b) => norm(b).includes(q)).slice(0, 5);
-  }, [restaurant, brand]);
+  // The menus load the first time this opens, not with the app.
+  const [db, setDb] = useState<RestaurantDb | null>(null);
+  useEffect(() => {
+    if (open && !db) void loadRestaurants().then(setDb);
+  }, [open, db]);
 
-  const menu = useMemo(() => {
-    if (!brand) return [];
-    const words = meal.toLowerCase().split(/\s+/).filter(Boolean);
-    return BRAND_ROWS.filter(
-      (it) =>
-        it.lang === brand &&
-        words.every((w) => it.name.toLowerCase().includes(w)),
-    ).slice(0, 40);
-  }, [brand, meal]);
+  const brands = db?.brands ?? [];
+  const brand = exactBrand(brands, restaurant);
+  const brandHints = useMemo(
+    () => hintsFor(brands, restaurant),
+    [brands, restaurant],
+  );
+  // Only after a word or two of the meal is typed, and only that brand's.
+  const menu = useMemo(
+    () => (brand && db ? menuMatches(db.rows, brand, meal) : []),
+    [db, brand, meal],
+  );
+  const typedMeal = meal.trim().length >= 2;
 
   const canSearch =
     restaurant.trim().length >= 2 && meal.trim().length >= 2 && !searching;
@@ -154,7 +156,7 @@ export function FastFoodDialog({
           )}
           <p className="text-xs text-muted-foreground">
             {brand
-              ? `Pick from the ${brand} menu below, or type any item and search.`
+              ? `Type the meal to see the matching ${brand} items, or tap search for anything else.`
               : "Don't see your restaurant? Type its full name, then the meal, and tap search. We'll look it up for you."}
           </p>
         </div>
@@ -200,7 +202,7 @@ export function FastFoodDialog({
           )}
         </div>
 
-        {brand && (
+        {brand && typedMeal && (
           <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-border p-1">
             {menu.length === 0 ? (
               <p className="px-2 py-3 text-center text-xs text-muted-foreground">

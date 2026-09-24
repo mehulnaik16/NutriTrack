@@ -9,8 +9,7 @@
  * It searches `lang` as well as `name`, which is where the value is: 430 IFCT
  * rows carry their regional names there ("Kan. Sajje; Tam. Kambu; Tel.
  * Sajjalu"), so "sajje" resolves to pearl millet locally, with no model
- * involved. Restaurant rows reuse the same field for the brand, so "mcveggie"
- * reaches the McDonald's row the same way.
+ * involved. Restaurant menus are not in this index at all (see restaurantDb.ts).
  *
  * What it deliberately cannot do is native script. `lang` holds romanised
  * regional names, so a Kannada or Tamil query scores nothing here and falls

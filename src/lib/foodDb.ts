@@ -4,7 +4,6 @@
  */
 
 import ifctData from "../data/ifct2017.json" with { type: "json" };
-import restaurantData from "../data/restaurantFoods.json" with { type: "json" };
 import { EXTRA_FOODS } from "../data/extraFoods.ts";
 import type { Unit } from "./foodUnits.ts";
 
@@ -65,11 +64,15 @@ export interface IFCTItem {
 
 export const KJ_PER_KCAL = 4.184;
 
-/** Full searchable database: IFCT 2017 + curated prepared foods + menu items. */
+/**
+ * Everyday searchable database: IFCT 2017 + curated prepared foods.
+ * Restaurant menus are NOT here: they live in restaurantDb.ts, load only when
+ * Fast Food Meal opens, and are searched brand first. Thousands of menu items
+ * in this list would slow every keystroke of the main search.
+ */
 export const ITEMS: IFCTItem[] = [
   ...(ifctData as IFCTItem[]),
   ...(EXTRA_FOODS as IFCTItem[]),
-  ...(restaurantData as IFCTItem[]),
 ];
 
 /**
