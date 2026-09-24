@@ -372,8 +372,14 @@ export const FoodSearch = forwardRef<
     };
   };
 
-  const handleAiFallback = async () => {
-    if (q.trim().length < 2) return;
+  /**
+   * Search AI. `text` is the Food Search dialog's Research: the same search
+   * on the words edited there, which also become the search box's text.
+   */
+  const handleAiFallback = async (text?: string): Promise<boolean> => {
+    const typed = (text ?? q).trim();
+    if (typed.length < 2) return false;
+    if (text !== undefined) setQ(typed);
 
     // The user's own saved meals come first, for EVERY query, possessive or
     // not: a query matching one of them is that user's own meal whatever it
@@ -382,20 +388,21 @@ export const FoodSearch = forwardRef<
     // join the shared cache. Client-side because savedMeals is already loaded
     // under per-user RLS — no round trip. A miss goes on to the AI path, where
     // isPersonalName still keeps a possessive out of the shared tables.
-    const typed = q.trim();
     const own = savedMeals.find(
       (m) => similarity(m.name.toLowerCase(), typed.toLowerCase()) >= 0.8,
     );
     if (own) {
+      setVoiceOpen(false);
+      setVoiceItems(undefined);
       await logSavedMeal(own);
       setQ("");
-      return;
+      return true;
     }
 
     setSearching(true);
     try {
       const { kind, items } = await serverAiFoodSearchInline({
-        data: { query: q, attempt: searchAttempt() },
+        data: { query: typed, attempt: searchAttempt() },
       });
       recordSearchOutcome(true);
       if (kind === "meal" && items.length > 1) {
@@ -406,16 +413,22 @@ export const FoodSearch = forwardRef<
         setVoiceQuery(typed);
         setVoiceOpen(true);
         setAiSuggestions([]);
-        return;
+        return true;
       }
+      // One food: the pick-one list, so a Research that now finds a single
+      // food leaves the Food Search dialog for it.
+      setVoiceOpen(false);
+      setVoiceItems(undefined);
       // Each suggestion remembers what was typed for it, so a personal name
       // can be saved under the user's words when it is logged (see logFood).
       setAiSuggestions(
         ((items || []) as IFCTItem[]).map((it) => ({ ...it, query: typed })),
       );
+      return true;
     } catch (e) {
       recordSearchOutcome(false);
       toastAiError(e, "AI food search");
+      return false;
     } finally {
       setSearching(false);
     }
@@ -770,7 +783,7 @@ export const FoodSearch = forwardRef<
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleAiFallback}
+            onClick={() => handleAiFallback()}
             className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-[10px] text-accent uppercase font-bold px-2 hover:bg-accent/10"
           >
             Search AI
@@ -1436,16 +1449,7 @@ export const FoodSearch = forwardRef<
         onConfirm={logVoiceItems}
         initialItems={voiceItems}
         typedQuery={voiceItems ? voiceQuery : undefined}
-        onEditQuery={() => {
-          setVoiceOpen(false);
-          setVoiceItems(undefined);
-          // The typed words are still in the box: put the cursor there to
-          // change them and search again.
-          setTimeout(() => {
-            inputRef.current?.focus();
-            inputRef.current?.select();
-          }, 0);
-        }}
+        onResearch={handleAiFallback}
       />
 
       {/* Mounted only while open so @zxing/* stays off the initial page load. */}

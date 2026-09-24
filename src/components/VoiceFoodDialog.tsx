@@ -256,7 +256,7 @@ export function VoiceFoodDialog({
   confirmVerb = "Log",
   initialItems,
   typedQuery,
-  onEditQuery,
+  onResearch,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -275,11 +275,11 @@ export function VoiceFoodDialog({
   /**
    * What the person typed, when the items came from the search box rather
    * than the microphone. The dialog then reads as a food search: the typed
-   * words take the microphone's place, with a pencil to go back and edit them.
+   * words take the microphone's place, and a pencil makes them editable.
    */
   typedQuery?: string;
-  /** Close and return to the search box to change what was typed. */
-  onEditQuery?: () => void;
+  /** Research: the same Search AI, on the edited words; false when it failed. */
+  onResearch?: (text: string) => Promise<boolean>;
 }) {
   const recogRef = useRef<SpeechRecognitionLike | null>(null);
   const [recording, setRecording] = useState(false);
@@ -298,6 +298,21 @@ export function VoiceFoodDialog({
   /** The press that locked or stopped recording must not also count as a release. */
   const ignoreUp = useRef(false);
   const [hint, setHint] = useState(false);
+  // The Food Search box: null while showing what was typed, the edited
+  // words while the pencil has made it editable.
+  const [draft, setDraft] = useState<string | null>(null);
+  const [researching, setResearching] = useState(false);
+  const research = async () => {
+    if (!draft || draft.trim().length < 2 || !onResearch) return;
+    setResearching(true);
+    try {
+      // A failed Research keeps the edit open, so pressing it again is the
+      // next attempt rather than retyping.
+      if (await onResearch(draft)) setDraft(null);
+    } finally {
+      setResearching(false);
+    }
+  };
   const [elapsed, setElapsed] = useState(0);
   const [items, setItems] = useState<VoiceFoodItem[]>(initialItems ?? []);
   const [parsing, setParsing] = useState(false);
@@ -538,6 +553,7 @@ export function VoiceFoodDialog({
           clearTimeout(tapTimer.current);
           setMicMode("idle");
           setHint(false);
+          setDraft(null);
           setRecording(false);
           setTranscript("");
           transcriptRef.current = "";
@@ -579,22 +595,78 @@ export function VoiceFoodDialog({
             </div>
           )}
           {typedQuery ? (
-            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 py-2 pl-3 pr-1">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">You searched</p>
-                <p className="break-words text-sm font-medium">{typedQuery}</p>
+            draft === null ? (
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 py-2 pl-3 pr-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">You searched</p>
+                  <p className="break-words text-sm font-medium">
+                    {typedQuery}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDraft(typedQuery)}
+                  aria-label="Edit search"
+                  title="Edit search"
+                  className="shrink-0"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onEditQuery}
-                aria-label="Edit search"
-                title="Edit search"
-                className="shrink-0"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="rounded-lg border border-accent bg-muted/30 px-3 py-2">
+                  <Label
+                    htmlFor="food-search-edit"
+                    className="text-xs font-normal text-muted-foreground"
+                  >
+                    Edit your search
+                  </Label>
+                  <Textarea
+                    id="food-search-edit"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void research();
+                      }
+                      if (e.key === "Escape") {
+                        e.stopPropagation();
+                        setDraft(null);
+                      }
+                    }}
+                    autoFocus
+                    disabled={researching}
+                    className="mt-1 min-h-[44px] resize-none border-none bg-transparent p-0 text-sm font-medium shadow-none focus-visible:ring-0"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDraft(null)}
+                    disabled={researching}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => void research()}
+                    disabled={researching || draft.trim().length < 2}
+                    className="flex-1 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                  >
+                    {researching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    Research
+                  </Button>
+                </div>
+              </div>
+            )
           ) : (
             <>
               <p className="text-sm text-muted-foreground">
@@ -806,7 +878,7 @@ export function VoiceFoodDialog({
                   size="sm"
                   onClick={() => {
                     // A typed search is redone by editing what was typed.
-                    if (typedQuery) return onEditQuery?.();
+                    if (typedQuery) return setDraft(typedQuery);
                     setTranscript("");
                     setItems([]);
                   }}
