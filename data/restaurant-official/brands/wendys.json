@@ -1,0 +1,583 @@
+{
+ "brand": "Wendy's",
+ "code": "ZY",
+ "source": "https://www.eatsure.com (EatSure, Rebel Foods' own ordering app: nutritional value published on each Wendy's product, brand_id 29; fetched 2026-09-24)",
+ "basis": "Per item as ordered, from the nutrition the brand publishes on its own ordering app. Weights are not published unless in the item name, so they are estimated and shown with ≈.",
+ "density": 250,
+ "items": [
+  {
+   "name": "Crispy Veg Burger",
+   "serving": "order, as sold",
+   "kcal": 390,
+   "protein": 7,
+   "carbs": 52,
+   "fat": 16
+  },
+  {
+   "name": "Chipotle Crunchy Aloo Burger",
+   "serving": "order, as sold",
+   "kcal": 454,
+   "protein": 6,
+   "carbs": 46,
+   "fat": 26
+  },
+  {
+   "name": "Double Patty Crispy Veg Burger",
+   "serving": "order, as sold",
+   "kcal": 584,
+   "protein": 10,
+   "carbs": 72,
+   "fat": 27
+  },
+  {
+   "name": "Spicy Aloo Crunch Burger",
+   "serving": "order, as sold",
+   "kcal": 514,
+   "protein": 6,
+   "carbs": 50,
+   "fat": 31
+  },
+  {
+   "name": "Crispy Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 445,
+   "protein": 17,
+   "carbs": 46,
+   "fat": 20
+  },
+  {
+   "name": "Chimichurri Crispy Veg Burger",
+   "serving": "order, as sold",
+   "kcal": 412,
+   "protein": 7,
+   "carbs": 50,
+   "fat": 20
+  },
+  {
+   "name": "Korean Crispy Veg Burger",
+   "serving": "order, as sold",
+   "kcal": 389,
+   "protein": 8,
+   "carbs": 53,
+   "fat": 16
+  },
+  {
+   "name": "Crispy Chicken Wrap",
+   "serving": "order, as sold",
+   "kcal": 499,
+   "protein": 18,
+   "carbs": 48,
+   "fat": 26
+  },
+  {
+   "name": "Chimichurri Crispy Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 440,
+   "protein": 17,
+   "carbs": 46,
+   "fat": 20
+  },
+  {
+   "name": "Korean Crispy Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 425,
+   "protein": 18,
+   "carbs": 51,
+   "fat": 16
+  },
+  {
+   "name": "Veg Makhani Burst Burger",
+   "serving": "order, as sold",
+   "kcal": 391,
+   "protein": 8,
+   "carbs": 54,
+   "fat": 15
+  },
+  {
+   "name": "Chicken Makhani Burst Burger",
+   "serving": "order, as sold",
+   "kcal": 418,
+   "protein": 18,
+   "carbs": 50,
+   "fat": 15
+  },
+  {
+   "name": "Corn N Cheese Burger",
+   "serving": "order, as sold",
+   "kcal": 486,
+   "protein": 15,
+   "carbs": 58,
+   "fat": 22
+  },
+  {
+   "name": "American BBQ Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 477,
+   "protein": 24,
+   "carbs": 53,
+   "fat": 20
+  },
+  {
+   "name": "American BBQ Veggie Burger",
+   "serving": "order, as sold",
+   "kcal": 495,
+   "protein": 16,
+   "carbs": 62,
+   "fat": 21
+  },
+  {
+   "name": "Crispy Veg + Pizza Puff(2Pcs) + Coke + Fries(S)",
+   "serving": "order, as sold",
+   "kcal": 876,
+   "protein": 13,
+   "carbs": 113,
+   "fat": 39
+  },
+  {
+   "name": "Crispy Chicken + Pizza Puff(2Pcs) + Coke + Fries(S)",
+   "serving": "order, as sold",
+   "kcal": 931,
+   "protein": 23,
+   "carbs": 107,
+   "fat": 43
+  },
+  {
+   "name": "Teriyaki Spicy Paneer Burger",
+   "serving": "order, as sold",
+   "kcal": 593,
+   "protein": 18,
+   "carbs": 58,
+   "fat": 31
+  },
+  {
+   "name": "Teriyaki Fried Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 537,
+   "protein": 18,
+   "carbs": 58,
+   "fat": 25
+  },
+  {
+   "name": "Lord Cheesynator Veg Burger",
+   "serving": "order, as sold",
+   "kcal": 820,
+   "protein": 23,
+   "carbs": 80,
+   "fat": 47
+  },
+  {
+   "name": "Lord Cheesynator Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 760,
+   "protein": 28,
+   "carbs": 66,
+   "fat": 43
+  },
+  {
+   "name": "Fireboltt Tandoori Paneer Burger",
+   "serving": "order, as sold",
+   "kcal": 672,
+   "protein": 24,
+   "carbs": 54,
+   "fat": 40
+  },
+  {
+   "name": "Fireboltt Tandoori Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 500,
+   "protein": 23,
+   "carbs": 48,
+   "fat": 25
+  },
+  {
+   "name": "Korean Fried Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 529,
+   "protein": 24,
+   "carbs": 52,
+   "fat": 26
+  },
+  {
+   "name": "Korean Spicy Paneer Burger",
+   "serving": "order, as sold",
+   "kcal": 633,
+   "protein": 24,
+   "carbs": 56,
+   "fat": 36
+  },
+  {
+   "name": "Chimichurri Spicy Paneer Burger",
+   "serving": "order, as sold",
+   "kcal": 678,
+   "protein": 24,
+   "carbs": 55,
+   "fat": 41
+  },
+  {
+   "name": "Chimichurri Premium Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 521,
+   "protein": 23,
+   "carbs": 48,
+   "fat": 27
+  },
+  {
+   "name": "Double Patty Crispy Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 680,
+   "protein": 30,
+   "carbs": 61,
+   "fat": 34
+  },
+  {
+   "name": "Smoky Chipotle Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 546,
+   "protein": 18,
+   "carbs": 54,
+   "fat": 28
+  },
+  {
+   "name": "Spicy Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 462,
+   "protein": 22,
+   "carbs": 47,
+   "fat": 21
+  },
+  {
+   "name": "Spicy Paneer Delight Burger",
+   "serving": "order, as sold",
+   "kcal": 616,
+   "protein": 18,
+   "carbs": 50,
+   "fat": 38
+  },
+  {
+   "name": "Homestyle Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 538,
+   "protein": 18,
+   "carbs": 52,
+   "fat": 28
+  },
+  {
+   "name": "Teriyaki Paneer Wrap",
+   "serving": "order, as sold",
+   "kcal": 566,
+   "protein": 16,
+   "carbs": 53,
+   "fat": 32
+  },
+  {
+   "name": "Teriyaki Fried Chicken Wrap",
+   "serving": "order, as sold",
+   "kcal": 510,
+   "protein": 16,
+   "carbs": 53,
+   "fat": 25
+  },
+  {
+   "name": "Korean Fried Chicken Wrap",
+   "serving": "order, as sold",
+   "kcal": 557,
+   "protein": 23,
+   "carbs": 52,
+   "fat": 29
+  },
+  {
+   "name": "Chimichurri Spicy Paneer Wrap",
+   "serving": "order, as sold",
+   "kcal": 623,
+   "protein": 22,
+   "carbs": 48,
+   "fat": 39
+  },
+  {
+   "name": "Chimichurri Chicken Wrap",
+   "serving": "order, as sold",
+   "kcal": 468,
+   "protein": 21,
+   "carbs": 42,
+   "fat": 25
+  },
+  {
+   "name": "Chimichurri Dip",
+   "serving": "order, as sold",
+   "kcal": 22,
+   "note": "The brand's macros contradict its calories, so only the calories are kept."
+  },
+  {
+   "name": "Cheese Blast Corn N Cheese Burger",
+   "serving": "order, as sold",
+   "kcal": 727,
+   "protein": 21,
+   "carbs": 78,
+   "fat": 38
+  },
+  {
+   "name": "Cheese Blast American BBQ Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 718,
+   "protein": 29,
+   "carbs": 72,
+   "fat": 35
+  },
+  {
+   "name": "Cheese Blast Crispy Veg Burger",
+   "serving": "order, as sold",
+   "kcal": 631,
+   "protein": 13,
+   "carbs": 71,
+   "fat": 32
+  },
+  {
+   "name": "Cheese Blast Spicy Paneer Delight Burger",
+   "serving": "order, as sold",
+   "kcal": 856,
+   "protein": 23,
+   "carbs": 69,
+   "fat": 53
+  },
+  {
+   "name": "Cheese Blast Crispy Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 686,
+   "protein": 23,
+   "carbs": 66,
+   "fat": 36
+  },
+  {
+   "name": "Cheese Blast American BBQ Veggie Burger",
+   "serving": "order, as sold",
+   "kcal": 736,
+   "protein": 21,
+   "carbs": 82,
+   "fat": 37
+  },
+  {
+   "name": "Cheese Blast Homestyle Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 779,
+   "protein": 23,
+   "carbs": 71,
+   "fat": 44
+  },
+  {
+   "name": "Cheese Blast Smoky Chipotle Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 787,
+   "protein": 24,
+   "carbs": 73,
+   "fat": 44
+  },
+  {
+   "name": "2 Crispy Veg Burgers + 2 BBQ Veggie Burgers",
+   "serving": "order, as sold",
+   "kcal": 1770,
+   "protein": 46,
+   "carbs": 228,
+   "fat": 74
+  },
+  {
+   "name": "10 Crispy Veg Burger",
+   "serving": "order, as sold",
+   "kcal": 3900,
+   "protein": 70,
+   "carbs": 520,
+   "fat": 160
+  },
+  {
+   "name": "10 Crispy Chicken Burger",
+   "serving": "order, as sold",
+   "kcal": 4450,
+   "protein": 170,
+   "carbs": 460,
+   "fat": 200
+  },
+  {
+   "name": "Power Play Combo",
+   "serving": "order, as sold",
+   "kcal": 4050,
+   "protein": 105,
+   "carbs": 417,
+   "fat": 216
+  },
+  {
+   "name": "Chicken Watch Party Combo",
+   "serving": "order, as sold",
+   "kcal": 3681,
+   "protein": 117,
+   "carbs": 432,
+   "fat": 159
+  },
+  {
+   "name": "T20 Snacks Combo",
+   "serving": "order, as sold",
+   "kcal": 1890,
+   "protein": 28,
+   "carbs": 236,
+   "fat": 88
+  },
+  {
+   "name": "Crispy Chicken Party Combo",
+   "serving": "order, as sold",
+   "kcal": 4120,
+   "protein": 140,
+   "carbs": 446,
+   "fat": 184
+  },
+  {
+   "name": "Firebolt Tandoori Paneer Wrap",
+   "serving": "order, as sold",
+   "kcal": 558,
+   "protein": 16,
+   "carbs": 50,
+   "fat": 32
+  },
+  {
+   "name": "Firebolt Tandoori Chicken Wrap",
+   "serving": "order, as sold",
+   "kcal": 404,
+   "protein": 15,
+   "carbs": 44,
+   "fat": 18
+  },
+  {
+   "name": "Corn N Cheese Wrap",
+   "serving": "order, as sold",
+   "kcal": 535,
+   "protein": 16,
+   "carbs": 57,
+   "fat": 28
+  },
+  {
+   "name": "Aloo Wrap",
+   "serving": "order, as sold",
+   "kcal": 471,
+   "protein": 8,
+   "carbs": 52,
+   "fat": 25
+  },
+  {
+   "name": "Crispy Fries (S)",
+   "serving": "order, as sold",
+   "kcal": 248,
+   "protein": 2,
+   "carbs": 31,
+   "fat": 12
+  },
+  {
+   "name": "Piri Piri Fries (S)",
+   "serving": "order, as sold",
+   "kcal": 254,
+   "protein": 3,
+   "carbs": 34,
+   "fat": 11
+  },
+  {
+   "name": "Cheesy Fries",
+   "serving": "order, as sold",
+   "kcal": 453,
+   "protein": 7,
+   "carbs": 52,
+   "fat": 23
+  },
+  {
+   "name": "Cheddar Cheese Dip",
+   "serving": "order, as sold",
+   "kcal": 31,
+   "note": "The brand's macros contradict its calories, so only the calories are kept."
+  },
+  {
+   "name": "Cheese Jalapeno Dip",
+   "serving": "order, as sold",
+   "kcal": 75,
+   "protein": 0,
+   "carbs": 2,
+   "fat": 7
+  },
+  {
+   "name": "Fiery Chipotle Dip",
+   "serving": "order, as sold",
+   "kcal": 70,
+   "protein": 0,
+   "carbs": 3,
+   "fat": 6
+  },
+  {
+   "name": "American BBQ Dip",
+   "serving": "order, as sold",
+   "kcal": 21,
+   "protein": 0,
+   "carbs": 5,
+   "fat": 0
+  },
+  {
+   "name": "6 Pcs Piri Piri Chicken Nuggets",
+   "serving": "order, as sold",
+   "kcal": 302,
+   "protein": 11,
+   "carbs": 23,
+   "fat": 18
+  },
+  {
+   "name": "6 Pcs Piri Piri Chicken Tenders",
+   "serving": "order, as sold",
+   "kcal": 662,
+   "protein": 39,
+   "carbs": 29,
+   "fat": 42
+  },
+  {
+   "name": "Vanilla Chocochip Muffin",
+   "serving": "order, as sold",
+   "kcal": 154,
+   "protein": 2,
+   "carbs": 23,
+   "fat": 7
+  },
+  {
+   "name": "Choco Lava Cake",
+   "serving": "order, as sold",
+   "kcal": 247,
+   "protein": 2,
+   "carbs": 29,
+   "fat": 13
+  },
+  {
+   "name": "Coke Zero 330 ml Can",
+   "serving": "drink",
+   "kcal": 0,
+   "g": 330.0,
+   "protein": 0,
+   "carbs": 0,
+   "fat": 0
+  },
+  {
+   "name": "Lemon Ice Tea (250 mL)",
+   "serving": "drink",
+   "kcal": 119,
+   "g": 250.0,
+   "protein": 0,
+   "carbs": 29,
+   "fat": 0
+  },
+  {
+   "name": "Coke",
+   "serving": "order, as sold",
+   "kcal": 16,
+   "protein": 0,
+   "carbs": 4,
+   "fat": 0
+  },
+  {
+   "name": "Masala Lemonade (Pack of 2)",
+   "serving": "order, as sold",
+   "kcal": 188,
+   "protein": 0,
+   "carbs": 48,
+   "fat": 0
+  }
+ ]
+}
