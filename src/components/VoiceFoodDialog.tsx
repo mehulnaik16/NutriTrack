@@ -18,6 +18,7 @@ import {
   Search,
   Square,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { serverVoiceParse, serverAiFoodSearchInline } from "@/lib/ai";
 import { isAiBusy, toastAiError } from "@/lib/aiErrors";
+import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { kcalOf, type IFCTItem } from "@/lib/foodDb";
 import { catalogFood } from "@/lib/foodFuzzy";
@@ -66,6 +68,11 @@ interface SpeechRecognitionLike {
 /** Macros here are absolute for `quantity_g`, not per 100 g. */
 export interface VoiceFoodItem {
   food_name: string;
+  /**
+   * The person's own words for this item ("jaggery" for "Jaggery, cane"),
+   * so editing the row can change the same words in the sentence.
+   */
+  heard?: string;
   quantity_g: number;
   unit?: string;
   unit_quantity?: number;
@@ -175,11 +182,24 @@ export async function resolveVoiceItem(
 ): Promise<VoiceFoodItem | null> {
   const food = await resolveFood(it.food_name);
   if (!food) return null;
+  return { ...priceItem(it, food), heard: it.food_name };
+}
 
+/**
+ * An item priced as `food`, keeping the amount the person gave: the same
+ * count of pieces when both foods have a piece weight, otherwise the grams.
+ */
+function priceItem(it: ParsedVoiceItem, food: IFCTItem): VoiceFoodItem {
+  const pieces =
+    !!it.unit &&
+    it.unit !== "g" &&
+    !!it.unit_quantity &&
+    pieceGrams(food) !== undefined;
   const grams = gramsFor(it, food);
   const ratio = grams / 100;
   return {
     ...it,
+    ...(pieces ? {} : { unit: "g", unit_quantity: Math.round(grams) }),
     food_name: food.name,
     quantity_g: grams,
     // kcalOf() converts the catalog/cache's kJ `enerc` to kcal (÷ KJ_PER_KCAL)
@@ -190,6 +210,37 @@ export async function resolveVoiceItem(
     fat_g: +((food.fatce ?? 0) * ratio).toFixed(1),
     fiber_g: +((food.fibtg ?? 0) * ratio).toFixed(1),
   };
+}
+
+/**
+ * One food for an edited row: the bundled catalog on an exact name, else the
+ * same Search AI a typed search runs, with the same rotating model order.
+ */
+async function searchOneFood(name: string): Promise<IFCTItem | null> {
+  const local = catalogFood(name);
+  if (local) return local;
+  try {
+    const { items } = await serverAiFoodSearchInline({
+      data: { query: name, attempt: searchAttempt() },
+    });
+    recordSearchOutcome(true);
+    return (items[0] as IFCTItem | undefined) ?? null;
+  } catch (e) {
+    recordSearchOutcome(false);
+    throw e;
+  }
+}
+
+/**
+ * `sentence` with the first `from` (any case) replaced by `to`; unchanged
+ * when `from` is missing or is the whole sentence, since swapping every word
+ * for one food's name would lose the rest of what was said.
+ */
+function replaceWords(sentence: string, from: string, to: string): string {
+  const at = sentence.toLowerCase().indexOf(from.trim().toLowerCase());
+  if (!from.trim() || at < 0 || from.trim().length >= sentence.trim().length)
+    return sentence;
+  return sentence.slice(0, at) + to + sentence.slice(at + from.trim().length);
 }
 
 // Exported so this can be driven headlessly against the real cache/model
@@ -257,6 +308,7 @@ export function VoiceFoodDialog({
   initialItems,
   typedQuery,
   onResearch,
+  onTypedQueryChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -280,6 +332,8 @@ export function VoiceFoodDialog({
   typedQuery?: string;
   /** Research: the same Search AI, on the edited words; false when it failed. */
   onResearch?: (text: string) => Promise<boolean>;
+  /** The sentence after a row edit swapped the words for one food. */
+  onTypedQueryChange?: (text: string) => void;
 }) {
   const recogRef = useRef<SpeechRecognitionLike | null>(null);
   const [recording, setRecording] = useState(false);
@@ -302,6 +356,46 @@ export function VoiceFoodDialog({
   // words while the pencil has made it editable.
   const [draft, setDraft] = useState<string | null>(null);
   const [researching, setResearching] = useState(false);
+
+  // One row at a time can be renamed and searched again. The row itself is
+  // untouched until a search succeeds, so Cancel or a failure loses nothing.
+  const [rowEdit, setRowEdit] = useState<{ i: number; text: string } | null>(
+    null,
+  );
+  const [rowBusy, setRowBusy] = useState(false);
+  const researchRow = async () => {
+    const text = rowEdit?.text.trim() ?? "";
+    if (!rowEdit || text.length < 2) return;
+    const old = items[rowEdit.i];
+    setRowBusy(true);
+    try {
+      const food = await searchOneFood(text);
+      if (!food) {
+        toast.warning(`We couldn't find "${text}"`, {
+          description: "Try another name for it.",
+        });
+        return;
+      }
+      setItems((prev) =>
+        prev.map((it) =>
+          it === old ? { ...priceItem(old, food), heard: text } : it,
+        ),
+      );
+      // The same words change in what was said or typed.
+      const from = old.heard ?? old.food_name;
+      if (typedQuery) {
+        const next = replaceWords(typedQuery, from, text);
+        if (next !== typedQuery) onTypedQueryChange?.(next);
+      } else if (transcript) {
+        setTranscript(replaceWords(transcript, from, text));
+      }
+      setRowEdit(null);
+    } catch (e) {
+      toastAiError(e, "food row search");
+    } finally {
+      setRowBusy(false);
+    }
+  };
   const research = async () => {
     if (!draft || draft.trim().length < 2 || !onResearch) return;
     setResearching(true);
@@ -328,6 +422,8 @@ export function VoiceFoodDialog({
   // same instance.
   useEffect(() => {
     if (initialItems) setItems(initialItems);
+    // New rows: a row being edited no longer exists.
+    setRowEdit(null);
   }, [initialItems]);
 
   // Navigating away mid-recording used to leave the microphone live —
@@ -554,6 +650,7 @@ export function VoiceFoodDialog({
           setMicMode("idle");
           setHint(false);
           setDraft(null);
+          setRowEdit(null);
           setRecording(false);
           setTranscript("");
           transcriptRef.current = "";
@@ -814,10 +911,61 @@ export function VoiceFoodDialog({
                     key={i}
                     className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
                   >
-                    <div className="flex-1 mr-4">
-                      <span className="font-medium block text-base mb-1">
-                        {item.food_name}
-                      </span>
+                    <div className="flex-1 mr-4 min-w-0">
+                      {rowEdit?.i === i ? (
+                        <div className="mb-1 flex items-center gap-1">
+                          <Input
+                            value={rowEdit.text}
+                            onChange={(e) =>
+                              setRowEdit({ i, text: e.target.value })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                void researchRow();
+                              }
+                              if (e.key === "Escape") {
+                                e.stopPropagation();
+                                setRowEdit(null);
+                              }
+                            }}
+                            autoFocus
+                            disabled={rowBusy}
+                            aria-label={`Food name for ${item.food_name}`}
+                            className="h-8 min-w-0 flex-1 border-accent bg-background text-sm"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Search this food again"
+                            title="Research"
+                            onClick={() => void researchRow()}
+                            disabled={rowBusy || rowEdit.text.trim().length < 2}
+                            className="h-8 w-8 shrink-0 text-accent hover:bg-accent/10"
+                          >
+                            {rowBusy ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Search className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Cancel editing"
+                            title="Cancel"
+                            onClick={() => setRowEdit(null)}
+                            disabled={rowBusy}
+                            className="h-8 w-8 shrink-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="font-medium block text-base mb-1">
+                          {item.food_name}
+                        </span>
+                      )}
                       <div className="flex items-center gap-2">
                         <Input
                           type="number"
@@ -852,17 +1000,39 @@ export function VoiceFoodDialog({
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Remove ${item.food_name}`}
-                        className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                        onClick={() =>
-                          setItems(items.filter((_, n) => n !== i))
-                        }
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {rowEdit?.i !== i && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Edit ${item.food_name}`}
+                            title="Edit"
+                            className="h-6 w-6"
+                            disabled={rowBusy}
+                            onClick={() =>
+                              setRowEdit({
+                                i,
+                                text: item.heard ?? item.food_name,
+                              })
+                            }
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Remove ${item.food_name}`}
+                          className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                          disabled={rowBusy}
+                          onClick={() => {
+                            setRowEdit(null);
+                            setItems(items.filter((_, n) => n !== i));
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
                         {Math.round(item.calories)} kcal · P
                         {item.protein_g.toFixed(0)} · F

@@ -360,6 +360,9 @@ export const FoodSearch = forwardRef<
     const ratio = grams / 100;
     return {
       food_name: it.name,
+      // The words typed for this food, so a row edit can change them in the
+      // sentence too. Present on AI items; catalog items have none.
+      heard: (it as IFCTItem & { heard?: string }).heard,
       quantity_g: grams,
       unit: it.piece_g ? "pcs" : "g",
       unit_quantity: it.piece_g ? +(grams / it.piece_g).toFixed(2) : grams,
@@ -1450,6 +1453,10 @@ export const FoodSearch = forwardRef<
         initialItems={voiceItems}
         typedQuery={voiceItems ? voiceQuery : undefined}
         onResearch={handleAiFallback}
+        onTypedQueryChange={(text) => {
+          setVoiceQuery(text);
+          setQ(text);
+        }}
       />
 
       {/* Mounted only while open so @zxing/* stays off the initial page load. */}
