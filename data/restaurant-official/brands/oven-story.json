@@ -1,0 +1,65 @@
+{
+ "brand": "Oven Story Pizza",
+ "code": "ZO",
+ "source": "https://carbon-v2.ipsator.com/static/assets/rebel/OvenStory_NI_v1.pdf (Rebel Foods nutrition information for Oven Story Pizza)",
+ "basis": "Per item as ordered, from the brand's own nutrition file. Weights are not published, so they are estimated and shown with ≈; the calories and macros are the brand's.",
+ "density": 250,
+ "items": [
+  {
+   "name": "Chicken Tikka and Kheema Pizza (Medium)",
+   "serving": "order, as sold",
+   "kcal": 1163.0,
+   "protein": 54.0,
+   "carbs": 133.0,
+   "fat": 45.0
+  },
+  {
+   "name": "Corn Veggie Delight Pizza (Medium)",
+   "serving": "order, as sold",
+   "kcal": 949.0,
+   "protein": 41.0,
+   "carbs": 128.0,
+   "fat": 29.0
+  },
+  {
+   "name": "Margherita Pizza",
+   "serving": "order, as sold",
+   "kcal": 909.0,
+   "protein": 40.0,
+   "carbs": 119.0,
+   "fat": 28.0
+  },
+  {
+   "name": "Spanish Sunshine Pizza",
+   "serving": "order, as sold",
+   "kcal": 963.0,
+   "protein": 42.0,
+   "carbs": 131.0,
+   "fat": 29.0
+  },
+  {
+   "name": "Maharaja Veg Pizza",
+   "serving": "order, as sold",
+   "kcal": 1135.0,
+   "protein": 48.0,
+   "carbs": 134.0,
+   "fat": 43.0
+  },
+  {
+   "name": "Double Chicken Feast Pizza",
+   "serving": "order, as sold",
+   "kcal": 1161.0,
+   "protein": 56.0,
+   "carbs": 135.0,
+   "fat": 42.0
+  },
+  {
+   "name": "Chicken Maximus Pizza",
+   "serving": "order, as sold",
+   "kcal": 1365.0,
+   "protein": 63.0,
+   "carbs": 147.0,
+   "fat": 57.0
+  }
+ ]
+}

@@ -1,0 +1,1513 @@
+{
+ "brand": "Behrouz Biryani",
+ "code": "ZH",
+ "source": "https://carbon-v2.ipsator.com/static/assets/rebel/Behrouz_Biryani_NI_v1.pdf (Rebel Foods nutrition information for Behrouz Biryani)",
+ "basis": "Per item as ordered, from the brand's own nutrition file. Weights are not published, so they are estimated and shown with ≈; the calories and macros are the brand's.",
+ "density": 170,
+ "items": [
+  {
+   "name": "Paneer Subz (Classic Paneer and Veg Dum Biryani - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 1707.7,
+   "protein": 25.1,
+   "carbs": 243.0,
+   "fat": 76.8
+  },
+  {
+   "name": "Murgh Kefta (Chicken Meatball Kebab)",
+   "serving": "order, as sold",
+   "kcal": 458.5,
+   "protein": 42.9,
+   "carbs": 29.2,
+   "fat": 24.9
+  },
+  {
+   "name": "Paneer Subz (Classic Paneer and Veg Dum Biryani - Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4632.0,
+   "protein": 79.0,
+   "carbs": 631.0,
+   "fat": 210.0
+  },
+  {
+   "name": "Paneer Subz (Classic Paneer and Veg Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1090.0,
+   "protein": 23.0,
+   "carbs": 134.0,
+   "fat": 56.0
+  },
+  {
+   "name": "Murgh Kefta (Half, Chicken Meatball Kebab)",
+   "serving": "order, as sold",
+   "kcal": 216.9,
+   "protein": 14.6,
+   "carbs": 12.1,
+   "fat": 12.3
+  },
+  {
+   "name": "Falafel-E-Khaas (Half)",
+   "serving": "order, as sold",
+   "kcal": 269.4,
+   "protein": 7.4,
+   "carbs": 25.3,
+   "fat": 15.7
+  },
+  {
+   "name": "Mughlai Gravy",
+   "serving": "order, as sold",
+   "kcal": 170.0,
+   "protein": 2.0,
+   "carbs": 6.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Murgh Koobideh (Half, Chicken Tikki Kebab)",
+   "serving": "order, as sold",
+   "kcal": 226.1,
+   "protein": 18.0,
+   "carbs": 10.7,
+   "fat": 12.4
+  },
+  {
+   "name": "Tokhm-E-Biryani (Classic Egg Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1208.0,
+   "protein": 36.0,
+   "carbs": 139.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Tokhm-E-Biryani (Classic Egg Dum Biryani - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2120.2,
+   "protein": 62.6,
+   "carbs": 239.2,
+   "fat": 113.5
+  },
+  {
+   "name": "Gosht-E-Mehfil (Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 5438.5,
+   "protein": 217.9,
+   "carbs": 704.6,
+   "fat": 206.3
+  },
+  {
+   "name": "Murgh-E-Mehfil (Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 5488.8,
+   "protein": 154.6,
+   "carbs": 643.9,
+   "fat": 267.5
+  },
+  {
+   "name": "Paneer-E-Mehfil (Serves : 4)",
+   "serving": "order, as sold",
+   "kcal": 4502.4,
+   "protein": 92.6,
+   "carbs": 633.2,
+   "fat": 190.1
+  },
+  {
+   "name": "Paneer-E-Mehfil (Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 2576.2,
+   "protein": 81.7,
+   "carbs": 218.7,
+   "fat": 167.1
+  },
+  {
+   "name": "Gosht-E-Mehfil (Serves : 4)",
+   "serving": "order, as sold",
+   "kcal": 2498.1,
+   "protein": 142.5,
+   "carbs": 246.1,
+   "fat": 116.5
+  },
+  {
+   "name": "Murgh-E-Mehfil (Serves : 4)",
+   "serving": "order, as sold",
+   "kcal": 2550.6,
+   "protein": 92.1,
+   "carbs": 199.9,
+   "fat": 165.8
+  },
+  {
+   "name": "Hyderabadi Lazeez Bhuna Murgh (Spicy Chicken Dum Biryani, Boneless - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 5298.0,
+   "protein": 111.0,
+   "carbs": 619.0,
+   "fat": 276.0
+  },
+  {
+   "name": "Hyderabadi Zaikedaar Paneer (Spicy Paneer Dum Biryani - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 5368.0,
+   "protein": 128.0,
+   "carbs": 626.0,
+   "fat": 279.0
+  },
+  {
+   "name": "Hyderabadi Subz-E-Biryani (Spicy Veg Dum Biryani - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 5387.0,
+   "protein": 83.0,
+   "carbs": 642.0,
+   "fat": 287.0
+  },
+  {
+   "name": "Hyderabadi Dum Gosht (Spicy Mutton Dum Biryani, Boneless - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 5311.0,
+   "protein": 165.0,
+   "carbs": 671.0,
+   "fat": 229.0
+  },
+  {
+   "name": "Hyderabadi Zaikedaar Paneer (Spicy Paneer Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1763.0,
+   "protein": 39.0,
+   "carbs": 212.0,
+   "fat": 88.0
+  },
+  {
+   "name": "Hyderabadi Dum Gosht (Spicy Mutton Dum Biryani, Boneless - Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 1925.0,
+   "protein": 64.0,
+   "carbs": 237.0,
+   "fat": 83.0
+  },
+  {
+   "name": "Gosht Haleem (Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 1525.0,
+   "protein": 39.0,
+   "carbs": 54.0,
+   "fat": 128.0
+  },
+  {
+   "name": "(Must Try) Gosht Ki Mehfil - Group Dining Experience",
+   "serving": "order, as sold",
+   "kcal": 5456.0,
+   "protein": 246.0,
+   "carbs": 719.0,
+   "fat": 194.0
+  },
+  {
+   "name": "(Must Try) Murgh Ki Mehfil - Group Dining Experience",
+   "serving": "order, as sold",
+   "kcal": 5507.0,
+   "protein": 183.0,
+   "carbs": 658.0,
+   "fat": 255.0
+  },
+  {
+   "name": "(Must Try) -Paneer Ki Mehfil - Group Dining Experience",
+   "serving": "order, as sold",
+   "kcal": 5551.0,
+   "protein": 158.0,
+   "carbs": 695.0,
+   "fat": 258.0
+  },
+  {
+   "name": "(Must Try) Murgh Ki Mehfil - Group Dining Experience.",
+   "serving": "order, as sold",
+   "kcal": 5262.0,
+   "protein": 174.0,
+   "carbs": 651.0,
+   "fat": 235.0
+  },
+  {
+   "name": "(Must Try) Paneer Ki Mehfil -- Group Dining Experience.",
+   "serving": "order, as sold",
+   "kcal": 5446.0,
+   "protein": 155.0,
+   "carbs": 691.0,
+   "fat": 250.0
+  },
+  {
+   "name": "(Must Try) Paneer Ki Mehfil - Group Dining Experience..",
+   "serving": "order, as sold",
+   "kcal": 5470.0,
+   "protein": 157.0,
+   "carbs": 691.0,
+   "fat": 248.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Dum Biryani - Boneless - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1273.0,
+   "protein": 45.0,
+   "carbs": 172.0,
+   "fat": 49.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Dum Biryani- Boneless - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2098.0,
+   "protein": 75.0,
+   "carbs": 286.0,
+   "fat": 78.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Dum Biryani - Boneless - Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4321.0,
+   "protein": 178.0,
+   "carbs": 622.0,
+   "fat": 141.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh ( Chicken Dum Biryani Boneless - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1275.0,
+   "protein": 29.0,
+   "carbs": 156.0,
+   "fat": 64.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh ( Chicken Dum Biryani Boneless - Serves - 2)",
+   "serving": "order, as sold",
+   "kcal": 2004.0,
+   "protein": 44.0,
+   "carbs": 247.0,
+   "fat": 100.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh ( Chicken Dum Biryani Boneless - Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4360.0,
+   "protein": 127.0,
+   "carbs": 573.0,
+   "fat": 190.0
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1263.0,
+   "protein": 35.0,
+   "carbs": 151.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Murgh Afghani Tikka ( Creamy Chicken Tikka Dum Biryani - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 1987.0,
+   "protein": 63.0,
+   "carbs": 243.0,
+   "fat": 90.0
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Dum Biryani - Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4467.0,
+   "protein": 122.0,
+   "carbs": 595.0,
+   "fat": 189.0
+  },
+  {
+   "name": "Murgh Tikka (Chicken Tikka Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1292.0,
+   "protein": 37.0,
+   "carbs": 155.0,
+   "fat": 61.0
+  },
+  {
+   "name": "Murgh Tikka (Chicken Tikka Dum Biryani - Serves-2)",
+   "serving": "order, as sold",
+   "kcal": 2003.0,
+   "protein": 65.0,
+   "carbs": 242.0,
+   "fat": 92.0
+  },
+  {
+   "name": "Murgh Tikka (Chicken Tikka Dum Biryani - Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4467.0,
+   "protein": 143.0,
+   "carbs": 594.0,
+   "fat": 199.0
+  },
+  {
+   "name": "Subz-E-Biryani ( Veg Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1200.0,
+   "protein": 19.0,
+   "carbs": 156.0,
+   "fat": 58.0
+  },
+  {
+   "name": "Subz-E-Biryani ( Veg Dum Biryani - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2045.0,
+   "protein": 28.0,
+   "carbs": 258.0,
+   "fat": 106.0
+  },
+  {
+   "name": "Subz-E-Biryani ( Veg Dum Biryani - Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4307.0,
+   "protein": 70.0,
+   "carbs": 519.0,
+   "fat": 228.0
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1191.0,
+   "protein": 30.0,
+   "carbs": 152.0,
+   "fat": 55.0
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Dum Biryani - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 1924.0,
+   "protein": 57.0,
+   "carbs": 221.0,
+   "fat": 100.0
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Dum Biryani - Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4134.0,
+   "protein": 118.0,
+   "carbs": 497.0,
+   "fat": 204.0
+  },
+  {
+   "name": "Spicy Subz-E-Biryani (Hyderabadi Veg Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1812.0,
+   "protein": 29.0,
+   "carbs": 215.0,
+   "fat": 99.0
+  },
+  {
+   "name": "Spicy Zaikedaar Paneer (Hyderabadi Paneer Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1809.0,
+   "protein": 36.0,
+   "carbs": 214.0,
+   "fat": 96.0
+  },
+  {
+   "name": "Spicy Lazeez Bhuna Murgh ( Hyderabadi Chicken Dum Biryani, Boneless Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1956.0,
+   "protein": 42.0,
+   "carbs": 214.0,
+   "fat": 110.0
+  },
+  {
+   "name": "Spicy Dum Gosht ( Hyderabadi Mutton Dum Biryani, Boneless - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1918.0,
+   "protein": 62.0,
+   "carbs": 233.0,
+   "fat": 88.0
+  },
+  {
+   "name": "Spicy Subz-E-Biryani (Hyderabadi Veg Dum Biryani Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 3146.0,
+   "protein": 50.0,
+   "carbs": 361.0,
+   "fat": 176.0
+  },
+  {
+   "name": "Spicy Zaikedaar Paneer ( Hyderabadi Paneer Dum Biryani Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 3140.0,
+   "protein": 65.0,
+   "carbs": 360.0,
+   "fat": 170.0
+  },
+  {
+   "name": "Spicy Lazeez Bhuna Murgh ( Hyderabadi Chicken Dum Biryani, Boneless - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 3128.0,
+   "protein": 67.0,
+   "carbs": 351.0,
+   "fat": 172.0
+  },
+  {
+   "name": "Spicy Dum Gosht ( Hyderabadi Mutton Dum Biryani, Boneless Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 3052.0,
+   "protein": 92.0,
+   "carbs": 375.0,
+   "fat": 142.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh (Serves 1) + Murgh Kefta (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1887.0,
+   "protein": 32.0,
+   "carbs": 156.0,
+   "fat": 94.0
+  },
+  {
+   "name": "Mutton Biryani (Dum Gosht, Serves 1) + Murgh Kefta (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1792.5,
+   "protein": 94.9,
+   "carbs": 177.0,
+   "fat": 73.9
+  },
+  {
+   "name": "Chicken Biryani (Lazeez Bhuna Murgh, Serves 1) + Murgh Kefta (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1815.5,
+   "protein": 75.9,
+   "carbs": 155.0,
+   "fat": 94.9
+  },
+  {
+   "name": "Creamy Chicken Biryani (Murgh Afghani, serves 1) + Murgh Kefta ( Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1706.5,
+   "protein": 78.9,
+   "carbs": 155.0,
+   "fat": 81.9
+  },
+  {
+   "name": "Mutton Biryani (Dum Gosht, Serves 1) + Murgh Kefta (Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 1731.5,
+   "protein": 87.9,
+   "carbs": 172.0,
+   "fat": 73.9
+  },
+  {
+   "name": "Hyderabadi Mutton Biryani (Spicy Dum Gosht, Serves 1) + Murgh Kefta (9pcs)",
+   "serving": "order, as sold",
+   "kcal": 2376.5,
+   "protein": 104.9,
+   "carbs": 233.0,
+   "fat": 112.9
+  },
+  {
+   "name": "Hyderabadi Mutton Biryani (Spicy Dum Gosht, Serves 1) + Murgh Kefta (Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 2383.5,
+   "protein": 106.9,
+   "carbs": 237.0,
+   "fat": 107.9
+  },
+  {
+   "name": "Hyderabadi Chicken Biryani (Spicy Lazeez Bhuna Murgh, Serves 2) + Murgh Haleem Kebab (6pcs)",
+   "serving": "order, as sold",
+   "kcal": 3742.7,
+   "protein": 197.1,
+   "carbs": 351.0,
+   "fat": 217.0
+  },
+  {
+   "name": "Chicken Biryani (Lazeez Bhuna Murgh, Serves 1) + Murgh Kefta (Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 1733.5,
+   "protein": 71.9,
+   "carbs": 185.2,
+   "fat": 88.9
+  },
+  {
+   "name": "Hyderabadi Chicken Biryani (Spicy Lazeez Bhuna Murgh, Serves 1) + Murgh Kefta (9pcs)",
+   "serving": "order, as sold",
+   "kcal": 2414.5,
+   "protein": 84.9,
+   "carbs": 243.2,
+   "fat": 134.9
+  },
+  {
+   "name": "Hyderabadi Chicken Biryani (Spicy Lazeez Bhuna Murgh, Serves 1) + Murgh Kefta (Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 2369.5,
+   "protein": 82.9,
+   "carbs": 243.2,
+   "fat": 127.9
+  },
+  {
+   "name": "Gosht-E-Galouti Kebab (Mutton Galauti Kebab,6 Pcs)",
+   "serving": "order, as sold",
+   "kcal": 753.0,
+   "protein": 27.0,
+   "carbs": 77.0,
+   "fat": 37.0
+  },
+  {
+   "name": "Murgh Seekh Kebab (Chicken Seekh Kebab, 6 Pcs)",
+   "serving": "order, as sold",
+   "kcal": 753.0,
+   "protein": 27.0,
+   "carbs": 77.0,
+   "fat": 37.0
+  },
+  {
+   "name": "Hyderabadi Dum Gosht (Spicy Mutton Biryani, Boneless - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1925.0,
+   "protein": 64.0,
+   "carbs": 237.0,
+   "fat": 83.0
+  },
+  {
+   "name": "Hyderabadi Lazeez Bhuna Murgh (Spicy Chicken Biryani, Boneless Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 2369.5,
+   "protein": 82.9,
+   "carbs": 243.2,
+   "fat": 127.9
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1263.0,
+   "protein": 35.0,
+   "carbs": 151.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Murgh Tikka (Chicken Tikka Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1292.0,
+   "protein": 37.0,
+   "carbs": 155.0,
+   "fat": 61.0
+  },
+  {
+   "name": "Hyderabadi Subz-E-Biryani (Spicy Veg Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1767.0,
+   "protein": 26.0,
+   "carbs": 215.0,
+   "fat": 92.0
+  },
+  {
+   "name": "Hyderabadi Zaikedaar Paneer (Spicy Paneer Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1763.0,
+   "protein": 39.0,
+   "carbs": 212.0,
+   "fat": 88.0
+  },
+  {
+   "name": "Paneer Subz (Classic Paneer+Veg Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1207.0,
+   "protein": 25.0,
+   "carbs": 154.0,
+   "fat": 58.0
+  },
+  {
+   "name": "Subz-E-Biryani (Classic Veg Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1213.0,
+   "protein": 19.0,
+   "carbs": 156.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Zaikedaar Paneer (Classic Paneer Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1191.0,
+   "protein": 30.0,
+   "carbs": 152.0,
+   "fat": 55.0
+  },
+  {
+   "name": "Falafel-E-khaas",
+   "serving": "order, as sold",
+   "kcal": 586.0,
+   "protein": 11.0,
+   "carbs": 45.0,
+   "fat": 41.0
+  },
+  {
+   "name": "Paneer Subz (Classic Paneer+Veg Dum Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1207.0,
+   "protein": 25.0,
+   "carbs": 154.0,
+   "fat": 58.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh ( Chicken Dum Biryani Boneless - Serves 3-4)",
+   "serving": "order, as sold",
+   "kcal": 4492.0,
+   "protein": 93.0,
+   "carbs": 595.0,
+   "fat": 205.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Dum Biryani - Boneless - Serves 3-4)",
+   "serving": "order, as sold",
+   "kcal": 4452.0,
+   "protein": 143.0,
+   "carbs": 643.0,
+   "fat": 156.0
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Dum Biryani - Serves 3-4)",
+   "serving": "order, as sold",
+   "kcal": 3902.0,
+   "protein": 74.0,
+   "carbs": 603.0,
+   "fat": 148.0
+  },
+  {
+   "name": "Subz-E-Biryani ( Veg Dum Biryani - Serves 3-4)",
+   "serving": "order, as sold",
+   "kcal": 4831.0,
+   "protein": 66.0,
+   "carbs": 627.0,
+   "fat": 239.0
+  },
+  {
+   "name": "Paneer Subz (Classic Paneer+Veg Dum Biryani - Serves 3-4)",
+   "serving": "order, as sold",
+   "kcal": 4827.0,
+   "protein": 99.0,
+   "carbs": 634.0,
+   "fat": 223.0
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Dum Biryani - Serves 3-4)",
+   "serving": "order, as sold",
+   "kcal": 4467.0,
+   "protein": 122.0,
+   "carbs": 595.0,
+   "fat": 189.0
+  },
+  {
+   "name": "Murgh Tikka (Chicken Tikka Dum Biryani - Serves 3-4)",
+   "serving": "order, as sold",
+   "kcal": 4467.0,
+   "protein": 143.0,
+   "carbs": 594.0,
+   "fat": 199.0
+  },
+  {
+   "name": "Noorani Khajur Dum Biryani (Sweet flavoured Veg Date Dum Biryani-Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 962.7,
+   "protein": 18.3,
+   "carbs": 150.6,
+   "fat": 35.8
+  },
+  {
+   "name": "Zaitooni Paneer Dum Biryani (Veg Paneer Dum Biryani-Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1134.0,
+   "protein": 32.0,
+   "carbs": 157.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Noorani Khajur (Sweet Date Biryani- Serves 1) + Zaitooni Paneer (Veg Paneer Biryani- Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 2096.7,
+   "protein": 50.3,
+   "carbs": 307.6,
+   "fat": 82.8
+  },
+  {
+   "name": "Zaikedar Paneer Biryani Combo (Serves 2 - Paneer Biryani, Hara Bhara Kebab, Thums Up)",
+   "serving": "order, as sold",
+   "kcal": 2983.0,
+   "protein": 69.0,
+   "carbs": 423.0,
+   "fat": 123.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh Combo (Serves 2 - Chicken Biryani, Murgh Malai Tikka kebab, Thums Up)",
+   "serving": "order, as sold",
+   "kcal": 3659.0,
+   "protein": 113.0,
+   "carbs": 474.0,
+   "fat": 157.0
+  },
+  {
+   "name": "Murgh Seekh Kebab (6 pieces)",
+   "serving": "order, as sold",
+   "kcal": 753.0,
+   "protein": 27.0,
+   "carbs": 77.0,
+   "fat": 37.0
+  },
+  {
+   "name": "Subz-E-Biryani (Veg Dum Biryani, Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 1085.0,
+   "protein": 19.0,
+   "carbs": 152.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Biryani, Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 1248.0,
+   "protein": 36.0,
+   "carbs": 155.0,
+   "fat": 57.0
+  },
+  {
+   "name": "Dum Gosht (Mutton Dum Biryani and Boneless, Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 1225.0,
+   "protein": 51.0,
+   "carbs": 157.0,
+   "fat": 48.0
+  },
+  {
+   "name": "Murgh Tikka (Chicken Tikka Dum Biryani, Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 1271.0,
+   "protein": 36.0,
+   "carbs": 151.0,
+   "fat": 61.0
+  },
+  {
+   "name": "Chicken Biryani (Lazeez Bhuna Murgh, serves 1) + Chicken Tikka Biryani (Murgh Tikka, serves 1)",
+   "serving": "order, as sold",
+   "kcal": 2561.0,
+   "protein": 69.0,
+   "carbs": 292.0,
+   "fat": 132.0
+  },
+  {
+   "name": "Chicken Biryani (Lazeez Bhuna Murgh, serves 1) + Creamy Chicken Biryani (Murgh Afghani, serves-1)",
+   "serving": "order, as sold",
+   "kcal": 2846.0,
+   "protein": 70.0,
+   "carbs": 358.0,
+   "fat": 132.0
+  },
+  {
+   "name": "Creamy Chicken Biryani (Murgh Afghani, serves 1) + Chicken Tikka Biryani (Murgh Tikka, serves-1)",
+   "serving": "order, as sold",
+   "kcal": 2693.0,
+   "protein": 73.0,
+   "carbs": 340.0,
+   "fat": 124.0
+  },
+  {
+   "name": "Chicken Biryani (Lazeez Bhuna Murgh, serves 1) + Creamy Chicken Biryani (Murgh Afghani, serves 1)",
+   "serving": "order, as sold",
+   "kcal": 2846.0,
+   "protein": 70.0,
+   "carbs": 358.0,
+   "fat": 132.0
+  },
+  {
+   "name": "Creamy Chicken Biryani (Murgh Afghani, serves 1) + Chicken Tikka Biryani (Murgh Tikka, serves 1)",
+   "serving": "order, as sold",
+   "kcal": 2693.0,
+   "protein": 73.0,
+   "carbs": 340.0,
+   "fat": 124.0
+  },
+  {
+   "name": "Veg Biryani (Subz-E-Biryani, serves-1) + Paneer & Veg Biryani (Paneer Subz, serves-1)",
+   "serving": "order, as sold",
+   "kcal": 2311.0,
+   "protein": 43.0,
+   "carbs": 290.0,
+   "fat": 117.0
+  },
+  {
+   "name": "Paneer Biryani (Zaikedaar Paneer, serves-1) + Veg Biryani (Subz-E-Biryani, serves-1)",
+   "serving": "order, as sold",
+   "kcal": 2187.0,
+   "protein": 47.0,
+   "carbs": 268.0,
+   "fat": 113.0
+  },
+  {
+   "name": "Paneer Biryani (Zaikedaar Paneer, serves-1) + Paneer & Veg Biryani (Paneer Subz, serves -)..",
+   "serving": "order, as sold",
+   "kcal": 2290.0,
+   "protein": 54.0,
+   "carbs": 286.0,
+   "fat": 112.0
+  },
+  {
+   "name": "Veg Biryani (Subz-E-Biryani, serves 1) + Paneer & Veg Biryani (Paneer Subz, serves 1)",
+   "serving": "order, as sold",
+   "kcal": 2311.0,
+   "protein": 43.0,
+   "carbs": 290.0,
+   "fat": 117.0
+  },
+  {
+   "name": "Paneer Biryani (Zaikedaar Paneer, serves 1) + Veg Biryani (Subz-E-Biryani, serves 1)",
+   "serving": "order, as sold",
+   "kcal": 2187.0,
+   "protein": 47.0,
+   "carbs": 268.0,
+   "fat": 113.0
+  },
+  {
+   "name": "Paneer Biryani (Zaikedaar Paneer, serves 1) + Paneer & Veg Biryani (Paneer Subz, serves 1)",
+   "serving": "order, as sold",
+   "kcal": 2290.0,
+   "protein": 54.0,
+   "carbs": 286.0,
+   "fat": 112.0
+  },
+  {
+   "name": "Mutton Biryani (Shaan-E-Dum Gosht , serves 2) + 6pc Mutton Galouti Kebab + 2 Thums up 250ml",
+   "serving": "order, as sold",
+   "kcal": 2841.0,
+   "protein": 101.0,
+   "carbs": 374.0,
+   "fat": 112.0
+  },
+  {
+   "name": "Chicken Biryani (Shaan-E-Bhuna Murgh, serves 2) + 6pc Chicken Seekh Kebab + 2 Thums up 250ml",
+   "serving": "order, as sold",
+   "kcal": 3147.0,
+   "protein": 79.0,
+   "carbs": 390.0,
+   "fat": 146.0
+  },
+  {
+   "name": "Chicken Biryani (Alishaan-E-Bhuna Murgh, serves 4) + 12pcs Chicken Seekh Kebab + 4 Thums up 250ml",
+   "serving": "order, as sold",
+   "kcal": 6692.0,
+   "protein": 163.0,
+   "carbs": 877.0,
+   "fat": 292.0
+  },
+  {
+   "name": "Veg Biryani (Shaan-E-Subz, serves 2) + 6pc Hara Bhara Kebab + 2 Thums up 250ml",
+   "serving": "order, as sold",
+   "kcal": 3104.0,
+   "protein": 40.0,
+   "carbs": 460.0,
+   "fat": 129.0
+  },
+  {
+   "name": "Creamy Chicken Biryani (Shaan-E-Afghani Tikka,serves 2) + 6pc Chicken Malai Tikka + 2 Thumsup 250ml",
+   "serving": "order, as sold",
+   "kcal": 3659.0,
+   "protein": 113.0,
+   "carbs": 474.0,
+   "fat": 157.0
+  },
+  {
+   "name": "Paneer Biryani (Shaan-e-Paneer, serves 2) + 6pc Hara Bhara Kebab + 2 Thums up 250ml",
+   "serving": "order, as sold",
+   "kcal": 2983.0,
+   "protein": 69.0,
+   "carbs": 423.0,
+   "fat": 123.0
+  },
+  {
+   "name": "Mutton Biryani (Alishaan-E-Dum Gosht, serves 4) + 12pcs Mutton Galouti Kebab + 4 Thums up 250ml",
+   "serving": "order, as sold",
+   "kcal": 6248.0,
+   "protein": 232.0,
+   "carbs": 882.0,
+   "fat": 215.0
+  },
+  {
+   "name": "Veg Biryani (Alishaan-E-Subz, serves 4) + 12pcs Hara Bhara Kebab + 4 Thums up 250ml",
+   "serving": "order, as sold",
+   "kcal": 6424.0,
+   "protein": 94.0,
+   "carbs": 923.0,
+   "fat": 274.0
+  },
+  {
+   "name": "Dum Mutton Dum Biryani (Dum Gosht, Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1273.0,
+   "protein": 45.0,
+   "carbs": 172.0,
+   "fat": 49.0
+  },
+  {
+   "name": "Subz-e-Biryani (Vegetable Dum Biryani, Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1104.0,
+   "protein": 18.0,
+   "carbs": 136.0,
+   "fat": 59.0
+  },
+  {
+   "name": "Paneer + Veg Dum Biryani (Paneer Subz, Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1090.0,
+   "protein": 23.0,
+   "carbs": 134.0,
+   "fat": 56.0
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Dum Biryani, Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1263.0,
+   "protein": 35.0,
+   "carbs": 151.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Exotic Veg Paneer Dum Biryani (Zaitooni Paneer, Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1134.0,
+   "protein": 32.0,
+   "carbs": 157.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Mutton & Chicken Dum Biryani (Do Gosht, Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1869.0,
+   "protein": 75.0,
+   "carbs": 224.5,
+   "fat": 79.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh (Chicken Dum Biryani Boneless - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 4360.0,
+   "protein": 127.0,
+   "carbs": 573.0,
+   "fat": 190.0
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Dum Biryani - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 4467.0,
+   "protein": 122.0,
+   "carbs": 595.0,
+   "fat": 189.0
+  },
+  {
+   "name": "Dum Gosht (Mutton Dum Biryani, Boneless - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 4321.0,
+   "protein": 178.0,
+   "carbs": 622.0,
+   "fat": 141.0
+  },
+  {
+   "name": "Paneer Subz (Classic Paneer+Veg Dum Biryani - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 4827.0,
+   "protein": 99.0,
+   "carbs": 634.0,
+   "fat": 223.0
+  },
+  {
+   "name": "Zaitooni Paneer Dum Biryani (Veg Paneer Dum Biryani- Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 1134.0,
+   "protein": 32.0,
+   "carbs": 157.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Dum Gosht Dum Biryani(Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 1924.5,
+   "protein": 67.1,
+   "carbs": 269.5,
+   "fat": 70.5
+  },
+  {
+   "name": "Subz e Dum Biryani(Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2045.0,
+   "protein": 28.0,
+   "carbs": 258.0,
+   "fat": 106.0
+  },
+  {
+   "name": "Murgh Tikka Dum Biryani(Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2002.8,
+   "protein": 64.8,
+   "carbs": 241.9,
+   "fat": 92.4
+  },
+  {
+   "name": "Murgh Afghani Tikka Dum Biryani(Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2185.4,
+   "protein": 65.0,
+   "carbs": 258.9,
+   "fat": 105.1
+  },
+  {
+   "name": "Jashna-E-Subz Biryani (Classic Veg Biryani)",
+   "serving": "order, as sold",
+   "kcal": 1769.4,
+   "protein": 29.9,
+   "carbs": 234.9,
+   "fat": 83.9
+  },
+  {
+   "name": "Jashna-E-Zaikedaar Paneer (Classic Paneer Biryani)",
+   "serving": "order, as sold",
+   "kcal": 1761.0,
+   "protein": 40.9,
+   "carbs": 230.5,
+   "fat": 80.7
+  },
+  {
+   "name": "Jashna-E-Lazeez Bhuna Murgh (Classic Chicken Biryani)",
+   "serving": "order, as sold",
+   "kcal": 1965.5,
+   "protein": 60.3,
+   "carbs": 219.3,
+   "fat": 97.8
+  },
+  {
+   "name": "Jashna-E-Dum Gosht (Classic Mutton Biryani)",
+   "serving": "order, as sold",
+   "kcal": 1942.0,
+   "protein": 79.7,
+   "carbs": 240.6,
+   "fat": 77.0
+  },
+  {
+   "name": "Jashna-E-Murgh Tikka (Chicken Tikka Biryani)",
+   "serving": "order, as sold",
+   "kcal": 1900.7,
+   "protein": 64.4,
+   "carbs": 218.6,
+   "fat": 89.0
+  },
+  {
+   "name": "Jashna-E-Murgh Afghani Tikka (Creamy Chicken Tikka Biryani)",
+   "serving": "order, as sold",
+   "kcal": 1856.5,
+   "protein": 63.5,
+   "carbs": 218.9,
+   "fat": 84.3
+  },
+  {
+   "name": "Jashna-E-Do Gosht (Chicken + Mutton Biryani)",
+   "serving": "order, as sold",
+   "kcal": 1869.0,
+   "protein": 75.0,
+   "carbs": 224.5,
+   "fat": 79.0
+  },
+  {
+   "name": "Jashna-E-Paneer Subz (Classic Paneer+ Veg Biryani)",
+   "serving": "order, as sold",
+   "kcal": 1776.8,
+   "protein": 35.3,
+   "carbs": 233.3,
+   "fat": 83.4
+  },
+  {
+   "name": "Jashna-E-Zaitooni Paneer (Paneer With Veggies Biryani )",
+   "serving": "order, as sold",
+   "kcal": 1702.0,
+   "protein": 42.0,
+   "carbs": 235.5,
+   "fat": 72.0
+  },
+  {
+   "name": "Mutton Haleem (With Bone) (500gms)",
+   "serving": "order, as sold",
+   "kcal": 321.0,
+   "protein": 19.0,
+   "carbs": 30.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Hyderabadi Subz-E-Biryani ( Spicy Veg Biryani Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1767.0,
+   "protein": 26.0,
+   "carbs": 215.0,
+   "fat": 92.0
+  },
+  {
+   "name": "Hyderabadi Zaikedaar Paneer ( Spicy Paneer Biryani Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1763.0,
+   "protein": 39.0,
+   "carbs": 212.0,
+   "fat": 88.0
+  },
+  {
+   "name": "Hyderabadi Lazeez Bhuna Murgh ( Spicy Chicken Biryani , Boneless Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1911.0,
+   "protein": 40.0,
+   "carbs": 214.0,
+   "fat": 103.0
+  },
+  {
+   "name": "Hyderabadi Dum Gosht ( Spicy Mutton Biryani, Boneless Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1925.0,
+   "protein": 64.0,
+   "carbs": 237.0,
+   "fat": 83.0
+  },
+  {
+   "name": "Tokhm-E-Biryani (Egg Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1208.0,
+   "protein": 36.0,
+   "carbs": 139.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Tokhm-E-Biryani (Egg Biryani - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2120.2,
+   "protein": 62.6,
+   "carbs": 239.2,
+   "fat": 113.5
+  },
+  {
+   "name": "Dum Gosht ( Mutton Biryani Boneless - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1722.0,
+   "protein": 64.0,
+   "carbs": 237.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Biryani Boneless - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 1877.0,
+   "protein": 74.0,
+   "carbs": 244.0,
+   "fat": 75.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Biryani Boneless - Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 5022.0,
+   "protein": 182.0,
+   "carbs": 687.0,
+   "fat": 183.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh ( Chicken Biryani Boneless - Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2004.0,
+   "protein": 44.0,
+   "carbs": 247.0,
+   "fat": 100.0
+  },
+  {
+   "name": "Lazeez Bhuna Murgh ( Chicken Biryani Boneless, Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4360.0,
+   "protein": 127.0,
+   "carbs": 573.0,
+   "fat": 190.0
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Biryani Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1263.0,
+   "protein": 35.0,
+   "carbs": 151.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Murgh Afghani Tikka ( Creamy Chicken Tikka Biryani Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2185.4,
+   "protein": 65.0,
+   "carbs": 258.9,
+   "fat": 105.1
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Biryani Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4756.0,
+   "protein": 137.0,
+   "carbs": 600.0,
+   "fat": 212.0
+  },
+  {
+   "name": "Murgh Tikka (Chicken Tikka Biryani Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4211.0,
+   "protein": 129.0,
+   "carbs": 493.0,
+   "fat": 202.0
+  },
+  {
+   "name": "Subz-E-Biryani ( Veg Biryani Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 2045.0,
+   "protein": 28.0,
+   "carbs": 258.0,
+   "fat": 106.0
+  },
+  {
+   "name": "Subz-E-Biryani ( Veg Biryani Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4307.0,
+   "protein": 70.0,
+   "carbs": 519.0,
+   "fat": 228.0
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Biryani - Serves- 1)",
+   "serving": "order, as sold",
+   "kcal": 1083.0,
+   "protein": 29.0,
+   "carbs": 132.0,
+   "fat": 54.0
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Biryani - Serves -2)",
+   "serving": "order, as sold",
+   "kcal": 1493.5,
+   "protein": 23.5,
+   "carbs": 235.2,
+   "fat": 57.8
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Biryani Serves 4-5)",
+   "serving": "order, as sold",
+   "kcal": 4134.0,
+   "protein": 118.0,
+   "carbs": 497.0,
+   "fat": 204.0
+  },
+  {
+   "name": "Spicy Zaikedaar Paneer ( Hyderabadi Paneer Biryani Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1809.0,
+   "protein": 36.0,
+   "carbs": 214.0,
+   "fat": 96.0
+  },
+  {
+   "name": "Spicy Lazeez Bhuna Murgh ( Hyderabadi Chicken Biryani , Boneless Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1956.0,
+   "protein": 42.0,
+   "carbs": 214.0,
+   "fat": 110.0
+  },
+  {
+   "name": "Spicy Zaikedaar Paneer ( Hyderabadi Paneer Biryani Serves-2)",
+   "serving": "order, as sold",
+   "kcal": 1809.0,
+   "protein": 36.0,
+   "carbs": 214.0,
+   "fat": 96.0
+  },
+  {
+   "name": "Spicy Lazeez Bhuna Murgh ( Hyderabadi Chicken Biryani, Boneless - Serves- 2)",
+   "serving": "order, as sold",
+   "kcal": 3128.0,
+   "protein": 67.0,
+   "carbs": 351.0,
+   "fat": 172.0
+  },
+  {
+   "name": "Zaitooni Paneer Dum Biryani (Veg Paneer Biryani-Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1134.0,
+   "protein": 32.0,
+   "carbs": 157.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Do Gosht Ki Biryani (Mutton & Chicken Biryani ,Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1869.0,
+   "protein": 75.0,
+   "carbs": 224.5,
+   "fat": 79.0
+  },
+  {
+   "name": "Tokhm-E-Biryani (Egg Biryani - Serves 1 )",
+   "serving": "order, as sold",
+   "kcal": 1208.0,
+   "protein": 36.0,
+   "carbs": 139.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Biryani Boneless - Serves 1 )",
+   "serving": "order, as sold",
+   "kcal": 1225.0,
+   "protein": 51.0,
+   "carbs": 157.0,
+   "fat": 48.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Biryani Boneless - Serves 2 )",
+   "serving": "order, as sold",
+   "kcal": 1877.0,
+   "protein": 74.0,
+   "carbs": 244.0,
+   "fat": 75.0
+  },
+  {
+   "name": "Dum Gosht ( Mutton Biryani Boneless - Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 5022.0,
+   "protein": 182.0,
+   "carbs": 687.0,
+   "fat": 183.0
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Biryani Serves 1 )",
+   "serving": "order, as sold",
+   "kcal": 1248.0,
+   "protein": 36.0,
+   "carbs": 155.0,
+   "fat": 57.0
+  },
+  {
+   "name": "Murgh Afghani Tikka ( Creamy Chicken Tikka Biryani Serves 2 )",
+   "serving": "order, as sold",
+   "kcal": 2185.4,
+   "protein": 65.0,
+   "carbs": 258.9,
+   "fat": 105.1
+  },
+  {
+   "name": "Murgh Afghani Tikka (Creamy Chicken Tikka Biryani Serves 4 )",
+   "serving": "order, as sold",
+   "kcal": 4467.0,
+   "protein": 122.0,
+   "carbs": 595.0,
+   "fat": 189.0
+  },
+  {
+   "name": "Subz-E-Biryani ( Veg Biryani Serves 1 )",
+   "serving": "order, as sold",
+   "kcal": 1200.0,
+   "protein": 19.0,
+   "carbs": 156.0,
+   "fat": 58.0
+  },
+  {
+   "name": "Subz-E-Biryani ( Veg Biryani Serves 2 )",
+   "serving": "order, as sold",
+   "kcal": 2045.0,
+   "protein": 28.0,
+   "carbs": 258.0,
+   "fat": 106.0
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Biryani - Serves- 1 )",
+   "serving": "order, as sold",
+   "kcal": 1516.0,
+   "protein": 36.0,
+   "carbs": 209.0,
+   "fat": 63.0
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Biryani - Serves -2 )",
+   "serving": "order, as sold",
+   "kcal": 1924.0,
+   "protein": 57.0,
+   "carbs": 221.0,
+   "fat": 100.0
+  },
+  {
+   "name": "Subz-E-Biryani (Hyderabadi Veg Biryani - Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1104.0,
+   "protein": 18.0,
+   "carbs": 136.0,
+   "fat": 59.0
+  },
+  {
+   "name": "Spicy Zaikedaar Paneer ( Hyderabadi Paneer Biryani Serves 1 )",
+   "serving": "order, as sold",
+   "kcal": 1809.0,
+   "protein": 36.0,
+   "carbs": 214.0,
+   "fat": 96.0
+  },
+  {
+   "name": "Spicy Lazeez Bhuna Murgh ( Hyderabadi Chicken Biryani , Boneless Serves 1 )",
+   "serving": "order, as sold",
+   "kcal": 1956.0,
+   "protein": 42.0,
+   "carbs": 214.0,
+   "fat": 110.0
+  },
+  {
+   "name": "Spicy Subz-E-Biryani (Hyderabadi Veg Biryani , Serves 2 )",
+   "serving": "order, as sold",
+   "kcal": 3146.0,
+   "protein": 50.0,
+   "carbs": 361.0,
+   "fat": 176.0
+  },
+  {
+   "name": "Spicy Zaikedaar Paneer ( Hyderabadi Paneer Biryani Serves- 2)",
+   "serving": "order, as sold",
+   "kcal": 3140.0,
+   "protein": 65.0,
+   "carbs": 360.0,
+   "fat": 170.0
+  },
+  {
+   "name": "Spicy Lazeez Bhuna Murgh ( Hyderabadi Chicken Biryani, Boneless - Serves 2 )",
+   "serving": "order, as sold",
+   "kcal": 3128.0,
+   "protein": 67.0,
+   "carbs": 351.0,
+   "fat": 172.0
+  },
+  {
+   "name": "Spicy Dum Gosht ( Hyderabadi Mutton Biryani, Boneless Serves -2 )",
+   "serving": "order, as sold",
+   "kcal": 3052.0,
+   "protein": 92.0,
+   "carbs": 375.0,
+   "fat": 142.0
+  },
+  {
+   "name": "Murgh Kefta (Minced Chicken Meatball Biryani, Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 216.9,
+   "protein": 14.6,
+   "carbs": 12.1,
+   "fat": 12.3
+  },
+  {
+   "name": "Murgh Kefta (Minced Chicken Meatball Biryani, Serves-1)",
+   "serving": "order, as sold",
+   "kcal": 216.9,
+   "protein": 14.6,
+   "carbs": 12.1,
+   "fat": 12.3
+  },
+  {
+   "name": "Noorani Khajur Biryani-(Sweet Flavoured Date Biryani) (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 962.7,
+   "protein": 18.3,
+   "carbs": 150.6,
+   "fat": 35.8
+  },
+  {
+   "name": "Zaikedaar Paneer ( Paneer Dum Biryani - Serves-1 ).",
+   "serving": "order, as sold",
+   "kcal": 1191.0,
+   "protein": 30.0,
+   "carbs": 152.0,
+   "fat": 55.0
+  }
+ ]
+}

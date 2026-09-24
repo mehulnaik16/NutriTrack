@@ -1,0 +1,703 @@
+{
+ "brand": "Faasos",
+ "code": "ZF",
+ "source": "https://carbon-v2.ipsator.com/static/assets/rebel/Faasos_NI_v1.pdf (Rebel Foods nutrition information for Faasos)",
+ "basis": "Per item as ordered, from the brand's own nutrition file. Weights are not published, so they are estimated and shown with ≈; the calories and macros are the brand's.",
+ "density": 240,
+ "items": [
+  {
+   "name": "Masala Potato Roll",
+   "serving": "order, as sold",
+   "kcal": 731.0,
+   "protein": 11.1,
+   "carbs": 64.0,
+   "fat": 48.0
+  },
+  {
+   "name": "Masala Paneer Tikka Wrap",
+   "serving": "order, as sold",
+   "kcal": 571.6,
+   "protein": 8.9,
+   "carbs": 54.2,
+   "fat": 35.6
+  },
+  {
+   "name": "Masala Chicken Tikka Wrap",
+   "serving": "order, as sold",
+   "kcal": 770.3,
+   "protein": 21.8,
+   "carbs": 61.3,
+   "fat": 49.0
+  },
+  {
+   "name": "Cheesy Corn Salsa Wrap",
+   "serving": "order, as sold",
+   "kcal": 692.9,
+   "protein": 12.9,
+   "carbs": 75.7,
+   "fat": 37.6
+  },
+  {
+   "name": "Cheese Melt Chicken Wrap",
+   "serving": "order, as sold",
+   "kcal": 650.4,
+   "protein": 22.8,
+   "carbs": 57.4,
+   "fat": 36.8
+  },
+  {
+   "name": "Cheese Melt Paneer Wrap",
+   "serving": "order, as sold",
+   "kcal": 561.1,
+   "protein": 10.5,
+   "carbs": 51.2,
+   "fat": 35.1
+  },
+  {
+   "name": "SWIG Jeera Masala",
+   "serving": "order, as sold",
+   "kcal": 123.0,
+   "protein": 1.0,
+   "carbs": 28.0,
+   "fat": 0.0
+  },
+  {
+   "name": "SWIG Green Apple",
+   "serving": "order, as sold",
+   "kcal": 162.0,
+   "protein": 0.0,
+   "carbs": 37.0,
+   "fat": 1.0
+  },
+  {
+   "name": "Reshmi Chicken Kebab Wrap",
+   "serving": "order, as sold",
+   "kcal": 750.9,
+   "protein": 21.2,
+   "carbs": 60.4,
+   "fat": 47.3
+  },
+  {
+   "name": "Egg Cheese Sausage Wrap",
+   "serving": "order, as sold",
+   "kcal": 814.8,
+   "protein": 26.3,
+   "carbs": 52.8,
+   "fat": 55.7
+  },
+  {
+   "name": "Cheesy Chicken Meatballs",
+   "serving": "order, as sold",
+   "kcal": 272.3,
+   "protein": 16.7,
+   "carbs": 10.9,
+   "fat": 18.1
+  },
+  {
+   "name": "Double Egg Chatpata Wrap",
+   "serving": "order, as sold",
+   "kcal": 773.5,
+   "protein": 23.7,
+   "carbs": 55.2,
+   "fat": 51.1
+  },
+  {
+   "name": "Falafel Nuggets with Mayo Dip",
+   "serving": "order, as sold",
+   "kcal": 469.0,
+   "protein": 9.0,
+   "carbs": 34.0,
+   "fat": 32.0
+  },
+  {
+   "name": "Potato Chilli Shots with Mayo Dip",
+   "serving": "order, as sold",
+   "kcal": 357.0,
+   "protein": 2.0,
+   "carbs": 30.0,
+   "fat": 25.0
+  },
+  {
+   "name": "Chicken Bhuna Wrap",
+   "serving": "order, as sold",
+   "kcal": 724.1,
+   "protein": 18.4,
+   "carbs": 59.2,
+   "fat": 46.2
+  },
+  {
+   "name": "Coca-Cola Can (330 ML)",
+   "serving": "order, as sold",
+   "kcal": 139.0,
+   "protein": 0.0,
+   "carbs": 35.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Potato Chill Shots (with Free Mayonnaise Dip)",
+   "serving": "order, as sold",
+   "kcal": 357.7,
+   "protein": 2.6,
+   "carbs": 30.4,
+   "fat": 25.4
+  },
+  {
+   "name": "Mutton Shami Kebab",
+   "serving": "order, as sold",
+   "kcal": 390.7,
+   "protein": 37.3,
+   "carbs": 36.8,
+   "fat": 10.5
+  },
+  {
+   "name": "Baked Veggie Pizza Wrap",
+   "serving": "order, as sold",
+   "kcal": 614.0,
+   "protein": 21.0,
+   "carbs": 65.0,
+   "fat": 28.0
+  },
+  {
+   "name": "(Must Try) Dahi Kebab Wrap",
+   "serving": "order, as sold",
+   "kcal": 917.0,
+   "protein": 14.0,
+   "carbs": 86.0,
+   "fat": 58.0
+  },
+  {
+   "name": "Super Saver Reshmi Chicken Wrap Meal + Dessert (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1229.9,
+   "protein": 30.9,
+   "carbs": 126.1,
+   "fat": 67.0
+  },
+  {
+   "name": "Super Saver Paneer Tikka Wrap Meal + Dessert (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1050.6,
+   "note": "The brand's macros for this item contradict its calories, so only the calories are kept."
+  },
+  {
+   "name": "Super Saver Cheese Melt Paneer Wrap Meal + Dessert (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1040.2,
+   "note": "The brand's macros for this item contradict its calories, so only the calories are kept."
+  },
+  {
+   "name": "Super Saver Paneer Rice Bowl Meal + Thums Up (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 719.1,
+   "protein": 8.2,
+   "carbs": 122.1,
+   "fat": 11.9
+  },
+  {
+   "name": "Super Saver Chicken Rice Bowl Meal + Thums Up (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 827.3,
+   "protein": 8.2,
+   "carbs": 125.8,
+   "fat": 19.9
+  },
+  {
+   "name": "Double Value Paneer Wrap Meal + Coke (Serves 2)",
+   "serving": "order, as sold",
+   "kcal": 1547.0,
+   "note": "The brand's macros for this item contradict its calories, so only the calories are kept."
+  },
+  {
+   "name": "Family Saver Wrap & Bowl Meal (Non-Veg) (Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 3581.3,
+   "protein": 82.9,
+   "carbs": 431.8,
+   "fat": 174.6
+  },
+  {
+   "name": "Family Saver Veg Wrap with Dessert + 4 Thums Up (Serves 4)",
+   "serving": "order, as sold",
+   "kcal": 4345.0,
+   "note": "The brand's macros for this item contradict its calories, so only the calories are kept."
+  },
+  {
+   "name": "Potato Wedges (Medium)",
+   "serving": "order, as sold",
+   "kcal": 128.0,
+   "protein": 4.0,
+   "carbs": 18.5,
+   "fat": 4.0
+  },
+  {
+   "name": "Coca Cola Can - (330 ML)",
+   "serving": "order, as sold",
+   "kcal": 139.0,
+   "protein": 0.0,
+   "carbs": 35.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Rajma Masala Rice Bowl (Regular)",
+   "serving": "order, as sold",
+   "kcal": 583.0,
+   "protein": 13.0,
+   "carbs": 92.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Baked Chicken Pizza Wrap",
+   "serving": "order, as sold",
+   "kcal": 779.0,
+   "protein": 33.0,
+   "carbs": 72.0,
+   "fat": 38.0
+  },
+  {
+   "name": "Mexican Potato Salsa Wrap",
+   "serving": "order, as sold",
+   "kcal": 929.0,
+   "protein": 14.0,
+   "carbs": 94.0,
+   "fat": 56.0
+  },
+  {
+   "name": "Smokey Fab Meal (Veg)",
+   "serving": "order, as sold",
+   "kcal": 1551.4,
+   "protein": 29.1,
+   "carbs": 153.6,
+   "fat": 91.6
+  },
+  {
+   "name": "Fab & Creamy Meal",
+   "serving": "order, as sold",
+   "kcal": 2014.7,
+   "protein": 47.4,
+   "carbs": 189.8,
+   "fat": 119.5
+  },
+  {
+   "name": "Fab & Cheesy NonVeg Meal",
+   "serving": "order, as sold",
+   "kcal": 1404.7,
+   "protein": 47.7,
+   "carbs": 116.5,
+   "fat": 83.4
+  },
+  {
+   "name": "Fab & Loaded Veg Meal",
+   "serving": "order, as sold",
+   "kcal": 1671.4,
+   "protein": 34.3,
+   "carbs": 171.1,
+   "fat": 95.6
+  },
+  {
+   "name": "Exotic Fab Meal (Veg)",
+   "serving": "order, as sold",
+   "kcal": 2501.5,
+   "protein": 46.5,
+   "carbs": 273.5,
+   "fat": 136.9
+  },
+  {
+   "name": "Smokey Fab Meal (Non-Veg)",
+   "serving": "order, as sold",
+   "kcal": 1854.5,
+   "protein": 57.8,
+   "carbs": 141.8,
+   "fat": 118.0
+  },
+  {
+   "name": "Fab & Italian Meal",
+   "serving": "order, as sold",
+   "kcal": 1451.4,
+   "protein": 43.5,
+   "carbs": 136.0,
+   "fat": 83.3
+  },
+  {
+   "name": "Loaded Fab Meal (Non-Veg)",
+   "serving": "order, as sold",
+   "kcal": 2255.7,
+   "protein": 73.7,
+   "carbs": 189.6,
+   "fat": 134.1
+  },
+  {
+   "name": "Potato Wedges and Thums up",
+   "serving": "order, as sold",
+   "kcal": 233.0,
+   "protein": 4.0,
+   "carbs": 45.0,
+   "fat": 4.0
+  },
+  {
+   "name": "Super Saver Chicken Tikka Wrap Meal + Thums Up (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1109.0,
+   "protein": 26.0,
+   "carbs": 133.0,
+   "fat": 53.0
+  },
+  {
+   "name": "Super Saver American Sausage Wrap Meal + Dessert (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1773.0,
+   "protein": 46.0,
+   "carbs": 197.0,
+   "fat": 89.0
+  },
+  {
+   "name": "Super Saver Baked Veg Pizza Wrap Meal + Dessert (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1233.0,
+   "protein": 26.0,
+   "carbs": 154.0,
+   "fat": 58.0
+  },
+  {
+   "name": "Super Saver Jumbo Falafel Salsa Wrap Meal + Thums Up (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1318.0,
+   "protein": 24.0,
+   "carbs": 171.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Super Saver American Sausage Wrap Meal + Thums Up (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1555.0,
+   "protein": 42.0,
+   "carbs": 181.0,
+   "fat": 74.0
+  },
+  {
+   "name": "Super Saver Jumbo Paneer Chole Wrap Meal + Thums Up (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1030.0,
+   "protein": 18.0,
+   "carbs": 143.0,
+   "fat": 44.0
+  },
+  {
+   "name": "American Smoked Sausage Wrap",
+   "serving": "order, as sold",
+   "kcal": 842.0,
+   "protein": 28.0,
+   "carbs": 60.0,
+   "fat": 55.0
+  },
+  {
+   "name": "Baked Pizza Wrap (Chicken)",
+   "serving": "order, as sold",
+   "kcal": 779.0,
+   "protein": 33.0,
+   "carbs": 72.0,
+   "fat": 38.0
+  },
+  {
+   "name": "Baked Pizza Wrap (Veg)",
+   "serving": "order, as sold",
+   "kcal": 614.0,
+   "protein": 21.0,
+   "carbs": 65.0,
+   "fat": 28.0
+  },
+  {
+   "name": "Bhuna Chicken Overloaded Wrap",
+   "serving": "order, as sold",
+   "kcal": 1052.0,
+   "protein": 36.0,
+   "carbs": 64.0,
+   "fat": 73.0
+  },
+  {
+   "name": "Jumbo Falafel-Salsa Wrap",
+   "serving": "order, as sold",
+   "kcal": 870.0,
+   "protein": 18.0,
+   "carbs": 90.0,
+   "fat": 49.0
+  },
+  {
+   "name": "Jumbo Chole Paneer Wrap",
+   "serving": "order, as sold",
+   "kcal": 854.0,
+   "protein": 21.0,
+   "carbs": 75.0,
+   "fat": 53.0
+  },
+  {
+   "name": "Mexicana Potato Salsa Wrap",
+   "serving": "order, as sold",
+   "kcal": 929.0,
+   "protein": 14.0,
+   "carbs": 94.0,
+   "fat": 56.0
+  },
+  {
+   "name": "Chicken Rice Bowl (Jumbo)",
+   "serving": "order, as sold",
+   "kcal": 578.0,
+   "protein": 22.0,
+   "carbs": 89.0,
+   "fat": 16.0
+  },
+  {
+   "name": "Veg Rice Bowl (Jumbo)",
+   "serving": "order, as sold",
+   "kcal": 578.0,
+   "protein": 13.0,
+   "carbs": 97.0,
+   "fat": 16.0
+  },
+  {
+   "name": "Rajma Masala Rice Bowl (Jumbo)",
+   "serving": "order, as sold",
+   "kcal": 583.0,
+   "protein": 13.0,
+   "carbs": 92.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Royal Chicken Rice Bowl (Jumbo)",
+   "serving": "order, as sold",
+   "kcal": 616.0,
+   "protein": 22.0,
+   "carbs": 92.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Royal Veg Rice Bowl (Jumbo)",
+   "serving": "order, as sold",
+   "kcal": 616.0,
+   "protein": 22.0,
+   "carbs": 92.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Smoked Butter Chicken Rice Bowl (Jumbo)",
+   "serving": "order, as sold",
+   "kcal": 659.0,
+   "protein": 22.0,
+   "carbs": 115.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Smoked Butter Chicken Rice Bowl (Regular)",
+   "serving": "order, as sold",
+   "kcal": 659.0,
+   "protein": 22.0,
+   "carbs": 115.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Chicken Signature Rice Bowl",
+   "serving": "order, as sold",
+   "kcal": 630.0,
+   "protein": 18.0,
+   "carbs": 91.0,
+   "fat": 26.0
+  },
+  {
+   "name": "Chole Signature Rice Bowl (Regular)",
+   "serving": "order, as sold",
+   "kcal": 630.0,
+   "protein": 18.0,
+   "carbs": 91.0,
+   "fat": 26.0
+  },
+  {
+   "name": "Egg Rice Bowl (Regular)",
+   "serving": "order, as sold",
+   "kcal": 581.0,
+   "protein": 16.0,
+   "carbs": 86.0,
+   "fat": 21.0
+  },
+  {
+   "name": "Mutton Bhuna Rice Bowl (Regular)",
+   "serving": "order, as sold",
+   "kcal": 597.0,
+   "protein": 23.0,
+   "carbs": 97.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Paneer Signature Rice Bowl (Regular)",
+   "serving": "order, as sold",
+   "kcal": 668.0,
+   "protein": 16.0,
+   "carbs": 93.0,
+   "fat": 30.0
+  },
+  {
+   "name": "Bhuna Chicken Overload Wrap",
+   "serving": "order, as sold",
+   "kcal": 1052.0,
+   "protein": 36.0,
+   "carbs": 64.0,
+   "fat": 73.0
+  },
+  {
+   "name": "American Smokey Sausage Wrap",
+   "serving": "order, as sold",
+   "kcal": 842.0,
+   "protein": 28.0,
+   "carbs": 60.0,
+   "fat": 55.0
+  },
+  {
+   "name": "Jumbo Paneer Chole Wrap",
+   "serving": "order, as sold",
+   "kcal": 854.0,
+   "protein": 21.0,
+   "carbs": 75.0,
+   "fat": 53.0
+  },
+  {
+   "name": "Jumbo Falafel Salsa Wrap",
+   "serving": "order, as sold",
+   "kcal": 870.0,
+   "protein": 18.0,
+   "carbs": 90.0,
+   "fat": 49.0
+  },
+  {
+   "name": "Hyderabadi Veg Biryani Value Meal (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1274.9,
+   "note": "The brand's macros for this item contradict its calories, so only the calories are kept."
+  },
+  {
+   "name": "Super Saver Paneer Tikka Wrap Meal + Coke (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1271.0,
+   "protein": 19.0,
+   "carbs": 161.0,
+   "fat": 61.0
+  },
+  {
+   "name": "Super Saver Cheese Corn Salsa Wrap Meal + Coke (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 1392.0,
+   "protein": 23.0,
+   "carbs": 183.0,
+   "fat": 63.0
+  },
+  {
+   "name": "Baked Pizza Wrap - Veg",
+   "serving": "order, as sold",
+   "kcal": 614.0,
+   "protein": 21.0,
+   "carbs": 65.0,
+   "fat": 28.0
+  },
+  {
+   "name": "Must Try - Dahi Kebab Wrap",
+   "serving": "order, as sold",
+   "kcal": 917.0,
+   "protein": 14.0,
+   "carbs": 86.0,
+   "fat": 58.0
+  },
+  {
+   "name": "Veg Galauti Kebab Wrap",
+   "serving": "order, as sold",
+   "kcal": 787.0,
+   "protein": 22.0,
+   "carbs": 72.0,
+   "fat": 46.0
+  },
+  {
+   "name": "Chicken Haleem Kebab Wrap",
+   "serving": "order, as sold",
+   "kcal": 901.0,
+   "protein": 28.0,
+   "carbs": 66.0,
+   "fat": 61.0
+  },
+  {
+   "name": "BBQ Supreme Sausage Wrap",
+   "serving": "order, as sold",
+   "kcal": 842.0,
+   "protein": 28.0,
+   "carbs": 60.0,
+   "fat": 55.0
+  },
+  {
+   "name": "Cheesy Baked Pizza Wrap (Veg)",
+   "serving": "order, as sold",
+   "kcal": 614.0,
+   "protein": 21.0,
+   "carbs": 65.0,
+   "fat": 28.0
+  },
+  {
+   "name": "Chicken Extravaganza Wrap",
+   "serving": "order, as sold",
+   "kcal": 1052.0,
+   "protein": 36.0,
+   "carbs": 64.0,
+   "fat": 73.0
+  },
+  {
+   "name": "Tangy Falafel Corn Salsa Wrap",
+   "serving": "order, as sold",
+   "kcal": 870.0,
+   "protein": 18.0,
+   "carbs": 90.0,
+   "fat": 49.0
+  },
+  {
+   "name": "Punjabi Chole Paneer Wrap",
+   "serving": "order, as sold",
+   "kcal": 854.0,
+   "protein": 21.0,
+   "carbs": 75.0,
+   "fat": 53.0
+  },
+  {
+   "name": "Mexicana Potato Corn Salsa Wrap",
+   "serving": "order, as sold",
+   "kcal": 929.0,
+   "protein": 14.0,
+   "carbs": 94.0,
+   "fat": 56.0
+  },
+  {
+   "name": "Cheesy Baked Pizza Wrap (Chicken)",
+   "serving": "order, as sold",
+   "kcal": 779.0,
+   "protein": 33.0,
+   "carbs": 72.0,
+   "fat": 38.0
+  },
+  {
+   "name": "(Must Try) Veg Galauti Kebab Wrap",
+   "serving": "order, as sold",
+   "kcal": 787.0,
+   "protein": 22.0,
+   "carbs": 72.0,
+   "fat": 46.0
+  },
+  {
+   "name": "Creamy Makhani Falafel Wrap",
+   "serving": "order, as sold",
+   "kcal": 882.0,
+   "protein": 18.0,
+   "carbs": 81.0,
+   "fat": 55.0
+  },
+  {
+   "name": "Smoked Butter Chicken Wrap",
+   "serving": "order, as sold",
+   "kcal": 701.0,
+   "protein": 23.0,
+   "carbs": 65.0,
+   "fat": 39.0
+  }
+ ]
+}
