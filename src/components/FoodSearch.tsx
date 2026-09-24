@@ -63,6 +63,10 @@ import {
   validateQuantity,
 } from "@/lib/foodUnits";
 import {
+  validateFoodLogCalories,
+  MAX_SINGLE_FOOD_CALORIES,
+} from "@/lib/calorieLimits";
+import {
   VoiceFoodDialog,
   type VoiceFoodItem,
 } from "@/components/VoiceFoodDialog";
@@ -135,6 +139,8 @@ export const FoodSearch = forwardRef<
      * webcams — so the action row stays with the copy at the top.
      */
     searchOnly?: boolean;
+    dailyTarget?: number | null;
+    currentDayCalories?: number;
   }
 >((props, ref) => {
   const {
@@ -145,6 +151,8 @@ export const FoodSearch = forwardRef<
     showGeminiPhoto,
     aiEngine = "groq",
     searchOnly,
+    dailyTarget,
+    currentDayCalories = 0,
   } = props;
   const mealCategories =
     mealsProp && mealsProp.length > 0
@@ -182,6 +190,9 @@ export const FoodSearch = forwardRef<
 
   const [isEditing, setIsEditing] = useState(false);
   const [editLogId, setEditLogId] = useState<string | null>(null);
+  const [editLogOldCalories, setEditLogOldCalories] = useState<number | null>(
+    null,
+  );
 
   const loadSavedMeals = () => {
     supabase
@@ -247,6 +258,7 @@ export const FoodSearch = forwardRef<
     editLog: (log) => {
       setIsEditing(true);
       setEditLogId(log.id);
+      setEditLogOldCalories(log.calories ?? 0);
 
       const ratio = log.quantity_g / 100;
       const baseCal = ratio > 0 ? (log.calories ?? 0) / ratio : 0;
@@ -446,7 +458,6 @@ export const FoodSearch = forwardRef<
     /** What the user actually typed, when it was not grams. */
     entered?: { unit: string; qty: number },
   ) => {
-    setSaving(true);
     const ratio = grams / 100;
     const cal = overrides ? overrides.cal : +(kcalOf(item) * ratio).toFixed(1);
     const p = overrides
@@ -461,6 +472,19 @@ export const FoodSearch = forwardRef<
         ? overrides.fib
         : +((item.fibtg ?? 0) * ratio).toFixed(1);
 
+    const validation = validateFoodLogCalories(
+      cal,
+      currentDayCalories,
+      dailyTarget,
+      isEditing ? (editLogOldCalories ?? undefined) : undefined,
+    );
+
+    if (!validation.allowed) {
+      toast.error(validation.reason);
+      return false;
+    }
+
+    setSaving(true);
     let error;
     if (isEditing && editLogId) {
       const { error: updateErr } = await supabase
@@ -551,6 +575,9 @@ export const FoodSearch = forwardRef<
       toast.error(error.message);
       return false;
     }
+    if (validation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
+    }
     return true;
   };
 
@@ -606,6 +633,35 @@ export const FoodSearch = forwardRef<
   /** The parser returns several foods at once, so this inserts rows directly. */
   const logVoiceItems = async (items: VoiceFoodItem[]) => {
     if (items.length === 0) return;
+
+    for (const item of items) {
+      if (item.calories > MAX_SINGLE_FOOD_CALORIES) {
+        toast.error(
+          `"${item.food_name}" exceeds single item limit of 4,000 kcal`,
+        );
+        return;
+      }
+      if (item.calories < 0) {
+        toast.error(`"${item.food_name}" cannot have negative calories`);
+        return;
+      }
+    }
+
+    const batchCalories = items.reduce(
+      (sum, item) => sum + (item.calories || 0),
+      0,
+    );
+    const batchValidation = validateFoodLogCalories(
+      batchCalories,
+      currentDayCalories,
+      dailyTarget,
+    );
+
+    if (!batchValidation.allowed) {
+      toast.error(batchValidation.reason);
+      return;
+    }
+
     const { error } = await supabase.from("food_logs").insert(
       items.map((item) => ({
         user_id: userId,
@@ -628,6 +684,9 @@ export const FoodSearch = forwardRef<
     if (error) {
       toast.error(error.message);
       throw new Error(error.message);
+    }
+    if (batchValidation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
     }
     toast.success(
       `${items.length} food item${items.length > 1 ? "s" : ""} logged!`,
@@ -1171,6 +1230,7 @@ export const FoodSearch = forwardRef<
             setSelected(null);
             setIsEditing(false);
             setEditLogId(null);
+            setEditLogOldCalories(null);
             // Both reset, or a "2" left over from a pcs session reopens as 2 g.
             setUnit("g");
             setQty("100");
@@ -1378,6 +1438,7 @@ export const FoodSearch = forwardRef<
                     setQ("");
                     setIsEditing(false);
                     setEditLogId(null);
+                    setEditLogOldCalories(null);
                     setUnit("g");
                     setQty("100");
                     onLogged();

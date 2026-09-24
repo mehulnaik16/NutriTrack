@@ -62,6 +62,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
+import { validateFoodLogCalories } from "@/lib/calorieLimits";
 import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { PremiumGate } from "@/components/PremiumGate";
@@ -489,6 +490,15 @@ function Dashboard() {
 
   const relogFood = async (l: FoodLog) => {
     if (!user) return;
+    const validation = validateFoodLogCalories(
+      l.calories ?? 0,
+      totals.calories,
+      profile?.daily_calorie_target,
+    );
+    if (!validation.allowed) {
+      toast.error(validation.reason);
+      return;
+    }
     const { error } = await supabase.from("food_logs").insert({
       user_id: user.id,
       date: selectedDate,
@@ -506,6 +516,9 @@ function Dashboard() {
     if (error) {
       toast.error(error.message);
       return;
+    }
+    if (validation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
     }
     toast.success(`${l.food_name} logged again!`);
     load();
@@ -834,6 +847,8 @@ function Dashboard() {
                   date={selectedDate}
                   onLogged={load}
                   meals={userMeals}
+                  dailyTarget={profile?.daily_calorie_target}
+                  currentDayCalories={totals.calories}
                 />
 
                 <div className="mt-6 space-y-5">

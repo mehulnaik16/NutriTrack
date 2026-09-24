@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Header } from "@/components/Header";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
+import { validateFoodLogCalories } from "@/lib/calorieLimits";
 import { PremiumGate } from "@/components/PremiumGate";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
@@ -211,6 +212,11 @@ function FoodPage() {
     load();
   };
 
+  const currentDayCalories = todayLogs.reduce(
+    (sum, l) => sum + (l.calories ?? 0),
+    0,
+  );
+
   /** Copy everything logged on the previous day onto the selected date. */
   const copyPreviousDay = async () => {
     if (!user) return;
@@ -230,6 +236,16 @@ function FoodPage() {
       toast.info(`Nothing was logged on ${formatDateDisplay(prevDate)}`);
       return;
     }
+    const copiedCalories = prev.reduce((sum, r) => sum + (r.calories ?? 0), 0);
+    const validation = validateFoodLogCalories(
+      copiedCalories,
+      currentDayCalories,
+      profile?.daily_calorie_target,
+    );
+    if (!validation.allowed) {
+      toast.error(validation.reason);
+      return;
+    }
     const rows = prev.map((r) => ({
       ...r,
       fiber_g: r.fiber_g || 0,
@@ -241,6 +257,9 @@ function FoodPage() {
       toast.error(error.message);
       return;
     }
+    if (validation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
+    }
     toast.success(
       `Copied ${rows.length} item${rows.length > 1 ? "s" : ""} from ${formatDateDisplay(prevDate)}`,
     );
@@ -249,6 +268,15 @@ function FoodPage() {
 
   const relogFood = async (l: Tables<"food_logs">) => {
     if (!user) return;
+    const validation = validateFoodLogCalories(
+      l.calories ?? 0,
+      currentDayCalories,
+      profile?.daily_calorie_target,
+    );
+    if (!validation.allowed) {
+      toast.error(validation.reason);
+      return;
+    }
     const { error } = await supabase.from("food_logs").insert({
       user_id: user.id,
       date: selectedDate,
@@ -266,6 +294,9 @@ function FoodPage() {
     if (error) {
       toast.error(error.message);
       return;
+    }
+    if (validation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
     }
     toast.success(`${l.food_name} logged again!`);
     load();
@@ -458,6 +489,8 @@ function FoodPage() {
               onLogged={load}
               meals={userMeals}
               showGeminiPhoto
+              dailyTarget={profile?.daily_calorie_target}
+              currentDayCalories={currentDayCalories}
             />
 
             <div className="mt-5 space-y-5">
@@ -624,6 +657,8 @@ function FoodPage() {
                 meals={userMeals}
                 aiEngine="gemini"
                 searchOnly
+                dailyTarget={profile?.daily_calorie_target}
+                currentDayCalories={currentDayCalories}
               />
             </div>
 
