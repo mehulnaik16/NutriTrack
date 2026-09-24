@@ -293,6 +293,8 @@ export const FoodSearch = forwardRef<
   const [voiceOpen, setVoiceOpen] = useState(false);
   /** Foods parsed from a typed sentence, handed to the voice review list. */
   const [voiceItems, setVoiceItems] = useState<VoiceFoodItem[] | undefined>();
+  /** What was typed when those items came from the search box. */
+  const [voiceQuery, setVoiceQuery] = useState("");
 
   // Recent foods (for quick re-logging)
   interface RecentFood {
@@ -401,6 +403,7 @@ export const FoodSearch = forwardRef<
         // but the voice review list already can — per-item quantities, edits
         // and a single bulk log.
         setVoiceItems(items.map(aiItemToVoice));
+        setVoiceQuery(typed);
         setVoiceOpen(true);
         setAiSuggestions([]);
         return;
@@ -1432,6 +1435,17 @@ export const FoodSearch = forwardRef<
         meal={mealPicker}
         onConfirm={logVoiceItems}
         initialItems={voiceItems}
+        typedQuery={voiceItems ? voiceQuery : undefined}
+        onEditQuery={() => {
+          setVoiceOpen(false);
+          setVoiceItems(undefined);
+          // The typed words are still in the box: put the cursor there to
+          // change them and search again.
+          setTimeout(() => {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+          }, 0);
+        }}
       />
 
       {/* Mounted only while open so @zxing/* stays off the initial page load. */}

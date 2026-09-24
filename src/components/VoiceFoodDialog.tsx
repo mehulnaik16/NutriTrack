@@ -10,7 +10,15 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Mic, Plus, Square, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  Mic,
+  Pencil,
+  Plus,
+  Search,
+  Square,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -247,6 +255,8 @@ export function VoiceFoodDialog({
   meal,
   confirmVerb = "Log",
   initialItems,
+  typedQuery,
+  onEditQuery,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -262,6 +272,14 @@ export function VoiceFoodDialog({
    * exactly what that needs, and none of it is specific to the microphone.
    */
   initialItems?: VoiceFoodItem[];
+  /**
+   * What the person typed, when the items came from the search box rather
+   * than the microphone. The dialog then reads as a food search: the typed
+   * words take the microphone's place, with a pencil to go back and edit them.
+   */
+  typedQuery?: string;
+  /** Close and return to the search box to change what was typed. */
+  onEditQuery?: () => void;
 }) {
   const recogRef = useRef<SpeechRecognitionLike | null>(null);
   const [recording, setRecording] = useState(false);
@@ -531,7 +549,15 @@ export function VoiceFoodDialog({
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mic className="h-4 w-4" /> Voice Food Log
+            {typedQuery ? (
+              <>
+                <Search className="h-4 w-4" /> Food Search
+              </>
+            ) : (
+              <>
+                <Mic className="h-4 w-4" /> Voice Food Log
+              </>
+            )}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
@@ -552,102 +578,123 @@ export function VoiceFoodDialog({
               </Select>
             </div>
           )}
-          <p className="text-sm text-muted-foreground">
-            Say what you ate naturally — e.g.{" "}
-            <em>"I had 2 rotis, a bowl of dal, and a banana"</em>
-          </p>
-
-          {/* Record button: hold to talk, or double-tap to talk hands-free.
-              The ring fills over the 60 seconds a recording may last. */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="relative h-24 w-24">
-              <svg
-                className="absolute inset-0 -rotate-90"
-                viewBox="0 0 96 96"
-                aria-hidden="true"
+          {typedQuery ? (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 py-2 pl-3 pr-1">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">You searched</p>
+                <p className="break-words text-sm font-medium">{typedQuery}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onEditQuery}
+                aria-label="Edit search"
+                title="Edit search"
+                className="shrink-0"
               >
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="44"
-                  fill="none"
-                  strokeWidth="4"
-                  className="stroke-border"
-                />
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="44"
-                  fill="none"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeDasharray={RING}
-                  strokeDashoffset={
-                    RING * (1 - Math.min(1, elapsed / MAX_SPEECH_MS))
-                  }
-                  className={`transition-[stroke-dashoffset] duration-200 ease-linear motion-reduce:transition-none ${
-                    elapsed > MAX_SPEECH_MS - 10_000
-                      ? "stroke-destructive"
-                      : "stroke-accent"
-                  }`}
-                />
-              </svg>
-              <button
-                type="button"
-                onPointerDown={onPressStart}
-                onPointerUp={onPressEnd}
-                onPointerCancel={onPressEnd}
-                onKeyDown={onMicKey}
-                onContextMenu={(e) => e.preventDefault()}
-                disabled={parsing}
-                aria-label={
-                  mode === "locked"
-                    ? "Stop recording"
-                    : "Hold to record, or double-tap to record hands-free"
-                }
-                aria-pressed={active}
-                style={{ touchAction: "none", WebkitTouchCallout: "none" }}
-                className={`absolute inset-2 flex select-none items-center justify-center rounded-full transition-[transform,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 motion-reduce:transition-none ${
-                  mode === "hold"
-                    ? "scale-95 bg-accent/25"
-                    : active
-                      ? "bg-accent/20"
-                      : "bg-accent/10 hover:bg-accent/15"
-                }`}
-              >
-                {mode === "locked" ? (
-                  <Square className="h-6 w-6 fill-accent text-accent" />
-                ) : (
-                  <Mic className="h-8 w-8 text-accent" />
-                )}
-              </button>
+                <Pencil className="h-4 w-4" />
+              </Button>
             </div>
-            <p
-              className="flex items-center gap-2 text-center text-xs text-muted-foreground"
-              aria-live="polite"
-            >
-              <span className={hint ? "font-medium text-foreground" : ""}>
-                {mode === "hold"
-                  ? "Release to finish"
-                  : mode === "locked"
-                    ? "Tap to stop"
-                    : mode === "pending"
-                      ? "Tap again to talk longer"
-                      : MIC_HINT}
-              </span>
-              {active && (
-                <span
-                  className={`tabular-nums ${
-                    elapsed > MAX_SPEECH_MS - 10_000
-                      ? "text-destructive"
-                      : "text-foreground"
-                  }`}
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Say what you ate naturally — e.g.{" "}
+                <em>"I had 2 rotis, a bowl of dal, and a banana"</em>
+              </p>
+
+              {/* Record button: hold to talk, or double-tap to talk hands-free.
+              The ring fills over the 60 seconds a recording may last. */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative h-24 w-24">
+                  <svg
+                    className="absolute inset-0 -rotate-90"
+                    viewBox="0 0 96 96"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="44"
+                      fill="none"
+                      strokeWidth="4"
+                      className="stroke-border"
+                    />
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="44"
+                      fill="none"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeDasharray={RING}
+                      strokeDashoffset={
+                        RING * (1 - Math.min(1, elapsed / MAX_SPEECH_MS))
+                      }
+                      className={`transition-[stroke-dashoffset] duration-200 ease-linear motion-reduce:transition-none ${
+                        elapsed > MAX_SPEECH_MS - 10_000
+                          ? "stroke-destructive"
+                          : "stroke-accent"
+                      }`}
+                    />
+                  </svg>
+                  <button
+                    type="button"
+                    onPointerDown={onPressStart}
+                    onPointerUp={onPressEnd}
+                    onPointerCancel={onPressEnd}
+                    onKeyDown={onMicKey}
+                    onContextMenu={(e) => e.preventDefault()}
+                    disabled={parsing}
+                    aria-label={
+                      mode === "locked"
+                        ? "Stop recording"
+                        : "Hold to record, or double-tap to record hands-free"
+                    }
+                    aria-pressed={active}
+                    style={{ touchAction: "none", WebkitTouchCallout: "none" }}
+                    className={`absolute inset-2 flex select-none items-center justify-center rounded-full transition-[transform,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 motion-reduce:transition-none ${
+                      mode === "hold"
+                        ? "scale-95 bg-accent/25"
+                        : active
+                          ? "bg-accent/20"
+                          : "bg-accent/10 hover:bg-accent/15"
+                    }`}
+                  >
+                    {mode === "locked" ? (
+                      <Square className="h-6 w-6 fill-accent text-accent" />
+                    ) : (
+                      <Mic className="h-8 w-8 text-accent" />
+                    )}
+                  </button>
+                </div>
+                <p
+                  className="flex items-center gap-2 text-center text-xs text-muted-foreground"
+                  aria-live="polite"
                 >
-                  {`0:${String(Math.min(59, Math.floor(elapsed / 1000))).padStart(2, "0")} / 1:00`}
-                </span>
-              )}
-            </p>
-          </div>
+                  <span className={hint ? "font-medium text-foreground" : ""}>
+                    {mode === "hold"
+                      ? "Release to finish"
+                      : mode === "locked"
+                        ? "Tap to stop"
+                        : mode === "pending"
+                          ? "Tap again to talk longer"
+                          : MIC_HINT}
+                  </span>
+                  {active && (
+                    <span
+                      className={`tabular-nums ${
+                        elapsed > MAX_SPEECH_MS - 10_000
+                          ? "text-destructive"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {`0:${String(Math.min(59, Math.floor(elapsed / 1000))).padStart(2, "0")} / 1:00`}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </>
+          )}
 
           {parsing && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -758,6 +805,8 @@ export function VoiceFoodDialog({
                   variant="outline"
                   size="sm"
                   onClick={() => {
+                    // A typed search is redone by editing what was typed.
+                    if (typedQuery) return onEditQuery?.();
                     setTranscript("");
                     setItems([]);
                   }}
