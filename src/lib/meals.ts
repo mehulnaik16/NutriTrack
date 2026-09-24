@@ -9,7 +9,7 @@
  */
 
 import { supabase } from "@/integrations/client";
-import type { Tables } from "@/integrations/types";
+import type { DietPreference, Tables } from "@/integrations/types";
 
 /**
  * One entry of saved_meals.ingredients (a json column), as the meal builder
@@ -109,4 +109,26 @@ export async function saveMealNames(
   } catch {
     /* private mode / storage disabled — the DB write already succeeded */
   }
+}
+
+/**
+ * Diet preference. Asked once in the /food setup modal (step 2) and never shown
+ * back to the user — there is deliberately no editor for it and no loader here:
+ * `food.tsx` already selects the whole user_profiles row, so the current value
+ * comes free with the page's existing fetch.
+ */
+export const DIET_OPTIONS: { value: DietPreference; label: string }[] = [
+  { value: "veg", label: "Vegetarian" },
+  { value: "veg_eggs", label: "Eggetarian" },
+  { value: "non_veg", label: "Non-vegetarian" },
+];
+
+export async function saveDietPreference(
+  userId: string,
+  pref: DietPreference,
+): Promise<void> {
+  await supabase
+    .from("user_profiles")
+    .update({ diet_preference: pref })
+    .eq("id", userId);
 }
