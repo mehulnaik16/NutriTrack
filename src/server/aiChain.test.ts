@@ -184,4 +184,14 @@ assert.equal(
   "fallback still gets a turn after a slow primary",
 );
 
+// 11. a hanging fallback leaves time for the next one: seen live, lite timed
+// out at the full attempt cap and Groq never got a turn.
+_resetCooldowns();
+r = await runChain([fail("p", 400), hang("lite"), ok("groq", "x", "groq")], {
+  budgetMs: 3000,
+  attemptMs: 2500,
+  label: "test",
+});
+assert.equal(r.model, "groq", "a stalled fallback cannot starve the next one");
+
 console.log("aiChain: all checks passed");

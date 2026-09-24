@@ -100,6 +100,11 @@ const MIN_START_MS = 800;
  * without ever trying the next model.
  */
 const PRIMARY_SHARE = 0.5;
+/**
+ * Time a fallback leaves for the next live model. Seen live: lite stalled for
+ * the full attempt cap and Groq, usually well under a second, never ran.
+ */
+const NEXT_RESERVE_MS = 1500;
 /** The longest pre-retry pause below; the retry is skipped if it cannot fit. */
 const MAX_RETRY_PAUSE_MS = 700;
 
@@ -136,15 +141,17 @@ export async function runChain(
       .some((n) => !deadProviders.has(n.provider) && !isCooled(n));
     if (isCooled(s) && liveAhead) continue;
 
-    // The primary works inside its own window while a fallback is available,
-    // but always gets at least a minimal first attempt.
-    const window =
-      i === 0 && liveAhead
-        ? Math.max(
-            MIN_START_MS,
-            Math.min(remaining, primaryDeadline - Date.now()),
-          )
-        : remaining;
+    // The primary works inside its own window while a fallback is available;
+    // a fallback leaves room for the next one. Either way an attempt gets at
+    // least a minimal window.
+    const window = Math.max(
+      MIN_START_MS,
+      !liveAhead
+        ? remaining
+        : i === 0
+          ? Math.min(remaining, primaryDeadline - Date.now())
+          : remaining - NEXT_RESERVE_MS,
+    );
 
     // Not AbortSignal.timeout: its timer is unref'd, so an otherwise idle
     // process can exit (or a frozen instance never wake) before it fires.
