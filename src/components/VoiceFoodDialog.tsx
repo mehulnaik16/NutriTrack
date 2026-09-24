@@ -31,6 +31,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -363,6 +368,8 @@ export function VoiceFoodDialog({
     null,
   );
   const [rowBusy, setRowBusy] = useState(false);
+  /** The row whose bin was tapped, waiting for "Remove" to be confirmed. */
+  const [confirmRemove, setConfirmRemove] = useState<number | null>(null);
   const researchRow = async () => {
     const text = rowEdit?.text.trim() ?? "";
     if (!rowEdit || text.length < 2) return;
@@ -424,6 +431,7 @@ export function VoiceFoodDialog({
     if (initialItems) setItems(initialItems);
     // New rows: a row being edited no longer exists.
     setRowEdit(null);
+    setConfirmRemove(null);
   }, [initialItems]);
 
   // Navigating away mid-recording used to leave the microphone live —
@@ -1000,7 +1008,7 @@ export function VoiceFoodDialog({
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-3">
                         {rowEdit?.i !== i && (
                           <Button
                             variant="ghost"
@@ -1019,19 +1027,56 @@ export function VoiceFoodDialog({
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Remove ${item.food_name}`}
-                          className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                          disabled={rowBusy}
-                          onClick={() => {
-                            setRowEdit(null);
-                            setItems(items.filter((_, n) => n !== i));
-                          }}
+                        {/* The bin sits beside the pencil, where a thumb can
+                            land on the wrong one: removing asks first. */}
+                        <Popover
+                          open={confirmRemove === i}
+                          onOpenChange={(o) => setConfirmRemove(o ? i : null)}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Remove ${item.food_name}`}
+                              className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                              disabled={rowBusy}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="end"
+                            className="w-56 space-y-3 p-3"
+                          >
+                            <p className="text-sm">
+                              Remove{" "}
+                              <span className="font-medium">
+                                {item.food_name}
+                              </span>
+                              ?
+                            </p>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setConfirmRemove(null)}
+                              >
+                                Keep
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  setConfirmRemove(null);
+                                  setRowEdit(null);
+                                  setItems(items.filter((_, n) => n !== i));
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
                         {Math.round(item.calories)} kcal · P
