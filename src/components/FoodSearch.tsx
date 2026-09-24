@@ -67,10 +67,9 @@ import {
   type VoiceFoodItem,
 } from "@/components/VoiceFoodDialog";
 import { isIsroTheme } from "@/lib/telemetry";
-import type {
-  PhotoFoodResult,
-  VisionProvider,
-} from "@/components/PhotoFoodDialog";
+import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
+import { toastAiError } from "@/lib/aiErrors";
+import { useWaitLabel } from "@/hooks/useWaitLabel";
 
 // Both carry a camera dependency — react-webcam here, @zxing/* via
 // BarcodeScanner — and neither renders until its button is tapped.
@@ -131,6 +130,13 @@ export const FoodSearch = forwardRef<
       : ["Breakfast", "Lunch", "Dinner", "Snack"];
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
+  // A busy model day can mean a switch to the next model; say so rather than
+  // leave a spinner that looks stuck.
+  const searchWait = useWaitLabel(searching, "", [
+    "Searching with AI…",
+    "Checking another AI model…",
+    "Almost there…",
+  ]);
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<IFCTItem | null>(null);
@@ -280,14 +286,7 @@ export const FoodSearch = forwardRef<
   }, [userId]);
 
   // Quick add — each dialog owns the rest of its own state.
-  /**
-   * Which vision model the open photo dialog is using, or null when it is
-   * closed. One piece of state rather than a boolean per model: two booleans
-   * can both be true, which would mount two webcams over each other.
-   */
-  const [cameraProvider, setCameraProvider] = useState<VisionProvider | null>(
-    null,
-  );
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [barcodeMode, setBarcodeMode] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   /** Foods parsed from a typed sentence, handed to the voice review list. */
@@ -392,7 +391,7 @@ export const FoodSearch = forwardRef<
     setSearching(true);
     try {
       const { kind, items } = await serverAiFoodSearchInline({
-        data: { query: q, engine: "gemini" },
+        data: { query: q },
       });
       if (kind === "meal" && items.length > 1) {
         // Several foods in one sentence. The pick-one list cannot express that,
@@ -409,7 +408,7 @@ export const FoodSearch = forwardRef<
         ((items || []) as IFCTItem[]).map((it) => ({ ...it, query: typed })),
       );
     } catch (e) {
-      console.error("AI fallback failed", e);
+      toastAiError(e, "AI food search");
     } finally {
       setSearching(false);
     }
@@ -596,7 +595,7 @@ export const FoodSearch = forwardRef<
     const ok = await logFood(item, grams, meal);
     if (ok) {
       toast.success(`${item.name} logged!`);
-      setCameraProvider(null);
+      setCameraOpen(false);
       onLogged();
     }
   };
@@ -774,6 +773,14 @@ export const FoodSearch = forwardRef<
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
         )}
       </div>
+      {searchWait.long && (
+        <p
+          className="-mt-1 text-center text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          {searchWait.label}
+        </p>
+      )}
 
       {/* Inline favourites section removed — now accessible via Favourites button */}
 
@@ -818,7 +825,7 @@ export const FoodSearch = forwardRef<
       <div className="flex gap-3 justify-center flex-wrap">
         <Button
           variant="outline"
-          onClick={() => setCameraProvider("gemini-lite")}
+          onClick={() => setCameraOpen(true)}
           title="Log food by photo"
           className="flex flex-col items-center justify-center gap-1 p-0"
           style={{ width: 64, height: 64, minWidth: 64 }}
@@ -1401,15 +1408,11 @@ export const FoodSearch = forwardRef<
       </Dialog>
 
       {/* Mounted only while open so react-webcam stays off the initial load. */}
-      {cameraProvider && (
+      {cameraOpen && (
         <Suspense fallback={null}>
           <PhotoFoodDialog
             open
-            // Remounts when the provider changes, so a result from one model
-            // can never linger on screen under the other one's name.
-            key={cameraProvider}
-            provider={cameraProvider}
-            onOpenChange={(o) => !o && setCameraProvider(null)}
+            onOpenChange={(o) => !o && setCameraOpen(false)}
             meal={mealPicker}
             onConfirm={logPhotoFood}
           />
@@ -1425,7 +1428,6 @@ export const FoodSearch = forwardRef<
         meal={mealPicker}
         onConfirm={logVoiceItems}
         initialItems={voiceItems}
-        engine="gemini"
       />
 
       {/* Mounted only while open so @zxing/* stays off the initial page load. */}

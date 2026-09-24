@@ -29,12 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  serverGeminiChat,
-  serverGroqChat,
-  serverAiFoodSearchInline,
-  type FoodSearchEngine,
-} from "@/lib/ai";
+import { serverVoiceParse, serverAiFoodSearchInline } from "@/lib/ai";
+import { isAiBusy, toastAiError } from "@/lib/aiErrors";
+import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { kcalOf, type IFCTItem } from "@/lib/foodDb";
 import { catalogFood } from "@/lib/foodFuzzy";
 import { toGrams, pieceGrams, type UnitFood } from "@/lib/foodUnits";
@@ -57,8 +54,6 @@ interface SpeechRecognitionLike {
   stop: () => void;
   abort: () => void;
 }
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** Macros here are absolute for `quantity_g`, not per 100 g. */
 export interface VoiceFoodItem {
@@ -120,19 +115,19 @@ export function gramsFor(it: ParsedVoiceItem, food: UnitFood): number {
  *
  * Returns null when nothing resolves. A confident zero is worse than an
  * admitted gap — callers surface these rather than logging them silently.
+ * An overloaded AI is not a miss: that error is rethrown so the caller shows
+ * "AI is busy" instead of "no nutrition data".
  */
-export async function resolveFood(
-  name: string,
-  engine: FoodSearchEngine,
-): Promise<IFCTItem | null> {
+export async function resolveFood(name: string): Promise<IFCTItem | null> {
   const local = catalogFood(name);
   if (local) return local;
   try {
     const { items: found } = await serverAiFoodSearchInline({
-      data: { query: name, engine },
+      data: { query: name },
     });
     return found[0] ?? null;
   } catch (e) {
+    if (isAiBusy(e)) throw e;
     console.error("Food resolution failed:", name, e);
     return null;
   }
@@ -146,9 +141,8 @@ export async function resolveFood(
  */
 export async function resolveVoiceItem(
   it: ParsedVoiceItem,
-  engine: FoodSearchEngine,
 ): Promise<VoiceFoodItem | null> {
-  const food = await resolveFood(it.food_name, engine);
+  const food = await resolveFood(it.food_name);
   if (!food) return null;
 
   const grams = gramsFor(it, food);
@@ -172,7 +166,6 @@ export async function resolveVoiceItem(
 export async function parseVoiceFoodLog(
   transcript: string,
   mealType: string,
-  engine: FoodSearchEngine = "groq",
 ): Promise<VoiceFoodItem[]> {
   const prompt = `You are a nutrition expert. The user said: "${transcript}"
 Parse every food item mentioned and return ONLY a JSON array, no markdown:
@@ -193,19 +186,7 @@ Rules:
 - Each distinct food is a separate item in the array
 - Return empty array [] if no food is mentioned`;
 
-  const { result: raw } =
-    engine === "gemini"
-      ? await serverGeminiChat({
-          data: { prompt, max_tokens: 400, temperature: 0.1 },
-        })
-      : await serverGroqChat({
-          data: {
-            prompt,
-            model: "openai/gpt-oss-120b",
-            max_tokens: 400,
-            temperature: 0.1,
-          },
-        });
+  const { result: raw } = await serverVoiceParse({ data: { prompt } });
   const clean = raw.replace(/```json|```/g, "").trim();
   const parsed: unknown = JSON.parse(clean);
   // Both models are asked for a bare array and usually give one, but a
@@ -220,9 +201,7 @@ Rules:
   // bundled catalog, then the user's correction and the verified cache (both
   // inside serverAiFoodSearchInline), and only then a paid call. This is what
   // puts voice and photo logs on the cache instead of beside it.
-  const resolved = await Promise.all(
-    items.map((it) => resolveVoiceItem(it, engine)),
-  );
+  const resolved = await Promise.all(items.map((it) => resolveVoiceItem(it)));
 
   const unresolved = items
     .filter((_, i) => resolved[i] === null)
@@ -245,7 +224,6 @@ export function VoiceFoodDialog({
   meal,
   confirmVerb = "Log",
   initialItems,
-  engine = "groq",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -253,9 +231,6 @@ export function VoiceFoodDialog({
   onConfirm: (items: VoiceFoodItem[]) => void | Promise<void>;
   meal?: MealPicker;
   confirmVerb?: string;
-  /** Which model parses the sentence. The food page runs Gemini; everywhere
-      else stays on Groq. */
-  engine?: FoodSearchEngine;
   /**
    * Foods already parsed elsewhere, to review instead of speaking.
    *
@@ -270,6 +245,11 @@ export function VoiceFoodDialog({
   const [transcript, setTranscript] = useState("");
   const [items, setItems] = useState<VoiceFoodItem[]>(initialItems ?? []);
   const [parsing, setParsing] = useState(false);
+  const parseWait = useWaitLabel(parsing, "Parsing food items…", [
+    "Understanding what you said…",
+    "Looking up nutrition…",
+    "Almost done…",
+  ]);
   const [busy, setBusy] = useState(false);
 
   // Pre-parsed items arrive as a prop, and the dialog may already be mounted
@@ -300,15 +280,11 @@ export function VoiceFoodDialog({
     if (!text.trim()) return;
     setParsing(true);
     try {
-      const parsed = await parseVoiceFoodLog(
-        text,
-        meal?.value ?? "Snack",
-        engine,
-      );
+      const parsed = await parseVoiceFoodLog(text, meal?.value ?? "Snack");
       setItems(parsed);
       if (parsed.length === 0) toast.info("No food items detected. Try again.");
     } catch (e) {
-      toast.error("Parsing failed: " + message(e));
+      toastAiError(e, "voice parse");
     } finally {
       setParsing(false);
     }
@@ -354,7 +330,9 @@ export function VoiceFoodDialog({
       recognition.onerror = (event) => {
         console.error("Speech recognition error", event.error);
         if (event.error !== "no-speech") {
-          toast.error("Speech recognition error: " + event.error);
+          toast.error("Couldn't hear that clearly", {
+            description: "Check your microphone and try again.",
+          });
           setRecording(false);
         }
       };
@@ -366,7 +344,10 @@ export function VoiceFoodDialog({
       recognition.start();
       recogRef.current = recognition;
     } catch (e) {
-      toast.error("Microphone access denied or error: " + message(e));
+      console.error("Microphone start failed", e);
+      toast.error("Couldn't start the microphone", {
+        description: "Allow microphone access for this app, then try again.",
+      });
     }
   };
 
@@ -449,7 +430,7 @@ export function VoiceFoodDialog({
 
           {parsing && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Parsing food items…
+              <Loader2 className="h-4 w-4 animate-spin" /> {parseWait.label}
             </div>
           )}
 

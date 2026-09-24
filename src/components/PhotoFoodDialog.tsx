@@ -29,11 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  serverGeminiLiteVision,
-  serverGeminiVision,
-  serverGroqVision,
-} from "@/lib/ai";
+import { serverFoodVision } from "@/lib/ai";
+import { toastAiError } from "@/lib/aiErrors";
+import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { type IFCTItem, kcalOf } from "@/lib/foodDb";
 import { resolveFood } from "@/components/VoiceFoodDialog";
 
@@ -71,34 +69,18 @@ export interface MealPicker {
   onChange: (v: string) => void;
 }
 
-/**
- * Which vision model reads the photo.
- *
- * Both are wired to the same prompt, the same parsing and the same result
- * shape, so the only variable between them is the model — that is what makes
- * the two buttons in the log-food screen an actual comparison rather than two
- * different features that happen to both use a camera.
- */
-export type VisionProvider = "groq" | "gemini" | "gemini-lite";
-
-const VISION_FN = {
-  groq: serverGroqVision, // qwen/qwen3.8-27b
-  gemini: serverGeminiVision, // gemini-3.6-flash
-  "gemini-lite": serverGeminiLiteVision, // gemini-3.5-flash-lite
-} as const;
-
-/** Shown in the dialog title, so a three-way comparison is not guesswork. */
-const PROVIDER_LABEL: Record<VisionProvider, string> = {
-  groq: "Qwen",
-  gemini: "Gemini",
-  "gemini-lite": "Gemini Lite",
-};
+/** After 2 s a bare spinner reads as frozen; say what the AI is doing instead. */
+const PHOTO_STAGES = [
+  "Analyzing image details…",
+  "Identifying ingredients…",
+  "Calculating estimated nutrition…",
+  "Almost done…",
+];
 
 // ── AI image recognition ────────────────────────────────────────────────────
 async function recognizeFoodFromImage(
   base64: string,
   mimeType: "image/jpeg" | "image/png" | "image/webp",
-  provider: VisionProvider,
 ): Promise<AIFoodResult> {
   const prompt = `You are a nutrition expert. Analyze this food photo and return ONLY valid JSON, no markdown:
 {
@@ -110,7 +92,9 @@ async function recognizeFoodFromImage(
 Name the food and estimate its weight only. Do NOT return calories or any macro value: those are looked up separately, from a verified database wherever one exists.
 A human palm is ~18cm — use it as a size reference if visible.`;
 
-  const { result: raw } = await VISION_FN[provider]({
+  // Which model reads it, and what happens when one is busy, is decided on
+  // the server (server/aiRoutes.ts visionChain).
+  const { result: raw } = await serverFoodVision({
     data: { prompt, base64, mimeType },
   });
   // Safety: strip any <think> tags + markdown fences
@@ -144,7 +128,6 @@ export function PhotoFoodDialog({
   onConfirm,
   meal,
   confirmLabel = "Log this food",
-  provider = "groq",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -152,7 +135,6 @@ export function PhotoFoodDialog({
   onConfirm: (result: PhotoFoodResult) => void | Promise<void>;
   meal?: MealPicker;
   confirmLabel?: string;
-  provider?: VisionProvider;
 }) {
   const webcamRef = useRef<Webcam>(null);
   const [aiResult, setAiResult] = useState<Recognised | null>(null);
@@ -162,6 +144,7 @@ export function PhotoFoodDialog({
   // Keep weight as a string so the field can be fully cleared (number state
   // collapses "" → 0, which then renders as "0" and can't be removed).
   const [weightInput, setWeightInput] = useState("");
+  const wait = useWaitLabel(analyzing, "Analysing food…", PHOTO_STAGES);
 
   const capture = async () => {
     const imageSrc = webcamRef.current?.getScreenshot();
@@ -171,29 +154,24 @@ export function PhotoFoodDialog({
     setAnalyzing(true);
     try {
       const base64 = imageSrc.split(",")[1];
-      const result = await recognizeFoodFromImage(
-        base64,
-        "image/jpeg",
-        provider,
-      );
+      const result = await recognizeFoodFromImage(base64, "image/jpeg");
       // The resolver a spoken name goes through, so the item handed to
       // onConfirm is per 100 g with energy in kJ — exactly what a typed
-      // search hands over. The text engine follows the vision provider, so
-      // each photo button stays one model family end to end.
-      const item = await resolveFood(
-        result.food_name,
-        provider === "groq" ? "groq" : "gemini",
-      );
-      if (!item)
-        throw new Error(
-          `no nutrition data for "${result.food_name}" — add it via search.`,
-        );
+      // search hands over.
+      const item = await resolveFood(result.food_name);
+      if (!item) {
+        // A real gap in the data, not a failure: say what was seen and where
+        // to go, rather than an error.
+        toast.warning(`We spotted "${result.food_name}"`, {
+          description:
+            "We couldn't find its nutrition yet — add it with the search bar.",
+        });
+        return;
+      }
       setAiResult({ ...result, item });
       setWeightInput(String(result.estimated_weight_g ?? ""));
     } catch (e) {
-      toast.error(
-        "Could not identify food: " + (e instanceof Error ? e.message : e),
-      );
+      toastAiError(e, "food photo");
     } finally {
       setAnalyzing(false);
     }
@@ -226,9 +204,6 @@ export function PhotoFoodDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="h-4 w-4" /> AI Food Recognition
-            <span className="text-xs font-normal text-muted-foreground">
-              {PROVIDER_LABEL[provider]}
-            </span>
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
@@ -264,7 +239,14 @@ export function PhotoFoodDialog({
               {analyzing && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/60">
                   <Loader2 className="h-8 w-8 animate-spin text-white" />
-                  <p className="text-sm text-white">Analysing food…</p>
+                  <p className="text-sm text-white" aria-live="polite">
+                    {wait.label}
+                  </p>
+                  {wait.long && (
+                    <p className="px-6 text-center text-xs text-white/70">
+                      Photos can take a few seconds — hang tight!
+                    </p>
+                  )}
                 </div>
               )}
             </div>

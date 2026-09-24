@@ -126,9 +126,11 @@ async function withinBudget<T>(
  */
 async function runFoodSearch(
   rawQuery: string,
-  engine: FoodSearchEngine = "gemini",
   userId?: string,
 ): Promise<AiFoodResult> {
+  // The user's 8 s covers the whole search: cache lookup, every model the
+  // chain tries, and the cache write.
+  const started = Date.now();
   const cleanQuery = sanitizeFoodQuery(rawQuery);
   if (cleanQuery.length < 2) return { kind: "single", items: [] };
 
@@ -224,41 +226,19 @@ async function runFoodSearch(
 
   const max_tokens = maxTokensFor(isComposite(cleanQuery));
 
-  // Same prompt, same budget, same parse below — the engine only decides who
-  // reads it. Gemini takes one string because generateContent has no system
-  // role; the order is unchanged, so the model still sees the reference data
-  // before the untrusted query.
-  // `model` is recorded beside every cached answer, so it is read from the
-  // module the branch already imports rather than a second literal. The Gemini
-  // id must come from that dynamic import and never from a top-level one:
-  // vite.config.ts fails the build on any static path into **/server/**.
-  let model: string;
-  let raw: string;
-  if (engine === "gemini") {
-    const gemini = await import("@/server/gemini");
-    model = gemini.GEMINI_SEARCH_MODEL;
-    raw = await gemini.geminiText({
-      model,
-      prompt: [FOOD_SEARCH_SYSTEM, userMsg].join("\n\n"),
-      max_tokens,
-      temperature: 0.1,
-    });
-  } else {
-    model = "openai/gpt-oss-120b";
-    raw = await (
-      await import("@/server/groq")
-    ).groqChat({
-      model,
-      messages: [
-        { role: "system", content: FOOD_SEARCH_SYSTEM },
-        { role: "user", content: userMsg },
-      ],
-      max_tokens,
-      temperature: 0.1,
-      reasoning_effort: "low",
-      response_format: { type: "json_object" },
-    });
-  }
+  // The model order and every retry/fallback rule live in server/aiRoutes.ts
+  // and server/aiChain.ts. `model` is recorded beside every cached answer; the
+  // chain reports which model actually answered. Dynamic import: vite.config.ts
+  // fails the build on any static path into **/server/**.
+  const { searchChain, SEARCH_BUDGET_MS } = await import("@/server/aiRoutes");
+  const answer = await searchChain(
+    FOOD_SEARCH_SYSTEM,
+    userMsg,
+    max_tokens,
+    SEARCH_BUDGET_MS - (Date.now() - started),
+  );
+  const raw = answer.text;
+  const { model, provider: engine } = answer;
 
   // extractJsonObject tolerates prose the model added around its JSON — a
   // plain JSON.parse on the raw text lost the whole answer the moment the
@@ -302,7 +282,10 @@ async function runFoodSearch(
   // No userId, nothing staged: quorum counts distinct people (see
   // MIN_DISTINCT_USERS), and an answer nobody can be counted for could fill a
   // group alone. Both server functions pass ctx.context.userId.
-  if (!personal && !ambiguous && userId) {
+  // Only the primary model's answer is the cache's truth: a fallback Gemini
+  // answer is served but not recorded, and a Groq answer never is (the user
+  // judged its answers unreliable).
+  if (!personal && !ambiguous && userId && answer.primary) {
     // cacheableAnswers pairs each raw item with its own validation slot BY
     // POSITION and gates the RAW numbers — gating after reconcileEnergy would
     // be a silent no-op, since a repaired enerc passes by construction. The
@@ -322,9 +305,14 @@ async function runFoodSearch(
       // three independent answers. Awaited rather than fired and forgotten — a
       // serverless function may be frozen the moment it returns, losing an
       // unawaited write — but only for as long as the budget allows.
+      // Whatever is left of the search budget, so a slow write cannot push
+      // the user past 8 s; an abandoned write still serves the answer.
       await withinBudget(
         "write abandoned, answer served but not cached",
-        CACHE_RECORD_MS,
+        Math.max(
+          500,
+          Math.min(CACHE_RECORD_MS, SEARCH_BUDGET_MS - (Date.now() - started)),
+        ),
         async () =>
           (await import("@/server/foodCache")).recordAnswers(
             rows.map((r) => ({ ...r, engine, model })),
@@ -338,9 +326,6 @@ async function runFoodSearch(
   return result;
 }
 
-/** Which model answers a food search. Every screen uses Gemini; Groq is legacy. */
-export type FoodSearchEngine = "groq" | "gemini";
-
 // ── AI Food Search ───────────────────────────────────────────────────────────
 
 export const serverAiFoodSearch = createServerFn({ method: "POST" })
@@ -348,7 +333,7 @@ export const serverAiFoodSearch = createServerFn({ method: "POST" })
   .inputValidator((d: string) => d)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    return runFoodSearch(ctx.data, undefined, ctx.context.userId);
+    return runFoodSearch(ctx.data, ctx.context.userId);
   });
 
 // ── AI Food Search (inline, for FoodSearch component) ────────────────────────
@@ -358,12 +343,11 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       query: z.string(),
-      engine: z.enum(["groq", "gemini"]).optional(),
     }),
   )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    return runFoodSearch(ctx.data.query, ctx.data.engine, ctx.context.userId);
+    return runFoodSearch(ctx.data.query, ctx.context.userId);
   });
 
 // ── Food correction ─────────────────────────────────────────────────────────
@@ -457,19 +441,17 @@ export const serverGroqChat = createServerFn({ method: "POST" })
     return { result: raw };
   });
 
-// ── AI Chat via Gemini (the food page's half of the comparison) ──────────────
-
-// No model field: unlike the Groq endpoint this one is pinned server-side, so
-// the generic prompt box cannot be pointed at a model nobody priced. No
-// response_format flag either — geminiText always asks for JSON.
-export const serverGeminiChat = createServerFn({ method: "POST" })
+// ── Voice parse ──────────────────────────────────────────────────────────────
+// Pinned server-side like the vision path: the model order and its fallbacks
+// live in server/aiRoutes.ts, so the generic prompt box cannot be pointed at a
+// model nobody priced.
+export const serverVoiceParse = createServerFn({ method: "POST" })
   .middleware([requireAccess])
-  .inputValidator(ChatInput.omit({ model: true, response_format_json: true }))
+  .inputValidator(ChatInput.pick({ prompt: true }))
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    const { geminiText } = await import("@/server/gemini");
-    const { prompt, max_tokens, temperature } = ctx.data;
-    return { result: await geminiText({ prompt, max_tokens, temperature }) };
+    const { voiceChain } = await import("@/server/aiRoutes");
+    return { result: (await voiceChain(ctx.data.prompt)).text };
   });
 
 // ── AI Vision (food photo recognition) ───────────────────────────────────────
@@ -488,49 +470,14 @@ const VisionInput = z.object({
   mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
 });
 
-export const serverGroqVision = createServerFn({ method: "POST" })
+// The client no longer picks a model: every screen that takes a food photo
+// gets the same chain (server/aiRoutes.ts), meal builder included.
+export const serverFoodVision = createServerFn({ method: "POST" })
   .middleware([requireAccess])
   .inputValidator(VisionInput)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    const { groqVision } = await import("@/server/groq");
+    const { visionChain } = await import("@/server/aiRoutes");
     const { prompt, base64, mimeType } = ctx.data;
-    const raw = await groqVision({ prompt, base64, mimeType });
-    return { result: raw };
-  });
-
-// ── AI Vision via Gemini (food-photo A/B against the Groq path) ──────────────
-
-// Same validator, same rate limit, same shape back. The only difference from
-// serverGroqVision is which model sees the image — which is the point: a
-// comparison where the two paths also differ in prompt, limits or parsing
-// measures the plumbing, not the models.
-
-export const serverGeminiVision = createServerFn({ method: "POST" })
-  .middleware([requireAccess])
-  .inputValidator(VisionInput)
-  .handler(async (ctx) => {
-    checkRateLimit(ctx.context.userId);
-    const { geminiVision } = await import("@/server/gemini");
-    const { prompt, base64, mimeType } = ctx.data;
-    const raw = await geminiVision({ prompt, base64, mimeType });
-    return { result: raw };
-  });
-
-// The same path on the cheap model, so the food page's three camera tiles
-// differ in exactly one thing: which model reads the photo.
-export const serverGeminiLiteVision = createServerFn({ method: "POST" })
-  .middleware([requireAccess])
-  .inputValidator(VisionInput)
-  .handler(async (ctx) => {
-    checkRateLimit(ctx.context.userId);
-    const { geminiVision, GEMINI_LITE_MODEL } = await import("@/server/gemini");
-    const { prompt, base64, mimeType } = ctx.data;
-    const raw = await geminiVision({
-      prompt,
-      base64,
-      mimeType,
-      model: GEMINI_LITE_MODEL,
-    });
-    return { result: raw };
+    return { result: (await visionChain(prompt, base64, mimeType)).text };
   });
