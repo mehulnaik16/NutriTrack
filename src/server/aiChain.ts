@@ -93,6 +93,15 @@ const BUSY_COOL_MS = 10_000;
 const LIMIT_COOL_MS = 60_000;
 /** Starting an attempt with less left than this only burns the budget. */
 const MIN_START_MS = 800;
+/**
+ * The primary, retry included, may spend at most this share of the budget
+ * while a fallback is still available. Seen live: under load Gemini took
+ * seconds to return its 503, the retry then timed out, and the chain gave up
+ * without ever trying the next model.
+ */
+const PRIMARY_SHARE = 0.5;
+/** The longest pre-retry pause below; the retry is skipped if it cannot fit. */
+const MAX_RETRY_PAUSE_MS = 700;
 
 export function _resetCooldowns() {
   cooledUntil.clear();
@@ -104,7 +113,9 @@ export async function runChain(
   steps: Step[],
   opts: { budgetMs: number; attemptMs: number; label: string },
 ): Promise<ChainResult> {
-  const deadline = Date.now() + opts.budgetMs;
+  const start = Date.now();
+  const deadline = start + opts.budgetMs;
+  const primaryDeadline = start + opts.budgetMs * PRIMARY_SHARE;
   const deadProviders = new Set<Provider>();
   let sawCapacity = false;
   let lastErr: unknown = null;
@@ -125,26 +136,37 @@ export async function runChain(
       .some((n) => !deadProviders.has(n.provider) && !isCooled(n));
     if (isCooled(s) && liveAhead) continue;
 
+    // The primary works inside its own window while a fallback is available,
+    // but always gets at least a minimal first attempt.
+    const window =
+      i === 0 && liveAhead
+        ? Math.max(
+            MIN_START_MS,
+            Math.min(remaining, primaryDeadline - Date.now()),
+          )
+        : remaining;
+
     // Not AbortSignal.timeout: its timer is unref'd, so an otherwise idle
     // process can exit (or a frozen instance never wake) before it fires.
     const ctrl = new AbortController();
     const timer = setTimeout(
       () =>
         ctrl.abort(new DOMException(`${s.model} timed out`, "TimeoutError")),
-      Math.min(remaining, opts.attemptMs),
+      Math.min(window, opts.attemptMs),
     );
+    const attemptStart = Date.now();
     try {
       const text = await s.run(ctrl.signal);
       if (i > 0)
         console.info(
-          `[ai-chain] ${opts.label} answered by fallback ${s.model}`,
+          `[ai-chain] ${opts.label} answered by fallback ${s.model} in ${Date.now() - start} ms`,
         );
       return { text, model: s.model, provider: s.provider, primary: i === 0 };
     } catch (e) {
       lastErr = e;
       const kind = classify(e);
       console.warn(
-        `[ai-chain] ${opts.label} ${s.model} failed (${kind})`,
+        `[ai-chain] ${opts.label} ${s.model} failed (${kind}) after ${Date.now() - attemptStart} ms`,
         e instanceof Error ? e.message.slice(0, 200) : e,
       );
       if (kind === "key") {
@@ -155,9 +177,17 @@ export async function runChain(
       sawCapacity = true;
       // One quick retry, primary only, and only for a 5xx: a timeout already
       // spent its time, and a 429 will not clear in half a second.
-      if (i === 0 && kind === "busy" && !isTimeout(e) && !retried) {
+      if (
+        i === 0 &&
+        kind === "busy" &&
+        !isTimeout(e) &&
+        !retried &&
+        primaryDeadline - Date.now() >= MAX_RETRY_PAUSE_MS + MIN_START_MS
+      ) {
         retried = true;
-        await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
+        await new Promise((r) =>
+          setTimeout(r, MAX_RETRY_PAUSE_MS - Math.random() * 400),
+        );
         i--;
         continue;
       }

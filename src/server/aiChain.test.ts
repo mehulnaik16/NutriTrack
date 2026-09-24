@@ -154,4 +154,34 @@ await assert.rejects(
 );
 assert.equal(late.calls, 0);
 
+// 10. a slow primary cannot eat the whole budget: seen live, when a 503 took
+// seconds to arrive and the retry then timed out, leaving no time for lite.
+_resetCooldowns();
+let slowCalls = 0;
+const slowPrimary: Step = {
+  provider: "gemini",
+  model: "slow",
+  run: (signal) => {
+    slowCalls++;
+    if (slowCalls === 1)
+      return new Promise((_, rej) =>
+        setTimeout(
+          () => rej(new AiHttpError(503, "gemini", null, "slow 503")),
+          600,
+        ),
+      );
+    return hang("slow").run(signal);
+  },
+};
+r = await runChain([slowPrimary, ok("lite")], {
+  budgetMs: 3000,
+  attemptMs: 1500,
+  label: "test",
+});
+assert.equal(
+  r.model,
+  "lite",
+  "fallback still gets a turn after a slow primary",
+);
+
 console.log("aiChain: all checks passed");
