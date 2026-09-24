@@ -465,7 +465,7 @@ const item = (over: Record<string, unknown> = {}) => ({
   const v = validateFoodResponse(JSON.parse(example), q.key);
   assert.ok(v && v.items.length === 1);
   assert.strictEqual(v.items[0].food_class, "fast food");
-  assert.strictEqual(v.items[0].enerc, 982);
+  assert.strictEqual(v.items[0].enerc, 962.32);
   // "Not sold there" is an empty answer, not an error.
   assert.deepStrictEqual(
     validateFoodResponse({ kind: "single", items: [] }, q.key)?.items,

@@ -1,0 +1,2136 @@
+{
+ "source": "https://about.kfc.co.in/assets/files/nutrition-booklet.pdf (KFC Nutrition Information V6)",
+ "basis": "Avg portion weight (g, ml for drinks) is the whole item; energy and macros are per serve; whole item = serve x No of servings",
+ "items": [
+  {
+   "name": "1 Pc HC",
+   "page": 4,
+   "weight": 110.0,
+   "servings": 1.0,
+   "kcal_serve": 320.0,
+   "carbs": 16.0,
+   "protein": 19.0,
+   "fat": 20.0
+  },
+  {
+   "name": "2 Pc HC",
+   "page": 4,
+   "weight": 220.0,
+   "servings": 1.0,
+   "kcal_serve": 640.0,
+   "carbs": 31.0,
+   "protein": 39.0,
+   "fat": 40.0
+  },
+  {
+   "name": "3 Pc HC",
+   "page": 4,
+   "weight": 330.0,
+   "servings": 2.0,
+   "kcal_serve": 480.0,
+   "carbs": 23.0,
+   "protein": 29.0,
+   "fat": 30.0
+  },
+  {
+   "name": "4 Pc HC",
+   "page": 4,
+   "weight": 440.0,
+   "servings": 2.0,
+   "kcal_serve": 640.0,
+   "carbs": 31.0,
+   "protein": 39.0,
+   "fat": 40.0
+  },
+  {
+   "name": "5 Pc HC",
+   "page": 4,
+   "weight": 550.0,
+   "servings": 2.0,
+   "kcal_serve": 800.0,
+   "carbs": 39.0,
+   "protein": 48.0,
+   "fat": 50.0
+  },
+  {
+   "name": "6 Pc HC",
+   "page": 4,
+   "weight": 660.0,
+   "servings": 3.0,
+   "kcal_serve": 640.0,
+   "carbs": 31.0,
+   "protein": 39.0,
+   "fat": 40.0
+  },
+  {
+   "name": "8 Pc HC",
+   "page": 4,
+   "weight": 880.0,
+   "servings": 4.0,
+   "kcal_serve": 640.0,
+   "carbs": 31.0,
+   "protein": 39.0,
+   "fat": 40.0
+  },
+  {
+   "name": "10 Pc HC",
+   "page": 4,
+   "weight": 1100.0,
+   "servings": 4.0,
+   "kcal_serve": 800.0,
+   "carbs": 39.0,
+   "protein": 48.0,
+   "fat": 50.0
+  },
+  {
+   "name": "1 Pc HC Leg",
+   "page": 5,
+   "weight": 100.0,
+   "servings": 1.0,
+   "kcal_serve": 288.0,
+   "carbs": 17.0,
+   "protein": 18.0,
+   "fat": 17.0
+  },
+  {
+   "name": "2 Pc HC Leg",
+   "page": 5,
+   "weight": 200.0,
+   "servings": 1.0,
+   "kcal_serve": 576.0,
+   "carbs": 34.0,
+   "protein": 36.0,
+   "fat": 34.0
+  },
+  {
+   "name": "3 Pc HC Leg",
+   "page": 5,
+   "weight": 300.0,
+   "servings": 1.0,
+   "kcal_serve": 864.0,
+   "carbs": 51.0,
+   "protein": 54.0,
+   "fat": 51.0
+  },
+  {
+   "name": "4 Pc HC Leg",
+   "page": 5,
+   "weight": 400.0,
+   "servings": 2.0,
+   "kcal_serve": 576.0,
+   "carbs": 34.0,
+   "protein": 36.0,
+   "fat": 34.0
+  },
+  {
+   "name": "5 Pc HC Leg",
+   "page": 5,
+   "weight": 500.0,
+   "servings": 2.0,
+   "kcal_serve": 720.0,
+   "carbs": 43.0,
+   "protein": 45.0,
+   "fat": 43.0
+  },
+  {
+   "name": "6 Pc HC Leg",
+   "page": 5,
+   "weight": 600.0,
+   "servings": 2.0,
+   "kcal_serve": 864.0,
+   "carbs": 51.0,
+   "protein": 54.0,
+   "fat": 51.0
+  },
+  {
+   "name": "8 Pc HC Leg",
+   "page": 5,
+   "weight": 800.0,
+   "servings": 3.0,
+   "kcal_serve": 768.0,
+   "carbs": 45.0,
+   "protein": 48.0,
+   "fat": 45.0
+  },
+  {
+   "name": "10 Pc HC Leg",
+   "page": 5,
+   "weight": 1000.0,
+   "servings": 4.0,
+   "kcal_serve": 720.0,
+   "carbs": 43.0,
+   "protein": 45.0,
+   "fat": 43.0
+  },
+  {
+   "name": "1 Pc Piripiri HC Leg",
+   "page": 5,
+   "weight": 100.0,
+   "servings": 1.0,
+   "kcal_serve": 299.0,
+   "carbs": 19.0,
+   "protein": 18.0,
+   "fat": 17.0
+  },
+  {
+   "name": "2 Pc Piripiri HC Leg",
+   "page": 5,
+   "weight": 200.0,
+   "servings": 1.0,
+   "kcal_serve": 598.0,
+   "carbs": 38.0,
+   "protein": 36.0,
+   "fat": 34.0
+  },
+  {
+   "name": "3 Pc Piripiri HC Leg",
+   "page": 5,
+   "weight": 300.0,
+   "servings": 1.0,
+   "kcal_serve": 897.0,
+   "carbs": 56.0,
+   "protein": 54.0,
+   "fat": 51.0
+  },
+  {
+   "name": "4 Pc Piripiri HC Leg",
+   "page": 5,
+   "weight": 400.0,
+   "servings": 2.0,
+   "kcal_serve": 598.0,
+   "carbs": 38.0,
+   "protein": 36.0,
+   "fat": 34.0
+  },
+  {
+   "name": "5 Pc Piripiri HC Leg",
+   "page": 5,
+   "weight": 500.0,
+   "servings": 2.0,
+   "kcal_serve": 748.0,
+   "carbs": 47.0,
+   "protein": 45.0,
+   "fat": 43.0
+  },
+  {
+   "name": "6 Pc Piripiri HC Leg",
+   "page": 5,
+   "weight": 600.0,
+   "servings": 3.0,
+   "kcal_serve": 598.0,
+   "carbs": 38.0,
+   "protein": 36.0,
+   "fat": 34.0
+  },
+  {
+   "name": "8 Pc Piripiri HC Leg",
+   "page": 5,
+   "weight": 800.0,
+   "servings": 3.0,
+   "kcal_serve": 797.0,
+   "carbs": 50.0,
+   "protein": 48.0,
+   "fat": 45.0
+  },
+  {
+   "name": "10 Pc Piripiri HC Leg",
+   "page": 5,
+   "weight": 1000.0,
+   "servings": 4.0,
+   "kcal_serve": 748.0,
+   "carbs": 48.0,
+   "protein": 45.0,
+   "fat": 43.0
+  },
+  {
+   "name": "1 Pc Hot Wings",
+   "page": 6,
+   "weight": 35.0,
+   "servings": 1.0,
+   "kcal_serve": 125.0,
+   "carbs": 8.0,
+   "protein": 6.0,
+   "fat": 8.0
+  },
+  {
+   "name": "2 Pc Hot Wings",
+   "page": 6,
+   "weight": 70.0,
+   "servings": 1.0,
+   "kcal_serve": 249.0,
+   "carbs": 16.0,
+   "protein": 11.0,
+   "fat": 16.0
+  },
+  {
+   "name": "3 Pc Hot Wings",
+   "page": 6,
+   "weight": 105.0,
+   "servings": 1.0,
+   "kcal_serve": 374.0,
+   "carbs": 24.0,
+   "protein": 17.0,
+   "fat": 24.0
+  },
+  {
+   "name": "4 Pc Hot Wings",
+   "page": 6,
+   "weight": 140.0,
+   "servings": 2.0,
+   "kcal_serve": 249.0,
+   "carbs": 16.0,
+   "protein": 11.0,
+   "fat": 16.0
+  },
+  {
+   "name": "5 Pc Hot Wings",
+   "page": 6,
+   "weight": 175.0,
+   "servings": 2.0,
+   "kcal_serve": 312.0,
+   "carbs": 20.0,
+   "protein": 14.0,
+   "fat": 20.0
+  },
+  {
+   "name": "6 Pc Hot Wings",
+   "page": 6,
+   "weight": 210.0,
+   "servings": 2.0,
+   "kcal_serve": 374.0,
+   "carbs": 24.0,
+   "protein": 17.0,
+   "fat": 24.0
+  },
+  {
+   "name": "8 Pc Hot Wings",
+   "page": 6,
+   "weight": 280.0,
+   "servings": 3.0,
+   "kcal_serve": 332.0,
+   "carbs": 21.0,
+   "protein": 15.0,
+   "fat": 21.0
+  },
+  {
+   "name": "10 Pc Hot Wings",
+   "page": 6,
+   "weight": 350.0,
+   "servings": 3.0,
+   "kcal_serve": 415.0,
+   "carbs": 27.0,
+   "protein": 19.0,
+   "fat": 27.0
+  },
+  {
+   "name": "1 Pc Boneless strips",
+   "page": 6,
+   "weight": 45.0,
+   "servings": 1.0,
+   "kcal_serve": 117.0,
+   "carbs": 7.0,
+   "protein": 9.0,
+   "fat": 6.0
+  },
+  {
+   "name": "2 Pc Boneless strips",
+   "page": 6,
+   "weight": 90.0,
+   "servings": 1.0,
+   "kcal_serve": 234.0,
+   "carbs": 14.0,
+   "protein": 18.0,
+   "fat": 14.0
+  },
+  {
+   "name": "3 Pc Boneless strips",
+   "page": 6,
+   "weight": 135.0,
+   "servings": 1.0,
+   "kcal_serve": 351.0,
+   "carbs": 23.0,
+   "protein": 27.0,
+   "fat": 22.0
+  },
+  {
+   "name": "4 Pc Boneless strips",
+   "page": 6,
+   "weight": 180.0,
+   "servings": 2.0,
+   "kcal_serve": 234.0,
+   "carbs": 16.0,
+   "protein": 18.0,
+   "fat": 15.0
+  },
+  {
+   "name": "5 Pc Boneless strips",
+   "page": 6,
+   "weight": 225.0,
+   "servings": 2.0,
+   "kcal_serve": 293.0,
+   "carbs": 21.0,
+   "protein": 23.0,
+   "fat": 20.0
+  },
+  {
+   "name": "6 Pc Boneless strips",
+   "page": 6,
+   "weight": 270.0,
+   "servings": 2.0,
+   "kcal_serve": 351.0,
+   "carbs": 27.0,
+   "protein": 27.0,
+   "fat": 26.0
+  },
+  {
+   "name": "8 Pc Boneless strips",
+   "page": 6,
+   "weight": 360.0,
+   "servings": 3.0,
+   "kcal_serve": 312.0,
+   "carbs": 25.0,
+   "protein": 24.0,
+   "fat": 24.0
+  },
+  {
+   "name": "10 Pc Boneless strips",
+   "page": 6,
+   "weight": 450.0,
+   "servings": 3.0,
+   "kcal_serve": 390.0,
+   "carbs": 33.0,
+   "protein": 30.0,
+   "fat": 32.0
+  },
+  {
+   "name": "12 Pc Boneless strips",
+   "page": 6,
+   "weight": 540.0,
+   "servings": 4.0,
+   "kcal_serve": 351.0,
+   "carbs": 31.0,
+   "protein": 27.0,
+   "fat": 30.0
+  },
+  {
+   "name": "1 Pc Piripiri Strip",
+   "page": 7,
+   "weight": 45.0,
+   "servings": 1.0,
+   "kcal_serve": 135.0,
+   "carbs": 9.0,
+   "protein": 8.0,
+   "fat": 8.0
+  },
+  {
+   "name": "2 Pc Piripiri Strip",
+   "page": 7,
+   "weight": 90.0,
+   "servings": 1.0,
+   "kcal_serve": 269.0,
+   "carbs": 18.0,
+   "protein": 17.0,
+   "fat": 16.0
+  },
+  {
+   "name": "3 Pc Piripiri Strip",
+   "page": 7,
+   "weight": 135.0,
+   "servings": 1.0,
+   "kcal_serve": 404.0,
+   "carbs": 28.0,
+   "protein": 27.0,
+   "fat": 26.0
+  },
+  {
+   "name": "4 Pc Piripiri Strips",
+   "page": 7,
+   "weight": 180.0,
+   "servings": 1.0,
+   "kcal_serve": 538.0,
+   "carbs": 40.0,
+   "protein": 38.0,
+   "fat": 36.0
+  },
+  {
+   "name": "5 Pc Piripiri Strip",
+   "page": 7,
+   "weight": 225.0,
+   "servings": 2.0,
+   "kcal_serve": 336.0,
+   "carbs": 26.0,
+   "protein": 25.0,
+   "fat": 24.0
+  },
+  {
+   "name": "6 Pc Piripiri Strip",
+   "page": 7,
+   "weight": 270.0,
+   "servings": 2.0,
+   "kcal_serve": 404.0,
+   "carbs": 32.0,
+   "protein": 31.0,
+   "fat": 30.0
+  },
+  {
+   "name": "8 Pc Piripiri Strip",
+   "page": 7,
+   "weight": 360.0,
+   "servings": 3.0,
+   "kcal_serve": 359.0,
+   "carbs": 30.0,
+   "protein": 28.8,
+   "fat": 28.0
+  },
+  {
+   "name": "10 Pc Piripiri Strip",
+   "page": 7,
+   "weight": 450.0,
+   "servings": 3.0,
+   "kcal_serve": 449.0,
+   "carbs": 39.0,
+   "protein": 38.0,
+   "fat": 36.0
+  },
+  {
+   "name": "12 Pc Piripiri Strip",
+   "page": 7,
+   "weight": 540.0,
+   "servings": 4.0,
+   "kcal_serve": 404.0,
+   "carbs": 36.0,
+   "protein": 35.0,
+   "fat": 34.0
+  },
+  {
+   "name": "1 Pc Zinger Fillet",
+   "page": 7,
+   "weight": 135.0,
+   "servings": 1.0,
+   "kcal_serve": 359.0,
+   "carbs": 34.0,
+   "protein": 18.0,
+   "fat": 18.0
+  },
+  {
+   "name": "2 Pc Zinger Fillet",
+   "page": 7,
+   "weight": 270.0,
+   "servings": 2.0,
+   "kcal_serve": 359.0,
+   "carbs": 34.0,
+   "protein": 18.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Popcorn Regular",
+   "page": 8,
+   "weight": 90.0,
+   "servings": 1.0,
+   "kcal_serve": 306.0,
+   "carbs": 21.0,
+   "protein": 17.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Popcorn Medium",
+   "page": 8,
+   "weight": 140.0,
+   "servings": 1.0,
+   "kcal_serve": 476.0,
+   "carbs": 32.0,
+   "protein": 27.0,
+   "fat": 28.0
+  },
+  {
+   "name": "Popcorn Large",
+   "page": 8,
+   "weight": 190.0,
+   "servings": 1.0,
+   "kcal_serve": 646.0,
+   "carbs": 44.0,
+   "protein": 36.0,
+   "fat": 38.0
+  },
+  {
+   "name": "3 Pc Bonless Wing",
+   "page": 8,
+   "weight": 75.0,
+   "servings": 1.0,
+   "kcal_serve": 332.0,
+   "carbs": 17.0,
+   "protein": 11.0,
+   "fat": 14.0
+  },
+  {
+   "name": "5 Pc Bonless Wing",
+   "page": 8,
+   "weight": 125.0,
+   "servings": 1.0,
+   "kcal_serve": 554.0,
+   "carbs": 28.0,
+   "protein": 18.0,
+   "fat": 23.0
+  },
+  {
+   "name": "6 Pc Bonless Wing",
+   "page": 8,
+   "weight": 150.0,
+   "servings": 2.0,
+   "kcal_serve": 332.0,
+   "carbs": 17.0,
+   "protein": 11.0,
+   "fat": 14.0
+  },
+  {
+   "name": "8 Pc Bonless Wing",
+   "page": 8,
+   "weight": 200.0,
+   "servings": 2.0,
+   "kcal_serve": 443.0,
+   "carbs": 22.0,
+   "protein": 14.0,
+   "fat": 18.0
+  },
+  {
+   "name": "9 Pc Bonless Wing",
+   "page": 8,
+   "weight": 225.0,
+   "servings": 3.0,
+   "kcal_serve": 332.0,
+   "carbs": 17.0,
+   "protein": 11.0,
+   "fat": 14.0
+  },
+  {
+   "name": "10 Pc Bonless Wing",
+   "page": 8,
+   "weight": 250.0,
+   "servings": 3.0,
+   "kcal_serve": 369.0,
+   "carbs": 18.0,
+   "protein": 12.0,
+   "fat": 15.0
+  },
+  {
+   "name": "12 Pc Bonless Wing",
+   "page": 8,
+   "weight": 300.0,
+   "servings": 4.0,
+   "kcal_serve": 332.0,
+   "carbs": 17.0,
+   "protein": 11.0,
+   "fat": 14.0
+  },
+  {
+   "name": "15 Pc Bonless Wing",
+   "page": 8,
+   "weight": 375.0,
+   "servings": 4.0,
+   "kcal_serve": 415.0,
+   "carbs": 21.0,
+   "protein": 13.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Classic Zinger Burger",
+   "page": 9,
+   "weight": 225.0,
+   "servings": 1.0,
+   "kcal_serve": 612.0,
+   "carbs": 63.0,
+   "protein": 27.0,
+   "fat": 29.0
+  },
+  {
+   "name": "Tandoori Zinger Burger",
+   "page": 9,
+   "weight": 230.0,
+   "servings": 1.0,
+   "kcal_serve": 902.0,
+   "carbs": 62.0,
+   "protein": 25.0,
+   "fat": 30.0
+  },
+  {
+   "name": "Spicy Zinger Burger",
+   "page": 9,
+   "weight": 215.0,
+   "servings": 1.0,
+   "kcal_serve": 439.0,
+   "carbs": 47.0,
+   "protein": 28.0,
+   "fat": 16.0
+  },
+  {
+   "name": "Pro Zinger Burger",
+   "page": 9,
+   "weight": 225.0,
+   "servings": 1.0,
+   "kcal_serve": 529.0,
+   "carbs": 41.0,
+   "protein": 29.0,
+   "fat": 29.0
+  },
+  {
+   "name": "Classic Chicken Krisper",
+   "page": 9,
+   "weight": 150.0,
+   "servings": 1.0,
+   "kcal_serve": 405.0,
+   "carbs": 47.0,
+   "protein": 17.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Spicy Chicken Krisper",
+   "page": 9,
+   "weight": 145.0,
+   "servings": 1.0,
+   "kcal_serve": 342.0,
+   "carbs": 49.0,
+   "protein": 17.0,
+   "fat": 8.0
+  },
+  {
+   "name": "Veg Zinger Burger",
+   "page": 9,
+   "weight": 230.0,
+   "servings": 1.0,
+   "kcal_serve": 619.0,
+   "carbs": 83.0,
+   "protein": 14.0,
+   "fat": 25.0
+  },
+  {
+   "name": "Classic Veg Krisper",
+   "page": 9,
+   "weight": 145.0,
+   "servings": 1.0,
+   "kcal_serve": 496.0,
+   "carbs": 54.0,
+   "protein": 9.0,
+   "fat": 28.0
+  },
+  {
+   "name": "Spicy Veg Krisper",
+   "page": 9,
+   "weight": 145.0,
+   "servings": 1.0,
+   "kcal_serve": 436.0,
+   "carbs": 58.0,
+   "protein": 9.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Paneer Zinger",
+   "page": 9,
+   "weight": 215.0,
+   "servings": 1.0,
+   "kcal_serve": 643.0,
+   "carbs": 56.0,
+   "protein": 24.0,
+   "fat": 37.0
+  },
+  {
+   "name": "Egg Burger",
+   "page": 9,
+   "weight": 130.0,
+   "servings": 1.0,
+   "kcal_serve": 281.0,
+   "carbs": 31.0,
+   "protein": 13.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Loaded Egg Buger",
+   "page": 9,
+   "weight": 230.0,
+   "servings": 1.0,
+   "kcal_serve": 497.0,
+   "carbs": 46.0,
+   "protein": 32.0,
+   "fat": 23.0
+  },
+  {
+   "name": "Dunked Burger",
+   "page": 9,
+   "weight": 210.0,
+   "servings": 1.0,
+   "kcal_serve": 462.0,
+   "carbs": 38.0,
+   "protein": 27.0,
+   "fat": 27.0
+  },
+  {
+   "name": "Chatpta Channa Burger",
+   "page": 9,
+   "weight": 130.0,
+   "servings": 1.0,
+   "kcal_serve": 366.0,
+   "carbs": 51.0,
+   "protein": 9.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Chicken Longer",
+   "page": 9,
+   "weight": 120.0,
+   "servings": 1.0,
+   "kcal_serve": 356.0,
+   "carbs": 37.0,
+   "protein": 12.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Veg Longer",
+   "page": 9,
+   "weight": 110.0,
+   "servings": 1.0,
+   "kcal_serve": 259.0,
+   "carbs": 39.0,
+   "protein": 8.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Chicken Roll Single",
+   "page": 10,
+   "weight": 150.0,
+   "servings": 1.0,
+   "kcal_serve": 461.0,
+   "carbs": 57.0,
+   "protein": 14.0,
+   "fat": 20.0
+  },
+  {
+   "name": "Chicken Roll Double",
+   "page": 10,
+   "weight": 190.0,
+   "servings": 1.0,
+   "kcal_serve": 526.0,
+   "carbs": 51.0,
+   "protein": 23.0,
+   "fat": 27.0
+  },
+  {
+   "name": "Korean Chiken Roll",
+   "page": 10,
+   "weight": 150.0,
+   "servings": 1.0,
+   "kcal_serve": 228.0,
+   "carbs": 41.0,
+   "protein": 15.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Thai Chicken Roll",
+   "page": 10,
+   "weight": 150.0,
+   "servings": 1.0,
+   "kcal_serve": 225.0,
+   "carbs": 41.0,
+   "protein": 15.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Tandoori Chicken Roll",
+   "page": 10,
+   "weight": 150.0,
+   "servings": 1.0,
+   "kcal_serve": 255.0,
+   "carbs": 41.0,
+   "protein": 18.0,
+   "fat": 20.0
+  },
+  {
+   "name": "Veg Roll",
+   "page": 10,
+   "weight": 145.0,
+   "servings": 1.0,
+   "kcal_serve": 447.0,
+   "carbs": 55.0,
+   "protein": 8.0,
+   "fat": 22.0
+  },
+  {
+   "name": "Single Veg Patty",
+   "page": 10,
+   "weight": 55.0,
+   "servings": 1.0,
+   "kcal_serve": 133.0,
+   "carbs": 17.0,
+   "protein": 4.0,
+   "fat": 6.0
+  },
+  {
+   "name": "Double Veg Patty",
+   "page": 10,
+   "weight": 110.0,
+   "servings": 1.0,
+   "kcal_serve": 266.0,
+   "carbs": 34.0,
+   "protein": 7.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Plain Ricebowl",
+   "page": 10,
+   "weight": 250.0,
+   "servings": 1.0,
+   "kcal_serve": 418.0,
+   "carbs": 65.0,
+   "protein": 10.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Veg Ricebowl",
+   "page": 10,
+   "weight": 305.0,
+   "servings": 1.0,
+   "kcal_serve": 418.0,
+   "carbs": 76.0,
+   "protein": 9.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Classic HC chicken Rice Bowl",
+   "page": 10,
+   "weight": 360.0,
+   "servings": 1.0,
+   "kcal_serve": 547.0,
+   "carbs": 61.0,
+   "protein": 36.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Popcorn Chicken Rice Bowl",
+   "page": 10,
+   "weight": 340.0,
+   "servings": 1.0,
+   "kcal_serve": 615.0,
+   "carbs": 88.0,
+   "protein": 24.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Smoky Chicken Rice Bowl",
+   "page": 10,
+   "weight": 340.0,
+   "servings": 1.0,
+   "kcal_serve": 418.0,
+   "carbs": 65.0,
+   "protein": 24.0,
+   "fat": 8.0
+  },
+  {
+   "name": "Andra Rice",
+   "page": 10,
+   "weight": 230.0,
+   "servings": 1.0,
+   "kcal_serve": 334.0,
+   "carbs": 56.0,
+   "protein": 5.0,
+   "fat": 11.0
+  },
+  {
+   "name": "1 Pc Smoky",
+   "page": 11,
+   "weight": 90.0,
+   "servings": 1.0,
+   "kcal_serve": 171.0,
+   "carbs": 8.0,
+   "protein": 21.0,
+   "fat": 6.0
+  },
+  {
+   "name": "2 Pc Smoky",
+   "page": 11,
+   "weight": 180.0,
+   "servings": 1.0,
+   "kcal_serve": 342.0,
+   "carbs": 16.0,
+   "protein": 42.0,
+   "fat": 13.0
+  },
+  {
+   "name": "3 Pc Smoky",
+   "page": 11,
+   "weight": 270.0,
+   "servings": 1.0,
+   "kcal_serve": 513.0,
+   "carbs": 23.0,
+   "protein": 63.0,
+   "fat": 19.0
+  },
+  {
+   "name": "4 Pc Smoky",
+   "page": 11,
+   "weight": 360.0,
+   "servings": 2.0,
+   "kcal_serve": 342.0,
+   "carbs": 16.0,
+   "protein": 42.0,
+   "fat": 13.0
+  },
+  {
+   "name": "5 Pc Smoky",
+   "page": 11,
+   "weight": 450.0,
+   "servings": 2.0,
+   "kcal_serve": 428.0,
+   "carbs": 20.0,
+   "protein": 52.0,
+   "fat": 16.0
+  },
+  {
+   "name": "6 Pc Smoky",
+   "page": 11,
+   "weight": 540.0,
+   "servings": 2.0,
+   "kcal_serve": 513.0,
+   "carbs": 23.0,
+   "protein": 63.0,
+   "fat": 19.0
+  },
+  {
+   "name": "1 Pc Grilled leg",
+   "page": 11,
+   "weight": 170.0,
+   "servings": 1.0,
+   "kcal_serve": 338.0,
+   "carbs": 15.0,
+   "protein": 34.0,
+   "fat": 17.0
+  },
+  {
+   "name": "2 Pc Grilled leg",
+   "page": 11,
+   "weight": 340.0,
+   "servings": 1.0,
+   "kcal_serve": 677.0,
+   "carbs": 31.0,
+   "protein": 68.0,
+   "fat": 34.0
+  },
+  {
+   "name": "3 Pc Grilled leg",
+   "page": 11,
+   "weight": 340.0,
+   "servings": 2.0,
+   "kcal_serve": 338.0,
+   "carbs": 15.0,
+   "protein": 34.0,
+   "fat": 17.0
+  },
+  {
+   "name": "4 Pc Grilled leg",
+   "page": 11,
+   "weight": 340.0,
+   "servings": 2.0,
+   "kcal_serve": 338.0,
+   "carbs": 15.0,
+   "protein": 34.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Double Down",
+   "page": 12,
+   "weight": 225.0,
+   "servings": 1.0,
+   "kcal_serve": 590.0,
+   "carbs": 34.0,
+   "protein": 38.0,
+   "fat": 34.0
+  },
+  {
+   "name": "Chizza",
+   "page": 12,
+   "weight": 225.0,
+   "servings": 1.0,
+   "kcal_serve": 473.0,
+   "carbs": 29.0,
+   "protein": 36.0,
+   "fat": 23.0
+  },
+  {
+   "name": "Shawarma",
+   "page": 12,
+   "weight": 165.0,
+   "servings": 1.0,
+   "kcal_serve": 452.0,
+   "carbs": 51.0,
+   "protein": 17.0,
+   "fat": 25.0
+  },
+  {
+   "name": "DDX",
+   "page": 12,
+   "weight": 250.0,
+   "servings": 1.0,
+   "kcal_serve": 720.0,
+   "carbs": 63.0,
+   "protein": 33.0,
+   "fat": 40.0
+  },
+  {
+   "name": "Dunked Wings",
+   "page": 12,
+   "weight": 135.0,
+   "servings": 1.0,
+   "kcal_serve": 402.0,
+   "carbs": 28.0,
+   "protein": 19.0,
+   "fat": 24.0
+  },
+  {
+   "name": "Dunked Boneless Wings",
+   "page": 12,
+   "weight": 135.0,
+   "servings": 1.0,
+   "kcal_serve": 339.0,
+   "carbs": 27.0,
+   "protein": 18.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Dunked Strips",
+   "page": 12,
+   "weight": 135.0,
+   "servings": 1.0,
+   "kcal_serve": 325.0,
+   "carbs": 24.0,
+   "protein": 22.0,
+   "fat": 16.0
+  },
+  {
+   "name": "Dunked Burger",
+   "page": 12,
+   "weight": 210.0,
+   "servings": 1.0,
+   "kcal_serve": 559.0,
+   "carbs": 53.0,
+   "protein": 29.0,
+   "fat": 27.0
+  },
+  {
+   "name": "Dunked Drums",
+   "page": 12,
+   "weight": 200.0,
+   "servings": 1.0,
+   "kcal_serve": 550.0,
+   "carbs": 40.0,
+   "protein": 34.0,
+   "fat": 28.0
+  },
+  {
+   "name": "Fries Regular",
+   "page": 13,
+   "weight": 75.0,
+   "servings": 1.0,
+   "kcal_serve": 224.0,
+   "carbs": 28.0,
+   "protein": 5.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Fries Medium",
+   "page": 13,
+   "weight": 100.0,
+   "servings": 1.0,
+   "kcal_serve": 299.0,
+   "carbs": 37.0,
+   "protein": 7.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Fries Large",
+   "page": 13,
+   "weight": 135.0,
+   "servings": 1.0,
+   "kcal_serve": 404.0,
+   "carbs": 50.0,
+   "protein": 9.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Pepsi Regular",
+   "page": 13,
+   "weight": 330.0,
+   "servings": 1.0,
+   "kcal_serve": 142.0,
+   "carbs": 34.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Pepsi Medium",
+   "page": 13,
+   "weight": 450.0,
+   "servings": 1.0,
+   "kcal_serve": 194.0,
+   "carbs": 46.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Pepsi Large",
+   "page": 13,
+   "weight": 550.0,
+   "servings": 1.0,
+   "kcal_serve": 237.0,
+   "carbs": 57.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Mirinda Regular",
+   "page": 13,
+   "weight": 330.0,
+   "servings": 1.0,
+   "kcal_serve": 182.0,
+   "carbs": 43.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Mirinda Medium",
+   "page": 13,
+   "weight": 450.0,
+   "servings": 1.0,
+   "kcal_serve": 248.0,
+   "carbs": 59.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Mirinda Large",
+   "page": 13,
+   "weight": 550.0,
+   "servings": 1.0,
+   "kcal_serve": 303.0,
+   "carbs": 72.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "7 Up Regular",
+   "page": 13,
+   "weight": 330.0,
+   "servings": 1.0,
+   "kcal_serve": 155.0,
+   "carbs": 36.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "7 Up Medium",
+   "page": 13,
+   "weight": 450.0,
+   "servings": 1.0,
+   "kcal_serve": 212.0,
+   "carbs": 50.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "7 Up Large",
+   "page": 13,
+   "weight": 550.0,
+   "servings": 1.0,
+   "kcal_serve": 259.0,
+   "carbs": 61.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Dew Regular",
+   "page": 13,
+   "weight": 330.0,
+   "servings": 1.0,
+   "kcal_serve": 162.0,
+   "carbs": 38.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Dew Medium",
+   "page": 13,
+   "weight": 450.0,
+   "servings": 1.0,
+   "kcal_serve": 221.0,
+   "carbs": 52.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "7 Up Rizz Fizz",
+   "page": 13,
+   "weight": 300.0,
+   "servings": 1.0,
+   "kcal_serve": 174.0,
+   "carbs": 39.0,
+   "protein": 5.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Dew Large",
+   "page": 13,
+   "weight": 550.0,
+   "servings": 1.0,
+   "kcal_serve": 270.0,
+   "carbs": 64.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "7up Krush Lime",
+   "page": 14,
+   "weight": 220.0,
+   "servings": 1.0,
+   "kcal_serve": 86.0,
+   "carbs": 4.0,
+   "protein": 21.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Masala Pepsi",
+   "page": 14,
+   "weight": 220.0,
+   "servings": 1.0,
+   "kcal_serve": 184.0,
+   "carbs": 44.0,
+   "protein": 0.0,
+   "fat": 2.0
+  },
+  {
+   "name": "Dew Mojito",
+   "page": 14,
+   "weight": 220.0,
+   "servings": 1.0,
+   "kcal_serve": 190.0,
+   "carbs": 52.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Masala Mirinda",
+   "page": 14,
+   "weight": 220.0,
+   "servings": 1.0,
+   "kcal_serve": 484.0,
+   "carbs": 114.0,
+   "protein": 0.0,
+   "fat": 2.0
+  },
+  {
+   "name": "Virgin Mojito",
+   "page": 14,
+   "weight": 220.0,
+   "servings": 1.0,
+   "kcal_serve": 85.0,
+   "carbs": 4.0,
+   "protein": 21.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Pepsi Can",
+   "page": 14,
+   "weight": 300.0,
+   "servings": 1.0,
+   "kcal_serve": 129.0,
+   "carbs": 33.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "7up Can",
+   "page": 14,
+   "weight": 300.0,
+   "servings": 1.0,
+   "kcal_serve": 138.0,
+   "carbs": 35.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Mirinda Can",
+   "page": 14,
+   "weight": 300.0,
+   "servings": 1.0,
+   "kcal_serve": 165.0,
+   "carbs": 41.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Pepsi Pet",
+   "page": 14,
+   "weight": 475.0,
+   "servings": 1.0,
+   "kcal_serve": 340.0,
+   "carbs": 86.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Pepsi Zero Sugar Pet",
+   "page": 14,
+   "weight": 475.0,
+   "servings": 1.0,
+   "kcal_serve": 0.0,
+   "carbs": 0.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Pepsi Zero Sugar Can",
+   "page": 14,
+   "weight": 300.0,
+   "servings": 1.0,
+   "kcal_serve": 0.0,
+   "carbs": 0.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "7up Zero Sugar Pet",
+   "page": 14,
+   "weight": 475.0,
+   "servings": 1.0,
+   "kcal_serve": 0.0,
+   "carbs": 0.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "7up Zero Sugar Can",
+   "page": 14,
+   "weight": 300.0,
+   "servings": 1.0,
+   "kcal_serve": 0.0,
+   "carbs": 0.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Dynamite Spicy Mayo",
+   "page": 15,
+   "weight": 20.0,
+   "servings": 1.0,
+   "kcal_serve": 77.0,
+   "carbs": 3.0,
+   "protein": 0.0,
+   "fat": 7.0
+  },
+  {
+   "name": "Creamy Veg Mayo",
+   "page": 15,
+   "weight": 20.0,
+   "servings": 1.0,
+   "kcal_serve": 74.0,
+   "carbs": 2.0,
+   "protein": 0.0,
+   "fat": 7.0
+  },
+  {
+   "name": "Tandoori Masala Mayo",
+   "page": 15,
+   "weight": 20.0,
+   "servings": 1.0,
+   "kcal_serve": 74.0,
+   "carbs": 3.0,
+   "protein": 0.0,
+   "fat": 7.0
+  },
+  {
+   "name": "Zesty thousand Island Dip",
+   "page": 15,
+   "weight": 20.0,
+   "servings": 1.0,
+   "kcal_serve": 72.0,
+   "carbs": 4.0,
+   "protein": 0.0,
+   "fat": 6.0
+  },
+  {
+   "name": "Nashvillle Dip",
+   "page": 15,
+   "weight": 20.0,
+   "servings": 1.0,
+   "kcal_serve": 30.0,
+   "carbs": 7.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Nashville Sauce Bottle -225 g",
+   "page": 15,
+   "weight": 189.0,
+   "servings": 1.0,
+   "kcal_serve": 127.0,
+   "carbs": 66.0,
+   "protein": 1.0,
+   "fat": 2.0
+  },
+  {
+   "name": "Dynamite Spicy Mayo bottle -200 g",
+   "page": 15,
+   "weight": 200.0,
+   "servings": 1.0,
+   "kcal_serve": 774.0,
+   "carbs": 34.0,
+   "protein": 2.0,
+   "fat": 70.0
+  },
+  {
+   "name": "Spicy Mix Seasoning",
+   "page": 15,
+   "weight": 2.0,
+   "servings": 1.0,
+   "kcal_serve": 5.0,
+   "carbs": 1.0,
+   "protein": 0.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Choco Lava Cake",
+   "page": 15,
+   "weight": 60.0,
+   "servings": 1.0,
+   "kcal_serve": 343.0,
+   "carbs": 34.0,
+   "protein": 6.0,
+   "fat": 21.0
+  },
+  {
+   "name": "Choco Mud Pie",
+   "page": 15,
+   "weight": 93.0,
+   "servings": 1.0,
+   "kcal_serve": 241.0,
+   "carbs": 37.0,
+   "protein": 3.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Mousse cake ( Coffee Flavoured)",
+   "page": 15,
+   "weight": 70.0,
+   "servings": 1.0,
+   "kcal_serve": 135.0,
+   "carbs": 17.0,
+   "protein": 2.0,
+   "fat": 7.0
+  },
+  {
+   "name": "Mini Dessert Bucket",
+   "page": 15,
+   "weight": 85.0,
+   "servings": 1.0,
+   "kcal_serve": 250.0,
+   "carbs": 34.0,
+   "protein": 4.0,
+   "fat": 11.0
+  },
+  {
+   "name": "4pc Hot wings + Tandoori masala dip",
+   "page": 16,
+   "weight": 160.0,
+   "servings": 1.0,
+   "kcal_serve": 572.0,
+   "carbs": 36.0,
+   "protein": 23.0,
+   "fat": 39.0
+  },
+  {
+   "name": "3pc Strips + Tandoori masala dip",
+   "page": 16,
+   "weight": 155.0,
+   "servings": 1.0,
+   "kcal_serve": 434.0,
+   "carbs": 25.0,
+   "protein": 27.0,
+   "fat": 26.0
+  },
+  {
+   "name": "Medium popcorn + Tandoori masala dip",
+   "page": 16,
+   "weight": 160.0,
+   "servings": 1.0,
+   "kcal_serve": 550.0,
+   "carbs": 36.0,
+   "protein": 27.0,
+   "fat": 35.0
+  },
+  {
+   "name": "Regular Fries & Pepsi- Snackers",
+   "page": 16,
+   "weight": 405.0,
+   "servings": 1.0,
+   "kcal_serve": 366.0,
+   "carbs": 61.0,
+   "protein": 5.0,
+   "fat": 11.0
+  },
+  {
+   "name": "2 Krush Lime",
+   "page": 16,
+   "weight": 440.0,
+   "servings": 2.0,
+   "kcal_serve": 86.0,
+   "carbs": 4.0,
+   "protein": 21.0,
+   "fat": 0.0
+  },
+  {
+   "name": "Veg Longer Meal ( Veg Longer, Reg. Fries & Reg. Pepsi)",
+   "page": 16,
+   "weight": 515.0,
+   "servings": 1.0,
+   "kcal_serve": 625.0,
+   "carbs": 100.0,
+   "protein": 13.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Chicken Longer Meal ( Chicken Longer, Reg. Fries & Reg Pepsi)",
+   "page": 16,
+   "weight": 525.0,
+   "servings": 1.0,
+   "kcal_serve": 723.0,
+   "carbs": 99.0,
+   "protein": 17.0,
+   "fat": 29.0
+  },
+  {
+   "name": "Veg Rice Bowlz & Pepsi ( 1 Veg Rice Bowlz & 1 Reg. Pepsi)",
+   "page": 16,
+   "weight": 635.0,
+   "servings": 1.0,
+   "kcal_serve": 560.0,
+   "carbs": 110.0,
+   "protein": 9.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Popcorn Rice Bowlz & Pepsi ( 1 Popcorn Rice Bowlz & 1 Reg. Pepsi)",
+   "page": 16,
+   "weight": 670.0,
+   "servings": 1.0,
+   "kcal_serve": 575.0,
+   "carbs": 112.0,
+   "protein": 24.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Smoky Rice Bowlz & Pepsi (1 Smoky Rice Bowlz & 1 Reg. Pepsi)",
+   "page": 16,
+   "weight": 670.0,
+   "servings": 1.0,
+   "kcal_serve": 560.0,
+   "carbs": 99.0,
+   "protein": 24.0,
+   "fat": 8.0
+  },
+  {
+   "name": "HC Rice Bowlz & Pepsi ( 1 HC Rice Bowlz & 1 Reg. Pepsi)",
+   "page": 16,
+   "weight": 690.0,
+   "servings": 1.0,
+   "kcal_serve": 689.0,
+   "carbs": 95.0,
+   "protein": 36.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Longer combo- regular 1 Longer + 2 Strips + 1 Pepsi",
+   "page": 17,
+   "weight": 540.0,
+   "servings": 1.0,
+   "kcal_serve": 739.0,
+   "carbs": 86.0,
+   "protein": 30.0,
+   "fat": 31.0
+  },
+  {
+   "name": "Roll combo- regular 1 Single Roll + 2 Strips + 1 Pepsi",
+   "page": 17,
+   "weight": 570.0,
+   "servings": 1.0,
+   "kcal_serve": 843.0,
+   "carbs": 105.0,
+   "protein": 32.0,
+   "fat": 32.0
+  },
+  {
+   "name": "Rice combo- regular 1 Rice + 2 Strips + 1 Pepsi",
+   "page": 17,
+   "weight": 670.0,
+   "servings": 1.0,
+   "kcal_serve": 800.0,
+   "carbs": 113.0,
+   "protein": 28.0,
+   "fat": 25.0
+  },
+  {
+   "name": "Longer combo- medium 1 Longer + 1 Strips + 1 HC + 1 Pepsi",
+   "page": 17,
+   "weight": 725.0,
+   "servings": 1.0,
+   "kcal_serve": 990.0,
+   "carbs": 106.0,
+   "protein": 40.0,
+   "fat": 44.0
+  },
+  {
+   "name": "Roll combo- medium 1 Single Roll + 1 Strips + 1 HC + 1 Pepsi",
+   "page": 17,
+   "weight": 755.0,
+   "servings": 1.0,
+   "kcal_serve": 1094.0,
+   "carbs": 126.0,
+   "protein": 42.0,
+   "fat": 46.0
+  },
+  {
+   "name": "Rice combo- medium 1 Rice + 1 Strips + 1 HC + 1 Pepsi",
+   "page": 17,
+   "weight": 855.0,
+   "servings": 1.0,
+   "kcal_serve": 1051.0,
+   "carbs": 134.0,
+   "protein": 38.0,
+   "fat": 39.0
+  },
+  {
+   "name": "Longer combo- large 1 Longer + 2 HC + 1 Pepsi",
+   "page": 17,
+   "weight": 890.0,
+   "servings": 1.0,
+   "kcal_serve": 1233.0,
+   "carbs": 125.0,
+   "protein": 51.0,
+   "fat": 58.0
+  },
+  {
+   "name": "Roll combo- large 1 Single Roll + 2 HC + 1 Pepsi",
+   "page": 17,
+   "weight": 920.0,
+   "servings": 1.0,
+   "kcal_serve": 1337.0,
+   "carbs": 145.0,
+   "protein": 52.0,
+   "fat": 60.0
+  },
+  {
+   "name": "Rice combo- large 1 Rice + 2 HC + 1 Pepsi",
+   "page": 17,
+   "weight": 1020.0,
+   "servings": 1.0,
+   "kcal_serve": 1294.0,
+   "carbs": 153.0,
+   "protein": 49.0,
+   "fat": 53.0
+  },
+  {
+   "name": "Roll combo- regular Veg Roll + 1 Reg Fries + 1 Reg Pepsi",
+   "page": 17,
+   "weight": 550.0,
+   "servings": 1.0,
+   "kcal_serve": 813.0,
+   "carbs": 117.0,
+   "protein": 13.0,
+   "fat": 32.0
+  },
+  {
+   "name": "Longer combo- regular veg Longer + 1 Reg Fries + 1 Reg Pepsi",
+   "page": 17,
+   "weight": 515.0,
+   "servings": 1.0,
+   "kcal_serve": 625.0,
+   "carbs": 100.0,
+   "protein": 13.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Rice combo- regular veg Rice + 1 Veg Patty + 1 Reg Pepsi",
+   "page": 17,
+   "weight": 635.0,
+   "servings": 1.0,
+   "kcal_serve": 693.0,
+   "carbs": 116.0,
+   "protein": 14.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Spicy Zinger Meal (Spicy Zinger+ Reg Fries+Reg Pepsi)",
+   "page": 18,
+   "weight": 620.0,
+   "servings": 1.0,
+   "kcal_serve": 805.0,
+   "carbs": 109.0,
+   "protein": 33.0,
+   "fat": 26.0
+  },
+  {
+   "name": "Zinger Pro Meal ( Zinger Pro+ Reg Fries+Reg Pepsi)",
+   "page": 18,
+   "weight": 630.0,
+   "servings": 1.0,
+   "kcal_serve": 895.0,
+   "carbs": 102.0,
+   "protein": 34.0,
+   "fat": 40.0
+  },
+  {
+   "name": "Peri Peri 5 Leg piece + 2 Dips (Eggless +Nashville) + 2 Reg Pepsi",
+   "page": 18,
+   "weight": 905.0,
+   "servings": 2.0,
+   "kcal_serve": 568.0,
+   "carbs": 86.0,
+   "protein": 46.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Chick & Share Bucket: Xtra Large Popcorn",
+   "page": 19,
+   "weight": 380.0,
+   "servings": 2.0,
+   "kcal_serve": 646.0,
+   "carbs": 87.0,
+   "protein": 36.0,
+   "fat": 38.0
+  },
+  {
+   "name": "Chick & Share Bucket: 5 pc Hot & Crispy",
+   "page": 19,
+   "weight": 550.0,
+   "servings": 2.0,
+   "kcal_serve": 800.0,
+   "carbs": 39.0,
+   "protein": 48.0,
+   "fat": 50.0
+  },
+  {
+   "name": "Chick & Share Bucket: 10 pc Strips",
+   "page": 19,
+   "weight": 450.0,
+   "servings": 2.0,
+   "kcal_serve": 601.0,
+   "carbs": 36.0,
+   "protein": 45.0,
+   "fat": 32.0
+  },
+  {
+   "name": "Mingles Bucket (4HW + 2 Peri Peri Chicken Strips + Reg Pepsi)",
+   "page": 19,
+   "weight": 560.0,
+   "servings": 1.0,
+   "kcal_serve": 881.0,
+   "carbs": 81.0,
+   "protein": 41.0,
+   "fat": 45.0
+  },
+  {
+   "name": "Friendship Bucket 3 HC+ 3HW + 3 Peri Peri Chicken Strips + Med Popcorn",
+   "page": 19,
+   "weight": 710.0,
+   "servings": 3.0,
+   "kcal_serve": 724.0,
+   "carbs": 42.0,
+   "protein": 43.0,
+   "fat": 44.0
+  },
+  {
+   "name": "All Chicken Box (2 Hot wings + 1 HC + Reg Pepsi)",
+   "page": 19,
+   "weight": 510.0,
+   "servings": 1.0,
+   "kcal_serve": 711.0,
+   "carbs": 66.0,
+   "protein": 30.0,
+   "fat": 36.0
+  },
+  {
+   "name": "Classic Zinger Box (Classic Zinger + 2 Hot wings + Reg Pepsi + Reg Fries)",
+   "page": 19,
+   "weight": 700.0,
+   "servings": 1.0,
+   "kcal_serve": 1227.0,
+   "carbs": 141.0,
+   "protein": 43.0,
+   "fat": 56.0
+  },
+  {
+   "name": "Tandoori Zinger Box (Tandoori Zinger + 2 Hot wings + Reg Pepsi + Reg Fries)",
+   "page": 19,
+   "weight": 705.0,
+   "servings": 1.0,
+   "kcal_serve": 1500.0,
+   "carbs": 140.0,
+   "protein": 42.0,
+   "fat": 57.0
+  },
+  {
+   "name": "Veg Zinger Box (Veg Zinger + 1/2 Veg Patty + Reg Fries + Reg Pepsi)",
+   "page": 19,
+   "weight": 690.0,
+   "servings": 1.0,
+   "kcal_serve": 1120.0,
+   "carbs": 161.0,
+   "protein": 22.0,
+   "fat": 41.0
+  },
+  {
+   "name": "Popcorn Chicken Rice Box Meal ( Popcorn Rice Bowlz, 2 Hot Wings, Regular Pepsi)",
+   "page": 19,
+   "weight": 740.0,
+   "servings": 1.0,
+   "kcal_serve": 1000.0,
+   "carbs": 138.0,
+   "protein": 35.0,
+   "fat": 35.0
+  },
+  {
+   "name": "Veg Rice Box Meal ( Veg Rice Bowlz, 1/2 Veg Patty, 1 Regular Pepsi)",
+   "page": 19,
+   "weight": 690.0,
+   "servings": 1.0,
+   "kcal_serve": 693.0,
+   "carbs": 127.0,
+   "protein": 13.0,
+   "fat": 15.0
+  },
+  {
+   "name": "Chizza & Pepsi",
+   "page": 20,
+   "weight": 555.0,
+   "servings": 1.0,
+   "kcal_serve": 614.0,
+   "carbs": 63.0,
+   "protein": 36.0,
+   "fat": 23.0
+  },
+  {
+   "name": "9 Pc Strips",
+   "page": 20,
+   "weight": 400.0,
+   "servings": 3.0,
+   "kcal_serve": 367.0,
+   "carbs": 22.0,
+   "protein": 27.0,
+   "fat": 19.0
+  },
+  {
+   "name": "9 Pc Strips Meal (9 Pc Strips+2 Reg Pepsi+ 2 Reg Fries)",
+   "page": 20,
+   "weight": 1215.0,
+   "servings": 3.0,
+   "kcal_serve": 605.0,
+   "carbs": 62.0,
+   "protein": 31.0,
+   "fat": 26.0
+  },
+  {
+   "name": "9 Peri Peri Leg Pc",
+   "page": 20,
+   "weight": 900.0,
+   "servings": 3.0,
+   "kcal_serve": 897.0,
+   "carbs": 57.0,
+   "protein": 54.0,
+   "fat": 51.0
+  },
+  {
+   "name": "9 Peri Peri Leg Pc Meal (9 Leg + 1 Med Fries + 2 Reg Pepsi )",
+   "page": 20,
+   "weight": 1660.0,
+   "servings": 2.0,
+   "kcal_serve": 1637.0,
+   "carbs": 136.0,
+   "protein": 88.0,
+   "fat": 91.0
+  },
+  {
+   "name": "15 Pcs for 399 ( 6 Strips + 6 HW+3 HC) on Wednesdays",
+   "page": 20,
+   "weight": 810.0,
+   "servings": 3.0,
+   "kcal_serve": 810.0,
+   "carbs": 46.0,
+   "protein": 49.0,
+   "fat": 49.0
+  },
+  {
+   "name": "15 Pcs for 399 Meal (6 Strips +6 HW+ 3 HC +2 Reg Fries +2 Reg Pepsi)",
+   "page": 20,
+   "weight": 1620.0,
+   "servings": 2.0,
+   "kcal_serve": 1581.0,
+   "carbs": 131.0,
+   "protein": 78.0,
+   "fat": 85.0
+  },
+  {
+   "name": "12 for 350 (12 Peri Peri Chicken Strips + 2 Eggless Mayo+ 2 Thousand Island)",
+   "page": 20,
+   "weight": 620.0,
+   "servings": 3.0,
+   "kcal_serve": 578.0,
+   "carbs": 33.0,
+   "protein": 36.0,
+   "fat": 35.0
+  },
+  {
+   "name": "10 pc HC- Wednesday Offer",
+   "page": 20,
+   "weight": 110.0,
+   "servings": 3.0,
+   "kcal_serve": 1067.0,
+   "carbs": 52.0,
+   "protein": 64.0,
+   "fat": 67.0
+  },
+  {
+   "name": "Wednesday Special HC (9 HC,4 Peri Peri Chicken Strips,2 Reg Fries, 2 Reg Pepsi)",
+   "page": 20,
+   "weight": 1980.0,
+   "servings": 3.0,
+   "kcal_serve": 1367.0,
+   "carbs": 97.0,
+   "protein": 73.0,
+   "fat": 76.0
+  },
+  {
+   "name": "Zinger Delight Meal (1 Classic Zinger Burger + 1 Med Fries + 1 Pepsi Pet)",
+   "page": 20,
+   "weight": 800.0,
+   "servings": 1.0,
+   "kcal_serve": 1251.0,
+   "carbs": 186.0,
+   "protein": 34.0,
+   "fat": 43.0
+  },
+  {
+   "name": "Classic Chicken Roll",
+   "page": 21,
+   "weight": 150.0,
+   "servings": 1.0,
+   "kcal_serve": 461.0,
+   "carbs": 57.0,
+   "protein": 14.0,
+   "fat": 20.0
+  },
+  {
+   "name": "Big Eight(4 periperi leg + 4 smoky leg)",
+   "page": 21,
+   "weight": 760.0,
+   "servings": 2.0,
+   "kcal_serve": 940.0,
+   "carbs": 54.0,
+   "protein": 78.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Big Eight Meal (with 2 Pepsi)",
+   "page": 21,
+   "weight": 1420.0,
+   "servings": 2.0,
+   "kcal_serve": 1083.0,
+   "carbs": 88.0,
+   "protein": 78.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Big Eight Meal with Pepsi Black (with 2 Pepsi)",
+   "page": 21,
+   "weight": 1060.0,
+   "servings": 2.0,
+   "kcal_serve": 940.0,
+   "carbs": 54.0,
+   "protein": 78.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Double Chicken Roll",
+   "page": 21,
+   "weight": 190.0,
+   "servings": 1.0,
+   "kcal_serve": 526.0,
+   "carbs": 51.0,
+   "protein": 23.0,
+   "fat": 27.0
+  },
+  {
+   "name": "Double Chicken Roll Meal for 2 (2 Classic Double Chicken Roll + Large fries + Pepsi Can +",
+   "page": 21,
+   "weight": 855.0,
+   "servings": 2.0,
+   "kcal_serve": 845.0,
+   "carbs": 97.0,
+   "protein": 28.0,
+   "fat": 40.0
+  },
+  {
+   "name": "2 HC & medium fries",
+   "page": 21,
+   "weight": 320.0,
+   "servings": 1.0,
+   "kcal_serve": 939.0,
+   "carbs": 68.0,
+   "protein": 45.0,
+   "fat": 54.0
+  },
+  {
+   "name": "2 Smoky red & medium fries",
+   "page": 21,
+   "weight": 280.0,
+   "servings": 1.0,
+   "kcal_serve": 641.0,
+   "carbs": 52.0,
+   "protein": 48.0,
+   "fat": 27.0
+  },
+  {
+   "name": "4 strips & medium fries",
+   "page": 21,
+   "weight": 280.0,
+   "servings": 1.0,
+   "kcal_serve": 780.0,
+   "carbs": 66.0,
+   "protein": 43.0,
+   "fat": 39.0
+  },
+  {
+   "name": "Large popcorn & medium fries",
+   "page": 21,
+   "weight": 290.0,
+   "servings": 1.0,
+   "kcal_serve": 945.0,
+   "carbs": 80.0,
+   "protein": 43.0,
+   "fat": 52.0
+  },
+  {
+   "name": "9 Hot Wings meal (9 Hot Wings + 2 Reg Fries + 2 Reg Pepsi)",
+   "page": 21,
+   "weight": 1125.0,
+   "servings": 2.0,
+   "kcal_serve": 927.0,
+   "carbs": 98.0,
+   "protein": 30.0,
+   "fat": 47.0
+  },
+  {
+   "name": "Wednesday 15 Pcs for 399 New (6 Strips + 6 HW + 3 Leg Piece (HC))",
+   "page": 21,
+   "weight": 780.0,
+   "servings": 3.0,
+   "kcal_serve": 778.0,
+   "carbs": 48.0,
+   "protein": 47.0,
+   "fat": 46.0
+  }
+ ]
+}

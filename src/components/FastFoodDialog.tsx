@@ -215,8 +215,16 @@ export function FastFoodDialog({
                   onClick={() => onPick(it)}
                   className="flex w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent/10"
                 >
-                  <span className="min-w-0 truncate">
-                    {it.name.replace(`${brand} `, "")}
+                  <span className="min-w-0">
+                    <span className="block">
+                      {it.name.replace(`${brand} `, "")}
+                    </span>
+                    {/* What the calories are for: "half medium pizza, 3 slices". */}
+                    {it.serving_label && (
+                      <span className="block text-xs text-muted-foreground">
+                        {it.serving_label.replace(/^1 /, "")}
+                      </span>
+                    )}
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {/* Some brands' rows have no serving weight: say per 100 g. */}
