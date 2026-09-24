@@ -632,8 +632,8 @@ export function Header({
             {name && (
               <span className="text-sm font-semibold">
                 {pathname === "/hub"
-                  ? `Welcome to Hub, ${name} 🙏`
-                  : `Hey, ${name} 👋`}
+                  ? `Welcome to Hub, ${name}`
+                  : `Hey, ${name}`}
               </span>
             )}
             <span className="text-xs text-muted-foreground">{today}</span>
@@ -730,8 +730,8 @@ export function Header({
           <span className="truncate font-medium min-w-0 mr-2">
             {name
               ? pathname === "/hub"
-                ? `Welcome to Hub, ${name} 🙏`
-                : `Hey, ${name} 👋`
+                ? `Welcome to Hub, ${name}`
+                : `Hey, ${name}`
               : "Welcome back"}
           </span>
           <span className="shrink-0">{today}</span>

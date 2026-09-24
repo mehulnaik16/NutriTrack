@@ -265,26 +265,38 @@ const ans = (
   food_name: string,
   basis: "100g" | "piece",
   piece_g: number | string | null,
-) => ({ food_name, basis, piece_g });
+  canonical_key = food_name.toLowerCase(),
+) => ({ food_name, canonical_key, basis, piece_g });
 // An outlier first answer's piece weight (120 g against ~40 g) is not stored:
-// piece_g multiplies every pieces log of the food, permanently.
+// piece_g multiplies every pieces log of the food, permanently. The key is
+// voted on the same way — a group no longer shares one spelling of it.
 assert.deepEqual(
   consolidateIdentity([
-    ans("Thatte Idli", "piece", 120),
-    ans("Thatte idli", "piece", 42),
-    ans("Thatte idli", "100g", "40"), // PostgREST may return numeric as text
+    ans("Thatte Idli", "piece", 120, "thatte idli"),
+    ans("Thatte idli", "piece", 42, "idli thatte"),
+    ans("Thatte idli", "100g", "40", "thatte idli"), // numeric may arrive as text
   ]),
-  { food_name: "Thatte idli", basis: "piece", piece_g: 42 },
+  {
+    food_name: "Thatte idli",
+    canonical_key: "thatte idli",
+    basis: "piece",
+    piece_g: 42,
+  },
 );
-// Majority basis; median of the piece weights that exist; a three-way name
-// tie keeps the earliest answer's.
+// Majority basis; median of the piece weights that exist; a three-way tie on
+// name and on key both keep the earliest answer's.
 assert.deepEqual(
   consolidateIdentity([
     ans("Lassi", "100g", null),
     ans("Sweet lassi", "100g", 250),
     ans("Punjabi lassi", "piece", 300),
   ]),
-  { food_name: "Lassi", basis: "100g", piece_g: 275 },
+  {
+    food_name: "Lassi",
+    canonical_key: "lassi",
+    basis: "100g",
+    piece_g: 275,
+  },
 );
 // No piece weight in any answer stays null, never 0 (0 g per piece would
 // log any count of pieces as nothing).
@@ -644,6 +656,72 @@ import { per100g } from "./foodCache.ts";
   assert.equal(per100g(edit(100, [NaN, 1, 1, 1, 1])), null);
   // Pure fat is the ceiling, not over it.
   assert.equal(per100g(edit(10, [90, 0, 0, 10, 0]))?.enerc, 3765.6);
+}
+
+// ── grouping: which staged answers are the same food ───────────────────────
+// The bug these exist for: the model returns a different canonical_key for one
+// food on every call, so grouping on exact equality left ai_verified empty for
+// two days. Scores below are measured, not guessed — see pickGroupKey's table.
+{
+  const { groupKey, pickGroupKey, GROUP_SIM } =
+    await import("../server/foodCacheKeys.ts");
+
+  assert.equal(GROUP_SIM, 0.9);
+
+  // Word order only. This exact pair was filed as two foods in production,
+  // agreeing on macros to within 1%.
+  assert.equal(
+    groupKey("protein blueberry shake"),
+    groupKey("blueberry protein shake"),
+  );
+  // Sorting merges order and nothing else: a food is never folded into a dish
+  // that merely contains it.
+  assert.notEqual(groupKey("naan"), groupKey("paneer naan"));
+  assert.notEqual(groupKey("coconut rice"), groupKey("coconut dal"));
+  // Romanisation is inherited from searchKey, so script is not a barrier.
+  assert.equal(groupKey("ತಟ್ಟೆ ಇಡ್ಲಿ"), groupKey("idli tatte"));
+  assert.equal(groupKey(""), "");
+
+  // Joins the near-identical open group: 0.900, exactly at the floor.
+  assert.equal(
+    pickGroupKey(groupKey("dahi bhat"), ["bhaat dahi"]),
+    "bhaat dahi",
+  );
+  // 0.909.
+  assert.equal(
+    pickGroupKey(groupKey("tatte idli"), ["idli thatte"]),
+    "idli thatte",
+  );
+
+  // Each of these must start its own group. Branded vs generic is 0.821 — and
+  // the two answers behind it disagreed 580 kJ against 290, so they are not
+  // one food however close the wording looks.
+  assert.equal(
+    pickGroupKey(groupKey("blueberry protein shake"), [
+      "amul blueberry protein shake",
+    ]),
+    "blueberry protein shake",
+  );
+  // 0.737.
+  assert.equal(
+    pickGroupKey(groupKey("flavoured milkshake"), ["flavoured milk"]),
+    "flavoured milkshake",
+  );
+  // 0.364.
+  assert.equal(pickGroupKey(groupKey("paneer naan"), ["naan"]), "naan paneer");
+
+  // No open groups at all: the answer anchors its own.
+  assert.equal(
+    pickGroupKey("blueberry protein shake", []),
+    "blueberry protein shake",
+  );
+
+  // Similarity is not transitive, so the winner must not depend on arrival
+  // order. Both orderings of the same candidates pick the same group, and the
+  // closer candidate wins over the merely-eligible one.
+  const two = ["bhaat dahi", "bhaats dahi"];
+  assert.equal(pickGroupKey("bhat dahi", two), "bhaat dahi");
+  assert.equal(pickGroupKey("bhat dahi", [...two].reverse()), "bhaat dahi");
 }
 
 console.log("foodCache: all assertions passed");

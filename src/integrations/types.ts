@@ -20,7 +20,8 @@
  *      write a compile error.
  *   3. Literal unions mirroring CHECK constraints the generator cannot see:
  *      NotificationType / NotificationStatus (notification_logs), referral
- *      status, subscription provider / tier / status, charge tier, refund status.
+ *      status, subscription provider / tier / status, charge tier, refund status,
+ *      DietPreference (user_profiles.diet_preference).
  *   4. user_profiles.meal_names narrowed from Json to string[].
  *   5. Every doc comment on a column or table: they record triggers, CHECKs,
  *      grants and units that the generated output does not.
@@ -53,6 +54,9 @@ export type NotificationStatus =
   | "dismissed"
   | "opened"
   | "archived"
+
+/** Mirrors the diet_preference CHECK on public.user_profiles. */
+export type DietPreference = "veg" | "veg_eggs" | "non_veg"
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -869,6 +873,8 @@ export type Database = {
           created_at: string
           current_streak: number | null
           daily_calorie_target: number | null
+          /** Asked once in the /food setup modal. NULL = not yet asked. Write-only. */
+          diet_preference: DietPreference | null
           fat_target_g: number | null
           fiber_target_g: number | null
           full_name: string | null
@@ -945,6 +951,7 @@ export type Database = {
           created_at?: string
           current_streak?: number | null
           daily_calorie_target?: number | null
+          diet_preference?: DietPreference | null
           fat_target_g?: number | null
           fiber_target_g?: number | null
           full_name?: string | null

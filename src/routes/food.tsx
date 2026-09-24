@@ -6,9 +6,15 @@ import { validateFoodLogCalories } from "@/lib/calorieLimits";
 import { PremiumGate } from "@/components/PremiumGate";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
-import { DEFAULT_MEALS, loadMealNames, saveMealNames } from "@/lib/meals";
+import {
+  DEFAULT_MEALS,
+  DIET_OPTIONS,
+  loadMealNames,
+  saveDietPreference,
+  saveMealNames,
+} from "@/lib/meals";
 import { supabase } from "@/integrations/client";
-import type { Tables } from "@/integrations/types";
+import type { DietPreference, Tables } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
 import {
   Utensils,
@@ -126,12 +132,23 @@ function FoodPage() {
   const [mealCount, setMealCount] = useState(4);
   const [mealNames, setMealNames] = useState<string[]>([...DEFAULT_MEALS]);
   const [userMeals, setUserMeals] = useState<string[]>([...DEFAULT_MEALS]);
+  const [setupStep, setSetupStep] = useState<1 | 2>(1);
+  // null until loadMealNames resolves, so the diet gate below can wait rather
+  // than guess which step to open on.
+  const [hasSavedMeals, setHasSavedMeals] = useState<boolean | null>(null);
+  const [dietPref, setDietPref] = useState<DietPreference | null>(null);
+
+  // Diet preference is compulsory and asked exactly once. The gate is the
+  // column being NULL, not "is a new user" — the meal questionnaire's own gate
+  // (no meal names) would skip every existing user, who has names already.
+  const needsDiet = profile != null && profile.diet_preference == null;
 
   // Meal names: DB-first (survives cache/session clear), then localStorage
   // (legacy), then the setup questionnaire for a truly first-time user.
   useEffect(() => {
     if (!user) return;
     loadMealNames(user.id).then((names) => {
+      setHasSavedMeals(names != null);
       if (names) {
         setMealCount(names.length);
         setMealNames(names);
@@ -141,6 +158,14 @@ function FoodPage() {
       }
     });
   }, [user]);
+
+  // An existing user has already answered the meals question, so open straight
+  // on the diet question; a first-time user walks step 1 → step 2.
+  useEffect(() => {
+    if (!needsDiet || hasSavedMeals == null) return;
+    if (hasSavedMeals) setSetupStep(2);
+    setShowMealSetup(true);
+  }, [needsDiet, hasSavedMeals]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -369,8 +394,25 @@ function FoodPage() {
     // cache clear and follow the user across devices.
     saveMealNames(user.id, trimmed);
     setUserMeals(trimmed);
+    // Saved here rather than at the end of step 2 so a mid-flow drop-off still
+    // keeps the meal names.
+    if (needsDiet) {
+      setSetupStep(2);
+      return;
+    }
     setShowMealSetup(false);
     toast.success("Meal categories saved!");
+  };
+
+  const handleSaveDiet = () => {
+    if (!user || !dietPref) return;
+    saveDietPreference(user.id, dietPref);
+    // Optimistic, so `needsDiet` flips false and the gate effect above does not
+    // reopen the modal before the next profile fetch lands.
+    setProfile((p) => (p ? { ...p, diet_preference: dietPref } : p));
+    setShowMealSetup(false);
+    setSetupStep(1);
+    toast.success("Preferences saved!");
   };
 
   return (
@@ -656,78 +698,121 @@ function FoodPage() {
       </main>
 
       {/* ── Meal Setup Questionnaire Dialog ── */}
+      {/* Dismissable: the diet question has no skip button, but closing the
+          modal is allowed and simply defers it — `needsDiet` stays true, so the
+          gate effect above re-opens it (on step 2) next time /food loads. */}
       <Dialog open={showMealSetup} onOpenChange={setShowMealSetup}>
         <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
-              <Utensils className="h-5 w-5 text-accent" /> Set Up Your Meals
+              <Utensils className="h-5 w-5 text-accent" />{" "}
+              {setupStep === 1 ? "Set Up Your Meals" : "What Do You Eat?"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6 pt-4">
             <p className="text-sm text-muted-foreground">
-              How many meals do you eat per day? Name them however you like.
+              {setupStep === 1
+                ? "How many meals do you eat per day? Name them however you like."
+                : "Pick the option that fits you best."}
             </p>
 
-            <div className="space-y-3">
-              <Label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
-                Number of Meals
-              </Label>
-              <div className="flex gap-2">
-                {[2, 3, 4, 5, 6].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => {
-                      setMealCount(n);
-                      setMealNames((prev) => {
-                        const copy = [...prev];
-                        while (copy.length < n)
-                          copy.push(`Meal ${copy.length + 1}`);
-                        return copy;
-                      });
-                    }}
-                    className={`flex-1 h-12 rounded-xl font-black text-lg border-2 transition-all ${
-                      mealCount === n
-                        ? "border-accent bg-accent/10 text-accent shadow-lg shadow-accent/10"
-                        : "border-border bg-muted/20 text-muted-foreground hover:border-accent/30"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
-                Name Your Meals
-              </Label>
-              <div className="space-y-2">
-                {Array.from({ length: mealCount }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="w-6 text-center font-black text-muted-foreground/50 text-sm">
-                      {i + 1}.
-                    </span>
-                    <Input
-                      value={mealNames[i] || ""}
-                      onChange={(e) => {
-                        const copy = [...mealNames];
-                        copy[i] = e.target.value;
-                        setMealNames(copy);
-                      }}
-                      placeholder={`e.g. ${DEFAULT_MEALS[i] || "Snack"}`}
-                      className="bg-background/50 h-12 font-semibold"
-                    />
+            {setupStep === 1 && (
+              <>
+                <div className="space-y-3">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
+                    Number of Meals
+                  </Label>
+                  <div className="flex gap-2">
+                    {[2, 3, 4, 5, 6].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => {
+                          setMealCount(n);
+                          setMealNames((prev) => {
+                            const copy = [...prev];
+                            while (copy.length < n)
+                              copy.push(`Meal ${copy.length + 1}`);
+                            return copy;
+                          });
+                        }}
+                        className={`flex-1 h-12 rounded-xl font-black text-lg border-2 transition-all ${
+                          mealCount === n
+                            ? "border-accent bg-accent/10 text-accent shadow-lg shadow-accent/10"
+                            : "border-border bg-muted/20 text-muted-foreground hover:border-accent/30"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <Button
-              onClick={handleSaveMealSetup}
-              className="w-full h-14 font-bold text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5"
-            >
-              Save & Continue
-            </Button>
+                <div className="space-y-3">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
+                    Name Your Meals
+                  </Label>
+                  <div className="space-y-2">
+                    {Array.from({ length: mealCount }).map((_, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <span className="w-6 text-center font-black text-muted-foreground/50 text-sm">
+                          {i + 1}.
+                        </span>
+                        <Input
+                          value={mealNames[i] || ""}
+                          onChange={(e) => {
+                            const copy = [...mealNames];
+                            copy[i] = e.target.value;
+                            setMealNames(copy);
+                          }}
+                          placeholder={`e.g. ${DEFAULT_MEALS[i] || "Snack"}`}
+                          className="bg-background/50 h-12 font-semibold"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSaveMealSetup}
+                  className="w-full h-14 font-bold text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5"
+                >
+                  {needsDiet ? "Next" : "Save & Continue"}
+                </Button>
+              </>
+            )}
+
+            {setupStep === 2 && (
+              <>
+                <div className="space-y-3">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
+                    Diet Preference
+                  </Label>
+                  <div className="space-y-2">
+                    {DIET_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        onClick={() => setDietPref(o.value)}
+                        className={`w-full h-14 rounded-xl font-bold text-md border-2 transition-all ${
+                          dietPref === o.value
+                            ? "border-accent bg-accent/10 text-accent shadow-lg shadow-accent/10"
+                            : "border-border bg-muted/20 text-muted-foreground hover:border-accent/30"
+                        }`}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSaveDiet}
+                  disabled={!dietPref}
+                  className="w-full h-14 font-bold text-md rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
+                >
+                  Finish
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

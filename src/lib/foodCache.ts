@@ -246,19 +246,30 @@ export function consolidate(rows: Macros[]): Macros {
 
 /**
  * The non-macro fields of an agreeing group, which quorumPasses never
- * compares: median piece_g, majority basis, and the most common food_name
- * (the earliest answer's on a tie). Taking all three from the first answer
- * let a single answer's piece weight — which multiplies every pieces log of
- * the food, permanently — through unchecked. Changes only what is stored,
- * never whether the group promotes.
+ * compares: median piece_g, majority basis, and the most common food_name and
+ * canonical_key (the earliest answer's on a tie). Taking all of them from the
+ * first answer let a single answer's piece weight — which multiplies every
+ * pieces log of the food, permanently — through unchecked. Changes only what is
+ * stored, never whether the group promotes.
+ *
+ * canonical_key is voted on for the same reason: a group is no longer built
+ * from one exact key, so its members disagree about the wording ("protein
+ * blueberry shake" and "blueberry protein shake" group together now). The
+ * majority spelling is stored and the rest become alias_keys.
  */
 export function consolidateIdentity(
   group: readonly {
     food_name: string;
+    canonical_key: string;
     basis: "100g" | "piece";
     piece_g: number | string | null;
   }[],
-): { food_name: string; basis: "100g" | "piece"; piece_g: number | null } {
+): {
+  food_name: string;
+  canonical_key: string;
+  basis: "100g" | "piece";
+  piece_g: number | null;
+} {
   const pieces = group
     .map((g) => Number(g.piece_g))
     .filter((n) => n > 0)
@@ -273,12 +284,20 @@ export function consolidateIdentity(
   const pieceVotes = group.filter((g) => g.basis === "piece").length;
   const basis = pieceVotes * 2 > group.length ? "piece" : "100g";
 
-  const count = (n: string) => group.filter((g) => g.food_name === n).length;
-  let food_name = group[0]?.food_name ?? "";
-  for (const g of group)
-    if (count(g.food_name) > count(food_name)) food_name = g.food_name;
+  const majority = <K extends "food_name" | "canonical_key">(field: K) => {
+    const count = (v: string) => group.filter((g) => g[field] === v).length;
+    let winner = group[0]?.[field] ?? "";
+    for (const g of group)
+      if (count(g[field]) > count(winner)) winner = g[field];
+    return winner;
+  };
 
-  return { food_name, basis, piece_g };
+  return {
+    food_name: majority("food_name"),
+    canonical_key: majority("canonical_key"),
+    basis,
+    piece_g,
+  };
 }
 
 /** One edited food_logs entry: whole-portion kcal and grams, as logged. */
