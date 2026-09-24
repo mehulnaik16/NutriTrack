@@ -1,0 +1,185 @@
+/**
+ * Runs one AI request down an ordered list of models inside a time budget, so
+ * a Gemini 503, a 429 or a stall costs the user a model switch rather than an
+ * error. The chains themselves live in aiRoutes.ts; the rules — which failures
+ * retry, which move on, which skip a provider — live here, once.
+ *
+ * Deliberately import-free so its self-check (aiChain.test.ts) runs under
+ * plain node.
+ */
+
+/** Message prefix the client matches to show the "AI is busy" copy. */
+export const AI_BUSY = "AI_BUSY";
+
+export type Provider = "gemini" | "groq";
+
+export class AiHttpError extends Error {
+  status: number;
+  provider: Provider;
+  /** From Gemini's RetryInfo or Groq's retry-after, when the provider sent one. */
+  retryAfterMs: number | null;
+  /** Which quota a 429 broke: per-minute clears in seconds, daily at midnight Pacific. */
+  quota: "minute" | "day" | null;
+
+  constructor(
+    status: number,
+    provider: Provider,
+    retryAfterMs: number | null,
+    message: string,
+    quota: "minute" | "day" | null = null,
+  ) {
+    super(message);
+    this.status = status;
+    this.provider = provider;
+    this.retryAfterMs = retryAfterMs;
+    this.quota = quota;
+  }
+}
+
+/** Gemini's daily quotas reset at midnight Pacific time. */
+export function msUntilPacificMidnight(now = Date.now()) {
+  const pt = new Date(
+    new Date(now).toLocaleString("en-US", { timeZone: "America/Los_Angeles" }),
+  );
+  const next = new Date(pt);
+  next.setHours(24, 0, 0, 0);
+  return next.getTime() - pt.getTime();
+}
+
+export interface Step {
+  provider: Provider;
+  model: string;
+  run(signal: AbortSignal): Promise<string>;
+}
+
+export interface ChainResult {
+  text: string;
+  model: string;
+  provider: Provider;
+  /** True only when the first step answered — the only answer the cache trusts. */
+  primary: boolean;
+}
+
+type Kind = "busy" | "limited" | "key" | "bad";
+
+const isTimeout = (e: unknown) =>
+  e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+
+function classify(e: unknown): Kind {
+  if (e instanceof AiHttpError) {
+    if (e.status === 429) return "limited";
+    if (
+      e.status === 401 ||
+      e.status === 403 ||
+      (e.status === 400 && /API_KEY_INVALID|API key not valid/.test(e.message))
+    )
+      return "key";
+    if (e.status >= 500) return "busy";
+    return "bad";
+  }
+  // AbortSignal.timeout rejects with a TimeoutError and fetch's network failure
+  // is a TypeError: both mean "the provider did not answer", not "the request
+  // is wrong".
+  if (isTimeout(e) || e instanceof TypeError) return "busy";
+  return "bad";
+}
+
+// Per instance. Fluid Compute reuses instances across requests, so at peak one
+// 503 spares the next requests on this instance from waiting on the same model.
+// ponytail: per-instance memory; a shared store (Redis) if cross-instance matters.
+const cooledUntil = new Map<string, number>();
+const BUSY_COOL_MS = 10_000;
+/** RPM windows are one minute; used when a 429 carries no retryDelay. */
+const LIMIT_COOL_MS = 60_000;
+/** Starting an attempt with less left than this only burns the budget. */
+const MIN_START_MS = 800;
+
+export function _resetCooldowns() {
+  cooledUntil.clear();
+}
+
+const isCooled = (s: Step) => (cooledUntil.get(s.model) ?? 0) > Date.now();
+
+export async function runChain(
+  steps: Step[],
+  opts: { budgetMs: number; attemptMs: number; label: string },
+): Promise<ChainResult> {
+  const deadline = Date.now() + opts.budgetMs;
+  const deadProviders = new Set<Provider>();
+  let sawCapacity = false;
+  let lastErr: unknown = null;
+  let retried = false;
+
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    if (deadProviders.has(s.provider)) continue;
+    const remaining = deadline - Date.now();
+    if (remaining < MIN_START_MS) {
+      sawCapacity = true;
+      break;
+    }
+    // A cooled model is skipped only while something uncooled is still ahead;
+    // when everything is cooled, trying beats failing instantly.
+    const liveAhead = steps
+      .slice(i + 1)
+      .some((n) => !deadProviders.has(n.provider) && !isCooled(n));
+    if (isCooled(s) && liveAhead) continue;
+
+    // Not AbortSignal.timeout: its timer is unref'd, so an otherwise idle
+    // process can exit (or a frozen instance never wake) before it fires.
+    const ctrl = new AbortController();
+    const timer = setTimeout(
+      () =>
+        ctrl.abort(new DOMException(`${s.model} timed out`, "TimeoutError")),
+      Math.min(remaining, opts.attemptMs),
+    );
+    try {
+      const text = await s.run(ctrl.signal);
+      if (i > 0)
+        console.info(
+          `[ai-chain] ${opts.label} answered by fallback ${s.model}`,
+        );
+      return { text, model: s.model, provider: s.provider, primary: i === 0 };
+    } catch (e) {
+      lastErr = e;
+      const kind = classify(e);
+      console.warn(
+        `[ai-chain] ${opts.label} ${s.model} failed (${kind})`,
+        e instanceof Error ? e.message.slice(0, 200) : e,
+      );
+      if (kind === "key") {
+        deadProviders.add(s.provider);
+        continue;
+      }
+      if (kind === "bad") continue;
+      sawCapacity = true;
+      // One quick retry, primary only, and only for a 5xx: a timeout already
+      // spent its time, and a 429 will not clear in half a second.
+      if (i === 0 && kind === "busy" && !isTimeout(e) && !retried) {
+        retried = true;
+        await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
+        i--;
+        continue;
+      }
+      // RPM hit: step aside briefly; the primary is back once the minute
+      // clears. RPD hit: the model is out until the daily reset, so the next
+      // model carries the rest of the day.
+      const http = e instanceof AiHttpError ? e : null;
+      const coolMs =
+        kind !== "limited"
+          ? BUSY_COOL_MS
+          : http?.quota === "day"
+            ? msUntilPacificMidnight()
+            : (http?.retryAfterMs ?? LIMIT_COOL_MS);
+      cooledUntil.set(s.model, Date.now() + coolMs);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  if (sawCapacity || lastErr === null)
+    throw new Error(
+      `${AI_BUSY}: every model for ${opts.label} was busy or out of time`,
+    );
+  throw lastErr;
+}
