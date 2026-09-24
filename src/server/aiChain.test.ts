@@ -194,4 +194,35 @@ r = await runChain([fail("p", 400), hang("lite"), ok("groq", "x", "groq")], {
 });
 assert.equal(r.model, "groq", "a stalled fallback cannot starve the next one");
 
+// 12. when a reserve would leave a model too little time to answer, it gets
+// the rest: seen live on voice, Groq was cut to 800 ms to save time for a
+// last Gemini try that then also timed out.
+_resetCooldowns();
+const slowOk = (
+  model: string,
+  ms: number,
+  provider: Step["provider"],
+): Step => ({
+  provider,
+  model,
+  // Honours the abort like a real fetch does.
+  run: (signal) =>
+    new Promise((res, rej) => {
+      const t = setTimeout(() => res(model), ms);
+      signal.addEventListener("abort", () => {
+        clearTimeout(t);
+        rej(signal.reason);
+      });
+    }),
+});
+r = await runChain(
+  [fail("p", 400), hang("lite"), slowOk("groq", 1000, "groq"), hang("g36")],
+  { budgetMs: 3000, attemptMs: 3000, label: "test" },
+);
+assert.equal(
+  r.model,
+  "groq",
+  "the last realistic attempt gets the remaining time",
+);
+
 console.log("aiChain: all checks passed");

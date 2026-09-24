@@ -143,16 +143,19 @@ export async function runChain(
     if (isCooled(s) && liveAhead) continue;
 
     // The primary works inside its own window while a fallback is available;
-    // a fallback leaves room for the next one. Either way an attempt gets at
-    // least a minimal window.
-    const window = Math.max(
-      MIN_START_MS,
-      !liveAhead
-        ? remaining
-        : i === 0
-          ? Math.min(remaining, primaryDeadline - Date.now())
-          : remaining - NEXT_RESERVE_MS,
-    );
+    // a fallback leaves room for the next one — unless that reserve would
+    // leave this attempt too little to answer, in which case it is the last
+    // realistic attempt and takes everything left.
+    const window = !liveAhead
+      ? remaining
+      : i === 0
+        ? Math.max(
+            MIN_START_MS,
+            Math.min(remaining, primaryDeadline - Date.now()),
+          )
+        : remaining - NEXT_RESERVE_MS >= MIN_START_MS
+          ? remaining - NEXT_RESERVE_MS
+          : remaining;
 
     // Not AbortSignal.timeout: its timer is unref'd, so an otherwise idle
     // process can exit (or a frozen instance never wake) before it fires.
