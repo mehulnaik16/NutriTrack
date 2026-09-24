@@ -14,6 +14,7 @@
  * through them automatically on rate limit (429) or server errors (5xx).
  */
 
+import { AiHttpError } from "./aiChain";
 import { sendAlert } from "./telegram";
 
 const GROQ_BASE = "https://api.groq.com/openai/v1";
@@ -97,10 +98,13 @@ function markRateLimited(index: number, retryAfterSeconds = 60) {
 interface GroqRequestOptions {
   endpoint: string;
   body: Record<string, unknown>;
+  signal?: AbortSignal;
 }
 
 async function groqFetch(opts: GroqRequestOptions): Promise<Response> {
-  if (KEYS.length === 0) throw new Error("No Groq API keys configured.");
+  // No keys is a dead provider: the fallback chain skips Groq entirely.
+  if (KEYS.length === 0)
+    throw new AiHttpError(401, "groq", null, "No Groq API keys configured.");
 
   const triedKeys = new Set<number>();
 
@@ -138,6 +142,7 @@ async function groqFetch(opts: GroqRequestOptions): Promise<Response> {
       method: "POST",
       headers,
       body: JSON.stringify(opts.body),
+      signal: opts.signal,
     });
 
     if (res.status === 429) {
@@ -187,7 +192,13 @@ async function groqFetch(opts: GroqRequestOptions): Promise<Response> {
     detail: { keys: KEYS.length, endpoint: opts.endpoint },
     throttleKey: "groq-exhausted",
   });
-  throw new Error(`All ${KEYS.length} Groq keys exhausted or rate-limited.`);
+  // Capacity, not a bad request: the fallback chain treats it like a 503.
+  throw new AiHttpError(
+    503,
+    "groq",
+    null,
+    `All ${KEYS.length} Groq keys exhausted or rate-limited.`,
+  );
 }
 
 // ── Public API (server-only) ──────────────────────────────────────────────────
@@ -210,6 +221,7 @@ export interface ChatOptions {
   temperature?: number;
   response_format?: { type: "json_object" };
   reasoning_effort?: "none" | "low" | "medium" | "high";
+  signal?: AbortSignal;
 }
 
 /** Text / vision chat completion */
@@ -230,11 +242,17 @@ export async function groqChat(opts: ChatOptions): Promise<string> {
       reasoning_effort: opts.reasoning_effort ?? "low",
       messages: opts.messages,
     },
+    signal: opts.signal,
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(`Groq chat error ${res.status}: ${JSON.stringify(err)}`);
+    throw new AiHttpError(
+      res.status,
+      "groq",
+      null,
+      `Groq chat error ${res.status}: ${JSON.stringify(err)}`,
+    );
   }
 
   const data = await res.json();
@@ -247,8 +265,10 @@ export async function groqVision(opts: {
   base64: string;
   mimeType: string;
   max_tokens?: number;
+  signal?: AbortSignal;
 }): Promise<string> {
   return groqChat({
+    signal: opts.signal,
     model: "qwen/qwen3.8-27b",
     max_tokens: opts.max_tokens ?? 500,
     temperature: 0.2,
