@@ -7,7 +7,8 @@
  * Sources, extracted into data/restaurant-official/*.json (URLs inside each):
  *   - Domino's India nutrition PDF: energy, protein, carbs and fat PER SERVE
  *     (Regular = 4 slices = the whole pizza, Medium = 3 slices = half,
- *     Large = 2 slices = a quarter). No weights are published.
+ *     Large = 2 slices = a quarter). Stored as the WHOLE pizza (serve x 1, 2
+ *     or 4), or a medium reads as lighter than a regular. No weights published.
  *   - KFC India nutrition booklet V6: average portion weight, number of
  *     servings, and energy and macros per serve. Weights ARE published.
  *   - CCD nutrition charts: serve size and energy only. CCD publishes no
@@ -68,9 +69,11 @@ export const DOMINOS_DENSITY = [
 const PIZZA_DENSITY = { "Hand Tossed": 230, Pan: 255, "Thin Crust": 245, "Cheese Burst": 250 };
 const SIZE_LABEL = {
   Regular: "regular pizza, 4 slices",
-  Medium: "half medium pizza, 3 slices",
-  Large: "quarter large pizza, 2 slices",
+  Medium: "medium pizza, 6 slices",
+  Large: "large pizza, 8 slices",
 };
+/** Domino's serves per whole pizza: Regular 4/4, Medium 3/6, Large 2/8 slices. */
+const SERVES_PER_PIZZA = { Regular: 1, Medium: 2, Large: 4 };
 const title = (s) =>
   s
     .toLowerCase()
@@ -92,10 +95,11 @@ function dominos() {
   const code = () => `ZD${String(++n).padStart(3, "0")}`;
   for (const [pizza, v] of Object.entries(d.pizzas)) {
     d.cols.forEach(([crust, size], i) => {
-      const kcal = v.kcal[i];
-      if (kcal == null) return;
+      if (v.kcal[i] == null) return;
+      const x = SERVES_PER_PIZZA[size];
+      const kcal = v.kcal[i] * x;
       const g = kcal / (PIZZA_DENSITY[crust] / 100);
-      const t = { kcal, protein: v.protein[i], carbs: v.carbs[i], fat: v.fat[i] };
+      const t = { kcal, protein: v.protein[i] * x, carbs: v.carbs[i] * x, fat: v.fat[i] * x };
       // One cell is a typo (Creamy Tomato Pasta Pizza Veg, Regular Hand Tossed:
       // 7 g fat at 865 kcal, against 41 g for the non-veg twin at 869). When a
       // row's macros miss its energy by over 15 %, the fat is what is left.
@@ -175,6 +179,15 @@ function kfcTotals(it, all) {
     // product's siblings (a Tandoori Zinger at 902 kcal against a Classic at 612).
     return { ...t, kcal: 4 * t.protein + 4 * t.carbs + 9 * t.fat };
   }
+  const legs = /^(\d+) Pc\s+Grilled leg$/i.exec(it.name);
+  if (legs && +legs[1] > 2) {
+    // 3 and 4 legs are listed at 340 g and 676 kcal, the same as 2 legs; the
+    // 1- and 2-leg rows agree at 170 g and 338 kcal a leg. Scale one leg.
+    const one = all.find((x) => /^1 Pc\s+Grilled leg$/i.test(x.name));
+    const k = +legs[1];
+    it.weight = one.weight * k;
+    return { kcal: one.kcal_serve * k, protein: one.protein * k, carbs: one.carbs * k, fat: one.fat * k };
+  }
   if (it.name === "Veg Longer") {
     // Listed with 0 g fat at 259 kcal; the fat is what the energy leaves over.
     return { ...t, fat: Math.max(0, (t.kcal - 4 * t.protein - 4 * t.carbs) / 9) };
@@ -191,12 +204,12 @@ function kfc() {
   const out = [];
   const seen = new Set();
   let n = 0;
-  for (const it of d.items) {
+  for (let it of d.items) {
     if (KFC_SKIP.test(it.name) || it.weight <= 0) continue;
     const name = KFC_NAME(it.name);
     if (seen.has(name)) continue;
     seen.add(name);
-    const t = kfcTotals(it, d.items);
+    const t = kfcTotals((it = { ...it }), d.items);
     const drink = /pepsi|mirinda|7 ?up|dew|mojito|krush|can$|pet$/i.test(name) && !/meal|combo|snackers|&|\+/i.test(name);
     out.push(row(`ZK${String(++n).padStart(3, "0")}`, "KFC", name, it.weight, false, t, drink ? `drink, ${it.weight} ml` : undefined));
   }
@@ -223,6 +236,36 @@ const REPLACED = new Set(["Domino's", "KFC", "Cafe Coffee Day"]);
  * look-alikes get told apart (a Subway filling on its own, a Polar Bear
  * scoop), so search never offers two identical names with different numbers.
  */
+/**
+ * Size ladders that run backwards in the scraped data, set right from the
+ * brand's own sibling rows.
+ *   - Taco Bell Molten Choco Pie: 4 pies 538 kcal but 6 pies 388. The 4-pie
+ *     row is 134 kcal a pie, a normal chocolate pie; the 6 pies are the same
+ *     pie, so they take its per-100 g values at their own stated weight.
+ *   - Wendy's Breakfast Potatoes: estimated weights (Wendy's publishes none)
+ *     came out small 100 g, medium 79 g, large 100 g. Re-estimated at one
+ *     density, 186 kcal/100 g (the medium's), so the sizes grow in order.
+ *     The published calories stay as they were.
+ */
+function fixSizes(r, rows) {
+  const kcal = (r.enerc / KJ) * (r.serving_g / 100);
+  if (r.name === "Taco Bell Molten Choco Pie - 6 Pieces") {
+    const four = rows.find((x) => x.name === "Taco Bell Molten Choco Pie - 4 Pieces");
+    const { enerc, protcnt, fatce, choavldf, fibtg } = four;
+    return { ...r, enerc, protcnt, fatce, choavldf, fibtg };
+  }
+  if (/^Wendy's (Small|Medium|Large) Breakfast Potatoes$/.test(r.name)) {
+    const g = Math.round(kcal / 1.86);
+    const f = r.serving_g / g;
+    const sc = (v) => (v == null ? null : r2(v * f));
+    return {
+      ...r, enerc: sc(r.enerc), protcnt: sc(r.protcnt), fatce: sc(r.fatce), choavldf: sc(r.choavldf),
+      fibtg: sc(r.fibtg), serving_g: g, serving_label: `1 serving (≈${g} g)`, serving_est: true,
+    };
+  }
+  return r;
+}
+
 export function tidy(rows) {
   const seen = new Set();
   const names = {};
@@ -235,7 +278,7 @@ export function tidy(rows) {
       return [{ ...r, name: `${r.name} (filling only)` }];
     if (names[r.name] > 1 && r.lang === "Polar Bear" && r.serving_g < 100)
       return [{ ...r, name: `${r.name} (1 scoop)` }];
-    return [r];
+    return [fixSizes(r, rows)];
   });
 }
 
