@@ -135,14 +135,18 @@ export function gramsFor(it: ParsedVoiceItem, food: UnitFood): number {
  * An overloaded AI is not a miss: that error is rethrown so the caller shows
  * "AI is busy" instead of "no nutrition data".
  */
-export async function resolveFood(name: string): Promise<IFCTItem | null> {
+export async function resolveFood(
+  name: string,
+  /** A photo's attempt picks the lookup's order: 2 includes Groq. */
+  attempt: 1 | 2 = 1,
+): Promise<IFCTItem | null> {
   const local = catalogFood(name);
   if (local) return local;
   try {
     // Inside a photo or voice log: after reading the photo (15 s) or the
     // sentence (7 s), this lookup gets 8 s (server/aiRoutes.ts).
     const { items: found } = await serverAiFoodSearchInline({
-      data: { query: name, budgetMs: 8000 },
+      data: { query: name, budgetMs: 8000, attempt },
     });
     return found[0] ?? null;
   } catch (e) {

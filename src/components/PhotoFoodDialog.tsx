@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { serverFoodVision } from "@/lib/ai";
 import { toastAiError } from "@/lib/aiErrors";
+import { photoAttempt, recordPhotoOutcome } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { type IFCTItem, kcalOf } from "@/lib/foodDb";
 import { resolveFood } from "@/components/VoiceFoodDialog";
@@ -112,6 +113,7 @@ async function toJpegDataUrl(file: File): Promise<string> {
 async function recognizeFoodFromImage(
   base64: string,
   mimeType: "image/jpeg" | "image/png" | "image/webp",
+  attempt: 1 | 2,
 ): Promise<AIFoodResult> {
   const prompt = `You are a nutrition expert. Analyze this food photo and return ONLY valid JSON, no markdown:
 {
@@ -126,7 +128,7 @@ A human palm is ~18cm — use it as a size reference if visible.`;
   // Which model reads it, and what happens when one is busy, is decided on
   // the server (server/aiRoutes.ts visionChain).
   const { result: raw } = await serverFoodVision({
-    data: { prompt, base64, mimeType },
+    data: { prompt, base64, mimeType, attempt },
   });
   // Safety: strip any <think> tags + markdown fences
   const clean = raw
@@ -219,13 +221,21 @@ export function PhotoFoodDialog({
     setAnalyzing(true);
     try {
       const base64 = imagePreview.split(",")[1];
-      const result = await recognizeFoodFromImage(base64, "image/jpeg");
+      // Each Proceed after a failure is the next attempt: the server rotates
+      // the model order on it, and the lookup below follows the same attempt.
+      const attempt = photoAttempt();
+      const result = await recognizeFoodFromImage(
+        base64,
+        "image/jpeg",
+        attempt,
+      );
       if (run !== runId.current) return;
       // The resolver a spoken name goes through, so the item handed to
       // onConfirm is per 100 g with energy in kJ — exactly what a typed
       // search hands over.
-      const item = await resolveFood(result.food_name);
+      const item = await resolveFood(result.food_name, attempt);
       if (run !== runId.current) return;
+      recordPhotoOutcome(true);
       if (!item) {
         // A real gap in the data, not a failure: say what was seen and where
         // to go, rather than an error.
@@ -238,7 +248,10 @@ export function PhotoFoodDialog({
       setAiResult({ ...result, item });
       setWeightInput(String(result.estimated_weight_g ?? ""));
     } catch (e) {
-      if (run === runId.current) toastAiError(e, "food photo");
+      if (run === runId.current) {
+        recordPhotoOutcome(false);
+        toastAiError(e, "food photo");
+      }
     } finally {
       if (run === runId.current) setAnalyzing(false);
     }

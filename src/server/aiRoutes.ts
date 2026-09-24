@@ -5,6 +5,9 @@
  * next attempt, with a fresh 15 s. Only the Flash models' answers enter the
  * shared cache (CACHEABLE_SEARCH_MODELS), never Lite's and never Groq's.
  *
+ * Photo rotates the same way, on Proceed: 1) Lite, 3.6, 3.7, each with ~5 s
+ * and an instant switch on a 503; 2) 3.6, then Groq's Qwen; then back to 1.
+ *
  * Budgets: a search 15 s; photo 15 s to read the image + an 8 s lookup that
  * prices it = 23 s (the user accepted a longer photo wait: people expect
  * images to take a while, and it gives a slow Gemini time before Groq);
@@ -27,8 +30,8 @@ const VISION_BUDGET_MS = 15_000;
 const VOICE_BUDGET_MS = 7000;
 // ponytail: guessed per-attempt cap; tune from the [ai-chain] logs once real traffic exists.
 const ATTEMPT_MS = 4000;
-/** Photos get the patience the longer budget was for: lite may take 7.5 s. */
-const VISION_ATTEMPT_MS = 7500;
+/** Three photo models share 15 s: ~5 s each, so every one gets a turn. */
+const VISION_ATTEMPT_MS = 5000;
 
 const GROQ_TEXT = "openai/gpt-oss-120b";
 const GROQ_VISION = "qwen/qwen3.8-27b";
@@ -97,32 +100,37 @@ export function searchChain(
   });
 }
 
-export function visionChain(prompt: string, base64: string, mimeType: string) {
-  const g = (model: string, retry = false): Step => ({
+/** Which attempt a photo is: 1 or 2, after which the client wraps to 1. */
+export type PhotoAttempt = 1 | 2;
+
+export function visionChain(
+  prompt: string,
+  base64: string,
+  mimeType: string,
+  attempt: PhotoAttempt,
+) {
+  // retry: a new Proceed is a new attempt, so an earlier attempt's busy
+  // cooldown does not skip a model the user's order names.
+  const g = (model: string): Step => ({
     provider: "gemini",
     model,
-    retry,
+    retry: true,
     run: (signal) => geminiVision({ model, prompt, base64, mimeType, signal }),
   });
-  return runChain(
-    [
-      g(LITE),
-      g(LITE, true),
-      g(FLASH_37),
-      g(FLASH_36),
-      {
-        provider: "groq",
-        model: GROQ_VISION,
-        run: (signal) => groqVision({ prompt, base64, mimeType, signal }),
-      },
-    ],
-    {
-      budgetMs: VISION_BUDGET_MS,
-      attemptMs: VISION_ATTEMPT_MS,
-      label: "food-photo",
-      groqJump: true,
-    },
-  );
+  const qwen: Step = {
+    provider: "groq",
+    model: GROQ_VISION,
+    run: (signal) => groqVision({ prompt, base64, mimeType, signal }),
+  };
+  const orders: Record<PhotoAttempt, Step[]> = {
+    1: [g(LITE), g(FLASH_36), g(FLASH_37)],
+    2: [g(FLASH_36), qwen],
+  };
+  return runChain(orders[attempt], {
+    budgetMs: VISION_BUDGET_MS,
+    attemptMs: VISION_ATTEMPT_MS,
+    label: `food-photo#${attempt}`,
+  });
 }
 
 export function voiceChain(prompt: string) {

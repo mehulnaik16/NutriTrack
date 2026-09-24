@@ -472,10 +472,17 @@ const VisionInput = z.object({
 // gets the same chain (server/aiRoutes.ts), meal builder included.
 export const serverFoodVision = createServerFn({ method: "POST" })
   .middleware([requireAccess])
-  .inputValidator(VisionInput)
+  .inputValidator(
+    VisionInput.extend({
+      /** Which Proceed this is after failures; the model order rotates on it. */
+      attempt: z.union([z.literal(1), z.literal(2)]).optional(),
+    }),
+  )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
     const { visionChain } = await import("@/server/aiRoutes");
-    const { prompt, base64, mimeType } = ctx.data;
-    return { result: (await visionChain(prompt, base64, mimeType)).text };
+    const { prompt, base64, mimeType, attempt = 1 } = ctx.data;
+    return {
+      result: (await visionChain(prompt, base64, mimeType, attempt)).text,
+    };
   });
