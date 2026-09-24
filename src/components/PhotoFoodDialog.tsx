@@ -70,11 +70,14 @@ export interface MealPicker {
 }
 
 /** After 2 s a bare spinner reads as frozen; say what the AI is doing instead. */
+// A photo may take up to ~23 s at peak, so the copy never promises it is
+// nearly done: after the working stages it says plainly that it is busy.
 const PHOTO_STAGES = [
   "Analyzing image details…",
   "Identifying ingredients…",
   "Calculating estimated nutrition…",
-  "Almost done…",
+  "Taking a little longer than usual…",
+  "Busy right now, still working on it…",
 ];
 
 /**
@@ -204,16 +207,25 @@ export function PhotoFoodDialog({
     }
   };
 
+  /**
+   * Bumped by Cancel: an analysis that finishes after it was cancelled is
+   * dropped. The server call itself cannot be recalled and simply completes.
+   */
+  const runId = useRef(0);
+
   const proceed = async () => {
     if (!imagePreview) return;
+    const run = ++runId.current;
     setAnalyzing(true);
     try {
       const base64 = imagePreview.split(",")[1];
       const result = await recognizeFoodFromImage(base64, "image/jpeg");
+      if (run !== runId.current) return;
       // The resolver a spoken name goes through, so the item handed to
       // onConfirm is per 100 g with energy in kJ — exactly what a typed
       // search hands over.
       const item = await resolveFood(result.food_name);
+      if (run !== runId.current) return;
       if (!item) {
         // A real gap in the data, not a failure: say what was seen and where
         // to go, rather than an error.
@@ -226,10 +238,16 @@ export function PhotoFoodDialog({
       setAiResult({ ...result, item });
       setWeightInput(String(result.estimated_weight_g ?? ""));
     } catch (e) {
-      toastAiError(e, "food photo");
+      if (run === runId.current) toastAiError(e, "food photo");
     } finally {
-      setAnalyzing(false);
+      if (run === runId.current) setAnalyzing(false);
     }
+  };
+
+  /** Back to the photo, with Retake and Proceed, as if Proceed was never tapped. */
+  const cancelAnalysis = () => {
+    runId.current++;
+    setAnalyzing(false);
   };
 
   const confirm = async () => {
@@ -337,6 +355,14 @@ export function PhotoFoodDialog({
                       Photos can take a few seconds — hang tight!
                     </p>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={cancelAnalysis}
+                    className="mt-2 border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                  >
+                    Cancel
+                  </Button>
                 </div>
               )}
             </div>

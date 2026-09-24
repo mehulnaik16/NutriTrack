@@ -5,8 +5,10 @@
  * next attempt, with a fresh 15 s. Only the Flash models' answers enter the
  * shared cache (CACHEABLE_SEARCH_MODELS), never Lite's and never Groq's.
  *
- * Budgets: a search 15 s; photo 7 s to read the image + an 8 s lookup that
- * prices it = 15 s; voice 7 s to parse + 8 s lookups for its items.
+ * Budgets: a search 15 s; photo 15 s to read the image + an 8 s lookup that
+ * prices it = 23 s (the user accepted a longer photo wait: people expect
+ * images to take a while, and it gives a slow Gemini time before Groq);
+ * voice 7 s to parse + 8 s lookups for its items.
  */
 import { runChain, type Step } from "./aiChain";
 import {
@@ -19,12 +21,14 @@ import {
 import { groqChat, groqVision } from "./groq";
 
 export const SEARCH_BUDGET_MS = 15_000;
-/** The lookup inside a photo or voice log, so that whole flow stays at 15 s. */
+/** The lookup inside a photo (23 s total) or voice (15 s) log. */
 export const LOOKUP_BUDGET_MS = 8000;
-const VISION_BUDGET_MS = 7000;
+const VISION_BUDGET_MS = 15_000;
 const VOICE_BUDGET_MS = 7000;
 // ponytail: guessed per-attempt cap; tune from the [ai-chain] logs once real traffic exists.
 const ATTEMPT_MS = 4000;
+/** Photos get the patience the longer budget was for: lite may take 7.5 s. */
+const VISION_ATTEMPT_MS = 7500;
 
 const GROQ_TEXT = "openai/gpt-oss-120b";
 const GROQ_VISION = "qwen/qwen3.8-27b";
@@ -114,7 +118,7 @@ export function visionChain(prompt: string, base64: string, mimeType: string) {
     ],
     {
       budgetMs: VISION_BUDGET_MS,
-      attemptMs: ATTEMPT_MS,
+      attemptMs: VISION_ATTEMPT_MS,
       label: "food-photo",
       groqJump: true,
     },

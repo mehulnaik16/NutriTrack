@@ -139,8 +139,8 @@ export async function resolveFood(name: string): Promise<IFCTItem | null> {
   const local = catalogFood(name);
   if (local) return local;
   try {
-    // Inside a photo or voice log, which must finish in 15 s: 7 s to read
-    // the photo or sentence, then this lookup's 8 s (server/aiRoutes.ts).
+    // Inside a photo or voice log: after reading the photo (15 s) or the
+    // sentence (7 s), this lookup gets 8 s (server/aiRoutes.ts).
     const { items: found } = await serverAiFoodSearchInline({
       data: { query: name, budgetMs: 8000 },
     });
