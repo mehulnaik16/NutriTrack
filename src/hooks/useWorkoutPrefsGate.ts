@@ -81,3 +81,42 @@ export function useWorkoutPrefsGate(): WorkoutPrefsGate {
   if (prefs) return { state: "ready", prefs };
   return { state: checked ? "missing" : "loading", prefs: null };
 }
+
+/**
+ * The user's prefs for display (units, mostly), read local-first: the
+ * localStorage cache when it has them, with no network call; one DB read only
+ * when it does not (a new device, cleared storage), which refills the cache.
+ *
+ * State rather than a render-time cache read, so the page re-renders when the
+ * DB answer arrives. A bare getCachedWorkoutPrefs() in render fell back to kg
+ * on a fresh session and stayed there, whatever unit the user had saved.
+ */
+export function useCachedWorkoutPrefs(
+  userId: string | null | undefined,
+): WorkoutPrefs | null {
+  const [prefs, setPrefs] = useState<WorkoutPrefs | null>(() =>
+    userId ? getCachedWorkoutPrefs(userId) : null,
+  );
+
+  useEffect(() => {
+    if (!userId) return;
+    const cached = getCachedWorkoutPrefs(userId);
+    if (cached) {
+      setPrefs(cached);
+      return;
+    }
+    let cancelled = false;
+    loadWorkoutPrefs(userId)
+      .then((p) => {
+        if (!cancelled && p) setPrefs(p);
+      })
+      .catch(() => {
+        /* keep the kg/km defaults */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  return prefs;
+}

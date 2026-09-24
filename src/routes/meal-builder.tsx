@@ -1,4 +1,8 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -28,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import type { SavedMeal } from "@/lib/meals";
 import {
   type IFCTItem,
   KJ_PER_KCAL,
@@ -89,8 +94,8 @@ interface BuilderItem {
  * out. A quantity of 0 or less yields all-zero bases rather than Infinity — the
  * row lands editable instead of rendering NaN and poisoning the totals.
  *
- * `code: "ai"` matches what the photo flow synthesises: no piece weight, so no
- * `pcs` unit, and no density, so volume units behave as water.
+ * `code: "ai"` carries no piece weight, so no `pcs` unit, and no density, so
+ * volume units behave as water.
  */
 const voiceToItem = (v: VoiceFoodItem): IFCTItem => {
   const per100 = v.quantity_g > 0 ? 100 / v.quantity_g : 0;
@@ -119,7 +124,7 @@ function MealBuilderPage() {
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
   const [aiSearching, setAiSearching] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedMeals, setSavedMeals] = useState<any[]>([]);
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
@@ -132,12 +137,12 @@ function MealBuilderPage() {
   useEffect(() => {
     if (!user) return;
     supabase
-      .from("saved_meals" as any)
+      .from("saved_meals")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        if (data) setSavedMeals(data);
+        if (data) setSavedMeals(data as SavedMeal[]);
       });
   }, [user]);
 
@@ -240,7 +245,9 @@ function MealBuilderPage() {
   const updateUnit = (i: number, unit: Unit) =>
     setItems((prev) =>
       prev.map((it, n) =>
-        n === i ? rescale(it, unit, unit === "g" || unit === "ml" ? 100 : 1) : it,
+        n === i
+          ? rescale(it, unit, unit === "g" || unit === "ml" ? 100 : 1)
+          : it,
       ),
     );
 
@@ -283,22 +290,22 @@ function MealBuilderPage() {
       };
 
       const existing = savedMeals.find(
-        (m: any) => m.name?.toLowerCase() === payload.name.toLowerCase(),
+        (m) => m.name?.toLowerCase() === payload.name.toLowerCase(),
       );
       const { error } = existing
         ? await supabase
-            .from("saved_meals" as any)
+            .from("saved_meals")
             .update(payload)
             .eq("id", existing.id)
         : await supabase
-            .from("saved_meals" as any)
+            .from("saved_meals")
             .insert({ user_id: user.id, ...payload });
       if (error) throw error;
 
       toast.success(`"${payload.name}" saved to Favourites!`);
       router.history.back();
-    } catch (e: any) {
-      toast.error(e.message ?? "Could not save meal");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not save meal");
     } finally {
       setSaving(false);
     }
@@ -308,9 +315,7 @@ function MealBuilderPage() {
   const historyItems = useMemo(() => {
     const uniqueNames = Array.from(
       new Set(
-        savedMeals
-          .flatMap((m: any) => m.ingredients || [])
-          .map((ig: any) => ig.name),
+        savedMeals.flatMap((m) => m.ingredients || []).map((ig) => ig.name),
       ),
     );
     return uniqueNames
@@ -382,7 +387,8 @@ function MealBuilderPage() {
                 // Only reach for the model when local search came up empty.
                 // Enter is a typing habit, and firing it over a list of local
                 // matches spends a metered call on an answered query.
-                if (e.key === "Enter" && allSuggestions.length === 0) handleAiSearch();
+                if (e.key === "Enter" && allSuggestions.length === 0)
+                  handleAiSearch();
               }}
               className="h-12 rounded-xl pl-9"
             />
@@ -422,11 +428,12 @@ function MealBuilderPage() {
                         AI
                       </Badge>
                     )}
-                    {it.heard && it.heard.toLowerCase() !== it.name.toLowerCase() && (
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
-                        for "{it.heard}"
-                      </span>
-                    )}
+                    {it.heard &&
+                      it.heard.toLowerCase() !== it.name.toLowerCase() && (
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          for "{it.heard}"
+                        </span>
+                      )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground">
@@ -544,7 +551,9 @@ function MealBuilderPage() {
                           <Input
                             type="number"
                             value={Math.round(item[key])}
-                            onChange={(e) => updateMacro(i, key, e.target.value)}
+                            onChange={(e) =>
+                              updateMacro(i, key, e.target.value)
+                            }
                             className="h-7 w-full bg-background px-0 text-center text-[11px] font-semibold"
                           />
                         </div>
@@ -555,9 +564,7 @@ function MealBuilderPage() {
                     variant="ghost"
                     size="icon"
                     className="mt-1 h-9 w-9 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() =>
-                      setItems(items.filter((_, j) => j !== i))
-                    }
+                    onClick={() => setItems(items.filter((_, j) => j !== i))}
                     aria-label={`Remove ${item.name}`}
                   >
                     <X className="h-4 w-4" />

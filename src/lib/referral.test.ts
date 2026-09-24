@@ -82,7 +82,11 @@ assert.equal(premiumDaysEarned(0), 0);
 assert.equal(premiumDaysEarned(1), PREMIUM_DAYS_PER_SUBSCRIPTION);
 assert.equal(premiumDaysEarned(4), 240);
 assert.equal(premiumDaysEarned(8), MAX_PREMIUM_DAYS);
-assert.equal(premiumDaysEarned(50), MAX_PREMIUM_DAYS, "the paid track is capped");
+assert.equal(
+  premiumDaysEarned(50),
+  MAX_PREMIUM_DAYS,
+  "the paid track is capped",
+);
 
 // ── The 3-day hold ────────────────────────────────────────────────────────
 // The referrer must see "processing", not a number, until the hold elapses —

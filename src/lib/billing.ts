@@ -12,6 +12,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/client";
 import { requireSupabaseAuth } from "@/integrations/auth-middleware";
 import { checkRateLimit } from "@/lib/ai";
+import { serverSyncEntitlement } from "@/lib/gym-link";
 import { activeGift } from "@/lib/plans";
 
 /** The three plan durations. Mirrors PLANS in src/lib/plans.ts. */
@@ -155,8 +156,8 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
       ]);
       discounted =
         activeGift({
-          referralStatus: (ref.data as any)?.status,
-          gymLink: gym.data as any,
+          referralStatus: ref.data?.status,
+          gymLink: gym.data,
           planId: data.tier,
         }) !== null;
     }
@@ -175,14 +176,10 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
     // derives its subject from auth.uid(). The service-role key carries no user
     // JWT, so auth.uid() is null there and the function raises 'Unauthorized' —
     // which is exactly what every Buy click used to surface as a toast.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-    const { error } = await (userClient.rpc as any)(
-      "register_subscription",
-      {
-        p_provider_subscription_id: subscriptionId,
-        p_tier: data.tier,
-      },
-    );
+    const { error } = await userClient.rpc("register_subscription", {
+      p_provider_subscription_id: subscriptionId,
+      p_tier: data.tier,
+    });
     // A bare rethrow of error.message is what made this read as a one-word
     // mystery in the UI. Name the step that failed.
     if (error) {
@@ -226,9 +223,8 @@ export const serverCancelSubscription = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!sub) throw new Error("No active subscription to cancel");
 
-    const { cancelSubscription: cancelAtRazorpay } = await import(
-      "@/server/razorpay"
-    );
+    const { cancelSubscription: cancelAtRazorpay } =
+      await import("@/server/razorpay");
     await cancelAtRazorpay(sub.provider_subscription_id);
 
     // The status is not written here. Razorpay sends subscription.cancelled and
@@ -327,7 +323,9 @@ export const serverConfirmCheckout = createServerFn({ method: "POST" })
     // The event id is ours, not Razorpay's — Razorpay's real event id arrives
     // later on the webhook and is deliberately different, so both are recorded
     // and only the first one to arrive grants anything.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
+    // The generated Args mark defaulted parameters optional but not nullable,
+    // and the explicit nulls below are deliberate (SQL NULL, not the default).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
     const { error: rpcError } = await (supabaseAdmin.rpc as any)(
       "handle_razorpay_event",
       {
@@ -393,8 +391,7 @@ export async function startTrial(
   planId: string,
   userId: string,
 ): Promise<TrialState> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-  const { error } = await (supabase.rpc as any)("start_trial", {
+  const { error } = await supabase.rpc("start_trial", {
     plan: planId,
   });
   if (error) throw new Error(error.message);
@@ -405,6 +402,16 @@ export async function startTrial(
     .eq("id", userId)
     .maybeSingle();
   if (readErr) throw new Error(readErr.message);
+
+  // access_until has just come into existence. A member who linked a partner
+  // code at signup was synced across before this moment, so the partner holds
+  // a snapshot with no trial in it and counts them as expired. Told here
+  // rather than at each caller, because every path that starts a trial comes
+  // through this function.
+  //
+  // Not awaited, and it cannot reject: the trial is already granted, and the
+  // member should not wait on — or be failed by — a second project.
+  void serverSyncEntitlement().catch(() => {});
 
   return (data ?? {
     selected_plan: planId,
@@ -463,10 +470,10 @@ export interface BillingSummary {
  * server-side from the session.
  */
 export async function getBillingSummary(): Promise<BillingSummary> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-  const { data, error } = await (supabase.rpc as any)("get_billing_summary");
+  const { data, error } = await supabase.rpc("get_billing_summary");
   if (error) throw new Error(error.message);
-  return data as BillingSummary;
+  // Returns json; the shape is the function's contract, not the generator's.
+  return data as unknown as BillingSummary;
 }
 
 // ── Subscriptions ───────────────────────────────────────────────────────────
@@ -542,8 +549,7 @@ export async function requestRefund(
   chargeId: string,
   reason: string,
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts leaves Functions empty
-  const { error } = await (supabase.rpc as any)("request_refund", {
+  const { error } = await supabase.rpc("request_refund", {
     p_charge_id: chargeId,
     p_reason: reason,
   });

@@ -1,4 +1,8 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -114,7 +118,9 @@ function LiftRow({
       </p>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Weight ({unit})</Label>
+          <Label className="text-xs text-muted-foreground">
+            Weight ({unit})
+          </Label>
           <Input
             type="number"
             inputMode="decimal"
@@ -149,7 +155,8 @@ function WorkoutSetup() {
   const { step: searchStep } = Route.useSearch();
   const step = searchStep ?? 1;
   // Each step is a real history entry: forward pushes, back pops.
-  const setStep = (n: number) => routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
+  const setStep = (n: number) =>
+    routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
   const [busy, setBusy] = useState(false);
 
   // Answers
@@ -170,8 +177,11 @@ function WorkoutSetup() {
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>("km");
   // The original unit is fixed at the FIRST setup. Capture what's already stored
   // (if any) so redoing setup never rewrites it — only a true first-timer sets it.
-  const [loadedOrigWeight, setLoadedOrigWeight] = useState<WeightUnit | null>(null);
-  const [loadedOrigDistance, setLoadedOrigDistance] = useState<DistanceUnit | null>(null);
+  const [loadedOrigWeight, setLoadedOrigWeight] = useState<WeightUnit | null>(
+    null,
+  );
+  const [loadedOrigDistance, setLoadedOrigDistance] =
+    useState<DistanceUnit | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -255,8 +265,8 @@ function WorkoutSetup() {
         toast.success("Preferences saved — build your weekly plan!");
         navigate({ to: "/custom-plan" });
       }
-    } catch (e: any) {
-      toast.error(e.message ?? "Something went wrong");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Something went wrong");
     } finally {
       setBusy(false);
     }
@@ -355,8 +365,8 @@ function WorkoutSetup() {
             <div className="space-y-6">
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  How do you want to track weight? This applies to logging and your
-                  charts.
+                  How do you want to track weight? This applies to logging and
+                  your charts.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   {(["kg", "lbs"] as const).map((u) => (
@@ -365,7 +375,9 @@ function WorkoutSetup() {
                       active={weightUnit === u}
                       onClick={() => setWeightUnit(u)}
                     >
-                      <span className="text-sm font-semibold uppercase">{u}</span>
+                      <span className="text-sm font-semibold uppercase">
+                        {u}
+                      </span>
                       <span className="mt-1 block text-xs text-muted-foreground">
                         {u === "kg" ? "Kilograms" : "Pounds"}
                       </span>
@@ -403,9 +415,24 @@ function WorkoutSetup() {
               <p className="mb-4 text-xs font-bold uppercase tracking-wider text-accent">
                 Optional — skip if unsure
               </p>
-              <LiftRow label="Bench Press" value={bench} onChange={setBench} unit={weightUnit} />
-              <LiftRow label="Back Squat" value={squat} onChange={setSquat} unit={weightUnit} />
-              <LiftRow label="Deadlift" value={deadlift} onChange={setDeadlift} unit={weightUnit} />
+              <LiftRow
+                label="Bench Press"
+                value={bench}
+                onChange={setBench}
+                unit={weightUnit}
+              />
+              <LiftRow
+                label="Back Squat"
+                value={squat}
+                onChange={setSquat}
+                unit={weightUnit}
+              />
+              <LiftRow
+                label="Deadlift"
+                value={deadlift}
+                onChange={setDeadlift}
+                unit={weightUnit}
+              />
             </div>
           )}
 
@@ -441,117 +468,135 @@ function WorkoutSetup() {
           )}
 
           {/* ── 6. Cardio multi-select ── */}
-          {step === 6 && (() => {
-            const CARDIO_EMOJI: Record<string, string> = {
-              "Treadmill running": "🏃",
-              "Outdoor walk": "🚶",
-              "Cycling": "🚴",
-              "Swimming": "🏊",
-              "Jump rope": "🪢",
-              "HIIT": "🔥",
-              "Yoga & Pilates": "🧘",
-              "Stair climbing": "🪜",
-              "Elliptical": "⚙️",
-              "Rowing machine": "🚣",
-              "SkiErg": "⛷️",
-              "Dancing": "💃",
-              "Badminton": "🏸",
-              "Cricket": "🏏",
-              "Football": "⚽",
-            };
-            return (
-              <div className="space-y-3">
-                <p className="mb-5 text-sm text-muted-foreground">
-                  Pick all that apply — we'll recommend these on your Cardio tab.
-                  Leave empty if cardio isn't your thing.
-                </p>
-                {CARDIO_OPTIONS.map((c) => {
-                  const active = cardio.includes(c);
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() =>
-                        setCardio((prev) =>
-                          active ? prev.filter((x) => x !== c) : [...prev, c],
-                        )
-                      }
-                      className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
-                        active
-                          ? "border-accent bg-accent/10 glow-accent-sm"
-                          : "border-border bg-card hover:border-muted-foreground/40"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+          {step === 6 &&
+            (() => {
+              const CARDIO_EMOJI: Record<string, string> = {
+                "Treadmill running": "🏃",
+                "Outdoor walk": "🚶",
+                Cycling: "🚴",
+                Swimming: "🏊",
+                "Jump rope": "🪢",
+                HIIT: "🔥",
+                "Yoga & Pilates": "🧘",
+                "Stair climbing": "🪜",
+                Elliptical: "⚙️",
+                "Rowing machine": "🚣",
+                SkiErg: "⛷️",
+                Dancing: "💃",
+                Badminton: "🏸",
+                Cricket: "🏏",
+                Football: "⚽",
+              };
+              return (
+                <div className="space-y-3">
+                  <p className="mb-5 text-sm text-muted-foreground">
+                    Pick all that apply — we'll recommend these on your Cardio
+                    tab. Leave empty if cardio isn't your thing.
+                  </p>
+                  {CARDIO_OPTIONS.map((c) => {
+                    const active = cardio.includes(c);
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() =>
+                          setCardio((prev) =>
+                            active ? prev.filter((x) => x !== c) : [...prev, c],
+                          )
+                        }
+                        className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
                           active
-                            ? "border-accent bg-accent"
-                            : "border-muted-foreground/40"
+                            ? "border-accent bg-accent/10 glow-accent-sm"
+                            : "border-border bg-card hover:border-muted-foreground/40"
                         }`}
                       >
-                        {active && (
-                          <Check className="h-3 w-3 text-accent-foreground" />
-                        )}
-                      </span>
-                      <span className="text-sm font-semibold">
-                        {CARDIO_EMOJI[c] ?? "🏅"} {c}
-                      </span>
-                    </button>
-                  );
-                })}
-                {/* Custom entry */}
-                <div className="rounded-2xl border-2 border-dashed border-border bg-card p-4">
-                  <p className="mb-2 text-xs font-bold text-muted-foreground">Can't find what you're looking for? Type it in</p>
-                  <div className="flex gap-2">
-                    <Input
-                      value={customCardio}
-                      onChange={(e) => setCustomCardio(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && customCardio.trim()) {
-                          const val = customCardio.trim();
-                          if (!cardio.includes(val)) setCardio((prev) => [...prev, val]);
-                          setCustomCardio("");
-                        }
-                      }}
-                      placeholder="e.g. Rock climbing"
-                      className="h-10 rounded-xl flex-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const val = customCardio.trim();
-                        if (!val) return;
-                        if (!cardio.includes(val)) setCardio((prev) => [...prev, val]);
-                        setCustomCardio("");
-                      }}
-                      className="h-10 rounded-xl border-2 border-accent bg-accent/10 px-4 text-sm font-bold text-accent transition-all hover:bg-accent/20"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  {cardio.filter((c) => !CARDIO_OPTIONS.includes(c as any)).length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {cardio.filter((c) => !CARDIO_OPTIONS.includes(c as any)).map((c) => (
                         <span
-                          key={c}
-                          className="flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent"
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+                            active
+                              ? "border-accent bg-accent"
+                              : "border-muted-foreground/40"
+                          }`}
                         >
-                          🏅 {c}
-                          <button
-                            type="button"
-                            onClick={() => setCardio((prev) => prev.filter((x) => x !== c))}
-                            className="ml-0.5 opacity-60 hover:opacity-100"
-                          >
-                            ✕
-                          </button>
+                          {active && (
+                            <Check className="h-3 w-3 text-accent-foreground" />
+                          )}
                         </span>
-                      ))}
+                        <span className="text-sm font-semibold">
+                          {CARDIO_EMOJI[c] ?? "🏅"} {c}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {/* Custom entry */}
+                  <div className="rounded-2xl border-2 border-dashed border-border bg-card p-4">
+                    <p className="mb-2 text-xs font-bold text-muted-foreground">
+                      Can't find what you're looking for? Type it in
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        value={customCardio}
+                        onChange={(e) => setCustomCardio(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && customCardio.trim()) {
+                            const val = customCardio.trim();
+                            if (!cardio.includes(val))
+                              setCardio((prev) => [...prev, val]);
+                            setCustomCardio("");
+                          }
+                        }}
+                        placeholder="e.g. Rock climbing"
+                        className="h-10 rounded-xl flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = customCardio.trim();
+                          if (!val) return;
+                          if (!cardio.includes(val))
+                            setCardio((prev) => [...prev, val]);
+                          setCustomCardio("");
+                        }}
+                        className="h-10 rounded-xl border-2 border-accent bg-accent/10 px-4 text-sm font-bold text-accent transition-all hover:bg-accent/20"
+                      >
+                        Add
+                      </button>
                     </div>
-                  )}
+                    {cardio.filter(
+                      (c) => !(CARDIO_OPTIONS as readonly string[]).includes(c),
+                    ).length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {cardio
+                          .filter(
+                            (c) =>
+                              !(CARDIO_OPTIONS as readonly string[]).includes(
+                                c,
+                              ),
+                          )
+                          .map((c) => (
+                            <span
+                              key={c}
+                              className="flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent"
+                            >
+                              🏅 {c}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCardio((prev) =>
+                                    prev.filter((x) => x !== c),
+                                  )
+                                }
+                                className="ml-0.5 opacity-60 hover:opacity-100"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {/* ── 7. Muscles per workout ── */}
           {step === 7 && (
@@ -562,9 +607,21 @@ function WorkoutSetup() {
               {(
                 [
                   { v: 1, label: "One", detail: "Focused — e.g. chest day" },
-                  { v: 2, label: "Two", detail: "Paired — e.g. chest & triceps" },
-                  { v: 3, label: "Three", detail: "Big sessions — e.g. push day" },
-                  { v: "not_sure", label: "Not sure", detail: "Let the plan decide" },
+                  {
+                    v: 2,
+                    label: "Two",
+                    detail: "Paired — e.g. chest & triceps",
+                  },
+                  {
+                    v: 3,
+                    label: "Three",
+                    detail: "Big sessions — e.g. push day",
+                  },
+                  {
+                    v: "not_sure",
+                    label: "Not sure",
+                    detail: "Let the plan decide",
+                  },
                 ] as const
               ).map((o) => (
                 <OptionCard
@@ -628,7 +685,8 @@ function WorkoutSetup() {
                 onClick={() => setPlanChoice("ai_generated")}
               >
                 <span className="flex items-center gap-2 text-sm font-semibold">
-                  <Sparkles className="h-4 w-4 text-accent" /> Let AI Pick for Me
+                  <Sparkles className="h-4 w-4 text-accent" /> Let AI Pick for
+                  Me
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">
                     Recommended
                   </span>
@@ -642,8 +700,8 @@ function WorkoutSetup() {
                 onClick={() => setPlanChoice("library")}
               >
                 <span className="flex items-center gap-2 text-sm font-semibold">
-                  <Library className="h-4 w-4 text-accent" /> Choose from Workout
-                  Library
+                  <Library className="h-4 w-4 text-accent" /> Choose from
+                  Workout Library
                 </span>
                 <span className="mt-1 block text-xs text-muted-foreground">
                   Browse ready-made routines and start one.

@@ -9,9 +9,33 @@
  */
 
 import { supabase } from "@/integrations/client";
+import type { Tables } from "@/integrations/types";
+
+/**
+ * One entry of saved_meals.ingredients (a json column), as the meal builder
+ * writes it. A type alias rather than an interface so it stays assignable to
+ * Json on insert.
+ */
+export type MealIngredient = {
+  name: string;
+  quantity_g: number;
+  calories: number;
+};
+
+/** A saved_meals row with its json ingredients given their real shape. */
+export type SavedMeal = Omit<Tables<"saved_meals">, "ingredients"> & {
+  ingredients: MealIngredient[] | null;
+};
 
 export const DEFAULT_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"];
-const BASE_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack", "Meal 5", "Meal 6"];
+const BASE_MEALS = [
+  "Breakfast",
+  "Lunch",
+  "Dinner",
+  "Snack",
+  "Meal 5",
+  "Meal 6",
+];
 
 /** Generic names for a given count, when the user has none saved. */
 export function defaultMealsForCount(n: number): string[] {
@@ -46,15 +70,16 @@ export async function loadMealNames(userId: string): Promise<string[] | null> {
     .eq("id", userId)
     .maybeSingle();
 
-  const dbNames = (data as any)?.meal_names as string[] | null;
+  const dbNames = data?.meal_names as string[] | null;
   if (Array.isArray(dbNames) && dbNames.length > 0) return dbNames;
 
-  const dbFreq = (data as any)?.meal_frequency as number | null;
+  const dbFreq = data?.meal_frequency as number | null;
   const local = readLocal(userId);
 
   if (dbFreq != null && dbFreq > 0) {
     // Legacy: only the count was in the DB, names in localStorage.
-    const names = local && local.length === dbFreq ? local : defaultMealsForCount(dbFreq);
+    const names =
+      local && local.length === dbFreq ? local : defaultMealsForCount(dbFreq);
     // Backfill the new column so it survives the next cache clear.
     await saveMealNames(userId, names);
     return names;
@@ -69,12 +94,15 @@ export async function loadMealNames(userId: string): Promise<string[] | null> {
 }
 
 /** Persist meal names (and the derived count) to the DB and localStorage. */
-export async function saveMealNames(userId: string, names: string[]): Promise<void> {
+export async function saveMealNames(
+  userId: string,
+  names: string[],
+): Promise<void> {
   const clean = names.map((n) => n.trim()).filter(Boolean);
   if (clean.length === 0) return;
   await supabase
     .from("user_profiles")
-    .update({ meal_frequency: clean.length, meal_names: clean } as any)
+    .update({ meal_frequency: clean.length, meal_names: clean })
     .eq("id", userId);
   try {
     localStorage.setItem(localKey(userId), JSON.stringify(clean));

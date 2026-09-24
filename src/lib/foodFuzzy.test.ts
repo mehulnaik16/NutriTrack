@@ -15,7 +15,11 @@ import {
   fuzzyFoods,
   referenceFoods,
   isComposite,
+  similarity,
+  altNames,
+  catalogFood,
 } from "./foodFuzzy.ts";
+import { searchFoods } from "./foodDb.ts";
 
 const top = (q: string) => strongFoods(q, 3)[0]?.name ?? "";
 const hits = (q: string) => strongFoods(q, 3).length;
@@ -81,7 +85,9 @@ const hits = (q: string) => strongFoods(q, 3).length;
       `F4 "${typed}" should reach ${expected}, got "${name || "(nothing)"}"`,
     );
   }
-  console.log(`✓ F4 regional names resolve: sajje/kambu → Bajra, jonna → Jowar`);
+  console.log(
+    `✓ F4 regional names resolve: sajje/kambu → Bajra, jonna → Jowar`,
+  );
 }
 
 // ── F5: a brand item is findable without naming the brand ──────────────────
@@ -124,8 +130,14 @@ const hits = (q: string) => strongFoods(q, 3).length;
   const refs = referenceFoods("palak paneer with roti").map((i) =>
     i.name.toLowerCase(),
   );
-  assert.ok(refs.some((n) => n.includes("paneer")), `F7 no paneer in ${refs}`);
-  assert.ok(refs.some((n) => n.includes("roti")), `F7 no roti in ${refs}`);
+  assert.ok(
+    refs.some((n) => n.includes("paneer")),
+    `F7 no paneer in ${refs}`,
+  );
+  assert.ok(
+    refs.some((n) => n.includes("roti")),
+    `F7 no roti in ${refs}`,
+  );
   assert.ok(refs.length <= 5, "F7 reference block must stay within 5 rows");
   console.log(`✓ F7 "palak paneer with roti" grounds on both halves`);
 }
@@ -135,6 +147,115 @@ const hits = (q: string) => strongFoods(q, 3).length;
   assert.strictEqual(top("dosa"), "Dosa");
   assert.ok(top("paneer").toLowerCase().startsWith("paneer"));
   console.log(`✓ F8 exact names rank first`);
+}
+
+// ── F9: parenthetical name-aliases now widen the index, not just `lang` ────
+// "Semolina porridge (Suji/Rava daliya)" has no `lang`; before catalogAliases
+// was wired into the index, "Suji" ranked behind "Wheat, semolina" and "Shahi
+// suji halwa" on this exact catalog. Verified against src/data/ifct2017.json.
+{
+  assert.strictEqual(top("Suji"), "Semolina porridge (Suji/Rava daliya)");
+  console.log(`✓ F9 name-parenthetical alias "Suji" reaches its row`);
+}
+
+// ── similarity: exported for the cache's alias cross-check ─────────────────
+assert.equal(similarity("idli", "idli"), 1);
+assert.ok(similarity("idli", "idly") >= 0.7);
+assert.ok(similarity("idli", "dosa") < 0.5);
+assert.equal(similarity("", ""), 1);
+
+// ── altNames: the lang shape, 430 catalog rows use it ─────────────────────
+assert.deepEqual(altNames("A., Kash. Baajra; Kan. Sajje; Tam. Kambu"), [
+  "Baajra",
+  "Sajje",
+  "Kambu",
+]);
+assert.deepEqual(altNames(""), []);
+
+// ── catalogFood: the automatic pick voice and photo logs make ──────────────
+// Each of these used to log a different food that merely contains the word
+// (coffee -> Coffee biscuit, water -> Water Chestnut, milk -> Milk cake, egg ->
+// a sandwich, sugar -> sugarcane juice). No catalog row IS any of them, so
+// they must go to the server rather than be guessed.
+for (const q of [
+  "coffee",
+  "water",
+  "milk",
+  "egg",
+  "sugar",
+  "dal",
+  "chicken",
+  "chai",
+  "tea",
+  "rice",
+])
+  assert.equal(catalogFood(q), undefined, `${q} must fall through`);
+// Where a raw corpus row and a curated row share a name, the curated one —
+// with its piece weight — is the pick, and searchFoods puts it first too.
+for (const [q, code] of [
+  ["idli", "XE004"],
+  ["Naan", "XE031"],
+  ["dhokla", "XE104"],
+]) {
+  assert.equal(catalogFood(q)?.code, code, `${q} -> ${code}`);
+  assert.equal(searchFoods(q, 1)[0]?.code, code, `searchFoods ${q} -> ${code}`);
+}
+// A spaced " / " separates names, and a curated row's bracket is its default
+// state, so these still count as the name.
+for (const [q, code] of [
+  ["roti", "XE030"],
+  ["chapati", "XE030"],
+  ["poha", "XE010"],
+  ["paneer", "XE083"],
+  ["curd", "XE160"],
+  ["dahi", "XE160"],
+])
+  assert.equal(catalogFood(q)?.code, code, `${q} -> ${code}`);
+// Bare-name rows: whichever row is plainly this food, by its own name.
+for (const q of ["banana", "dosa"])
+  assert.equal(catalogFood(q)?.name.split(" (")[0].toLowerCase(), q, q);
+// Raw IFCT rows use an UNSPACED "/" for a spelling variant of the last word
+// and brackets for qualifiers. Neither may turn one word into a different
+// food: each of these used to log the named row with no model call.
+for (const [q, wrong] of [
+  ["paratha", "Potato parantha/paratha (Aloo ka parantha/paratha)"],
+  ["lassi", "Lassi (salted)"],
+  ["jackfruit", "Jackfruit/Kathal (dry)"],
+  ["kathal", "Jackfruit/Kathal (dry)"],
+  ["eggplant", "Eggplant/Brinjal rice (Vangi bhat)"],
+  ["okra", "Okra/Lady's fingers fry (Bhindi sabzi/sabji/subji)"],
+  ["pakoda", "Potato pakora/pakoda (Aloo pakoda)"],
+  ["chilla", "Moong dal stuffed cheela/chilla (Moong dal ka cheela/chilla)"],
+  ["cheela", "Gram flour chilla/cheela (Besan chilla/cheela)"],
+  ["khichri", "Sago khitchdi/khichri (Sabudana khitchdi/khichri)"],
+  ["tikka", "Paneer shaslik/tikka"],
+  ["imli", "Saunth/Sonth chutney with tamarind/imli"],
+  ["ghiya", "Ghiya/Lauki Kofta Curry"],
+  ["vadas", "Sago cutlet/vadas (Sabudana cutlet/vadas)"],
+  ["fudge", "Split bengal gram burfi/fudge (Channa dal burfi)"],
+  ["puree", "Banana groundnut paste/puree"],
+  ["omlet", "Plain omelette/omlet"],
+  ["biriyani", "Mutton biryani/biriyani"],
+])
+  assert.notEqual(catalogFood(q)?.name, wrong, `${q} must not log ${wrong}`);
+
+// ── F10: a regional name shaped like a language tag is not stripped ─────────
+// Toddy's lang ends "Mal., Tam., Tel. Kallu." — a capital, four lowercase
+// letters and a dot, the same shape as "Kash." The old tag pattern deleted it,
+// so "kallu" found nothing locally and went to the paid model. "Kaali Mirch."
+// lost its second word the same way.
+{
+  assert.ok(
+    top("kallu").toLowerCase().includes("toddy"),
+    `F10 "kallu" should reach Toddy, got "${top("kallu") || "(nothing)"}"`,
+  );
+  assert.ok(
+    top("kaali mirch").toLowerCase().includes("pepper"),
+    `F10 "kaali mirch" should reach black pepper, got "${top("kaali mirch") || "(nothing)"}"`,
+  );
+  console.log(
+    `✓ F10 tag-shaped regional names survive: kallu → Toddy, kaali mirch → Pepper`,
+  );
 }
 
 console.log("\n✅ All food-fuzzy tests passed.");

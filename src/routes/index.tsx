@@ -27,12 +27,7 @@ import {
 import { useAuth } from "@/lib/auth";
 // The landing page used to carry its own Starter/Pro/Elite array at prices the
 // product no longer sells. Pricing has one definition now.
-import {
-  PLANS,
-  PLAN_FEATURES,
-  monthlyRate,
-  periodLabel,
-} from "@/lib/plans";
+import { PLANS, PLAN_FEATURES, monthlyRate, periodLabel } from "@/lib/plans";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export const Route = createFileRoute("/")({ component: Landing });
@@ -147,13 +142,19 @@ function Landing() {
             </span>
           </div>
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
-            <a href="#features" className="transition-colors hover:text-foreground">
+            <a
+              href="#features"
+              className="transition-colors hover:text-foreground"
+            >
               Features
             </a>
             <a href="#how" className="transition-colors hover:text-foreground">
               How it works
             </a>
-            <a href="#pricing" className="transition-colors hover:text-foreground">
+            <a
+              href="#pricing"
+              className="transition-colors hover:text-foreground"
+            >
               Pricing
             </a>
             <a href="#faq" className="transition-colors hover:text-foreground">
@@ -216,13 +217,15 @@ function Landing() {
             </div>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-accent" /> {`${BASE_TRIAL_DAYS}-day free trial`}
+                <Check className="h-3.5 w-3.5 text-accent" />{" "}
+                {`${BASE_TRIAL_DAYS}-day free trial`}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-accent" /> No credit card
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-accent" /> 3,600+ Indian foods
+                <Check className="h-3.5 w-3.5 text-accent" /> 3,600+ Indian
+                foods
               </span>
             </div>
           </div>
@@ -243,7 +246,8 @@ function Landing() {
               </div>
 
               {/* CSS ring */}
-              <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-full"
+              <div
+                className="mx-auto flex h-44 w-44 items-center justify-center rounded-full"
                 style={{
                   background:
                     "conic-gradient(var(--accent) 0deg 252deg, var(--muted) 252deg 360deg)",
@@ -261,9 +265,24 @@ function Landing() {
 
               <div className="mt-6 space-y-3">
                 {[
-                  { label: "Protein", val: "96 / 140g", pct: 68, color: "var(--accent)" },
-                  { label: "Carbs", val: "150 / 210g", pct: 71, color: "var(--warn)" },
-                  { label: "Fats", val: "38 / 62g", pct: 61, color: "var(--fat)" },
+                  {
+                    label: "Protein",
+                    val: "96 / 140g",
+                    pct: 68,
+                    color: "var(--accent)",
+                  },
+                  {
+                    label: "Carbs",
+                    val: "150 / 210g",
+                    pct: 71,
+                    color: "var(--warn)",
+                  },
+                  {
+                    label: "Fats",
+                    val: "38 / 62g",
+                    pct: 61,
+                    color: "var(--fat)",
+                  },
                 ].map((m) => (
                   <div key={m.label}>
                     <div className="mb-1 flex items-center justify-between text-xs">
@@ -288,8 +307,12 @@ function Landing() {
               <div className="flex items-center gap-2">
                 <Flame className="h-4 w-4 text-warn" />
                 <div>
-                  <p className="font-display text-sm font-bold leading-none">12 days</p>
-                  <p className="text-[10px] font-medium text-muted-foreground">streak</p>
+                  <p className="font-display text-sm font-bold leading-none">
+                    12 days
+                  </p>
+                  <p className="text-[10px] font-medium text-muted-foreground">
+                    streak
+                  </p>
                 </div>
               </div>
             </div>
@@ -297,8 +320,12 @@ function Landing() {
               <div className="flex items-center gap-2">
                 <Droplets className="h-4 w-4 text-fat" />
                 <div>
-                  <p className="font-display text-sm font-bold leading-none">2.5 L</p>
-                  <p className="text-[10px] font-medium text-muted-foreground">water goal hit</p>
+                  <p className="font-display text-sm font-bold leading-none">
+                    2.5 L
+                  </p>
+                  <p className="text-[10px] font-medium text-muted-foreground">
+                    water goal hit
+                  </p>
                 </div>
               </div>
             </div>
@@ -320,7 +347,9 @@ function Landing() {
                 <s.icon className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-display text-xl font-bold leading-none">{s.big}</p>
+                <p className="font-display text-xl font-bold leading-none">
+                  {s.big}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">{s.small}</p>
               </div>
             </div>
@@ -329,7 +358,10 @@ function Landing() {
       </section>
 
       {/* ── FEATURES ── */}
-      <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
+      <section
+        id="features"
+        className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
+      >
         <div className="mb-12 max-w-2xl">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent">
             Features
@@ -392,7 +424,10 @@ function Landing() {
       </section>
 
       {/* ── PRICING ── */}
-      <section id="pricing" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
+      <section
+        id="pricing"
+        className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
+      >
         <div className="mb-12 text-center">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent">
             Pricing
@@ -422,7 +457,9 @@ function Landing() {
               )}
               <h3 className="font-display text-lg font-bold">{p.name}</h3>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="font-display text-4xl font-bold">₹{p.price}</span>
+                <span className="font-display text-4xl font-bold">
+                  ₹{p.price}
+                </span>
                 <span className="text-sm text-muted-foreground">
                   {periodLabel(p.months)}
                 </span>
@@ -536,11 +573,21 @@ function Landing() {
             © {new Date().getFullYear()} Dombelz · Train. Track. Transform.
           </p>
           <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground">
-            <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#pricing" className="hover:text-foreground">Pricing</a>
-            <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
-            <Link to="/terms" className="hover:text-foreground">Terms</Link>
-            <Link to="/login" className="hover:text-foreground">Log in</Link>
+            <a href="#features" className="hover:text-foreground">
+              Features
+            </a>
+            <a href="#pricing" className="hover:text-foreground">
+              Pricing
+            </a>
+            <Link to="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
+            <Link to="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
+            <Link to="/login" className="hover:text-foreground">
+              Log in
+            </Link>
           </div>
         </div>
       </footer>

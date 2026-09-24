@@ -21,7 +21,7 @@ import {
   WEIGHT_KG,
   validateMeasurement,
 } from "@/lib/measurements";
-import { getCachedWorkoutPrefs } from "@/lib/workoutPrefs";
+import { useCachedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
 import { type WeightUnit, kgToWeight, weightToKg, round1 } from "@/lib/units";
 import { Header } from "@/components/Header";
 import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
@@ -48,7 +48,12 @@ import {
 } from "recharts";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
-import { uploadWeightPhoto, deleteWeightPhoto, replaceWeightPhoto } from "@/services/storage";
+import type { TablesInsert } from "@/integrations/types";
+import {
+  uploadWeightPhoto,
+  deleteWeightPhoto,
+  replaceWeightPhoto,
+} from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
 import { useAccessGate } from "@/hooks/useAccessGate";
 import { todayLocal } from "@/lib/dates";
@@ -106,7 +111,7 @@ function WeightPage() {
 
   // Body weight is stored canonically in kg (BMI/calorie math needs it). The page
   // DISPLAYS the current unit; its chart plots the original unit. Helpers below.
-  const unitPrefs = user ? getCachedWorkoutPrefs(user.id) : null;
+  const unitPrefs = useCachedWorkoutPrefs(user?.id);
   const weightUnit = unitPrefs?.weightUnit ?? "kg";
   const origWeightUnit = unitPrefs?.origWeightUnit ?? "kg";
   const disp = (kg: number) => round1(kgToWeight(kg, weightUnit)); // kg → shown value
@@ -152,9 +157,15 @@ function WeightPage() {
 
     setProfile(p as Profile);
     setEntries((e as WeightEntry[]) ?? []);
-    if (p?.weight_kg) setWeight(String(disp(p.weight_kg)));
-    if (p?.goal_weight_kg) setGoalWeight(String(disp(p.goal_weight_kg)));
-  }, [user, navigate]);
+    // Converted with `weightUnit` directly, and listed as a dependency, rather
+    // than through `disp`: `disp` is a new function every render, and a stale
+    // one would fill these fields in the previous unit if the preference
+    // resolves after this callback was first created.
+    if (p?.weight_kg)
+      setWeight(String(round1(kgToWeight(p.weight_kg, weightUnit))));
+    if (p?.goal_weight_kg)
+      setGoalWeight(String(round1(kgToWeight(p.goal_weight_kg, weightUnit))));
+  }, [user, navigate, weightUnit]);
 
   useEffect(() => {
     load();
@@ -189,14 +200,22 @@ function WeightPage() {
     if (!user || !weight) return;
 
     // Inputs are in the display unit; validate + store in kg.
-    const w = validateMeasurement(String(weightToKg(parseFloat(weight) || 0, wu)), WEIGHT_KG);
+    const w = validateMeasurement(
+      String(weightToKg(parseFloat(weight) || 0, wu)),
+      WEIGHT_KG,
+    );
     if (!w.ok) {
       toast.error(w.error);
       return;
     }
     // The goal field is optional here, but if it has been typed into it is
     // written by the same update below and has to clear the same bar.
-    const g = goalWeight ? validateMeasurement(String(weightToKg(parseFloat(goalWeight) || 0, wu)), GOAL_WEIGHT_KG) : null;
+    const g = goalWeight
+      ? validateMeasurement(
+          String(weightToKg(parseFloat(goalWeight) || 0, wu)),
+          GOAL_WEIGHT_KG,
+        )
+      : null;
     if (g && !g.ok) {
       toast.error(g.error);
       return;
@@ -214,19 +233,18 @@ function WeightPage() {
         photo_url = result.data.publicUrl;
       }
 
-      const payload: any = {
+      const payload: TablesInsert<"weight_entries"> = {
         user_id: user.id,
         date: todayLocal(),
         weight_kg: w.value,
       };
-      
+
       if (photo_url) payload.photo_url = photo_url;
       if (note) payload.note = note;
 
-      const { error } = await supabase.from("weight_entries").upsert(
-        payload,
-        { onConflict: "user_id,date" },
-      );
+      const { error } = await supabase
+        .from("weight_entries")
+        .upsert(payload, { onConflict: "user_id,date" });
       if (error) throw error;
 
       // Update profile weight + goal weight
@@ -246,19 +264,22 @@ function WeightPage() {
       if (SHOW_AI_MOTIVATION) {
         fetchMotivation();
       }
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error((e as Error).message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveModal = async (updated: WeightEntry, newPhoto: File | null) => {
+  const handleSaveModal = async (
+    updated: WeightEntry,
+    newPhoto: File | null,
+  ) => {
     if (!user) return;
     try {
       let finalPhotoUrl = updated.photo_url;
-      const originalEntry = entries.find(e => e.id === updated.id);
-      
+      const originalEntry = entries.find((e) => e.id === updated.id);
+
       if (newPhoto) {
         const result = await replaceWeightPhoto(
           originalEntry?.photo_url ?? null,
@@ -281,21 +302,23 @@ function WeightPage() {
           date: updated.date,
           weight_kg: updated.weight_kg,
           note: updated.note || null,
-          photo_url: finalPhotoUrl
+          photo_url: finalPhotoUrl,
         })
         .eq("id", updated.id);
 
       if (error) throw error;
 
       toast.success("Entry updated!");
-      
+
       const finalEntry = { ...updated, photo_url: finalPhotoUrl };
-      setEntries(prev => prev.map(e => e.id === finalEntry.id ? finalEntry : e));
+      setEntries((prev) =>
+        prev.map((e) => (e.id === finalEntry.id ? finalEntry : e)),
+      );
       setSelectedEntry(finalEntry);
-      
+
       load();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error((e as Error).message);
       throw e;
     }
   };
@@ -303,8 +326,8 @@ function WeightPage() {
   const handleDeleteModal = async (id: string) => {
     if (!confirm("Are you sure you want to delete this entry?")) return;
     try {
-      const entryToDelete = entries.find(e => e.id === id);
-      
+      const entryToDelete = entries.find((e) => e.id === id);
+
       // Delete photo first — if it fails, don't delete the DB row
       if (entryToDelete?.photo_url) {
         const result = await deleteWeightPhoto(entryToDelete.photo_url);
@@ -322,15 +345,18 @@ function WeightPage() {
       toast.success("Entry deleted!");
       setSelectedEntry(null);
       load();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error((e as Error).message);
     }
   };
 
   const saveGoalWeight = async () => {
     if (!user || !goalWeight) return;
 
-    const g = validateMeasurement(String(weightToKg(parseFloat(goalWeight) || 0, wu)), GOAL_WEIGHT_KG);
+    const g = validateMeasurement(
+      String(weightToKg(parseFloat(goalWeight) || 0, wu)),
+      GOAL_WEIGHT_KG,
+    );
     if (!g.ok) {
       toast.error(g.error);
       return;
@@ -455,7 +481,9 @@ function WeightPage() {
                 <Target className="h-4 w-4 text-accent" /> To goal
               </div>
               <p className="font-display text-2xl font-bold">
-                {toGoal !== null ? `${round1(kgToWeight(toGoal, wu))} ${wu}` : "—"}
+                {toGoal !== null
+                  ? `${round1(kgToWeight(toGoal, wu))} ${wu}`
+                  : "—"}
               </p>
             </CardContent>
           </Card>
@@ -471,20 +499,24 @@ function WeightPage() {
                     Body Mass Index
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="font-display text-3xl font-bold">{bmi}</span>
+                    <span className="font-display text-3xl font-bold">
+                      {bmi}
+                    </span>
                     <span className={`text-sm font-bold ${bmiCategory.color}`}>
                       {bmiCategory.label}
                     </span>
                   </div>
                   {healthyMin && healthyMax && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Healthy range for your height: {disp(healthyMin)}–{disp(healthyMax)} {wu}
+                      Healthy range for your height: {disp(healthyMin)}–
+                      {disp(healthyMax)} {wu}
                     </p>
                   )}
                 </div>
                 <div className="w-full sm:w-64">
                   {/* Gauge: 15 → 40 BMI */}
-                  <div className="relative h-2.5 overflow-hidden rounded-full"
+                  <div
+                    className="relative h-2.5 overflow-hidden rounded-full"
                     style={{
                       background:
                         "linear-gradient(90deg, var(--fat) 0%, var(--fat) 14%, var(--energy) 14%, var(--energy) 40%, var(--warn) 40%, var(--warn) 60%, var(--destructive) 60%)",
@@ -687,7 +719,9 @@ function WeightPage() {
                     />
                     {profile.goal_weight_kg && (
                       <ReferenceLine
-                        y={round1(kgToWeight(profile.goal_weight_kg, origWeightUnit))}
+                        y={round1(
+                          kgToWeight(profile.goal_weight_kg, origWeightUnit),
+                        )}
                         stroke="var(--energy)"
                         strokeDasharray="5 5"
                         label={{
@@ -768,27 +802,24 @@ function WeightPage() {
                   .reverse()
                   .slice(0, 20)
                   .map((e, i) => {
-
                     return (
                       <div
                         key={e.id}
                         className="group grid grid-cols-2 sm:grid-cols-[90px_1fr_auto_60px] gap-2 sm:gap-4 items-center rounded-md border border-border px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
                       >
                         {/* 1. Date (Mobile: TL, Desktop: Col 1) */}
-                        <div className="text-muted-foreground">
-                          {e.date}
-                        </div>
-                        
+                        <div className="text-muted-foreground">{e.date}</div>
+
                         {/* 2. Note (Mobile: BL, Desktop: Col 2) */}
                         <div className="truncate text-muted-foreground col-start-1 row-start-2 sm:col-start-2 sm:row-start-1">
                           {e.note || "—"}
                         </div>
-                        
+
                         {/* 3. Weight (Mobile: TR, Desktop: Col 3) */}
                         <div className="font-bold text-right col-start-2 row-start-1 sm:col-start-3 sm:row-start-1">
                           {disp(e.weight_kg)} {wu}
                         </div>
-                        
+
                         {/* 4. View Button (Mobile: BR, Desktop: Col 4) */}
                         <div className="flex justify-end col-start-2 row-start-2 sm:col-start-4 sm:row-start-1">
                           <Button
@@ -862,25 +893,28 @@ function WeightEntryModal({
     setEditPhotoFile(null);
   };
 
-  const hasChanged = entry && (
-    editDate !== entry.date ||
-    editWeight !== String(disp(entry.weight_kg)) ||
-    editNote !== (entry.note || "") ||
-    editPhotoPreview !== entry.photo_url ||
-    editPhotoFile !== null
-  );
+  const hasChanged =
+    entry &&
+    (editDate !== entry.date ||
+      editWeight !== String(disp(entry.weight_kg)) ||
+      editNote !== (entry.note || "") ||
+      editPhotoPreview !== entry.photo_url ||
+      editPhotoFile !== null);
 
   const handleSave = async () => {
     if (!entry) return;
     setIsSaving(true);
     try {
-      await onSave({
-        ...entry,
-        date: editDate,
-        weight_kg: round1(weightToKg(Number(editWeight) || 0, weightUnit)),
-        note: editNote,
-        photo_url: editPhotoPreview
-      }, editPhotoFile);
+      await onSave(
+        {
+          ...entry,
+          date: editDate,
+          weight_kg: round1(weightToKg(Number(editWeight) || 0, weightUnit)),
+          note: editNote,
+          photo_url: editPhotoPreview,
+        },
+        editPhotoFile,
+      );
       setIsEditing(false);
       setEditPhotoFile(null);
     } catch (e) {
@@ -904,22 +938,29 @@ function WeightEntryModal({
   };
 
   return (
-    <Dialog open={!!entry} onOpenChange={(open) => {
-      if (!open && !isEditing) {
-        onClose();
-      } else if (!open && isEditing) {
-        setIsEditing(false);
-        onClose();
-      }
-    }}>
-      <DialogContent 
+    <Dialog
+      open={!!entry}
+      onOpenChange={(open) => {
+        if (!open && !isEditing) {
+          onClose();
+        } else if (!open && isEditing) {
+          setIsEditing(false);
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
         className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50 transition-all duration-200 max-h-[90vh] overflow-y-auto"
         onKeyDown={handleKeyDown}
       >
         <DialogHeader>
           <DialogTitle className="text-xl font-black uppercase tracking-wider text-center mb-2 flex items-center justify-center gap-2">
             Weight Entry
-            {isEditing && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest animate-in fade-in zoom-in">Editing</span>}
+            {isEditing && (
+              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest animate-in fade-in zoom-in">
+                Editing
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
         {entry && (
@@ -937,11 +978,19 @@ function WeightEntryModal({
                     {isEditing && (
                       <div className="absolute inset-0 bg-black/50 opacity-100 md:bg-black/60 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                         {!photoLocked && (
-                          <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => fileRef.current?.click()}
+                          >
                             Change Photo
                           </Button>
                         )}
-                        <Button variant="destructive" size="sm" onClick={() => setEditPhotoPreview(null)}>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setEditPhotoPreview(null)}
+                        >
                           Remove Photo
                         </Button>
                       </div>
@@ -967,7 +1016,9 @@ function WeightEntryModal({
                       className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 hover:border-accent transition-colors w-full"
                     >
                       <Camera className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Tap to add a progress photo</p>
+                      <p className="text-sm text-muted-foreground">
+                        Tap to add a progress photo
+                      </p>
                     </div>
                   ))
                 )}
@@ -986,11 +1037,11 @@ function WeightEntryModal({
                 />
               </div>
             )}
-            
+
             {/* DATE & WEIGHT */}
             <div className="flex justify-between items-center text-sm transition-all">
               <div className="text-muted-foreground flex items-center gap-2">
-                Date: 
+                Date:
                 {isEditing ? (
                   <div className="relative flex items-center">
                     <input
@@ -1001,7 +1052,9 @@ function WeightEntryModal({
                     />
                     <div className="font-semibold text-foreground flex items-center gap-1 border-b border-dashed border-primary/50 pb-0.5">
                       {new Date(editDate).toLocaleDateString("en-GB", {
-                        day: "numeric", month: "short", year: "numeric"
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
                       })}
                       <CalendarIcon className="w-3 h-3 text-primary ml-1" />
                     </div>
@@ -1009,13 +1062,15 @@ function WeightEntryModal({
                 ) : (
                   <span className="font-semibold text-foreground">
                     {new Date(entry.date).toLocaleDateString("en-GB", {
-                      day: "numeric", month: "short", year: "numeric"
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
                     })}
                   </span>
                 )}
               </div>
               <div className="text-muted-foreground flex items-center gap-1">
-                Weight: 
+                Weight:
                 {isEditing ? (
                   <span className="font-semibold text-foreground flex items-center">
                     [
@@ -1028,7 +1083,9 @@ function WeightEntryModal({
                     ] {weightUnit}
                   </span>
                 ) : (
-                  <span className="font-semibold text-foreground">{disp(entry.weight_kg)} {weightUnit}</span>
+                  <span className="font-semibold text-foreground">
+                    {disp(entry.weight_kg)} {weightUnit}
+                  </span>
                 )}
               </div>
             </div>
@@ -1041,19 +1098,25 @@ function WeightEntryModal({
                   value={editNote}
                   onChange={(e) => {
                     setEditNote(e.target.value);
-                    e.target.style.height = 'auto';
-                    e.target.style.height = e.target.scrollHeight + 'px';
+                    e.target.style.height = "auto";
+                    e.target.style.height = e.target.scrollHeight + "px";
                   }}
                   placeholder="Add notes..."
                   className="w-full bg-background border border-border rounded-md p-2 text-sm min-h-[80px] focus:outline-none focus:ring-1 focus:ring-primary resize-none overflow-hidden"
                   onFocus={(e) => {
-                    e.target.style.height = 'auto';
-                    e.target.style.height = e.target.scrollHeight + 'px';
+                    e.target.style.height = "auto";
+                    e.target.style.height = e.target.scrollHeight + "px";
                   }}
                 />
               ) : (
                 <p className="text-sm whitespace-pre-wrap">
-                  {entry.note ? entry.note : <span className="text-muted-foreground italic">No notes provided.</span>}
+                  {entry.note ? (
+                    entry.note
+                  ) : (
+                    <span className="text-muted-foreground italic">
+                      No notes provided.
+                    </span>
+                  )}
                 </p>
               )}
             </div>
@@ -1062,24 +1125,41 @@ function WeightEntryModal({
             <div className="flex justify-end gap-2 pt-2 transition-all">
               {isEditing ? (
                 <>
-                  <Button variant="secondary" size="sm" onClick={handleCancel} disabled={isSaving}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                  >
                     Cancel
                   </Button>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
+                  <Button
+                    variant="default"
+                    size="sm"
                     onClick={handleSave}
                     disabled={!hasChanged || isSaving}
                   >
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Save Changes"
+                    )}
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                  >
                     Edit
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => onDelete(entry.id)}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onDelete(entry.id)}
+                  >
                     Delete
                   </Button>
                 </>

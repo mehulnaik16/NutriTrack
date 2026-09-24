@@ -57,7 +57,10 @@ export const WRITE_TOOL_SPECS = [
       parameters: {
         type: "object",
         properties: {
-          user_ref: { type: "string", description: "Full uuid or 8-char prefix." },
+          user_ref: {
+            type: "string",
+            description: "Full uuid or 8-char prefix.",
+          },
           grant_days: {
             type: "integer",
             minimum: 1,
@@ -99,7 +102,10 @@ export const WRITE_TOOL_SPECS = [
       parameters: {
         type: "object",
         properties: {
-          user_ref: { type: "string", description: "Full uuid or 8-char prefix." },
+          user_ref: {
+            type: "string",
+            description: "Full uuid or 8-char prefix.",
+          },
         },
         required: ["user_ref"],
       },
@@ -142,16 +148,14 @@ export async function proposeAction(
   const summary = WRITE_ACTIONS[action].summarise(args);
 
   const { supabaseAdmin } = await import("@/integrations/client.server");
-  const { error } = await supabaseAdmin
-    .from("ops_pending_actions")
-    .insert({
-      code,
-      chat_id: Number(chatId),
-      requested_by: requestedBy!,
-      action,
-      args,
-      summary,
-    } as never);
+  const { error } = await supabaseAdmin.from("ops_pending_actions").insert({
+    code,
+    chat_id: Number(chatId),
+    requested_by: requestedBy!,
+    action,
+    args,
+    summary,
+  } as never);
 
   if (error) return { ok: false, error: error.message };
   return { ok: true, code, summary };
@@ -179,11 +183,14 @@ export async function executeConfirmed(
 
   const { data: pending } = await supabaseAdmin
     .from("ops_pending_actions")
-    .select("code, chat_id, requested_by, action, args, summary, expires_at, consumed_at")
+    .select(
+      "code, chat_id, requested_by, action, args, summary, expires_at, consumed_at",
+    )
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  if (!pending) return { ok: false, message: "No pending action with that code." };
+  if (!pending)
+    return { ok: false, message: "No pending action with that code." };
   if (pending.consumed_at) {
     return { ok: false, message: "That code has already been used." };
   }

@@ -48,7 +48,10 @@ test("the reported bug: a 1 kg goal weight is rejected", () => {
 });
 
 test("accepts ordinary weights", () => {
-  assert.deepEqual(validateMeasurement("82.5", WEIGHT_KG), { ok: true, value: 82.5 });
+  assert.deepEqual(validateMeasurement("82.5", WEIGHT_KG), {
+    ok: true,
+    value: 82.5,
+  });
   assert.deepEqual(validateMeasurement(70, WEIGHT_KG), { ok: true, value: 70 });
 });
 
@@ -92,7 +95,10 @@ test("height uses its own range and wording", () => {
 
 test("age omits the unit from the message", () => {
   assert.equal(validateMeasurement(30, AGE_YEARS).ok, true);
-  assert.equal(validateMeasurement(15, AGE_YEARS).error, "Age must be between 16 and 100.");
+  assert.equal(
+    validateMeasurement(15, AGE_YEARS).error,
+    "Age must be between 16 and 100.",
+  );
 });
 
 test("bounds match the quiz sliders they mirror", () => {

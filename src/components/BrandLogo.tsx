@@ -10,7 +10,10 @@ interface BrandLogoProps {
  * Reconstructed with 180° rotational symmetry from the official geometric monogram.
  * Pure SVG vector that takes the active theme color via `currentColor`.
  */
-export function BrandLogo({ className = "h-8 w-8 text-accent", size }: BrandLogoProps) {
+export function BrandLogo({
+  className = "h-8 w-8 text-accent",
+  size,
+}: BrandLogoProps) {
   const maskId = useId();
 
   return (

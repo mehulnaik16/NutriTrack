@@ -137,8 +137,8 @@ export function WaterStreak({ userId, streak }: Props) {
     setStepMl(newStep);
     try {
       await saveWaterPrefs(userId, { goalMl: newGoal, cupMl: newStep });
-    } catch (e: any) {
-      toast.error(e.message ?? "Failed to save water preferences");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Failed to save water preferences");
       return;
     }
     setIsSettingsOpen(false);
@@ -183,7 +183,10 @@ export function WaterStreak({ userId, streak }: Props) {
     }
   };
 
-  const pct = dailyGoalMl > 0 ? Math.min(100, Math.round((water / dailyGoalMl) * 100)) : 0;
+  const pct =
+    dailyGoalMl > 0
+      ? Math.min(100, Math.round((water / dailyGoalMl) * 100))
+      : 0;
   const glasses = stepMl > 0 ? Math.floor(water / stepMl) : 0;
 
   const streakEmoji =
@@ -213,7 +216,12 @@ export function WaterStreak({ userId, streak }: Props) {
             </div>
             <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Water settings">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Water settings"
+                >
                   <Settings2 className="h-4 w-4" />
                 </Button>
               </DialogTrigger>

@@ -71,18 +71,22 @@ function Privacy() {
             your password).
           </p>
           <p>
-            <strong className="text-foreground">Health & fitness data you
-            log:</strong> age, gender, height, weight, activity level, fitness
-            goals, food diary entries, workout logs, water intake, weight
-            entries, and optional progress photos.
+            <strong className="text-foreground">
+              Health & fitness data you log:
+            </strong>{" "}
+            age, gender, height, weight, activity level, fitness goals, food
+            diary entries, workout logs, water intake, weight entries, and
+            optional progress photos.
           </p>
           <p>
-            <strong className="text-foreground">Media you choose to
-            share:</strong> photos of meals (for AI food recognition), voice
-            recordings (for voice logging), and camera input for barcode
-            scanning. Meal photos and voice audio are processed to extract
-            nutrition information and are not stored on our servers; progress
-            photos you save are stored until you delete them.
+            <strong className="text-foreground">
+              Media you choose to share:
+            </strong>{" "}
+            photos of meals (for AI food recognition), voice recordings (for
+            voice logging), and camera input for barcode scanning. Meal photos
+            and voice audio are processed to extract nutrition information and
+            are not stored on our servers; progress photos you save are stored
+            until you delete them.
           </p>
           <p>We do not collect your precise location, contacts, or SMS.</p>
         </Section>
@@ -92,9 +96,11 @@ function Privacy() {
             To calculate your calorie and macro targets, display your progress
             and streaks, generate AI coaching summaries, power the community
             leaderboard (only your first name and aggregate scores are shown),
-            and provide customer support. We do <strong className="text-foreground">not
-            sell your personal data</strong> and we do not show third-party
-            advertising.
+            and provide customer support. We do{" "}
+            <strong className="text-foreground">
+              not sell your personal data
+            </strong>{" "}
+            and we do not show third-party advertising.
           </p>
         </Section>
 
@@ -111,8 +117,8 @@ function Privacy() {
         <Section title="5. Where your data lives">
           <p>
             Your data is stored with Supabase (our database and authentication
-            provider) using industry-standard encryption in transit (TLS) and
-            at rest. Barcode lookups query the public Open Food Facts database;
+            provider) using industry-standard encryption in transit (TLS) and at
+            rest. Barcode lookups query the public Open Food Facts database;
             only the barcode number is sent.
           </p>
         </Section>
@@ -147,8 +153,8 @@ function Privacy() {
 
         <Section title="7. Data retention">
           <p>
-            We keep your data while your account is active. When you delete
-            your account, your logs, profile, and photos are removed from our
+            We keep your data while your account is active. When you delete your
+            account, your logs, profile, and photos are removed from our
             systems. Residual copies in encrypted backups are purged on the
             backup rotation cycle (up to 30 days).
           </p>
@@ -156,8 +162,8 @@ function Privacy() {
 
         <Section title="8. Children">
           <p>
-            Dombelz is not intended for children. You must be at least 16
-            years old to create an account, and our sign-up flow enforces this.
+            Dombelz is not intended for children. You must be at least 16 years
+            old to create an account, and our sign-up flow enforces this.
           </p>
         </Section>
 
@@ -165,9 +171,9 @@ function Privacy() {
           <p>
             <strong className="text-foreground">Camera</strong> — meal photos,
             barcode scanning, progress photos.{" "}
-            <strong className="text-foreground">Microphone</strong> — voice
-            food logging. Both are optional; the app works without them, and
-            they are used only while you actively use those features.
+            <strong className="text-foreground">Microphone</strong> — voice food
+            logging. Both are optional; the app works without them, and they are
+            used only while you actively use those features.
           </p>
         </Section>
 

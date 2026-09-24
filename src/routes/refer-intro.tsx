@@ -104,7 +104,11 @@ function ReferIntro() {
     const text = giftMessage({ senderName: fullName, code, url: shareUrl });
     if (navigator.share) {
       try {
-        await navigator.share({ title: "A gift for you 🎁", text, url: shareUrl });
+        await navigator.share({
+          title: "A gift for you 🎁",
+          text,
+          url: shareUrl,
+        });
         return;
       } catch {
         /* user dismissed the share sheet */
@@ -182,7 +186,9 @@ function ReferIntro() {
             Earn up to {PREMIUM_DAYS_PER_SUBSCRIPTION} Days of Free Premium
             Features
           </p>
-          <p className="text-xs text-muted-foreground">(When friends subscribe)</p>
+          <p className="text-xs text-muted-foreground">
+            (When friends subscribe)
+          </p>
         </div>
 
         {/* ── Gift code pill ── */}
@@ -290,7 +296,8 @@ function ReferIntro() {
               Why OTP?
             </AccordionTrigger>
             <AccordionContent className="text-sm text-muted-foreground">
-              To ensure everyone gets genuine rewards and prevent spam and scams.
+              To ensure everyone gets genuine rewards and prevent spam and
+              scams.
             </AccordionContent>
           </AccordionItem>
         </Accordion>

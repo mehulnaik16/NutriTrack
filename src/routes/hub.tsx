@@ -44,7 +44,9 @@ interface LeaderboardUser {
 
 function Hub() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"ANALYTICS" | "FRIENDS" | "RANK">("ANALYTICS");
+  const [activeTab, setActiveTab] = useState<"ANALYTICS" | "FRIENDS" | "RANK">(
+    "ANALYTICS",
+  );
   const [firstName, setFirstName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -83,10 +85,10 @@ function Hub() {
 
       Promise.all([
         supabase.from("user_profiles").select("id, full_name, current_streak"),
-        (supabase.rpc as any)("get_leaderboard_stats", {
+        supabase.rpc("get_leaderboard_stats", {
           start_date: startDateStr,
         }),
-      ]).then(([profilesRes, statsRes]: [any, any]) => {
+      ]).then(([profilesRes, statsRes]) => {
         if (!isMounted) return;
 
         if (statsRes.error) {
@@ -97,11 +99,11 @@ function Hub() {
           console.error("[leaderboard] profiles error:", profilesRes.error);
         }
 
-        const profiles = (profilesRes.data || []) as any[];
-        const stats = (statsRes.data || []) as any[];
+        const profiles = profilesRes.data || [];
+        const stats = statsRes.data || [];
 
-        const merged: LeaderboardUser[] = stats.map((s: any) => {
-          const p = profiles.find((x: any) => x.id === s.user_id);
+        const merged: LeaderboardUser[] = stats.map((s) => {
+          const p = profiles.find((x) => x.id === s.user_id);
           return {
             id: s.user_id,
             full_name: s.full_name ?? p?.full_name ?? null,
@@ -131,10 +133,12 @@ function Hub() {
 
         merged.sort((a, b) => {
           if (category === "streak") return b.current_streak - a.current_streak;
-          if (category === "workouts") return b.workouts_count - a.workouts_count;
+          if (category === "workouts")
+            return b.workouts_count - a.workouts_count;
           if (category === "calories") return b.avg_calories - a.avg_calories;
           if (category === "water") return b.total_water - a.total_water;
-          if (category === "exercise") return b.total_exercise_min - a.total_exercise_min;
+          if (category === "exercise")
+            return b.total_exercise_min - a.total_exercise_min;
           return b.overall_score - a.overall_score;
         });
 
@@ -147,10 +151,26 @@ function Hub() {
 
     const channel = supabase
       .channel("hub_leaderboard_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "workout_logs" }, fetchData)
-      .on("postgres_changes", { event: "*", schema: "public", table: "food_logs" }, fetchData)
-      .on("postgres_changes", { event: "*", schema: "public", table: "water_logs" }, fetchData)
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_profiles" }, fetchData)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "workout_logs" },
+        fetchData,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_logs" },
+        fetchData,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "water_logs" },
+        fetchData,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_profiles" },
+        fetchData,
+      )
       .subscribe();
 
     return () => {
@@ -161,7 +181,8 @@ function Hub() {
 
   // ── Leaderboard helpers ────────────────────────────────────────
   const getCategoryIcon = () => {
-    if (category === "streak") return <Flame className="h-4 w-4 fill-current" />;
+    if (category === "streak")
+      return <Flame className="h-4 w-4 fill-current" />;
     if (category === "workouts") return <Dumbbell className="h-4 w-4" />;
     if (category === "calories") return <Utensils className="h-4 w-4" />;
     if (category === "water") return <Droplets className="h-4 w-4" />;
@@ -173,7 +194,8 @@ function Hub() {
     if (category === "streak") return u.current_streak;
     if (category === "workouts") return u.workouts_count;
     if (category === "calories") return Math.round(u.avg_calories) + " kcal";
-    if (category === "water") return Math.round((u.total_water / 1000) * 10) / 10 + " L";
+    if (category === "water")
+      return Math.round((u.total_water / 1000) * 10) / 10 + " L";
     if (category === "exercise") return u.total_exercise_min + " min";
     return Math.round(u.overall_score) + " pts";
   };
@@ -216,7 +238,9 @@ function Hub() {
       <p className="mb-4 text-center text-sm text-muted-foreground">
         See how you rank against the community
         {myRank >= 0 && (
-          <span className="ml-1 font-bold text-accent">— you're #{myRank + 1}</span>
+          <span className="ml-1 font-bold text-accent">
+            — you're #{myRank + 1}
+          </span>
         )}
       </p>
 
@@ -276,8 +300,13 @@ function Hub() {
                 const s = PODIUM_STYLES[i];
                 const isMe = u.id === user?.id;
                 return (
-                  <div key={u.id} className={`flex flex-col items-center ${s.order} ${s.lift}`}>
-                    {i === 0 && <Crown className="mb-1 h-5 w-5 text-yellow-400" />}
+                  <div
+                    key={u.id}
+                    className={`flex flex-col items-center ${s.order} ${s.lift}`}
+                  >
+                    {i === 0 && (
+                      <Crown className="mb-1 h-5 w-5 text-yellow-400" />
+                    )}
                     <div className="relative">
                       <div
                         className={`flex items-center justify-center rounded-full border-2 bg-card font-display font-bold ${s.ring} ${s.size} ${i === 0 ? "glow-accent-sm" : ""}`}
@@ -337,7 +366,9 @@ function Hub() {
                   </div>
                   <div className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-accent">
                     {getCategoryIcon()}
-                    <span className="text-sm font-bold">{getCategoryValue(u)}</span>
+                    <span className="text-sm font-bold">
+                      {getCategoryValue(u)}
+                    </span>
                   </div>
                 </div>
               );
@@ -345,39 +376,43 @@ function Hub() {
           </div>
 
           {/* ── 11th card: current user if outside top 10 ── */}
-          {!currentUserInTop10 && myRank >= 0 && (() => {
-            const me = allUsers[myRank];
-            const actualRank = myRank + 1; // 1-indexed
-            return (
-              <>
-                <div className="my-2 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  <span className="h-px flex-1 bg-border" />
-                  Your position
-                  <span className="h-px flex-1 bg-border" />
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-2xl border border-accent/60 bg-accent/5 p-3.5 glow-accent-sm sm:p-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="w-7 shrink-0 text-center font-display text-sm font-bold text-muted-foreground">
-                      {actualRank}
-                    </span>
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-display text-sm font-bold">
-                      {initial(me.full_name)}
-                    </div>
-                    <span className="truncate text-sm font-semibold sm:text-base">
-                      {me.full_name || "Anonymous User"}
-                      <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">
-                        You
+          {!currentUserInTop10 &&
+            myRank >= 0 &&
+            (() => {
+              const me = allUsers[myRank];
+              const actualRank = myRank + 1; // 1-indexed
+              return (
+                <>
+                  <div className="my-2 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    <span className="h-px flex-1 bg-border" />
+                    Your position
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-accent/60 bg-accent/5 p-3.5 glow-accent-sm sm:p-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="w-7 shrink-0 text-center font-display text-sm font-bold text-muted-foreground">
+                        {actualRank}
                       </span>
-                    </span>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-display text-sm font-bold">
+                        {initial(me.full_name)}
+                      </div>
+                      <span className="truncate text-sm font-semibold sm:text-base">
+                        {me.full_name || "Anonymous User"}
+                        <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">
+                          You
+                        </span>
+                      </span>
+                    </div>
+                    <div className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-accent">
+                      {getCategoryIcon()}
+                      <span className="text-sm font-bold">
+                        {getCategoryValue(me)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-accent">
-                    {getCategoryIcon()}
-                    <span className="text-sm font-bold">{getCategoryValue(me)}</span>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
+                </>
+              );
+            })()}
         </>
       )}
     </>
@@ -391,9 +426,13 @@ function Hub() {
           <div className="mb-4 flex items-center justify-between rounded-xl bg-[#0e1626] border border-[#25334a] p-3 text-xs font-mono">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[#FF671F] animate-pulse" />
-              <span className="text-[#FF671F] font-bold">ISTRAC TELECOMMAND & CREW HUB</span>
+              <span className="text-[#FF671F] font-bold">
+                ISTRAC TELECOMMAND & CREW HUB
+              </span>
             </div>
-            <span className="text-[#10B981] font-semibold">SQUADRON UPLINK: ACTIVE</span>
+            <span className="text-[#10B981] font-semibold">
+              SQUADRON UPLINK: ACTIVE
+            </span>
           </div>
         )}
 

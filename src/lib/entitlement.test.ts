@@ -38,12 +38,17 @@ const DAY = 24 * 60 * 60 * 1000;
 const T0 = new Date("2026-03-01T00:00:00+05:30").getTime();
 const at = (days: number) => new Date(T0 + days * DAY);
 /** Whole days between the fold's answer and the trial start. */
-const daysFromT0 = (d: Date | null) => (d === null ? null : (d.getTime() - T0) / DAY);
+const daysFromT0 = (d: Date | null) =>
+  d === null ? null : (d.getTime() - T0) / DAY;
 
 // ── the constant this file and the SQL must agree on ──────────────────────
 // If BASE_TRIAL_DAYS moves, recompute_access()'s base interval moves with it.
 // A mismatch shows the user one number and gates on another.
-assert.equal(BASE_TRIAL_DAYS, 7, "BASE_TRIAL_DAYS must match recompute_access()");
+assert.equal(
+  BASE_TRIAL_DAYS,
+  7,
+  "BASE_TRIAL_DAYS must match recompute_access()",
+);
 
 // ── no trial, no grants: fails closed ─────────────────────────────────────
 assert.equal(computeAccessUntil({ trialStartDate: null }), null);
@@ -51,16 +56,23 @@ assert.equal(computeAccessUntil({ trialStartDate: undefined }), null);
 assert.equal(computeAccessUntil({ trialStartDate: "not-a-date" }), null);
 
 // ── the bare trial ────────────────────────────────────────────────────────
-assert.equal(daysFromT0(computeAccessUntil({ trialStartDate: "2026-03-01" })), 7);
+assert.equal(
+  daysFromT0(computeAccessUntil({ trialStartDate: "2026-03-01" })),
+  7,
+);
 
 // Pool A extends the trial window rather than queueing behind it.
 assert.equal(
-  daysFromT0(computeAccessUntil({ trialStartDate: "2026-03-01", bonusTrialDays: 5 })),
+  daysFromT0(
+    computeAccessUntil({ trialStartDate: "2026-03-01", bonusTrialDays: 5 }),
+  ),
   12,
 );
 // A negative or absurd bonus cannot shorten or explode the window.
 assert.equal(
-  daysFromT0(computeAccessUntil({ trialStartDate: "2026-03-01", bonusTrialDays: -99 })),
+  daysFromT0(
+    computeAccessUntil({ trialStartDate: "2026-03-01", bonusTrialDays: -99 }),
+  ),
   7,
 );
 
@@ -70,7 +82,10 @@ assert.equal(
 const midTrialPurchase: Grant[] = [{ days: 365, effectiveAt: at(2) }];
 assert.equal(
   daysFromT0(
-    computeAccessUntil({ trialStartDate: "2026-03-01", grants: midTrialPurchase }),
+    computeAccessUntil({
+      trialStartDate: "2026-03-01",
+      grants: midTrialPurchase,
+    }),
   ),
   7 + 365,
   "paid period must start at trial end — nothing consumed in parallel",
@@ -130,7 +145,9 @@ assert.equal(
 );
 // Once it takes effect it queues behind the trial like any other grant.
 assert.equal(
-  daysFromT0(computeAccessUntil({ trialStartDate: "2026-03-01", grants: heldBonus })),
+  daysFromT0(
+    computeAccessUntil({ trialStartDate: "2026-03-01", grants: heldBonus }),
+  ),
   7 + 60,
 );
 
@@ -165,7 +182,10 @@ const clawedBack = computeAccessUntil({
   trialStartDate: "2026-03-01",
   grants: [{ days: 60, effectiveAt: at(7), clawbackAt: at(0) }],
 });
-assert.ok(daysFromT0(clawedBack)! >= 7, "clawback must not move access backwards");
+assert.ok(
+  daysFromT0(clawedBack)! >= 7,
+  "clawback must not move access backwards",
+);
 
 // A clawback after the grant fully ran changes nothing.
 assert.equal(
@@ -211,7 +231,11 @@ assert.equal(hasAccess("garbage", now), false);
 assert.equal(hasAccess(at(11), now), true);
 assert.equal(hasAccess(at(9), now), false);
 assert.equal(hasAccess(at(10), now), false, "expiry is exclusive");
-assert.equal(hasAccess(at(11).toISOString(), now), true, "accepts an ISO string");
+assert.equal(
+  hasAccess(at(11).toISOString(), now),
+  true,
+  "accepts an ISO string",
+);
 
 // ── accessDaysLeft: null and 0 mean different things ──────────────────────
 assert.equal(accessDaysLeft(null, now), null, "never granted");
@@ -228,8 +252,16 @@ assert.equal(freeDaysEarned(50), MAX_FREE_DAYS);
 assert.equal(premiumDaysEarned(0), 0);
 assert.equal(premiumDaysEarned(1), PREMIUM_DAYS_PER_SUBSCRIPTION);
 assert.equal(premiumDaysEarned(8), MAX_PREMIUM_DAYS);
-assert.equal(premiumDaysEarned(9), MAX_PREMIUM_DAYS, "9th yearly referral adds none");
-assert.equal(premiumDaysEarned(50), MAX_PREMIUM_DAYS, "was uncapped before this work");
+assert.equal(
+  premiumDaysEarned(9),
+  MAX_PREMIUM_DAYS,
+  "9th yearly referral adds none",
+);
+assert.equal(
+  premiumDaysEarned(50),
+  MAX_PREMIUM_DAYS,
+  "was uncapped before this work",
+);
 assert.equal(premiumDaysEarned(-3), 0);
 
 console.log("entitlement.test.ts — all assertions passed");

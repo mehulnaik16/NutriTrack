@@ -48,6 +48,7 @@ export default defineConfig(({ command, mode }) => {
         // Redirect TanStack Start's bundled server entry to src/server.ts
         // (our SSR error wrapper) and target Vercel for deployment.
         server: {
+          // @ts-expect-error — TanStack Start types don't include preset yet
           preset: "vercel",
           entry: "server",
         },

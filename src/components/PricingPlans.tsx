@@ -61,11 +61,7 @@ export function PricingPlans({
   };
   // While this is loading the cards render the list price. Correcting ₹999 down
   // to ₹849 is safe; the reverse would be a promise taken back.
-  const {
-    status: referralStatus,
-    gymLink,
-    loading: giftLoading,
-  } = useGift();
+  const { status: referralStatus, gymLink, loading: giftLoading } = useGift();
 
   const start = async (planId: string) => {
     if (!user) {

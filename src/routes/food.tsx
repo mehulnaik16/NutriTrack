@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
 import { DEFAULT_MEALS, loadMealNames, saveMealNames } from "@/lib/meals";
 import { supabase } from "@/integrations/client";
+import type { Tables } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
 import {
   Utensils,
@@ -110,12 +111,12 @@ function FoodPage() {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<string>(today());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [todayLogs, setTodayLogs] = useState<any[]>([]);
-  const [monthLogs, setMonthLogs] = useState<any[]>([]);
+  const [todayLogs, setTodayLogs] = useState<Tables<"food_logs">[]>([]);
+  const [monthLogs, setMonthLogs] = useState<Tables<"food_logs">[]>([]);
   // Separate from monthLogs: the calendar highlights every day ever logged,
   // while monthLogs is the 30-day window the chart totals need.
   const [loggedDates, setLoggedDates] = useState<Date[]>([]);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Tables<"user_profiles"> | null>(null);
   const searchRef = useRef<FoodSearchRef>(null);
   const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
 
@@ -124,8 +125,6 @@ function FoodPage() {
   const [mealCount, setMealCount] = useState(4);
   const [mealNames, setMealNames] = useState<string[]>([...DEFAULT_MEALS]);
   const [userMeals, setUserMeals] = useState<string[]>([...DEFAULT_MEALS]);
-
-
 
   // Meal names: DB-first (survives cache/session clear), then localStorage
   // (legacy), then the setup questionnaire for a truly first-time user.
@@ -163,29 +162,27 @@ function FoodPage() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [{ data: p }, { data: t }, { data: m }, { data: fav }] = await Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("food_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", selectedDate)
-        .order("logged_at"),
-      supabase
-        .from("food_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("date", thirtyDaysAgo())
-        .lte("date", today()),
-      supabase
-        .from("saved_meals" as any)
-        .select("name")
-        .eq("user_id", user.id),
-    ]);
+    const [{ data: p }, { data: t }, { data: m }, { data: fav }] =
+      await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("food_logs")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("date", selectedDate)
+          .order("logged_at"),
+        supabase
+          .from("food_logs")
+          .select("*")
+          .eq("user_id", user.id)
+          .gte("date", thirtyDaysAgo())
+          .lte("date", today()),
+        supabase.from("saved_meals").select("name").eq("user_id", user.id),
+      ]);
     // No profile row means onboarding was never finished — the guard below
     // waits on `profile`, so without this the page spins forever.
     if (!p) {
@@ -197,7 +194,7 @@ function FoodPage() {
     setTodayLogs(t ?? []);
     setMonthLogs(m ?? []);
     fetchLoggedDates(user.id).then(setLoggedDates);
-    if (fav) setFavoriteNames(new Set(fav.map((f: any) => f.name)));
+    if (fav) setFavoriteNames(new Set(fav.map((f) => f.name)));
   }, [user, selectedDate, navigate]);
 
   useEffect(() => {
@@ -220,7 +217,9 @@ function FoodPage() {
     const prevDate = shiftDate(selectedDate, -1);
     const { data: prev, error: fetchErr } = await supabase
       .from("food_logs")
-      .select("meal_type,food_name,quantity_g,unit,unit_quantity,calories,protein_g,carbs_g,fat_g,fiber_g")
+      .select(
+        "meal_type,food_name,quantity_g,unit,unit_quantity,calories,protein_g,carbs_g,fat_g,fiber_g",
+      )
       .eq("user_id", user.id)
       .eq("date", prevDate);
     if (fetchErr) {
@@ -231,7 +230,7 @@ function FoodPage() {
       toast.info(`Nothing was logged on ${formatDateDisplay(prevDate)}`);
       return;
     }
-    const rows = prev.map((r: any) => ({
+    const rows = prev.map((r) => ({
       ...r,
       fiber_g: r.fiber_g || 0,
       user_id: user.id,
@@ -242,11 +241,13 @@ function FoodPage() {
       toast.error(error.message);
       return;
     }
-    toast.success(`Copied ${rows.length} item${rows.length > 1 ? "s" : ""} from ${formatDateDisplay(prevDate)}`);
+    toast.success(
+      `Copied ${rows.length} item${rows.length > 1 ? "s" : ""} from ${formatDateDisplay(prevDate)}`,
+    );
     load();
   };
 
-  const relogFood = async (l: any) => {
+  const relogFood = async (l: Tables<"food_logs">) => {
     if (!user) return;
     const { error } = await supabase.from("food_logs").insert({
       user_id: user.id,
@@ -270,14 +271,14 @@ function FoodPage() {
     load();
   };
 
-  const saveFoodAsFavorite = async (l: any) => {
+  const saveFoodAsFavorite = async (l: Tables<"food_logs">) => {
     if (!user) return;
     const isFav = favoriteNames.has(l.food_name);
 
     if (isFav) {
       // Remove from favorites
       const { error } = await supabase
-        .from("saved_meals" as any)
+        .from("saved_meals")
         .delete()
         .eq("user_id", user.id)
         .eq("name", l.food_name);
@@ -292,13 +293,14 @@ function FoodPage() {
       }
     } else {
       // Add to favorites
-      const { error } = await supabase.from("saved_meals" as any).insert({
+      const { error } = await supabase.from("saved_meals").insert({
         user_id: user.id,
         name: l.food_name,
-        calories: l.calories,
-        protein_g: l.protein_g,
-        carbs_g: l.carbs_g,
-        fat_g: l.fat_g,
+        // saved_meals requires every nutrient; food_logs allows NULL.
+        calories: l.calories ?? 0,
+        protein_g: l.protein_g ?? 0,
+        carbs_g: l.carbs_g ?? 0,
+        fat_g: l.fat_g ?? 0,
         fiber_g: l.fiber_g || 0,
       });
       if (!error) {
@@ -324,7 +326,10 @@ function FoodPage() {
 
   const handleSaveMealSetup = () => {
     if (!user) return;
-    const trimmed = mealNames.slice(0, mealCount).map((n) => n.trim()).filter(Boolean);
+    const trimmed = mealNames
+      .slice(0, mealCount)
+      .map((n) => n.trim())
+      .filter(Boolean);
     if (trimmed.length === 0) {
       toast.error("Add at least one meal");
       return;
@@ -337,8 +342,6 @@ function FoodPage() {
     toast.success("Meal categories saved!");
   };
 
-
-
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
       <Header name={firstName} />
@@ -347,7 +350,8 @@ function FoodPage() {
           <CardHeader className="pb-3 border-b bg-muted/5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Utensils className="h-5 w-5 text-accent" /> {getTelemetryLabel("Log Food")}
+                <Utensils className="h-5 w-5 text-accent" />{" "}
+                {getTelemetryLabel("Log Food")}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -463,8 +467,8 @@ function FoodPage() {
 
                 const sub = items.reduce(
                   (a, x) => ({
-                    cal: a.cal + x.calories,
-                    p: a.p + x.protein_g,
+                    cal: a.cal + (x.calories ?? 0),
+                    p: a.p + (x.protein_g ?? 0),
                     fib: a.fib + (x.fiber_g || 0),
                   }),
                   { cal: 0, p: 0, fib: 0 },
@@ -500,91 +504,93 @@ function FoodPage() {
                     </div>
 
                     <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
-                        {items.map((l) => {
-                          const isFav = favoriteNames.has(l.food_name);
-                          return (
-                            <div
-                              key={l.id}
-                              className="p-3 hover:bg-muted/20 transition-colors group"
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-semibold truncate">
-                                    {l.food_name}
-                                  </div>
-                                  <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
-                                      {formatQty(l.quantity_g, l.unit, l.unit_quantity)}
-                                    </span>
-                                    <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
-                                      {Math.round(l.calories)} kcal
-                                    </span>
-                                    <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                                      P{Math.round(l.protein_g)}
-                                    </span>
-                                    <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
-                                      C{Math.round(l.carbs_g)}
-                                    </span>
-                                    <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                                      F{Math.round(l.fat_g)}
-                                    </span>
-                                  </div>
+                      {items.map((l) => {
+                        const isFav = favoriteNames.has(l.food_name);
+                        return (
+                          <div
+                            key={l.id}
+                            className="p-3 hover:bg-muted/20 transition-colors group"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold truncate">
+                                  {l.food_name}
                                 </div>
-                                <div className="flex shrink-0 flex-wrap items-center justify-end gap-0">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={`h-8 w-8 transition-all ${
-                                      isFav
-                                        ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                                        : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                    }`}
-                                    title={
-                                      isFav
-                                        ? "Remove from Favorites"
-                                        : "Save to Favorites"
-                                    }
-                                    onClick={() => saveFoodAsFavorite(l)}
-                                  >
-                                    <Heart
-                                      className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
-                                    />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
-                                    title="Log again"
-                                    onClick={() => relogFood(l)}
-                                  >
-                                    <RotateCcw className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                    title="Modify"
-                                    onClick={() =>
-                                      searchRef.current?.editLog(l)
-                                    }
-                                  >
-                                    <PenTool className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    title="Delete"
-                                    onClick={() => deleteLog(l.id)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
+                                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                  <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
+                                    {formatQty(
+                                      l.quantity_g,
+                                      l.unit,
+                                      l.unit_quantity,
+                                    )}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                    {Math.round(l.calories ?? 0)} kcal
+                                  </span>
+                                  <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                    P{Math.round(l.protein_g ?? 0)}
+                                  </span>
+                                  <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                    C{Math.round(l.carbs_g ?? 0)}
+                                  </span>
+                                  <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                    F{Math.round(l.fat_g ?? 0)}
+                                  </span>
                                 </div>
                               </div>
+                              <div className="flex shrink-0 flex-wrap items-center justify-end gap-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={`h-8 w-8 transition-all ${
+                                    isFav
+                                      ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                      : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                  }`}
+                                  title={
+                                    isFav
+                                      ? "Remove from Favorites"
+                                      : "Save to Favorites"
+                                  }
+                                  onClick={() => saveFoodAsFavorite(l)}
+                                >
+                                  <Heart
+                                    className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
+                                  />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                  title="Log again"
+                                  onClick={() => relogFood(l)}
+                                >
+                                  <RotateCcw className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                  title="Modify"
+                                  onClick={() => searchRef.current?.editLog(l)}
+                                >
+                                  <PenTool className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  title="Delete"
+                                  onClick={() => deleteLog(l.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
@@ -602,8 +608,27 @@ function FoodPage() {
               </div>
             )}
 
-            {/* ── Create Custom Meal ── */}
+            {/* The same search box again, at the end of the day's logs —
+                after a dozen entries the one at the top is a scroll away.
+                searchOnly, so the camera and mic tiles are not duplicated.
+
+                This copy runs Gemini while the one at the top stays on
+                gpt-oss-120b, which is what makes the pair a comparison: type
+                the same food into both and read the two answers. Do not tidy
+                this up by giving them the same engine. */}
             <div className="mt-8 pt-6 border-t border-border/30">
+              <FoodSearch
+                userId={user.id}
+                date={selectedDate}
+                onLogged={load}
+                meals={userMeals}
+                aiEngine="gemini"
+                searchOnly
+              />
+            </div>
+
+            {/* ── Create Custom Meal ── */}
+            <div className="mt-6">
               <Button
                 variant="outline"
                 className="w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
@@ -642,7 +667,8 @@ function FoodPage() {
                       setMealCount(n);
                       setMealNames((prev) => {
                         const copy = [...prev];
-                        while (copy.length < n) copy.push(`Meal ${copy.length + 1}`);
+                        while (copy.length < n)
+                          copy.push(`Meal ${copy.length + 1}`);
                         return copy;
                       });
                     }}
@@ -692,8 +718,6 @@ function FoodPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-
     </div>
   );
 }

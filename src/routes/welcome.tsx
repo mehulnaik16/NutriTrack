@@ -50,17 +50,57 @@ const BENEFITS = [
 
 // Priority order (left→right, top→bottom) — do not reorder.
 const FEATURES = [
-  { icon: Utensils, label: "Food Logging", sub: "Log meals, calories, and macros" },
-  { icon: Dumbbell, label: "Workout Log", sub: "Track sets, reps, and sweat sessions" },
-  { icon: Scale, label: "Weight Logging", sub: "Daily tracking with trend insights" },
-  { icon: UtensilsCrossed, label: "Custom Meal", sub: "Create meals from your ingredients" },
-  { icon: LineChart, label: "Smart Analytics", sub: "Visual insights across all data" },
-  { icon: Ruler, label: "Measurement Log", sub: "Track body measurements over time" },
-  { icon: Palette, label: "Multiple Themes", sub: "Choose the look that inspires you" },
-  { icon: ShieldCheck, label: "Privacy First", sub: "Your data stays yours. Delete anytime." },
+  {
+    icon: Utensils,
+    label: "Food Logging",
+    sub: "Log meals, calories, and macros",
+  },
+  {
+    icon: Dumbbell,
+    label: "Workout Log",
+    sub: "Track sets, reps, and sweat sessions",
+  },
+  {
+    icon: Scale,
+    label: "Weight Logging",
+    sub: "Daily tracking with trend insights",
+  },
+  {
+    icon: UtensilsCrossed,
+    label: "Custom Meal",
+    sub: "Create meals from your ingredients",
+  },
+  {
+    icon: LineChart,
+    label: "Smart Analytics",
+    sub: "Visual insights across all data",
+  },
+  {
+    icon: Ruler,
+    label: "Measurement Log",
+    sub: "Track body measurements over time",
+  },
+  {
+    icon: Palette,
+    label: "Multiple Themes",
+    sub: "Choose the look that inspires you",
+  },
+  {
+    icon: ShieldCheck,
+    label: "Privacy First",
+    sub: "Your data stays yours. Delete anytime.",
+  },
   { icon: Ban, label: "Zero Ads", sub: "No interruptions. Pure focus." },
-  { icon: Star, label: "Save Favorites", sub: "One-tap access to your go-to meals" },
-  { icon: Sparkles, label: "Intuitive UI", sub: "Simple, clean, and a joy to use" },
+  {
+    icon: Star,
+    label: "Save Favorites",
+    sub: "One-tap access to your go-to meals",
+  },
+  {
+    icon: Sparkles,
+    label: "Intuitive UI",
+    sub: "Simple, clean, and a joy to use",
+  },
 ];
 
 function Welcome() {
@@ -160,7 +200,9 @@ function Welcome() {
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
             Welcome to Dombelz!
           </h1>
-          <p className="mt-2 text-muted-foreground">Here's how life gets easier.</p>
+          <p className="mt-2 text-muted-foreground">
+            Here's how life gets easier.
+          </p>
         </div>
 
         <div className="my-8 h-px bg-border/70" />

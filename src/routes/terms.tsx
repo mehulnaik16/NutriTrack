@@ -73,18 +73,17 @@ function Terms() {
 
         <Section title="2. Not medical advice">
           <p>
-            Dombelz provides general fitness and nutrition information —
-            calorie estimates, macro targets, workout suggestions, and
-            AI-generated summaries. It is{" "}
+            Dombelz provides general fitness and nutrition information — calorie
+            estimates, macro targets, workout suggestions, and AI-generated
+            summaries. It is{" "}
             <strong className="text-foreground">
               not medical advice, diagnosis, or treatment
             </strong>
             . Nutrition values and AI estimates can be inaccurate. Always
-            consult a qualified healthcare professional before starting any
-            diet or exercise program, especially if you have a medical
-            condition, are pregnant, or are recovering from injury. Stop
-            exercising and seek medical help if you feel pain, dizziness, or
-            discomfort.
+            consult a qualified healthcare professional before starting any diet
+            or exercise program, especially if you have a medical condition, are
+            pregnant, or are recovering from injury. Stop exercising and seek
+            medical help if you feel pain, dizziness, or discomfort.
           </p>
         </Section>
 
@@ -92,17 +91,17 @@ function Terms() {
           <p>
             You are responsible for keeping your login credentials secure and
             for all activity under your account. Provide accurate information —
-            your calorie targets are only as good as the data you enter. You
-            may delete your account at any time from Settings.
+            your calorie targets are only as good as the data you enter. You may
+            delete your account at any time from Settings.
           </p>
         </Section>
 
         <Section title="4. Acceptable use">
           <p>
-            Don't misuse the service: no attempting to access other users'
-            data, no reverse engineering, no automated scraping, no uploading
-            unlawful content, and no using the leaderboard name field for spam
-            or abuse. We may suspend accounts that violate these rules.
+            Don't misuse the service: no attempting to access other users' data,
+            no reverse engineering, no automated scraping, no uploading unlawful
+            content, and no using the leaderboard name field for spam or abuse.
+            We may suspend accounts that violate these rules.
           </p>
         </Section>
 
@@ -153,8 +152,8 @@ function Terms() {
 
         <Section title="10. Changes">
           <p>
-            We may update these Terms; material changes will be announced in
-            the app. Continued use after changes means acceptance.
+            We may update these Terms; material changes will be announced in the
+            app. Continued use after changes means acceptance.
           </p>
         </Section>
 

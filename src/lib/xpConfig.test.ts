@@ -66,7 +66,11 @@ const STREAK = 150; // streak_7
 //    a drifted id would render an unlabelled badge.
 {
   for (const a of Object.values(ACHIEVEMENTS)) {
-    assert.equal(ACHIEVEMENT_BY_ID[a.id]?.title, a.title, `unmapped id ${a.id}`);
+    assert.equal(
+      ACHIEVEMENT_BY_ID[a.id]?.title,
+      a.title,
+      `unmapped id ${a.id}`,
+    );
   }
   assert.equal(Object.keys(ACHIEVEMENT_BY_ID).length, 19);
 }

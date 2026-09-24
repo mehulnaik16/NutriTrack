@@ -70,35 +70,39 @@ export const MUSCLE_TO_GRID: Record<StandardMuscle, string[]> = {
 };
 
 /** One row of a custom plan. `muscles` is [] or ["Rest Day"] on rest days. */
-export interface CustomPlanDay {
+export type CustomPlanDay = {
   day: string; // "Day 1" … "Day 7"
   name: string; // display name, e.g. "Chest · Triceps · Core" or "Rest Day"
   focus: string;
   muscles: StandardMuscle[];
   exercises: { name: string; sets: number; reps: string }[]; // [] for custom
-}
+};
 
-export interface CustomPlan {
+// Types, not interfaces, here and in workoutLibrary/workoutSets: these are
+// stored in json columns, and only a type alias is assignable to Json.
+export type CustomPlan = {
   goal: string;
   type: "custom";
   days_per_week: number;
   days: CustomPlanDay[];
-}
+};
 
 /** Type guard: is this stored plan a custom (table) plan? */
-export function isCustomPlan(plan: any): plan is CustomPlan {
+export function isCustomPlan(plan: unknown): plan is CustomPlan {
+  const p = plan as { type?: unknown; days?: unknown } | null;
   return (
-    !!plan &&
-    plan.type === "custom" &&
-    Array.isArray(plan.days) &&
-    plan.days.some((d: any) => Array.isArray(d?.muscles))
+    !!p &&
+    p.type === "custom" &&
+    Array.isArray(p.days) &&
+    p.days.some((d) => Array.isArray((d as { muscles?: unknown })?.muscles))
   );
 }
 
 /** Non-rest muscles for a day (safe on any shape). */
-export function activeMuscles(day: any): StandardMuscle[] {
-  if (!day || !Array.isArray(day.muscles)) return [];
-  return day.muscles.filter(
+export function activeMuscles(day: unknown): StandardMuscle[] {
+  const muscles = (day as { muscles?: unknown } | null)?.muscles;
+  if (!Array.isArray(muscles)) return [];
+  return muscles.filter(
     (m: string): m is StandardMuscle =>
       m !== "Rest Day" &&
       (STANDARD_MUSCLE_GROUPS as readonly string[]).includes(m),
@@ -106,7 +110,7 @@ export function activeMuscles(day: any): StandardMuscle[] {
 }
 
 /** Is the given day a rest day? */
-export function isRestDay(day: any): boolean {
+export function isRestDay(day: unknown): boolean {
   return activeMuscles(day).length === 0;
 }
 
@@ -115,10 +119,7 @@ export function isRestDay(day: any): boolean {
  * (max selected on any day, clamped 1–3 → hides unused columns)
  */
 export function tableColumnCount(days: { muscles?: string[] }[]): number {
-  const max = days.reduce(
-    (m, d) => Math.max(m, activeMuscles(d).length),
-    0,
-  );
+  const max = days.reduce((m, d) => Math.max(m, activeMuscles(d).length), 0);
   return Math.min(Math.max(max, 1), MAX_MUSCLES_PER_DAY);
 }
 
@@ -132,9 +133,7 @@ export function gridIdsForMuscles(muscles: StandardMuscle[]): Set<string> {
 }
 
 /** Build the stored plan JSON from 7 days of selections. */
-export function buildCustomPlan(
-  selections: StandardMuscle[][],
-): CustomPlan {
+export function buildCustomPlan(selections: StandardMuscle[][]): CustomPlan {
   const days: CustomPlanDay[] = selections.map((sel, i) => {
     const act = sel.filter((m) => m !== "Rest Day");
     const rest = act.length === 0;

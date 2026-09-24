@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 const HIDDEN_ON = new Set([
   "/profile",
   "/plans",
+  "/quiz",
   "/welcome",
   "/refer-intro",
   "/refer-how-it-works",
@@ -40,11 +41,17 @@ function HubIcon({ className }: { className?: string }) {
 }
 
 export function BottomNav() {
-  const { user, hasProfile } = useAuth();
+  const { user } = useAuth();
   const { pathname } = useLocation();
-  // Hidden until onboarding is finished — every tab below is profile-gated, so
-  // showing them mid-quiz just offers a way to land on a loading spinner.
-  if (!user || hasProfile !== true) return null;
+  // Visibility depends on the session and the route only — never on a network
+  // read. This used to also require useAuth().hasProfile === true, and that
+  // flag stays null whenever the user_profiles check fails or hangs (a dropped
+  // request on mobile data, a tab restored mid-fetch), with nothing to retry
+  // it. The result was a phone with no navigation at all for the rest of the
+  // session, because the header's tab strip only appears at md and up.
+  // Onboarding stays covered: /quiz and /welcome are listed above, and every
+  // tab route already redirects a profile-less user back to /quiz itself.
+  if (!user) return null;
   if (HIDDEN_ON.has(pathname)) return null;
 
   const navItems = [

@@ -16,7 +16,7 @@
 import type { ExerciseKind } from "./exerciseKind.ts";
 import { type WeightUnit, convWeight, round1 } from "@/lib/units";
 
-export interface LoggedSet {
+export type LoggedSet = {
   /** weighted, bodyweight, assisted */
   reps?: string;
   /** weighted: the load · bodyweight: added weight · assisted: the assistance */
@@ -28,7 +28,7 @@ export interface LoggedSet {
   unit?: "kg" | "lbs";
   /** Stamped at write time so readers never re-derive it. Absent on old logs. */
   kind?: ExerciseKind;
-}
+};
 
 const num = (v: unknown) => parseFloat(String(v ?? "")) || 0;
 
@@ -71,7 +71,10 @@ export const parseDuration = (text: string): number => {
 };
 
 /** One history row, rendered per kind, with weights shown in `displayUnit`. */
-export const formatSet = (s: LoggedSet, displayUnit: WeightUnit = "kg"): string => {
+export const formatSet = (
+  s: LoggedSet,
+  displayUnit: WeightUnit = "kg",
+): string => {
   const unit = displayUnit;
   const w = round1(setWeightIn(s, unit));
   const rpe = s.rpe ? ` · RPE ${s.rpe}` : "";
@@ -98,8 +101,12 @@ export const summarizeSets = (
     return { label: "Total reps", value: `${total} reps` };
   }
   const best = sets.reduce(
-    (b, s) => Math.max(b, estimate1RM(setWeightIn(s, displayUnit), num(s.reps))),
+    (b, s) =>
+      Math.max(b, estimate1RM(setWeightIn(s, displayUnit), num(s.reps))),
     0,
   );
-  return { label: "Est. 1RM from these sets", value: `${round1(best)} ${displayUnit}` };
+  return {
+    label: "Est. 1RM from these sets",
+    value: `${round1(best)} ${displayUnit}`,
+  };
 };

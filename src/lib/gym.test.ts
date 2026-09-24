@@ -34,12 +34,24 @@ assert.equal(isGymCode("GYM-IRONVAULT-123"), true);
 // The prefix is the first two words of the gym's name, letters only, capped at
 // 12 — partner_code_prefix() falls back to 'GYM' for a name with none.
 assert.equal(isGymCode("GYM-GYM-001"), true);
-assert.equal(isGymCode("GYM-ABCDEFGHIJKL-999"), true, "twelve letters is the cap");
+assert.equal(
+  isGymCode("GYM-ABCDEFGHIJKL-999"),
+  true,
+  "twelve letters is the cap",
+);
 assert.equal(isGymCode("GYM-ABCDEFGHIJKLM-999"), false, "thirteen is too many");
 
-assert.equal(isGymCode("gym-powerfitness-850"), false, "must be uppercased first");
+assert.equal(
+  isGymCode("gym-powerfitness-850"),
+  false,
+  "must be uppercased first",
+);
 assert.equal(isGymCode("GYM-POWERFITNESS-85"), false, "three digits, not two");
-assert.equal(isGymCode("GYM-POWERFITNESS-8501"), false, "three digits, not four");
+assert.equal(
+  isGymCode("GYM-POWERFITNESS-8501"),
+  false,
+  "three digits, not four",
+);
 assert.equal(isGymCode("GYM-POWER FITNESS-850"), false, "no spaces");
 assert.equal(isGymCode("GYM-POWER1-850"), false, "prefix is letters only");
 assert.equal(isGymCode("GYM--850"), false, "prefix cannot be empty");
@@ -63,12 +75,24 @@ assert.equal(partnerKindOf("DR-ANANYA30"), null, "three digits, not two");
 
 assert.equal(partnerKindOf("PRIYAFITQUEEN60"), "ugc");
 assert.equal(partnerKindOf("ABC60"), "ugc");
-assert.equal(partnerKindOf("PRIYAFITQUEEN483"), "ugc", "the collision fallback");
-assert.equal(partnerKindOf("priyafitqueen60"), null, "must be uppercased first");
+assert.equal(
+  partnerKindOf("PRIYAFITQUEEN483"),
+  "ugc",
+  "the collision fallback",
+);
+assert.equal(
+  partnerKindOf("priyafitqueen60"),
+  null,
+  "must be uppercased first",
+);
 assert.equal(partnerKindOf("ABC-60"), null, "no hyphen in a creator code");
 
 assert.equal(partnerKindOf("GYM-IRONVAULT-123"), "gym");
-assert.equal(partnerKindOf("RAH38291"), null, "a friend code belongs to nobody here");
+assert.equal(
+  partnerKindOf("RAH38291"),
+  null,
+  "a friend code belongs to nobody here",
+);
 assert.equal(partnerKindOf(""), null);
 assert.equal(partnerKindOf(null), null);
 assert.equal(isPartnerCode("DR-ANANYA304"), true);
@@ -82,10 +106,22 @@ assert.equal(isGymCode("PRIYAFITQUEEN60"), false);
 // This is what lets one input box classify by shape alone, with no extra round
 // trip and no ambiguity about which claim path a code should take.
 const SAMPLES = [
-  "RAH38291", "DBZ00000", "JOX12345",
-  "GYM-POWERFITNESS-850", "GYM-GAGAGN-452", "GYM-IRONVAULT-123",
-  "DR-ANANYA304", "DR-A123", "PRIYAFITQUEEN60", "ABC60", "PRIYAFITQUEEN483",
-  "", "rah38291", "gym-gagagn-452", "GYM38291", "RAH-123-456",
+  "RAH38291",
+  "DBZ00000",
+  "JOX12345",
+  "GYM-POWERFITNESS-850",
+  "GYM-GAGAGN-452",
+  "GYM-IRONVAULT-123",
+  "DR-ANANYA304",
+  "DR-A123",
+  "PRIYAFITQUEEN60",
+  "ABC60",
+  "PRIYAFITQUEEN483",
+  "",
+  "rah38291",
+  "gym-gagagn-452",
+  "GYM38291",
+  "RAH-123-456",
 ];
 for (const s of SAMPLES) {
   assert.ok(
@@ -93,7 +129,11 @@ for (const s of SAMPLES) {
     `"${s}" must not match both a friend and a partner code shape`,
   );
 }
-assert.equal(isValidCode("GYM-GAGAGN-452"), false, "a gym code is not a friend code");
+assert.equal(
+  isValidCode("GYM-GAGAGN-452"),
+  false,
+  "a gym code is not a friend code",
+);
 assert.equal(isGymCode("RAH38291"), false, "a friend code is not a gym code");
 
 // THE COLLISION THE LETTERS-ONLY RULE EXISTS TO PREVENT.
@@ -125,8 +165,16 @@ assert.equal(addMonths("2026-09-08", 6), "2027-03-08");
 assert.equal(addMonths("2026-12-31", 1), "2027-01-31");
 // The whole reason this is not Date.setMonth: that rolls 31 Jan forward into
 // early March, handing the member days their gym never sold them.
-assert.equal(addMonths("2026-01-31", 1), "2026-02-28", "clamps to a short month");
-assert.equal(addMonths("2028-01-31", 1), "2028-02-29", "leap year still clamps");
+assert.equal(
+  addMonths("2026-01-31", 1),
+  "2026-02-28",
+  "clamps to a short month",
+);
+assert.equal(
+  addMonths("2028-01-31", 1),
+  "2028-02-29",
+  "leap year still clamps",
+);
 assert.equal(addMonths("2026-03-31", 1), "2026-04-30");
 assert.equal(addMonths("2026-08-31", 6), "2027-02-28");
 // A day that exists in the target month is never moved.
@@ -136,9 +184,17 @@ assert.equal(addMonths("2026-02-28", 12), "2027-02-28");
 const START = "2026-06-01";
 const END = "2026-12-01";
 assert.equal(membershipStatus(START, END, "2026-05-31"), "upcoming");
-assert.equal(membershipStatus(START, END, "2026-06-01"), "active", "starts on the day");
+assert.equal(
+  membershipStatus(START, END, "2026-06-01"),
+  "active",
+  "starts on the day",
+);
 assert.equal(membershipStatus(START, END, "2026-09-08"), "active");
-assert.equal(membershipStatus(START, END, "2026-12-01"), "active", "ends on the day");
+assert.equal(
+  membershipStatus(START, END, "2026-12-01"),
+  "active",
+  "ends on the day",
+);
 assert.equal(membershipStatus(START, END, "2026-12-02"), "expired");
 // A half-filled form must not claim a status it cannot back.
 assert.equal(membershipStatus(null, END), "unknown");

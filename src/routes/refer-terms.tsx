@@ -52,7 +52,9 @@ function ReferTerms() {
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <h1 className="font-display text-sm font-bold">Terms &amp; Conditions</h1>
+          <h1 className="font-display text-sm font-bold">
+            Terms &amp; Conditions
+          </h1>
         </div>
       </header>
 
@@ -122,8 +124,8 @@ function ReferTerms() {
             {PREMIUM_DAYS_PER_SUBSCRIPTION} days of Premium Feature access.
           </p>
           <p>
-            b. There is no upper limit to the number of paid referrals a user can
-            make. Premium days accrue up to a lifetime maximum of{" "}
+            b. There is no upper limit to the number of paid referrals a user
+            can make. Premium days accrue up to a lifetime maximum of{" "}
             {MAX_PREMIUM_DAYS} days ever granted (equivalent to {capPremium}{" "}
             paid referrals); referring beyond that adds no further days.
           </p>
@@ -135,14 +137,16 @@ function ReferTerms() {
           </p>
           <p>
             d. If a Referee's payment is refunded or their subscription is
-            cancelled after the days have been credited, only the portion not yet
-            used is withdrawn. Days already consumed are never taken back.
+            cancelled after the days have been credited, only the portion not
+            yet used is withdrawn. Days already consumed are never taken back.
           </p>
           <p>
-            e. The Referee receives an instant ₹{REFEREE_DISCOUNT_RUPEES} discount
-            on the Yearly plan
-            {yearly && discounted ? `, making the final price ₹${discounted}` : ""}.
-            This discount is applied at checkout, is valid on the Yearly plan
+            e. The Referee receives an instant ₹{REFEREE_DISCOUNT_RUPEES}{" "}
+            discount on the Yearly plan
+            {yearly && discounted
+              ? `, making the final price ₹${discounted}`
+              : ""}
+            . This discount is applied at checkout, is valid on the Yearly plan
             only, and has no cash value.
           </p>
         </Section>
@@ -186,8 +190,8 @@ function ReferTerms() {
 
         <Section n={8} title="Limitation of Liability">
           <p>
-            a. Rewards are provided "as is" and have no monetary value outside the
-            app ecosystem.
+            a. Rewards are provided "as is" and have no monetary value outside
+            the app ecosystem.
           </p>
           <p>
             b. Dombelz is not responsible for technical glitches, lost referral

@@ -1,4 +1,8 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { WorkoutGate } from "@/components/WorkoutGate";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Loader2, PencilRuler, X } from "lucide-react";
@@ -77,8 +81,8 @@ function CustomPlanEditor() {
         setPlanId(data.id);
         setTodayIdx(
           cycleDayIndex(
-            (data as any).custom_plan_day_idx ?? 0,
-            (data as any).custom_plan_day_anchor ?? null,
+            data.custom_plan_day_idx ?? 0,
+            data.custom_plan_day_anchor ?? null,
             todayLocal(),
             p.days.length,
           ),
@@ -92,7 +96,7 @@ function CustomPlanEditor() {
     const updated = updatePlanDay(plan, dayIdx, muscles);
     const { error } = await supabase
       .from("workout_plans")
-      .update({ plan_json: updated as any })
+      .update({ plan_json: updated })
       .eq("id", planId);
     if (error) {
       toast.error(error.message);
@@ -144,7 +148,7 @@ function CustomPlanEditor() {
       .update({
         custom_plan_day_idx: i,
         custom_plan_day_anchor: todayLocal(),
-      } as any)
+      })
       .eq("id", planId);
     if (error) {
       toast.error(error.message);
@@ -239,7 +243,9 @@ function CustomPlanEditor() {
                         } ${isRestOption ? "col-span-2" : ""}`}
                       >
                         <MuscleIcon muscle={m} className="h-6 w-6" />
-                        <span className={`min-w-0 flex-1 truncate font-semibold ${selected ? "text-accent" : ""}`}>
+                        <span
+                          className={`min-w-0 flex-1 truncate font-semibold ${selected ? "text-accent" : ""}`}
+                        >
                           {m}
                         </span>
                         {selected && isRestOption && (
@@ -263,7 +269,9 @@ function CustomPlanEditor() {
                     disabled={saving}
                     className="flex-1 rounded-full bg-accent font-bold text-accent-foreground hover:bg-accent/90"
                   >
-                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {saving ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
                     Save {plan.days[editingDayIdx].day}
                   </Button>
                 </div>

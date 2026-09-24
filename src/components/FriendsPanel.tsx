@@ -62,12 +62,25 @@ interface Found {
 }
 
 const initial = (n: string | null) => (n?.trim()?.[0] ?? "?").toUpperCase();
-const rpc = (fn: string, args?: Record<string, unknown>) => (supabase.rpc as any)(fn, args);
 
 /** Avatar with an "active today" dot. Ring intensity tracks weekly consistency. */
-function Avatar({ name, active, ring }: { name: string | null; active?: boolean; ring?: number }) {
+function Avatar({
+  name,
+  active,
+  ring,
+}: {
+  name: string | null;
+  active?: boolean;
+  ring?: number;
+}) {
   const strength =
-    ring === undefined ? "border-border" : ring >= 5 ? "border-accent" : ring >= 2 ? "border-accent/50" : "border-border";
+    ring === undefined
+      ? "border-border"
+      : ring >= 5
+        ? "border-accent"
+        : ring >= 2
+          ? "border-accent/50"
+          : "border-border";
   return (
     <div className="relative shrink-0">
       <div
@@ -85,7 +98,9 @@ function Avatar({ name, active, ring }: { name: string | null; active?: boolean;
 export function FriendsPanel() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"FRIENDS" | "REQUESTS" | "DISCOVER">("FRIENDS");
+  const [tab, setTab] = useState<"FRIENDS" | "REQUESTS" | "DISCOVER">(
+    "FRIENDS",
+  );
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,15 +119,19 @@ export function FriendsPanel() {
   const load = useCallback(async () => {
     if (!user) return;
     const [f, r, me] = await Promise.all([
-      rpc("get_friends"),
-      rpc("get_friend_requests"),
-      supabase.from("user_profiles").select("username, full_name").eq("id", user.id).maybeSingle(),
+      supabase.rpc("get_friends"),
+      supabase.rpc("get_friend_requests"),
+      supabase
+        .from("user_profiles")
+        .select("username, full_name")
+        .eq("id", user.id)
+        .maybeSingle(),
     ]);
     if (f.error) toast.error(f.error.message);
     setFriends((f.data || []) as Friend[]);
     setRequests((r.data || []) as Request[]);
-    setMyUsername((me.data as any)?.username ?? null);
-    setMyName((me.data as any)?.full_name ?? null);
+    setMyUsername(me.data?.username ?? null);
+    setMyName(me.data?.full_name ?? null);
     setLoading(false);
   }, [user]);
 
@@ -125,33 +144,58 @@ export function FriendsPanel() {
     if (tab !== "DISCOVER") return;
     setSearching(true);
     const t = setTimeout(async () => {
-      const { data } = await rpc("search_users", { q: query });
+      const { data } = await supabase.rpc("search_users", { q: query });
       setFound((data || []) as Found[]);
       setSearching(false);
     }, 250);
     return () => clearTimeout(t);
   }, [query, tab]);
 
-  const incoming = useMemo(() => requests.filter((r) => r.direction === "incoming"), [requests]);
-  const outgoing = useMemo(() => requests.filter((r) => r.direction === "outgoing"), [requests]);
+  const incoming = useMemo(
+    () => requests.filter((r) => r.direction === "incoming"),
+    [requests],
+  );
+  const outgoing = useMemo(
+    () => requests.filter((r) => r.direction === "outgoing"),
+    [requests],
+  );
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const claimUsername = async () => {
-    const name = draftName.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
-    if (name.length < 3) return toast.error("At least 3 characters (letters, numbers, underscore).");
-    const { error } = await supabase.from("user_profiles").update({ username: name }).eq("id", user!.id);
+    const name = draftName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "");
+    if (name.length < 3)
+      return toast.error(
+        "At least 3 characters (letters, numbers, underscore).",
+      );
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({ username: name })
+      .eq("id", user!.id);
     // 23505 = unique violation, i.e. somebody already has this handle
-    if (error) return toast.error(error.code === "23505" ? "That username is taken." : error.message);
+    if (error)
+      return toast.error(
+        error.code === "23505" ? "That username is taken." : error.message,
+      );
     setMyUsername(name);
     toast.success(`You're @${name}`);
   };
 
   const cheer = async (f: Friend) => {
     setBusy(f.id);
-    const { error } = await supabase.from("cheers").insert({ from_user: user!.id, to_user: f.id });
+    const { error } = await supabase
+      .from("cheers")
+      .insert({ from_user: user!.id, to_user: f.id });
     setBusy(null);
-    if (error) return toast.error(error.code === "23505" ? "Already cheered today." : error.message);
-    setFriends((prev) => prev.map((x) => (x.id === f.id ? { ...x, cheered_today: true } : x)));
+    if (error)
+      return toast.error(
+        error.code === "23505" ? "Already cheered today." : error.message,
+      );
+    setFriends((prev) =>
+      prev.map((x) => (x.id === f.id ? { ...x, cheered_today: true } : x)),
+    );
     toast.success(`Cheered ${f.full_name?.split(" ")[0] ?? "them"}! 👋`);
   };
 
@@ -178,12 +222,16 @@ export function FriendsPanel() {
 
   const addFriend = async (u: Found) => {
     setBusy(u.id);
-    const { error } = await supabase
-      .from("friendships")
-      .insert({ requester_id: user!.id, addressee_id: u.id, status: "pending" });
+    const { error } = await supabase.from("friendships").insert({
+      requester_id: user!.id,
+      addressee_id: u.id,
+      status: "pending",
+    });
     setBusy(null);
     if (error) return toast.error(error.message);
-    setFound((prev) => prev.map((x) => (x.id === u.id ? { ...x, status: "sent" } : x)));
+    setFound((prev) =>
+      prev.map((x) => (x.id === u.id ? { ...x, status: "sent" } : x)),
+    );
     toast.success("Request sent");
     load();
   };
@@ -191,7 +239,7 @@ export function FriendsPanel() {
   /** Handles a decoded QR string. Server decides what the scan means. */
   const handleCode = async (raw: string) => {
     const code = raw.startsWith(QR_PREFIX) ? raw.slice(QR_PREFIX.length) : raw;
-    const { data, error } = await rpc("resolve_friend_code", { code });
+    const { data, error } = await supabase.rpc("resolve_friend_code", { code });
     if (error) return toast.error(error.message);
     const res = data?.[0];
     const who = res?.full_name ?? "them";
@@ -252,11 +300,17 @@ export function FriendsPanel() {
             whiteColor: "transparent",
           })
         : null,
-    [myUsername]
+    [myUsername],
   );
 
   // ── Pieces ────────────────────────────────────────────────────────────────
-  const Empty = ({ icon: Icon, text }: { icon: typeof Users; text: string }) => (
+  const Empty = ({
+    icon: Icon,
+    text,
+  }: {
+    icon: typeof Users;
+    text: string;
+  }) => (
     <div className="rounded-2xl border border-dashed border-border p-12 text-center">
       <Icon className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-40" />
       <p className="text-sm text-muted-foreground">{text}</p>
@@ -266,7 +320,10 @@ export function FriendsPanel() {
   const Skeleton = () => (
     <div className="space-y-2">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-muted/40" />
+        <div
+          key={i}
+          className="h-24 animate-pulse rounded-2xl border border-border bg-muted/40"
+        />
       ))}
     </div>
   );
@@ -330,7 +387,9 @@ export function FriendsPanel() {
             <Avatar name={myName} />
             <div className="min-w-0">
               <p className="truncate font-bold">{myName || "Anonymous"}</p>
-              <p className="truncate text-xs text-muted-foreground">@{myUsername}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                @{myUsername}
+              </p>
             </div>
           </div>
           <div className="shrink-0 text-right pr-6">
@@ -348,7 +407,9 @@ export function FriendsPanel() {
             <UserPlus className="h-4 w-4" /> Add Friends
           </button>
           <button
-            onClick={() => navigate({ to: "/profile", search: { page: "refer" } })}
+            onClick={() =>
+              navigate({ to: "/profile", search: { page: "refer" } })
+            }
             className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-xs font-bold active:scale-95 hover:border-accent/50"
           >
             <Gift className="h-4 w-4" /> Refer a Friend
@@ -360,26 +421,47 @@ export function FriendsPanel() {
         <Skeleton />
       ) : tab === "FRIENDS" ? (
         friends.length === 0 ? (
-          <Empty icon={Users} text="No friends yet — scan a QR code or search in Discover." />
+          <Empty
+            icon={Users}
+            text="No friends yet — scan a QR code or search in Discover."
+          />
         ) : (
           <>
             {friends.map((f) => (
-              <div key={f.id} className="rounded-2xl border border-border bg-card p-4">
+              <div
+                key={f.id}
+                className="rounded-2xl border border-border bg-card p-4"
+              >
                 <div className="flex gap-3">
-                  <Avatar name={f.full_name} active={f.active_today} ring={f.workouts_this_week} />
+                  <Avatar
+                    name={f.full_name}
+                    active={f.active_today}
+                    ring={f.workouts_this_week}
+                  />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold">{f.full_name || "Anonymous"}</p>
-                    <p className="truncate text-xs text-muted-foreground">@{f.username}</p>
+                    <p className="truncate font-bold">
+                      {f.full_name || "Anonymous"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      @{f.username}
+                    </p>
                     <div className="mt-2 flex gap-6 text-xs">
                       <span>
-                        <span className="block text-muted-foreground">Current Streak</span>
+                        <span className="block text-muted-foreground">
+                          Current Streak
+                        </span>
                         <span className="font-bold tabular-nums">
-                          {f.current_streak} Days <Flame className="inline h-3 w-3 text-accent" />
+                          {f.current_streak} Days{" "}
+                          <Flame className="inline h-3 w-3 text-accent" />
                         </span>
                       </span>
                       <span>
-                        <span className="block text-muted-foreground">This Week</span>
-                        <span className="font-bold tabular-nums">{f.workouts_this_week}</span>
+                        <span className="block text-muted-foreground">
+                          This Week
+                        </span>
+                        <span className="font-bold tabular-nums">
+                          {f.workouts_this_week}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -407,7 +489,8 @@ export function FriendsPanel() {
                 </div>
                 {f.last_activity && (
                   <p className="mt-3 border-t border-border/60 pt-2 text-xs text-muted-foreground">
-                    Last Activity: <span className="text-foreground">{f.last_activity}</span>
+                    Last Activity:{" "}
+                    <span className="text-foreground">{f.last_activity}</span>
                     {f.last_activity_at && ` (${f.last_activity_at})`}
                   </p>
                 )}
@@ -422,10 +505,15 @@ export function FriendsPanel() {
           ) : null}
 
           {incoming.map((r) => (
-            <div key={r.friendship_id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+            <div
+              key={r.friendship_id}
+              className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4"
+            >
               <Avatar name={r.full_name} />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">{r.full_name || "Anonymous"}</p>
+                <p className="truncate font-bold">
+                  {r.full_name || "Anonymous"}
+                </p>
                 <p className="truncate text-xs text-muted-foreground">
                   @{r.username}
                   {r.mutual_count > 0 && ` · ${r.mutual_count} mutual`}
@@ -454,10 +542,15 @@ export function FriendsPanel() {
                 Sent
               </p>
               {outgoing.map((r) => (
-                <div key={r.friendship_id} className="flex items-center gap-3 border-t border-border/60 p-4 first:border-t-0">
+                <div
+                  key={r.friendship_id}
+                  className="flex items-center gap-3 border-t border-border/60 p-4 first:border-t-0"
+                >
                   <Avatar name={r.full_name} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold">{r.full_name || "Anonymous"}</p>
+                    <p className="truncate font-bold">
+                      {r.full_name || "Anonymous"}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
                       <Clock className="mr-1 inline h-3 w-3" />
                       Pending
@@ -522,10 +615,15 @@ export function FriendsPanel() {
                 {query.trim() ? "Results" : "Suggested"}
               </p>
               {found.map((u) => (
-                <div key={u.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+                <div
+                  key={u.id}
+                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4"
+                >
                   <Avatar name={u.full_name} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold">{u.full_name || "Anonymous"}</p>
+                    <p className="truncate font-bold">
+                      {u.full_name || "Anonymous"}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
                       @{u.username} · {u.current_streak} day streak
                     </p>
@@ -556,7 +654,8 @@ export function FriendsPanel() {
           <DialogHeader>
             <DialogTitle className="text-center">Your Friend Code</DialogTitle>
             <DialogDescription className="sr-only">
-              Share this QR code so a friend can scan it and send you a friend request
+              Share this QR code so a friend can scan it and send you a friend
+              request
             </DialogDescription>
           </DialogHeader>
           {myQr && (
@@ -578,7 +677,8 @@ export function FriendsPanel() {
           <DialogHeader>
             <DialogTitle>Scan a Friend Code</DialogTitle>
             <DialogDescription className="sr-only">
-              Point your camera at a friend's QR code to send them a friend request
+              Point your camera at a friend's QR code to send them a friend
+              request
             </DialogDescription>
           </DialogHeader>
           <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-black">

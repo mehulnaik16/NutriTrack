@@ -101,50 +101,120 @@ export const CATEGORY_CONFIGS: Record<CardioCategory, CategoryConfig> = {
     label: "Distance & Locomotion",
     form: { distance: true, distanceUnit: "km" },
     charts: [
-      { metric: "pace", label: "PACE (MIN/KM) — LOWER IS FASTER", unit: "min/km", inverted: true },
-      { metric: "distance", label: "DISTANCE (KM)", unit: "km", inverted: false },
+      {
+        metric: "pace",
+        label: "PACE (MIN/KM) — LOWER IS FASTER",
+        unit: "min/km",
+        inverted: true,
+      },
+      {
+        metric: "distance",
+        label: "DISTANCE (KM)",
+        unit: "km",
+        inverted: false,
+      },
     ],
   },
   ergometer: {
     label: "Machine Ergometers",
     // Without intensity the engine had no effort signal at all and every
     // ergometer session collapsed onto one default MET.
-    form: { distance: true, distanceUnit: "meters", intensity: ERGOMETER_INTENSITY, avgPower: true },
+    form: {
+      distance: true,
+      distanceUnit: "meters",
+      intensity: ERGOMETER_INTENSITY,
+      avgPower: true,
+    },
     charts: [
-      { metric: "pace", label: "PACE (MIN/500M) — LOWER IS FASTER", unit: "min/500m", inverted: true },
-      { metric: "avgPower", label: "AVG POWER (WATTS)", unit: "W", inverted: false },
+      {
+        metric: "pace",
+        label: "PACE (MIN/500M) — LOWER IS FASTER",
+        unit: "min/500m",
+        inverted: true,
+      },
+      {
+        metric: "avgPower",
+        label: "AVG POWER (WATTS)",
+        unit: "W",
+        inverted: false,
+      },
     ],
   },
   mind_body: {
     label: "Mind-Body & Flow",
     form: { intensity: MIND_BODY_INTENSITY, style: MIND_BODY_STYLES },
     charts: [
-      { metric: "duration", label: "DURATION (MIN)", unit: "min", inverted: false },
-      { metric: "calories", label: "CALORIES BURNED (KCAL)", unit: "kcal", inverted: false },
+      {
+        metric: "duration",
+        label: "DURATION (MIN)",
+        unit: "min",
+        inverted: false,
+      },
+      {
+        metric: "calories",
+        label: "CALORIES BURNED (KCAL)",
+        unit: "kcal",
+        inverted: false,
+      },
     ],
   },
   sports: {
     label: "Sports & Games",
     form: { intensity: SPORTS_INTENSITY, score: true },
     charts: [
-      { metric: "duration", label: "DURATION (MIN)", unit: "min", inverted: false },
-      { metric: "calories", label: "CALORIES BURNED (KCAL)", unit: "kcal", inverted: false },
+      {
+        metric: "duration",
+        label: "DURATION (MIN)",
+        unit: "min",
+        inverted: false,
+      },
+      {
+        metric: "calories",
+        label: "CALORIES BURNED (KCAL)",
+        unit: "kcal",
+        inverted: false,
+      },
     ],
   },
   dance: {
     label: "Dance & Choreography",
     form: { intensity: DANCE_INTENSITY, style: DANCE_STYLES },
     charts: [
-      { metric: "duration", label: "DURATION (MIN)", unit: "min", inverted: false },
-      { metric: "calories", label: "CALORIES BURNED (KCAL)", unit: "kcal", inverted: false },
+      {
+        metric: "duration",
+        label: "DURATION (MIN)",
+        unit: "min",
+        inverted: false,
+      },
+      {
+        metric: "calories",
+        label: "CALORIES BURNED (KCAL)",
+        unit: "kcal",
+        inverted: false,
+      },
     ],
   },
   interval: {
     label: "Interval & High-Intensity",
-    form: { intensity: INTERVAL_INTENSITY, protocol: INTERVAL_PROTOCOLS, rounds: true, workRest: true },
+    form: {
+      intensity: INTERVAL_INTENSITY,
+      protocol: INTERVAL_PROTOCOLS,
+      rounds: true,
+      workRest: true,
+    },
     charts: [
-      { metric: "duration", label: "TOTAL DURATION (MIN)", unit: "min", inverted: false },
-      { metric: "rounds", label: "TOTAL ROUNDS / INTERVALS", unit: "", inverted: false },
+      {
+        metric: "duration",
+        label: "TOTAL DURATION (MIN)",
+        unit: "min",
+        inverted: false,
+      },
+      {
+        metric: "rounds",
+        label: "TOTAL ROUNDS / INTERVALS",
+        unit: "",
+        inverted: false,
+      },
     ],
   },
 };
@@ -154,35 +224,35 @@ export const CATEGORY_CONFIGS: Record<CardioCategory, CategoryConfig> = {
 
 export const CARDIO_CATALOG: CardioActivity[] = [
   // ── Category A: Distance & Locomotion ──
-  { name: "Treadmill running",  category: "distance" },
-  { name: "Outdoor run",        category: "distance" },
-  { name: "Outdoor walk",       category: "distance" },
-  { name: "Cycling",            category: "distance" },
-  { name: "Swimming",           category: "distance" },
-  { name: "Stair climbing",     category: "distance" },
+  { name: "Treadmill running", category: "distance" },
+  { name: "Outdoor run", category: "distance" },
+  { name: "Outdoor walk", category: "distance" },
+  { name: "Cycling", category: "distance" },
+  { name: "Swimming", category: "distance" },
+  { name: "Stair climbing", category: "distance" },
   // ── Category B: Machine Ergometers ──
-  { name: "Rowing machine",     category: "ergometer" },
-  { name: "SkiErg",             category: "ergometer" },
-  { name: "Elliptical",         category: "ergometer" },
-  { name: "Assault Bike",       category: "ergometer" },  // NEW
+  { name: "Rowing machine", category: "ergometer" },
+  { name: "SkiErg", category: "ergometer" },
+  { name: "Elliptical", category: "ergometer" },
+  { name: "Assault Bike", category: "ergometer" }, // NEW
   // ── Category C: Mind-Body & Flow ──
-  { name: "Yoga & Pilates",     category: "mind_body" },
-  { name: "Stretching",         category: "mind_body" },   // NEW
+  { name: "Yoga & Pilates", category: "mind_body" },
+  { name: "Stretching", category: "mind_body" }, // NEW
   // ── Category D: Sports & Games ──
-  { name: "Badminton",          category: "sports" },
-  { name: "Cricket",            category: "sports" },
-  { name: "Football",           category: "sports" },
+  { name: "Badminton", category: "sports" },
+  { name: "Cricket", category: "sports" },
+  { name: "Football", category: "sports" },
   // ── Category E: Dance & Choreography ──
-  { name: "Dancing",            category: "dance" },
-  { name: "Zumba",              category: "dance" },   // NEW
-  { name: "Hip-Hop",            category: "dance" },   // NEW
-  { name: "Dance Cardio",       category: "dance" },   // NEW
+  { name: "Dancing", category: "dance" },
+  { name: "Zumba", category: "dance" }, // NEW
+  { name: "Hip-Hop", category: "dance" }, // NEW
+  { name: "Dance Cardio", category: "dance" }, // NEW
   // ── Category F: Interval & High-Intensity ──
-  { name: "HIIT",               category: "interval" },
-  { name: "Jump rope",          category: "interval" },
-  { name: "Tabata",             category: "interval" },   // NEW
-  { name: "EMOM",               category: "interval" },   // NEW
-  { name: "AMRAP",              category: "interval" },   // NEW
+  { name: "HIIT", category: "interval" },
+  { name: "Jump rope", category: "interval" },
+  { name: "Tabata", category: "interval" }, // NEW
+  { name: "EMOM", category: "interval" }, // NEW
+  { name: "AMRAP", category: "interval" }, // NEW
 ];
 
 /** All activity names — drop-in replacement for the old CARDIO_ACTIVITIES array. */
@@ -240,7 +310,10 @@ export function saveCardioDefaults(
   defaults: Record<string, string>,
 ): void {
   try {
-    localStorage.setItem(defaultsKey(userId, activity), JSON.stringify(defaults));
+    localStorage.setItem(
+      defaultsKey(userId, activity),
+      JSON.stringify(defaults),
+    );
   } catch {
     /* storage full / blocked — non-critical */
   }

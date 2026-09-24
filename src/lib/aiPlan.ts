@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/client";
 import { serverGroqChat } from "@/lib/ai";
-import { FITNESS_GOALS, SPLIT_GUIDE, type WorkoutPrefs } from "@/lib/workoutPrefs";
+import {
+  FITNESS_GOALS,
+  SPLIT_GUIDE,
+  type WorkoutPrefs,
+} from "@/lib/workoutPrefs";
 import { EXERCISES_DB } from "@/lib/exercises";
 import { AI_CATALOG_GROUPS } from "@/lib/aiExerciseCatalog";
 import { decomposeGoalKey } from "@/lib/nutrition";
@@ -47,8 +51,11 @@ export async function generateAiPlan(
   const lifts: string[] = [];
   const { benchPress, squat: sq, deadlift: dl } = prefs.strongestLifts;
   if (benchPress.weight)
-    lifts.push(`Bench Press ${benchPress.weight}kg × ${benchPress.reps ?? "?"} reps`);
-  if (sq.weight) lifts.push(`Back Squat ${sq.weight}kg × ${sq.reps ?? "?"} reps`);
+    lifts.push(
+      `Bench Press ${benchPress.weight}kg × ${benchPress.reps ?? "?"} reps`,
+    );
+  if (sq.weight)
+    lifts.push(`Back Squat ${sq.weight}kg × ${sq.reps ?? "?"} reps`);
   if (dl.weight) lifts.push(`Deadlift ${dl.weight}kg × ${dl.reps ?? "?"} reps`);
 
   // Fix 1: give the AI the physical/goal context that actually changes
@@ -60,12 +67,10 @@ export async function generateAiPlan(
     .eq("id", userId)
     .maybeSingle();
   const physical: string[] = [];
-  if ((up as any)?.age) physical.push(`- Age: ${(up as any).age} years`);
-  if ((up as any)?.gender) physical.push(`- Sex: ${(up as any).gender}`);
-  if ((up as any)?.weight_kg) physical.push(`- Bodyweight: ${(up as any).weight_kg} kg`);
-  const goalPrimary = (up as any)?.goal
-    ? decomposeGoalKey((up as any).goal).primary
-    : null;
+  if (up?.age) physical.push(`- Age: ${up.age} years`);
+  if (up?.gender) physical.push(`- Sex: ${up.gender}`);
+  if (up?.weight_kg) physical.push(`- Bodyweight: ${up.weight_kg} kg`);
+  const goalPrimary = up?.goal ? decomposeGoalKey(up.goal).primary : null;
   if (goalPrimary && GOAL_PHRASE[goalPrimary])
     physical.push(`- Nutrition goal: ${GOAL_PHRASE[goalPrimary]}`);
 
@@ -121,7 +126,11 @@ ${EXERCISE_CATALOG}
     },
   });
   const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-  if (!parsed?.days || !Array.isArray(parsed.days) || parsed.days.length === 0) {
+  if (
+    !parsed?.days ||
+    !Array.isArray(parsed.days) ||
+    parsed.days.length === 0
+  ) {
     throw new Error("The AI returned an invalid plan. Please try again.");
   }
 
@@ -131,7 +140,8 @@ ${EXERCISE_CATALOG}
   for (const day of parsed.days) {
     for (const ex of day?.exercises ?? []) {
       if (ex?.name) {
-        ex.name = CANONICAL_BY_LOWER.get(String(ex.name).toLowerCase()) ?? ex.name;
+        ex.name =
+          CANONICAL_BY_LOWER.get(String(ex.name).toLowerCase()) ?? ex.name;
       }
     }
   }
@@ -145,12 +155,15 @@ ${EXERCISE_CATALOG}
     await supabase
       .from("workout_plans")
       .delete()
-      .in("id", old.map((o: any) => o.id));
+      .in(
+        "id",
+        old.map((o) => o.id),
+      );
   }
   const { error } = await supabase.from("workout_plans").insert({
     user_id: userId,
     goal: goalLabel, // NOT NULL column in workout_plans
     plan_json: parsed,
-  } as any);
+  });
   if (error) throw error;
 }

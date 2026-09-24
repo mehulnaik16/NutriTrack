@@ -32,10 +32,11 @@
   --color-energy: var(--energy);
   --color-warn: var(--warn);
   --color-fat: var(--fat);
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, sans-serif;
-  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui,
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     sans-serif;
+  --font-display:
+    "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -205,7 +206,9 @@
 :root.theme-cyberdeck {
   --radius: 2px;
   --background: oklch(0.12 0.015 250); /* Deep Onyx / Obsidian */
-  --foreground: oklch(0.96 0.03 95); /* Crisp pale yellow-white telemetry text */
+  --foreground: oklch(
+    0.96 0.03 95
+  ); /* Crisp pale yellow-white telemetry text */
   --card: oklch(0.16 0.025 250); /* Dark Graphite HUD plate */
   --card-foreground: oklch(0.96 0.03 95);
   --popover: oklch(0.16 0.025 250);
@@ -260,7 +263,9 @@
   --card-foreground: oklch(0.96 0.01 255);
   --popover: oklch(0.15 0.028 255);
   --popover-foreground: oklch(0.96 0.01 255);
-  --primary: oklch(0.68 0.22 42); /* GSLV Cryogenic Booster Saffron Flame #FF671F */
+  --primary: oklch(
+    0.68 0.22 42
+  ); /* GSLV Cryogenic Booster Saffron Flame #FF671F */
   --primary-foreground: oklch(0.1 0.02 255);
   --secondary: oklch(0.24 0.038 255);
   --secondary-foreground: oklch(0.96 0.01 255);
@@ -306,12 +311,15 @@
 :root.theme-isro .card,
 :root.theme-isro [class*="rounded-"] {
   border-width: 1px;
-  box-shadow: 0 4px 20px -4px rgba(4, 7, 13, 0.7), 0 0 1px rgba(255, 103, 31, 0.15);
+  box-shadow:
+    0 4px 20px -4px rgba(4, 7, 13, 0.7),
+    0 0 1px rgba(255, 103, 31, 0.15);
 }
 
 /* Dynamic Outer Space Starfield & Nebula Background for ISRO Mission Operations */
 @keyframes isro-stars-twinkle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.65;
     transform: translateY(0px) scale(1);
   }
@@ -325,24 +333,68 @@ html.theme-isro body {
   background-color: #060913 !important;
   background-image:
     /* Deep space glowing cosmic nebulae */
-    radial-gradient(ellipse at 85% 12%, rgba(255, 103, 31, 0.12) 0%, transparent 45%),
-    radial-gradient(ellipse at 15% 55%, rgba(37, 99, 235, 0.14) 0%, transparent 55%),
-    radial-gradient(ellipse at 75% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
+    radial-gradient(
+      ellipse at 85% 12%,
+      rgba(255, 103, 31, 0.12) 0%,
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse at 15% 55%,
+      rgba(37, 99, 235, 0.14) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 75% 85%,
+      rgba(16, 185, 129, 0.08) 0%,
+      transparent 45%
+    ),
     /* Base Starfield Layer */
-    radial-gradient(1px 1px at 25px 35px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 85px 125px, rgba(248, 250, 252, 0.9), rgba(0,0,0,0)),
-    radial-gradient(1.5px 1.5px at 150px 75px, #ff671f, rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 220px 180px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 290px 45px, rgba(251, 191, 36, 0.9), rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 340px 140px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1.5px 1.5px at 60px 220px, rgba(56, 189, 248, 0.8), rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 180px 260px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 250px 310px, rgba(248, 250, 252, 0.85), rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 120px 340px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 310px 280px, #ff671f, rgba(0,0,0,0));
-  background-size: 100% 100%, 100% 100%, 100% 100%, 380px 380px, 380px 380px, 380px 380px, 380px 380px, 380px 380px, 380px 380px, 380px 380px, 380px 380px, 380px 380px, 380px 380px, 380px 380px;
+    radial-gradient(1px 1px at 25px 35px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(
+      1px 1px at 85px 125px,
+      rgba(248, 250, 252, 0.9),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(1.5px 1.5px at 150px 75px, #ff671f, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 220px 180px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(
+      2px 2px at 290px 45px,
+      rgba(251, 191, 36, 0.9),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(1px 1px at 340px 140px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(
+      1.5px 1.5px at 60px 220px,
+      rgba(56, 189, 248, 0.8),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(1px 1px at 180px 260px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(
+      1px 1px at 250px 310px,
+      rgba(248, 250, 252, 0.85),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(2px 2px at 120px 340px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 310px 280px, #ff671f, rgba(0, 0, 0, 0));
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    380px 380px,
+    380px 380px,
+    380px 380px,
+    380px 380px,
+    380px 380px,
+    380px 380px,
+    380px 380px,
+    380px 380px,
+    380px 380px,
+    380px 380px,
+    380px 380px;
   background-attachment: fixed;
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, repeat, repeat, repeat, repeat, repeat, repeat, repeat, repeat, repeat;
+  background-repeat:
+    no-repeat, no-repeat, no-repeat, repeat, repeat, repeat, repeat, repeat,
+    repeat, repeat, repeat, repeat, repeat, repeat;
   position: relative;
 }
 
@@ -354,13 +406,25 @@ html.theme-isro body::before {
   pointer-events: none;
   z-index: 0;
   background-image:
-    radial-gradient(1.5px 1.5px at 40px 90px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 190px 40px, rgba(255, 103, 31, 0.9), rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 130px 160px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1.5px 1.5px at 270px 110px, rgba(16, 185, 129, 0.85), rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 320px 240px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 70px 300px, rgba(251, 191, 36, 0.9), rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 210px 350px, #ffffff, rgba(0,0,0,0));
+    radial-gradient(1.5px 1.5px at 40px 90px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(
+      2px 2px at 190px 40px,
+      rgba(255, 103, 31, 0.9),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(1px 1px at 130px 160px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(
+      1.5px 1.5px at 270px 110px,
+      rgba(16, 185, 129, 0.85),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(1px 1px at 320px 240px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(
+      2px 2px at 70px 300px,
+      rgba(251, 191, 36, 0.9),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(1px 1px at 210px 350px, #ffffff, rgba(0, 0, 0, 0));
   background-size: 420px 420px;
   background-repeat: repeat;
   animation: isro-stars-twinkle 4.5s ease-in-out infinite alternate;
@@ -439,7 +503,11 @@ html.theme-isro body::before {
   /* Slim, theme-aware scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent)
+    scrollbar-color: color-mix(
+        in oklch,
+        var(--muted-foreground) 35%,
+        transparent
+      )
       transparent;
   }
   *::-webkit-scrollbar {
@@ -493,7 +561,8 @@ html.theme-isro body::before {
   }
 
   .glow-accent-sm {
-    box-shadow: 0 0 16px -4px color-mix(in oklch, var(--accent) 45%, transparent);
+    box-shadow: 0 0 16px -4px
+      color-mix(in oklch, var(--accent) 45%, transparent);
   }
 
   .text-glow {
@@ -545,7 +614,8 @@ html.theme-isro body::before {
   .card-lift:hover {
     transform: translateY(-3px);
     border-color: color-mix(in oklch, var(--accent) 40%, var(--border));
-    box-shadow: 0 12px 32px -12px color-mix(in oklch, var(--accent) 25%, transparent);
+    box-shadow: 0 12px 32px -12px
+      color-mix(in oklch, var(--accent) 25%, transparent);
   }
 
   @keyframes float-y {

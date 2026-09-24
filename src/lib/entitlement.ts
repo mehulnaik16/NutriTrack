@@ -72,7 +72,9 @@ export function computeAccessUntil(opts: {
   if (opts.trialStartDate) {
     const start = istMidnight(opts.trialStartDate);
     if (start) {
-      cursor = new Date(start.getTime() + (BASE_TRIAL_DAYS + bonus) * MS_PER_DAY);
+      cursor = new Date(
+        start.getTime() + (BASE_TRIAL_DAYS + bonus) * MS_PER_DAY,
+      );
     }
   }
 

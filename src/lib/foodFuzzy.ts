@@ -19,7 +19,8 @@
  */
 
 import Fuse from "fuse.js";
-import { ITEMS, type IFCTItem } from "./foodDb.ts";
+import { ITEMS, curatedFirst, type IFCTItem } from "./foodDb.ts";
+import { catalogAliases, isAliasGroup } from "./foodCache.ts";
 
 /**
  * Confident enough to answer from the catalog and skip the model entirely.
@@ -44,8 +45,22 @@ interface Indexed {
   alt: string[];
 }
 
-/** Leading language abbreviations: "Kan.", "Tam.", "A.", "Kash.", "E." */
-const LANG_PREFIX = /\b[A-Z][a-z]{0,4}\.\s*/g;
+/**
+ * The language tags this catalog actually uses, derived from every populated
+ * `lang` field in ifct2017.json rather than guessed.
+ *
+ * A closed list, matched only at the START of each ";"-separated part, and
+ * possibly several at once ("Mal., Tam., Tel. Kallu."). The old pattern
+ * stripped ANY capital letter plus up to four lowercase letters ending in a
+ * dot, anywhere in the part, so a regional name that happened to fit that shape
+ * vanished: Toddy's "Kallu." was deleted outright, as was the last name of 80+
+ * other rows ("U. Bajra."), and "Kaali Mirch." was cut to "Kaali". Every lost
+ * name turned a free local match into a paid AI call. A comma after a tag,
+ * when several languages share one name ("A., Kash. Baajra"), is stripped
+ * with the tags rather than left dangling on the name.
+ */
+const LANG_TAGS = "A|B|E|G|H|K|Kan|Kash|Kh|Kon|M|Mal|Mar|N|O|P|S|Tam|Tel|U";
+const LANG_PREFIX = new RegExp(`^\\s*(?:(?:${LANG_TAGS})\\.\\s*,?\\s*)+`);
 
 /**
  * "A., Kash. Baajra; B. Bajra; E. Pearl millet; Kan. Sajje"
@@ -56,7 +71,7 @@ const LANG_PREFIX = /\b[A-Z][a-z]{0,4}\.\s*/g;
  * while "kambu" falsely matched Rambutan at 0.23. As separate short entries
  * each name is matched on its own terms.
  */
-function altNames(lang: string): string[] {
+export function altNames(lang: string): string[] {
   if (!lang) return [];
   return lang
     .split(";")
@@ -70,7 +85,12 @@ function index(): Fuse<Indexed> {
   if (fuse) return fuse;
   const rows: Indexed[] = ITEMS.map((item) => ({
     item,
-    alt: altNames(item.lang ?? ""),
+    // altNames(lang) covers the 430 real-IFCT rows that carry regional names
+    // in `lang`. catalogAliases additionally parses the 1,014 rows that bake
+    // aliases into `name` as "(a/b/c)" groups instead — extending the lang
+    // shape's coverage rather than replacing it. Deduped: catalogAliases
+    // already includes the lang-derived names.
+    alt: [...new Set([...altNames(item.lang ?? ""), ...catalogAliases(item)])],
   }));
   fuse = new Fuse(rows, {
     // The English name leads; the regional names and brand back it up. Fuse
@@ -122,8 +142,13 @@ function editDistance(a: string, b: string): number {
   return prev[b.length];
 }
 
-/** 1 for identical words, 0 for nothing in common. */
-const similarity = (a: string, b: string): number =>
+/**
+ * 1 for identical words, 0 for nothing in common.
+ *
+ * Exported because the food cache's alias cross-check compares alias lists at
+ * 0.9 and must use the same measure this module matches on.
+ */
+export const similarity = (a: string, b: string): number =>
   1 - editDistance(a, b) / Math.max(a.length, b.length, 1);
 
 /**
@@ -183,6 +208,64 @@ export function strongFoods(query: string, limit = 5): IFCTItem[] {
     .sort((a, b) => b.sim - a.sim)
     .slice(0, limit)
     .map((m) => m.item);
+}
+
+/** A name reduced to lowercase words: "Roti / Chapati" -> "roti chapati". */
+const plain = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+/**
+ * Every whole name a row answers to. The catalog's two corpora write names
+ * differently, and reading one as the other logs the wrong food:
+ *
+ * - Only a SPACED " / " separates alternative names, as the curated rows write
+ *   it: "Roti / Chapati" is both "roti" and "chapati". Raw IFCT rows use an
+ *   unspaced "/" for a spelling variant of the last word alone — "Potato
+ *   parantha/paratha" is never plain "paratha", "Eggplant/Brinjal rice" never
+ *   plain "eggplant" — so an unspaced slash splits nothing.
+ * - A bracket is dropped only when it holds a measurement ("(1 piece = 80g)",
+ *   as isAliasGroup decides). On a raw IFCT row any other bracket is a
+ *   qualifier that makes it a different food — "Lassi (salted)" at 19 kcal is
+ *   not "lassi", "Jackfruit/Kathal (dry)" at 481 not "jackfruit" — so it stays
+ *   part of the name. On a curated (X) row it is the hand-picked default
+ *   state the row was written for — "Paneer (raw)", "Poha (cooked)" — and is
+ *   dropped, so those still answer to the bare word.
+ */
+const wholeNames = (it: IFCTItem) =>
+  it.name
+    .replace(/\(([^)]*)\)/g, (all, inner: string) =>
+      it.code.startsWith("X") || !isAliasGroup(inner) ? " " : all,
+    )
+    .split(" / ")
+    .map(plain)
+    .filter(Boolean);
+
+/**
+ * The one catalog row a food name IS, for callers that pick without a human
+ * looking: a voice or photo log decides someone's calories from this.
+ *
+ * strongFoods is confident enough to show a list, not to choose from one — it
+ * keeps every row that merely contains the word. Its first hit for "coffee" is
+ * a KFC mousse cake, for "water" a watermelon, for "milk" a fish, for "sugar"
+ * black coffee (no sugar), for "dal" raw dry Bengal gram at 329 kcal/100 g. So
+ * its candidates must also pass an identity check: the name, in full, is one
+ * of the row's whole names. Where two rows qualify, the curated extraFoods row
+ * wins, as it does in searchFoods, because it carries the piece weight a
+ * counted log needs.
+ *
+ * Undefined means the catalog does not hold that food by that name, and the
+ * caller asks the server — the cache, then the model — instead of guessing.
+ */
+export function catalogFood(name: string): IFCTItem | undefined {
+  const term = plain(name);
+  if (!term) return undefined;
+  const hits = strongFoods(name, 40).filter((it) =>
+    wholeNames(it).includes(term),
+  );
+  return hits.sort((a, b) => curatedFirst(a) - curatedFirst(b))[0];
 }
 
 /**

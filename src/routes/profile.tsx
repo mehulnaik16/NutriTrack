@@ -163,16 +163,23 @@ import {
 function wpFieldValues(p: WorkoutPrefs) {
   // Lifts are stored in kg; edit them in the user's chosen weight unit.
   const wu = p.weightUnit ?? "kg";
-  const w = (kg: number | null) => (kg ? String(round1(kgToWeight(kg, wu))) : "");
+  const w = (kg: number | null) =>
+    kg ? String(round1(kgToWeight(kg, wu))) : "";
   return {
     level: p.fitnessLevel,
     goal: p.fitnessGoal,
     benchW: w(p.strongestLifts.benchPress.weight),
-    benchR: p.strongestLifts.benchPress.reps ? String(p.strongestLifts.benchPress.reps) : "",
+    benchR: p.strongestLifts.benchPress.reps
+      ? String(p.strongestLifts.benchPress.reps)
+      : "",
     squatW: w(p.strongestLifts.squat.weight),
-    squatR: p.strongestLifts.squat.reps ? String(p.strongestLifts.squat.reps) : "",
+    squatR: p.strongestLifts.squat.reps
+      ? String(p.strongestLifts.squat.reps)
+      : "",
     deadliftW: w(p.strongestLifts.deadlift.weight),
-    deadliftR: p.strongestLifts.deadlift.reps ? String(p.strongestLifts.deadlift.reps) : "",
+    deadliftR: p.strongestLifts.deadlift.reps
+      ? String(p.strongestLifts.deadlift.reps)
+      : "",
     days: p.trainingDaysPerWeek,
     cardio: p.cardioActivities.join(", "),
     muscles: p.musclesPerWorkout,
@@ -184,8 +191,19 @@ function wpFieldValues(p: WorkoutPrefs) {
 }
 
 const PAGE_VALUES: readonly Page[] = [
-  "menu", "details", "workout-details", "theme", "transactions", "pricing",
-  "settings", "help", "about", "refer", "gym", "achievements", "measurements",
+  "menu",
+  "details",
+  "workout-details",
+  "theme",
+  "transactions",
+  "pricing",
+  "settings",
+  "help",
+  "about",
+  "refer",
+  "gym",
+  "achievements",
+  "measurements",
 ];
 
 export const Route = createFileRoute("/profile")({
@@ -216,19 +234,72 @@ const MENU_ITEMS: {
   label: string;
   to?: "/notifications";
 }[] = [
-  { id: "details",         icon: <User className="h-7 w-7 md:h-[26px] md:w-[26px]" />,      label: "Profile details" },
-  { id: "workout-details", icon: <Dumbbell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,   label: "Workout details" },
-  { id: "achievements", icon: <Award className="h-7 w-7 md:h-[26px] md:w-[26px]" />,         label: "Achievements" },
-  { id: "measurements", icon: <Ruler className="h-7 w-7 md:h-[26px] md:w-[26px]" />,         label: "Body measurements" },
-  { id: "transactions", icon: <ListOrdered className="h-7 w-7 md:h-[26px] md:w-[26px]" />,   label: "Plan & billing" },
-  { id: "theme",        icon: <Palette className="h-7 w-7 md:h-[26px] md:w-[26px]" />,       label: "Theme" },
-  { id: "pricing",      icon: <Tag className="h-7 w-7 md:h-[26px] md:w-[26px]" />,           label: "Pricing" },
-  { id: "settings",     icon: <Settings className="h-7 w-7 md:h-[26px] md:w-[26px]" />,      label: "Settings" },
-  { id: "help",         icon: <MessageCircle className="h-7 w-7 md:h-[26px] md:w-[26px]" />, label: "Help & support" },
-  { id: "about",        icon: <Info className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "About us" },
-  { id: "refer",        icon: <Gift className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Refer & Earn" },
-  { id: "gym",          icon: <Building2 className="h-7 w-7 md:h-[26px] md:w-[26px]" />,     label: "Your Gym" },
-  { id: "notifications",icon: <Bell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,          label: "Notifications", to: "/notifications" },
+  {
+    id: "details",
+    icon: <User className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Profile details",
+  },
+  {
+    id: "workout-details",
+    icon: <Dumbbell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Workout details",
+  },
+  {
+    id: "achievements",
+    icon: <Award className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Achievements",
+  },
+  {
+    id: "measurements",
+    icon: <Ruler className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Body measurements",
+  },
+  {
+    id: "transactions",
+    icon: <ListOrdered className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Plan & billing",
+  },
+  {
+    id: "theme",
+    icon: <Palette className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Theme",
+  },
+  {
+    id: "pricing",
+    icon: <Tag className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Pricing",
+  },
+  {
+    id: "settings",
+    icon: <Settings className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Settings",
+  },
+  {
+    id: "help",
+    icon: <MessageCircle className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Help & support",
+  },
+  {
+    id: "about",
+    icon: <Info className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "About us",
+  },
+  {
+    id: "refer",
+    icon: <Gift className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Refer & Earn",
+  },
+  {
+    id: "gym",
+    icon: <Building2 className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Your Gym",
+  },
+  {
+    id: "notifications",
+    icon: <Bell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
+    label: "Notifications",
+    to: "/notifications",
+  },
 ];
 
 const FAQS = [
@@ -297,8 +368,12 @@ function Profile() {
   const [planTypeLabel, setPlanTypeLabel] = useState("No plan");
   const [isEditingWp, setIsEditingWp] = useState(false);
   const [savingWp, setSavingWp] = useState(false);
-  const [wpLevel, setWpLevel] = useState<WorkoutPrefs["fitnessLevel"]>(wpInit?.level ?? "beginner");
-  const [wpGoal, setWpGoal] = useState<WorkoutPrefs["fitnessGoal"]>(wpInit?.goal ?? "build_muscle");
+  const [wpLevel, setWpLevel] = useState<WorkoutPrefs["fitnessLevel"]>(
+    wpInit?.level ?? "beginner",
+  );
+  const [wpGoal, setWpGoal] = useState<WorkoutPrefs["fitnessGoal"]>(
+    wpInit?.goal ?? "build_muscle",
+  );
   const [wpBenchW, setWpBenchW] = useState(wpInit?.benchW ?? "");
   const [wpBenchR, setWpBenchR] = useState(wpInit?.benchR ?? "");
   const [wpSquatW, setWpSquatW] = useState(wpInit?.squatW ?? "");
@@ -307,12 +382,19 @@ function Profile() {
   const [wpDeadliftR, setWpDeadliftR] = useState(wpInit?.deadliftR ?? "");
   const [wpDays, setWpDays] = useState(wpInit?.days ?? 3);
   const [wpCardio, setWpCardio] = useState(wpInit?.cardio ?? "");
-  const [wpMuscles, setWpMuscles] = useState<WorkoutPrefs["musclesPerWorkout"]>(wpInit?.muscles ?? "not_sure");
+  const [wpMuscles, setWpMuscles] = useState<WorkoutPrefs["musclesPerWorkout"]>(
+    wpInit?.muscles ?? "not_sure",
+  );
   const [wpDuration, setWpDuration] = useState(wpInit?.duration ?? 60);
-  const [wpPlanChoice, setWpPlanChoice] =
-    useState<WorkoutPrefs["preferredTrainingPlan"]>(wpInit?.planChoice ?? "ai_generated");
-  const [wpWeightUnit, setWpWeightUnit] = useState<WeightUnit>(wpInit?.weightUnit ?? "kg");
-  const [wpDistanceUnit, setWpDistanceUnit] = useState<DistanceUnit>(wpInit?.distanceUnit ?? "km");
+  const [wpPlanChoice, setWpPlanChoice] = useState<
+    WorkoutPrefs["preferredTrainingPlan"]
+  >(wpInit?.planChoice ?? "ai_generated");
+  const [wpWeightUnit, setWpWeightUnit] = useState<WeightUnit>(
+    wpInit?.weightUnit ?? "kg",
+  );
+  const [wpDistanceUnit, setWpDistanceUnit] = useState<DistanceUnit>(
+    wpInit?.distanceUnit ?? "km",
+  );
 
   useEffect(() => {
     setTheme(localStorage.getItem("theme") || "dark");
@@ -328,7 +410,7 @@ function Profile() {
       "theme-forest",
       "theme-cyber",
       "theme-cyberdeck",
-      "theme-isro"
+      "theme-isro",
     );
     if (newTheme !== "light") {
       document.documentElement.classList.add(newTheme);
@@ -424,7 +506,10 @@ function Profile() {
     const bmi = calcBMI(w, h);
     const bmr = calcBMR(w, h, a, gender || profile.gender);
     const tdee = calcTDEE(bmr, activity || profile.activity_level);
-    const goalKey = resolveGoalKey(goal || decomposeGoalKey(profile.goal).primary, loseRate);
+    const goalKey = resolveGoalKey(
+      goal || decomposeGoalKey(profile.goal).primary,
+      loseRate,
+    );
     const target = calcCalorieTarget(tdee, goalKey, gender || profile.gender);
     const m = calcMacros(target, goalKey, w);
     const { error } = await supabase
@@ -448,7 +533,10 @@ function Profile() {
       })
       .eq("id", user.id);
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Profile updated");
     setProfile({
       ...profile,
@@ -488,7 +576,10 @@ function Profile() {
         deadlift: lift(wpDeadliftW, wpDeadliftR),
       },
       trainingDaysPerWeek: wpDays,
-      cardioActivities: wpCardio.split(",").map((c) => c.trim()).filter(Boolean),
+      cardioActivities: wpCardio
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean),
       musclesPerWorkout: wpMuscles,
       preferredWorkoutTime: wpDuration,
       preferredTrainingPlan: wpPlanChoice,
@@ -594,14 +685,46 @@ function Profile() {
           </p>
           <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
             {[
-              { id: "dark",         label: "Carbon (default)", icon: <Moon className="h-5 w-5 text-accent" /> },
-              { id: "light",        label: "Light",  icon: <Sun className="h-5 w-5 text-yellow-500" /> },
-              { id: "theme-ocean",  label: "Ocean",  icon: <Droplets className="h-5 w-5 text-cyan-400" /> },
-              { id: "theme-sunset", label: "Sunset", icon: <Sunset className="h-5 w-5 text-orange-400" /> },
-              { id: "theme-forest", label: "Forest", icon: <TreePine className="h-5 w-5 text-green-500" /> },
-              { id: "theme-cyber",  label: "Retro Cyber", icon: <Terminal className="h-5 w-5 text-white" /> },
-              { id: "theme-cyberdeck", label: "Cyberware HUD", icon: <Zap className="h-5 w-5 text-yellow-400" /> },
-              { id: "theme-isro", label: "ISRO Mission Operations", icon: <Rocket className="h-5 w-5 text-[#FF671F]" /> },
+              {
+                id: "dark",
+                label: "Carbon (default)",
+                icon: <Moon className="h-5 w-5 text-accent" />,
+              },
+              {
+                id: "light",
+                label: "Light",
+                icon: <Sun className="h-5 w-5 text-yellow-500" />,
+              },
+              {
+                id: "theme-ocean",
+                label: "Ocean",
+                icon: <Droplets className="h-5 w-5 text-cyan-400" />,
+              },
+              {
+                id: "theme-sunset",
+                label: "Sunset",
+                icon: <Sunset className="h-5 w-5 text-orange-400" />,
+              },
+              {
+                id: "theme-forest",
+                label: "Forest",
+                icon: <TreePine className="h-5 w-5 text-green-500" />,
+              },
+              {
+                id: "theme-cyber",
+                label: "Retro Cyber",
+                icon: <Terminal className="h-5 w-5 text-white" />,
+              },
+              {
+                id: "theme-cyberdeck",
+                label: "Cyberware HUD",
+                icon: <Zap className="h-5 w-5 text-yellow-400" />,
+              },
+              {
+                id: "theme-isro",
+                label: "ISRO Mission Operations",
+                icon: <Rocket className="h-5 w-5 text-[#FF671F]" />,
+              },
             ].map((t) => (
               <button
                 key={t.id}
@@ -636,7 +759,10 @@ function Profile() {
       <div className="min-h-screen bg-background pb-24">
         <SubHeader
           title="Profile details"
-          onBack={() => { setIsEditing(false); goBack(); }}
+          onBack={() => {
+            setIsEditing(false);
+            goBack();
+          }}
           action={
             !isEditing ? (
               <Button
@@ -648,10 +774,20 @@ function Profile() {
               </Button>
             ) : (
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setIsEditing(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setIsEditing(false)}
+                >
                   Cancel
                 </Button>
-                <Button size="sm" className="h-8 text-xs" onClick={updateProfile} disabled={saving}>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={updateProfile}
+                  disabled={saving}
+                >
                   {saving ? "Saving…" : "Save"}
                 </Button>
               </div>
@@ -668,7 +804,11 @@ function Profile() {
               {isEditing ? (
                 <div className="p-4 flex flex-col gap-1">
                   <Label className="text-xs text-muted-foreground">Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} className="h-9" />
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-9"
+                  />
                 </div>
               ) : (
                 <InfoRow label="Name" value={profile.full_name} />
@@ -676,7 +816,10 @@ function Profile() {
               <InfoRow label="Email" value={user.email ?? ""} />
               <InfoRow label="User ID" value={user.id} mono />
               <InfoRow label="Plan" value={profile.selected_plan ?? "—"} />
-              <InfoRow label="Trial started" value={profile.trial_start_date ?? "—"} />
+              <InfoRow
+                label="Trial started"
+                value={profile.trial_start_date ?? "—"}
+              />
             </div>
           </section>
 
@@ -690,13 +833,26 @@ function Profile() {
                 <>
                   <div className="p-4 grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
-                      <Label className="text-xs text-muted-foreground">Age</Label>
-                      <Input type="number" min={AGE_YEARS.min} max={AGE_YEARS.max} value={age} onChange={(e) => setAge(e.target.value)} className="h-9" />
+                      <Label className="text-xs text-muted-foreground">
+                        Age
+                      </Label>
+                      <Input
+                        type="number"
+                        min={AGE_YEARS.min}
+                        max={AGE_YEARS.max}
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        className="h-9"
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Label className="text-xs text-muted-foreground">Gender</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Gender
+                      </Label>
                       <Select value={gender} onValueChange={setGender}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Gender" /></SelectTrigger>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Gender" />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Male">Male</SelectItem>
                           <SelectItem value="Female">Female</SelectItem>
@@ -704,40 +860,87 @@ function Profile() {
                       </Select>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Label className="text-xs text-muted-foreground">Height (cm)</Label>
-                      <Input type="number" min={HEIGHT_CM.min} max={HEIGHT_CM.max} value={height} onChange={(e) => setHeight(e.target.value)} className="h-9" />
+                      <Label className="text-xs text-muted-foreground">
+                        Height (cm)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={HEIGHT_CM.min}
+                        max={HEIGHT_CM.max}
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                        className="h-9"
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Label className="text-xs text-muted-foreground">Weight (kg)</Label>
-                      <Input type="number" step="0.1" min={WEIGHT_KG.min} max={WEIGHT_KG.max} value={weight} onChange={(e) => setWeight(e.target.value)} className="h-9" />
+                      <Label className="text-xs text-muted-foreground">
+                        Weight (kg)
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min={WEIGHT_KG.min}
+                        max={WEIGHT_KG.max}
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        className="h-9"
+                      />
                     </div>
                     <div className="flex flex-col gap-1 col-span-2">
-                      <Label className="text-xs text-muted-foreground">Activity Level</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Activity Level
+                      </Label>
                       <Select value={activity} onValueChange={setActivity}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Activity level" /></SelectTrigger>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Activity level" />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Sedentary">Sedentary</SelectItem>
-                          <SelectItem value="Lightly Active">Lightly Active</SelectItem>
-                          <SelectItem value="Moderately Active">Moderately Active</SelectItem>
-                          <SelectItem value="Very Active">Very Active</SelectItem>
-                          <SelectItem value="Super Active">Super Active</SelectItem>
+                          <SelectItem value="Lightly Active">
+                            Lightly Active
+                          </SelectItem>
+                          <SelectItem value="Moderately Active">
+                            Moderately Active
+                          </SelectItem>
+                          <SelectItem value="Very Active">
+                            Very Active
+                          </SelectItem>
+                          <SelectItem value="Super Active">
+                            Super Active
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="flex flex-col gap-1 col-span-2">
-                      <Label className="text-xs text-muted-foreground">Goal</Label>
-                      <Select value={goal} onValueChange={(v) => { setGoal(v); setLoseRate(v === "gain" ? "gain_0_25kg" : "lose_0_25kg"); }}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Your goal" /></SelectTrigger>
+                      <Label className="text-xs text-muted-foreground">
+                        Goal
+                      </Label>
+                      <Select
+                        value={goal}
+                        onValueChange={(v) => {
+                          setGoal(v);
+                          setLoseRate(
+                            v === "gain" ? "gain_0_25kg" : "lose_0_25kg",
+                          );
+                        }}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Your goal" />
+                        </SelectTrigger>
                         <SelectContent>
                           {PRIMARY_GOALS.map(({ value, label, emoji }) => (
-                            <SelectItem key={value} value={value}>{emoji} {label}</SelectItem>
+                            <SelectItem key={value} value={value}>
+                              {emoji} {label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       {/* Rate sub-selector — shown when Lose Weight is selected */}
                       {goal === "lose" && (
                         <div className="mt-2 space-y-2">
-                          <Label className="text-xs text-muted-foreground">Weight loss rate</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Weight loss rate
+                          </Label>
                           {LOSE_RATE_OPTIONS.map(({ value, label, detail }) => (
                             <label
                               key={value}
@@ -750,7 +953,9 @@ function Profile() {
                             >
                               <div
                                 className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                                  loseRate === value ? "border-accent" : "border-muted-foreground/40"
+                                  loseRate === value
+                                    ? "border-accent"
+                                    : "border-muted-foreground/40"
                                 }`}
                               >
                                 {loseRate === value && (
@@ -758,8 +963,12 @@ function Profile() {
                                 )}
                               </div>
                               <div>
-                                <div className="font-medium text-sm">{label}</div>
-                                <div className="text-xs text-muted-foreground mt-0.5">{detail}</div>
+                                <div className="font-medium text-sm">
+                                  {label}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {detail}
+                                </div>
                               </div>
                             </label>
                           ))}
@@ -768,7 +977,9 @@ function Profile() {
                       {/* Rate sub-selector — shown when Gain Muscle is selected */}
                       {goal === "gain" && (
                         <div className="mt-2 space-y-2">
-                          <Label className="text-xs text-muted-foreground">Weight gain rate</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Weight gain rate
+                          </Label>
                           {GAIN_RATE_OPTIONS.map(({ value, label, detail }) => (
                             <label
                               key={value}
@@ -781,7 +992,9 @@ function Profile() {
                             >
                               <div
                                 className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                                  loseRate === value ? "border-accent" : "border-muted-foreground/40"
+                                  loseRate === value
+                                    ? "border-accent"
+                                    : "border-muted-foreground/40"
                                 }`}
                               >
                                 {loseRate === value && (
@@ -789,8 +1002,12 @@ function Profile() {
                                 )}
                               </div>
                               <div>
-                                <div className="font-medium text-sm">{label}</div>
-                                <div className="text-xs text-muted-foreground mt-0.5">{detail}</div>
+                                <div className="font-medium text-sm">
+                                  {label}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {detail}
+                                </div>
                               </div>
                             </label>
                           ))}
@@ -806,8 +1023,14 @@ function Profile() {
                     <InfoCell label="Gender" value={profile.gender} />
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-border">
-                    <InfoCell label="Height" value={`${profile.height_cm} cm`} />
-                    <InfoCell label="Weight" value={`${profile.weight_kg} kg`} />
+                    <InfoCell
+                      label="Height"
+                      value={`${profile.height_cm} cm`}
+                    />
+                    <InfoCell
+                      label="Weight"
+                      value={`${profile.weight_kg} kg`}
+                    />
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-border">
                     <InfoCell label="BMI" value={String(profile.bmi)} />
@@ -815,7 +1038,10 @@ function Profile() {
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-border">
                     <InfoCell label="TDEE" value={`${profile.tdee} kcal`} />
-                    <InfoCell label="Daily Target" value={`${profile.daily_calorie_target} kcal`} />
+                    <InfoCell
+                      label="Daily Target"
+                      value={`${profile.daily_calorie_target} kcal`}
+                    />
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-border">
                     <InfoCell label="Activity" value={profile.activity_level} />
@@ -836,7 +1062,10 @@ function Profile() {
       <div className="min-h-screen bg-background pb-24">
         <SubHeader
           title="Workout details"
-          onBack={() => { setIsEditingWp(false); goBack(); }}
+          onBack={() => {
+            setIsEditingWp(false);
+            goBack();
+          }}
           action={
             !wp ? null : !isEditingWp ? (
               <Button
@@ -848,10 +1077,20 @@ function Profile() {
               </Button>
             ) : (
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setIsEditingWp(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setIsEditingWp(false)}
+                >
                   Cancel
                 </Button>
-                <Button size="sm" className="h-8 text-xs" onClick={updateWorkoutProfile} disabled={savingWp}>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={updateWorkoutProfile}
+                  disabled={savingWp}
+                >
                   {savingWp ? "Saving…" : "Save"}
                 </Button>
               </div>
@@ -862,11 +1101,18 @@ function Profile() {
           {!wp ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
               <Dumbbell className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="mb-1 text-sm font-semibold">You haven't set up your training yet</p>
-              <p className="mb-4 text-xs text-muted-foreground">
-                Answer a few questions on the Workout page to get a personalized plan.
+              <p className="mb-1 text-sm font-semibold">
+                You haven't set up your training yet
               </p>
-              <Button size="sm" onClick={() => navigate({ to: "/workout-setup" })} className="rounded-xl">
+              <p className="mb-4 text-xs text-muted-foreground">
+                Answer a few questions on the Workout page to get a personalized
+                plan.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => navigate({ to: "/workout-setup" })}
+                className="rounded-xl"
+              >
                 Set up my training
               </Button>
             </div>
@@ -881,58 +1127,108 @@ function Profile() {
                   {isEditingWp ? (
                     <div className="p-4 grid grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1 col-span-2">
-                        <Label className="text-xs text-muted-foreground">Fitness level</Label>
-                        <Select value={wpLevel} onValueChange={(v) => setWpLevel(v as WorkoutPrefs["fitnessLevel"])}>
-                          <SelectTrigger className="h-9"><SelectValue placeholder="Fitness level" /></SelectTrigger>
+                        <Label className="text-xs text-muted-foreground">
+                          Fitness level
+                        </Label>
+                        <Select
+                          value={wpLevel}
+                          onValueChange={(v) =>
+                            setWpLevel(v as WorkoutPrefs["fitnessLevel"])
+                          }
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Fitness level" />
+                          </SelectTrigger>
                           <SelectContent>
                             {FITNESS_LEVELS.map(({ value, label }) => (
-                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1 col-span-2">
-                        <Label className="text-xs text-muted-foreground">Goal</Label>
-                        <Select value={wpGoal} onValueChange={(v) => setWpGoal(v as WorkoutPrefs["fitnessGoal"])}>
-                          <SelectTrigger className="h-9"><SelectValue placeholder="Goal" /></SelectTrigger>
+                        <Label className="text-xs text-muted-foreground">
+                          Goal
+                        </Label>
+                        <Select
+                          value={wpGoal}
+                          onValueChange={(v) =>
+                            setWpGoal(v as WorkoutPrefs["fitnessGoal"])
+                          }
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Goal" />
+                          </SelectTrigger>
                           <SelectContent>
                             {FITNESS_GOALS.map(({ value, label, emoji }) => (
-                              <SelectItem key={value} value={value}>{emoji} {label}</SelectItem>
+                              <SelectItem key={value} value={value}>
+                                {emoji} {label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Training days/week</Label>
-                        <Select value={String(wpDays)} onValueChange={(v) => setWpDays(+v)}>
-                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <Label className="text-xs text-muted-foreground">
+                          Training days/week
+                        </Label>
+                        <Select
+                          value={String(wpDays)}
+                          onValueChange={(v) => setWpDays(+v)}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                              <SelectItem key={n} value={String(n)}>{n} {n === 1 ? "day" : "days"}</SelectItem>
+                              <SelectItem key={n} value={String(n)}>
+                                {n} {n === 1 ? "day" : "days"}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Session length</Label>
-                        <Select value={String(wpDuration)} onValueChange={(v) => setWpDuration(+v)}>
-                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <Label className="text-xs text-muted-foreground">
+                          Session length
+                        </Label>
+                        <Select
+                          value={String(wpDuration)}
+                          onValueChange={(v) => setWpDuration(+v)}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
-                            {[30, 40, 50, 60, 70, 80, 90, 100, 110, 120].map((m) => (
-                              <SelectItem key={m} value={String(m)}>{m} min</SelectItem>
-                            ))}
+                            {[30, 40, 50, 60, 70, 80, 90, 100, 110, 120].map(
+                              (m) => (
+                                <SelectItem key={m} value={String(m)}>
+                                  {m} min
+                                </SelectItem>
+                              ),
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1 col-span-2">
-                        <Label className="text-xs text-muted-foreground">Muscles per session</Label>
+                        <Label className="text-xs text-muted-foreground">
+                          Muscles per session
+                        </Label>
                         <Select
                           value={String(wpMuscles)}
                           onValueChange={(v) =>
-                            setWpMuscles((v === "not_sure" ? "not_sure" : +v) as WorkoutPrefs["musclesPerWorkout"])
+                            setWpMuscles(
+                              (v === "not_sure"
+                                ? "not_sure"
+                                : +v) as WorkoutPrefs["musclesPerWorkout"],
+                            )
                           }
                         >
-                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="1">One</SelectItem>
                             <SelectItem value="2">Two</SelectItem>
@@ -942,9 +1238,18 @@ function Profile() {
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Weight unit</Label>
-                        <Select value={wpWeightUnit} onValueChange={(v) => setWpWeightUnit(v as WeightUnit)}>
-                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <Label className="text-xs text-muted-foreground">
+                          Weight unit
+                        </Label>
+                        <Select
+                          value={wpWeightUnit}
+                          onValueChange={(v) =>
+                            setWpWeightUnit(v as WeightUnit)
+                          }
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="kg">Kilograms (kg)</SelectItem>
                             <SelectItem value="lbs">Pounds (lbs)</SelectItem>
@@ -952,9 +1257,18 @@ function Profile() {
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Cardio distance</Label>
-                        <Select value={wpDistanceUnit} onValueChange={(v) => setWpDistanceUnit(v as DistanceUnit)}>
-                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <Label className="text-xs text-muted-foreground">
+                          Cardio distance
+                        </Label>
+                        <Select
+                          value={wpDistanceUnit}
+                          onValueChange={(v) =>
+                            setWpDistanceUnit(v as DistanceUnit)
+                          }
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="km">Kilometres (km)</SelectItem>
                             <SelectItem value="mile">Miles</SelectItem>
@@ -962,7 +1276,9 @@ function Profile() {
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1 col-span-2">
-                        <Label className="text-xs text-muted-foreground">Plan type</Label>
+                        <Label className="text-xs text-muted-foreground">
+                          Plan type
+                        </Label>
                         <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
                           {planTypeLabel}
                         </div>
@@ -971,7 +1287,9 @@ function Profile() {
                         </p>
                       </div>
                       <div className="flex flex-col gap-1 col-span-2">
-                        <Label className="text-xs text-muted-foreground">Cardio you enjoy (comma-separated)</Label>
+                        <Label className="text-xs text-muted-foreground">
+                          Cardio you enjoy (comma-separated)
+                        </Label>
                         <Input
                           value={wpCardio}
                           onChange={(e) => setWpCardio(e.target.value)}
@@ -984,26 +1302,53 @@ function Profile() {
                     <>
                       <InfoRow
                         label="Fitness level"
-                        value={FITNESS_LEVELS.find((l) => l.value === wp.fitnessLevel)?.label ?? wp.fitnessLevel}
+                        value={
+                          FITNESS_LEVELS.find(
+                            (l) => l.value === wp.fitnessLevel,
+                          )?.label ?? wp.fitnessLevel
+                        }
                       />
                       <InfoRow
                         label="Goal"
-                        value={FITNESS_GOALS.find((g) => g.value === wp.fitnessGoal)?.label ?? wp.fitnessGoal}
+                        value={
+                          FITNESS_GOALS.find((g) => g.value === wp.fitnessGoal)
+                            ?.label ?? wp.fitnessGoal
+                        }
                       />
                       <div className="grid grid-cols-2 divide-x divide-border">
-                        <InfoCell label="Training days" value={`${wp.trainingDaysPerWeek}/week`} />
-                        <InfoCell label="Session length" value={`${wp.preferredWorkoutTime} min`} />
+                        <InfoCell
+                          label="Training days"
+                          value={`${wp.trainingDaysPerWeek}/week`}
+                        />
+                        <InfoCell
+                          label="Session length"
+                          value={`${wp.preferredWorkoutTime} min`}
+                        />
                       </div>
                       <InfoRow
                         label="Muscles/session"
-                        value={wp.musclesPerWorkout === "not_sure" ? "Not sure" : String(wp.musclesPerWorkout)}
+                        value={
+                          wp.musclesPerWorkout === "not_sure"
+                            ? "Not sure"
+                            : String(wp.musclesPerWorkout)
+                        }
                       />
                       <InfoRow label="Plan type" value={planTypeLabel} />
                       <div className="grid grid-cols-2 divide-x divide-border">
                         <InfoCell label="Weight unit" value={wpWeightUnit} />
-                        <InfoCell label="Cardio distance" value={wpDistanceUnit} />
+                        <InfoCell
+                          label="Cardio distance"
+                          value={wpDistanceUnit}
+                        />
                       </div>
-                      <InfoRow label="Cardio" value={wp.cardioActivities.length ? wp.cardioActivities.join(", ") : "None set"} />
+                      <InfoRow
+                        label="Cardio"
+                        value={
+                          wp.cardioActivities.length
+                            ? wp.cardioActivities.join(", ")
+                            : "None set"
+                        }
+                      />
                     </>
                   )}
                 </div>
@@ -1018,28 +1363,70 @@ function Profile() {
                   {isEditingWp ? (
                     <div className="p-4 grid grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Bench ({wpWeightUnit})</Label>
-                        <Input type="number" value={wpBenchW} onChange={(e) => setWpBenchW(e.target.value)} className="h-9" />
+                        <Label className="text-xs text-muted-foreground">
+                          Bench ({wpWeightUnit})
+                        </Label>
+                        <Input
+                          type="number"
+                          value={wpBenchW}
+                          onChange={(e) => setWpBenchW(e.target.value)}
+                          className="h-9"
+                        />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Bench reps</Label>
-                        <Input type="number" value={wpBenchR} onChange={(e) => setWpBenchR(e.target.value)} className="h-9" />
+                        <Label className="text-xs text-muted-foreground">
+                          Bench reps
+                        </Label>
+                        <Input
+                          type="number"
+                          value={wpBenchR}
+                          onChange={(e) => setWpBenchR(e.target.value)}
+                          className="h-9"
+                        />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Squat ({wpWeightUnit})</Label>
-                        <Input type="number" value={wpSquatW} onChange={(e) => setWpSquatW(e.target.value)} className="h-9" />
+                        <Label className="text-xs text-muted-foreground">
+                          Squat ({wpWeightUnit})
+                        </Label>
+                        <Input
+                          type="number"
+                          value={wpSquatW}
+                          onChange={(e) => setWpSquatW(e.target.value)}
+                          className="h-9"
+                        />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Squat reps</Label>
-                        <Input type="number" value={wpSquatR} onChange={(e) => setWpSquatR(e.target.value)} className="h-9" />
+                        <Label className="text-xs text-muted-foreground">
+                          Squat reps
+                        </Label>
+                        <Input
+                          type="number"
+                          value={wpSquatR}
+                          onChange={(e) => setWpSquatR(e.target.value)}
+                          className="h-9"
+                        />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Deadlift ({wpWeightUnit})</Label>
-                        <Input type="number" value={wpDeadliftW} onChange={(e) => setWpDeadliftW(e.target.value)} className="h-9" />
+                        <Label className="text-xs text-muted-foreground">
+                          Deadlift ({wpWeightUnit})
+                        </Label>
+                        <Input
+                          type="number"
+                          value={wpDeadliftW}
+                          onChange={(e) => setWpDeadliftW(e.target.value)}
+                          className="h-9"
+                        />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-muted-foreground">Deadlift reps</Label>
-                        <Input type="number" value={wpDeadliftR} onChange={(e) => setWpDeadliftR(e.target.value)} className="h-9" />
+                        <Label className="text-xs text-muted-foreground">
+                          Deadlift reps
+                        </Label>
+                        <Input
+                          type="number"
+                          value={wpDeadliftR}
+                          onChange={(e) => setWpDeadliftR(e.target.value)}
+                          className="h-9"
+                        />
                       </div>
                     </div>
                   ) : (
@@ -1047,16 +1434,28 @@ function Profile() {
                       <div className="grid grid-cols-2 divide-x divide-border">
                         <InfoCell
                           label="Bench"
-                          value={wp.strongestLifts.benchPress.weight ? `${round1(kgToWeight(wp.strongestLifts.benchPress.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.benchPress.reps ?? "?"}` : "Not set"}
+                          value={
+                            wp.strongestLifts.benchPress.weight
+                              ? `${round1(kgToWeight(wp.strongestLifts.benchPress.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.benchPress.reps ?? "?"}`
+                              : "Not set"
+                          }
                         />
                         <InfoCell
                           label="Squat"
-                          value={wp.strongestLifts.squat.weight ? `${round1(kgToWeight(wp.strongestLifts.squat.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.squat.reps ?? "?"}` : "Not set"}
+                          value={
+                            wp.strongestLifts.squat.weight
+                              ? `${round1(kgToWeight(wp.strongestLifts.squat.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.squat.reps ?? "?"}`
+                              : "Not set"
+                          }
                         />
                       </div>
                       <InfoCell
                         label="Deadlift"
-                        value={wp.strongestLifts.deadlift.weight ? `${round1(kgToWeight(wp.strongestLifts.deadlift.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.deadlift.reps ?? "?"}` : "Not set"}
+                        value={
+                          wp.strongestLifts.deadlift.weight
+                            ? `${round1(kgToWeight(wp.strongestLifts.deadlift.weight, wpWeightUnit))}${wpWeightUnit} × ${wp.strongestLifts.deadlift.reps ?? "?"}`
+                            : "Not set"
+                        }
                       />
                     </>
                   )}
@@ -1177,9 +1576,9 @@ function Profile() {
         <div className="mt-8 flex items-center justify-center gap-6">
           {[
             { icon: <Instagram className="h-5 w-5" />, label: "Instagram" },
-            { icon: <Linkedin className="h-5 w-5" />,  label: "LinkedIn" },
-            { icon: <Facebook className="h-5 w-5" />,  label: "Facebook" },
-            { icon: <Twitter className="h-5 w-5" />,   label: "Twitter" },
+            { icon: <Linkedin className="h-5 w-5" />, label: "LinkedIn" },
+            { icon: <Facebook className="h-5 w-5" />, label: "Facebook" },
+            { icon: <Twitter className="h-5 w-5" />, label: "Twitter" },
           ].map((s) => (
             <button
               key={s.label}
@@ -1210,11 +1609,7 @@ function TransactionsPage({
   const plan = findPlan(profile.selected_plan);
   // A referred user pays the gift price, so this card must quote the same
   // number the pricing grid and Razorpay do — not the list price.
-  const {
-    status: referralStatus,
-    gymLink,
-    loading: giftLoading,
-  } = useGift();
+  const { status: referralStatus, gymLink, loading: giftLoading } = useGift();
   const giftKind =
     plan && !giftLoading
       ? activeGift({ referralStatus, gymLink, planId: plan.id })
@@ -1313,7 +1708,9 @@ function TransactionsPage({
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-display text-xl font-bold">{plan.name}</h3>
+                    <h3 className="font-display text-xl font-bold">
+                      {plan.name}
+                    </h3>
                     <Badge
                       className={
                         hasAccessNow
@@ -1452,12 +1849,14 @@ function TransactionsPage({
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      Cancel your subscription?
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
                       It stops renewing. The days you have already paid for stay
                       yours until{" "}
-                      {formatBillingDate(summary?.access_until ?? null)} — nothing
-                      is cut short.
+                      {formatBillingDate(summary?.access_until ?? null)} —
+                      nothing is cut short.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -1579,7 +1978,11 @@ function TransactionsPage({
             disabled={busy}
             className="w-full rounded-xl bg-accent font-bold text-accent-foreground hover:bg-accent/90"
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send request"}
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Send request"
+            )}
           </Button>
         </DialogContent>
       </Dialog>
@@ -1662,8 +2065,11 @@ function SettingsPage({
     setDeleting(true);
     try {
       await serverDeleteAccount();
-    } catch (e: any) {
-      toast.error(e.message ?? "Deletion failed — please email support@dombelz.app");
+    } catch (e) {
+      toast.error(
+        (e as Error).message ??
+          "Deletion failed — please email support@dombelz.app",
+      );
       setDeleting(false);
       return;
     }
@@ -1725,12 +2131,32 @@ function SettingsPage({
     try {
       const [profileRes, food, weightRes, workouts, water, savedMeals] =
         await Promise.all([
-          supabase.from("user_profiles").select("*").eq("id", userId).maybeSingle(),
-          supabase.from("food_logs").select("*").eq("user_id", userId).order("date"),
-          supabase.from("weight_entries").select("*").eq("user_id", userId).order("date"),
-          supabase.from("workout_logs").select("*").eq("user_id", userId).order("date"),
-          supabase.from("water_logs").select("*").eq("user_id", userId).order("date"),
-          supabase.from("saved_meals" as any).select("*").eq("user_id", userId),
+          supabase
+            .from("user_profiles")
+            .select("*")
+            .eq("id", userId)
+            .maybeSingle(),
+          supabase
+            .from("food_logs")
+            .select("*")
+            .eq("user_id", userId)
+            .order("date"),
+          supabase
+            .from("weight_entries")
+            .select("*")
+            .eq("user_id", userId)
+            .order("date"),
+          supabase
+            .from("workout_logs")
+            .select("*")
+            .eq("user_id", userId)
+            .order("date"),
+          supabase
+            .from("water_logs")
+            .select("*")
+            .eq("user_id", userId)
+            .order("date"),
+          supabase.from("saved_meals").select("*").eq("user_id", userId),
         ]);
       const payload = {
         exported_at: new Date().toISOString(),
@@ -1747,8 +2173,8 @@ function SettingsPage({
         "application/json",
       );
       toast.success("Export downloaded");
-    } catch (e: any) {
-      toast.error(e.message ?? "Export failed");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Export failed");
     } finally {
       setExporting(null);
     }
@@ -1759,7 +2185,9 @@ function SettingsPage({
     try {
       const { data, error } = await supabase
         .from("food_logs")
-        .select("date,meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g")
+        .select(
+          "date,meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g",
+        )
         .eq("user_id", userId)
         .order("date");
       if (error) throw error;
@@ -1771,11 +2199,20 @@ function SettingsPage({
       const header =
         "date,meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g";
       const body = rows
-        .map((r: any) =>
+        .map((r) =>
           [
-            r.date, r.meal_type, r.food_name, r.quantity_g,
-            r.calories, r.protein_g, r.carbs_g, r.fat_g, r.fiber_g,
-          ].map(esc).join(","),
+            r.date,
+            r.meal_type,
+            r.food_name,
+            r.quantity_g,
+            r.calories,
+            r.protein_g,
+            r.carbs_g,
+            r.fat_g,
+            r.fiber_g,
+          ]
+            .map(esc)
+            .join(","),
         )
         .join("\n");
       download(
@@ -1784,8 +2221,8 @@ function SettingsPage({
         "text/csv",
       );
       toast.success("Food diary downloaded");
-    } catch (e: any) {
-      toast.error(e.message ?? "Export failed");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Export failed");
     } finally {
       setExporting(null);
     }
@@ -2029,10 +2466,12 @@ function SettingsPage({
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                This permanently deletes all your Dombelz data — profile,
-                logs, photos, plans, and favorites. Consider exporting your
-                data first. Type{" "}
-                <span className="font-mono font-bold text-destructive">DELETE</span>{" "}
+                This permanently deletes all your Dombelz data — profile, logs,
+                photos, plans, and favorites. Consider exporting your data
+                first. Type{" "}
+                <span className="font-mono font-bold text-destructive">
+                  DELETE
+                </span>{" "}
                 to confirm.
               </p>
               <Input
@@ -2197,10 +2636,22 @@ function AboutPage({ onBack }: { onBack: () => void }) {
           </p>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: <Camera className="h-5 w-5" />, label: "AI photo & voice logging" },
-              { icon: <Utensils className="h-5 w-5" />, label: "IFCT 2017 Indian food data" },
-              { icon: <Dumbbell className="h-5 w-5" />, label: "300+ exercise library" },
-              { icon: <Trophy className="h-5 w-5" />, label: "Streaks & leaderboard" },
+              {
+                icon: <Camera className="h-5 w-5" />,
+                label: "AI photo & voice logging",
+              },
+              {
+                icon: <Utensils className="h-5 w-5" />,
+                label: "IFCT 2017 Indian food data",
+              },
+              {
+                icon: <Dumbbell className="h-5 w-5" />,
+                label: "300+ exercise library",
+              },
+              {
+                icon: <Trophy className="h-5 w-5" />,
+                label: "Streaks & leaderboard",
+              },
             ].map((f) => (
               <div
                 key={f.label}
@@ -2221,7 +2672,10 @@ function AboutPage({ onBack }: { onBack: () => void }) {
           </p>
           <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
             <InfoRow label="Version" value="2.0.0" />
-            <InfoRow label="Nutrition data" value="IFCT 2017 + Open Food Facts" />
+            <InfoRow
+              label="Nutrition data"
+              value="IFCT 2017 + Open Food Facts"
+            />
             <InfoRow label="AI engine" value="Groq · GPT-OSS 120B" />
           </div>
         </section>
@@ -2252,7 +2706,9 @@ function InfoRow({
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={`text-sm font-medium text-right max-w-[55%] truncate ${mono ? "font-mono text-xs" : ""}`}>
+      <span
+        className={`text-sm font-medium text-right max-w-[55%] truncate ${mono ? "font-mono text-xs" : ""}`}
+      >
         {value}
       </span>
     </div>

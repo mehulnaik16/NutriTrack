@@ -20,10 +20,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ChevronLeft, Search, X, Plus, Minus, Flame, History, Calculator,
-  Heart, ChevronDown, Trash2, Pencil,
+  ChevronLeft,
+  Search,
+  X,
+  Plus,
+  Minus,
+  Flame,
+  History,
+  Calculator,
+  Heart,
+  ChevronDown,
+  Trash2,
+  Pencil,
 } from "lucide-react";
-import { EXERCISES_DB, MUSCLE_SUBCATEGORIES, COMPOUND_EXERCISES } from "@/lib/exercises";
+import {
+  EXERCISES_DB,
+  MUSCLE_SUBCATEGORIES,
+  COMPOUND_EXERCISES,
+} from "@/lib/exercises";
 import { exerciseKind } from "@/lib/exerciseKind";
 import {
   calculateCalories,
@@ -43,15 +57,15 @@ export const Route = createFileRoute("/calorie-calculator")({
 // Same nine tiles as the workout page grid, so the picker looks like the place
 // the user came from.
 const MUSCLES = [
-  { id: "chest",     name: "Chest",      img: "/images/chestfinal.png" },
-  { id: "back",      name: "Back",       img: "/images/backfinal.png" },
-  { id: "shoulders", name: "Shoulders",  img: "/images/shouldersfinal.png" },
-  { id: "biceps",    name: "Biceps",     img: "/images/biceps%20final.png" },
-  { id: "triceps",   name: "Triceps",    img: "/images/tricepsfinal.png" },
-  { id: "abs",       name: "Core & Abs", img: "/images/corefinal.png" },
-  { id: "legs",      name: "Legs",       img: "/images/legs.png" },
-  { id: "compound",  name: "Compound",   img: "/images/compoundfinal.png" },
-  { id: "forearms",  name: "Forearms",   img: "/images/forearms.png" },
+  { id: "chest", name: "Chest", img: "/images/chestfinal.png" },
+  { id: "back", name: "Back", img: "/images/backfinal.png" },
+  { id: "shoulders", name: "Shoulders", img: "/images/shouldersfinal.png" },
+  { id: "biceps", name: "Biceps", img: "/images/biceps%20final.png" },
+  { id: "triceps", name: "Triceps", img: "/images/tricepsfinal.png" },
+  { id: "abs", name: "Core & Abs", img: "/images/corefinal.png" },
+  { id: "legs", name: "Legs", img: "/images/legs.png" },
+  { id: "compound", name: "Compound", img: "/images/compoundfinal.png" },
+  { id: "forearms", name: "Forearms", img: "/images/forearms.png" },
 ];
 
 const REST_PRESETS = [30, 60, 90, 120, 180];
@@ -63,16 +77,19 @@ const REST_PRESETS = [30, 60, 90, 120, 180];
  */
 function namesForMuscle(id: string): string[] {
   const subs = MUSCLE_SUBCATEGORIES[id];
-  const raw = id === "compound"
-    ? COMPOUND_EXERCISES
-    : subs ? subs.flatMap((s) => s.names) : EXERCISES_DB[id] ?? [];
+  const raw =
+    id === "compound"
+      ? COMPOUND_EXERCISES
+      : subs
+        ? subs.flatMap((s) => s.names)
+        : (EXERCISES_DB[id] ?? []);
   // De-duplicate: the Back sub-groups overlap, and Compound repeats big lifts.
   return Array.from(new Set(raw)).filter(isStrengthExercise).sort();
 }
 
-const ALL_NAMES = Array.from(
-  new Set(Object.values(EXERCISES_DB).flat()),
-).filter(isStrengthExercise).sort();
+const ALL_NAMES = Array.from(new Set(Object.values(EXERCISES_DB).flat()))
+  .filter(isStrengthExercise)
+  .sort();
 
 // ── Saved history (localStorage only) ───────────────────────────────────────
 
@@ -102,7 +119,10 @@ function loadHistory(userId: string): SavedCalc[] {
 
 function writeHistory(userId: string, entries: SavedCalc[]): void {
   try {
-    localStorage.setItem(HISTORY_KEY(userId), JSON.stringify(entries.slice(0, 100)));
+    localStorage.setItem(
+      HISTORY_KEY(userId),
+      JSON.stringify(entries.slice(0, 100)),
+    );
   } catch {
     /* storage full or blocked — the calculation itself still worked */
   }
@@ -132,7 +152,9 @@ function CalorieCalculator() {
   const [openMuscle, setOpenMuscle] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  const [rows, setRows] = useState<{ reps: string; weight: string; hold: string }[]>([
+  const [rows, setRows] = useState<
+    { reps: string; weight: string; hold: string }[]
+  >([
     { reps: "10", weight: "", hold: "" },
     { reps: "10", weight: "", hold: "" },
     { reps: "10", weight: "", hold: "" },
@@ -166,34 +188,50 @@ function CalorieCalculator() {
 
   // Rows in engine units: the form carries the user's display unit, the engine
   // takes kilograms.
-  const sets: StrengthSet[] = useMemo(() => rows.map((r) => ({
-    reps: parseInt(r.reps) || 0,
-    weight_kg: r.weight ? weightToKg(parseFloat(r.weight) || 0, unit) : null,
-    hold_sec: parseInt(r.hold) || 0,
-  })), [rows, unit]);
+  const sets: StrengthSet[] = useMemo(
+    () =>
+      rows.map((r) => ({
+        reps: parseInt(r.reps) || 0,
+        weight_kg: r.weight
+          ? weightToKg(parseFloat(r.weight) || 0, unit)
+          : null,
+        hold_sec: parseInt(r.hold) || 0,
+      })),
+    [rows, unit],
+  );
 
   const session = exercise
     ? summarizeStrength(exercise, sets, restSec, bodyWeight)
     : null;
 
   const autoMinutes = session ? strengthDurationMin(session) : 0;
-  const durationMin = durationOverride != null
-    ? parseFloat(durationOverride) || 0
-    : autoMinutes;
+  const durationMin =
+    durationOverride != null ? parseFloat(durationOverride) || 0 : autoMinutes;
 
-  const result = exercise && session && durationMin > 0
-    ? calculateCalories(exercise, {
-        duration_min: durationMin,
-        rest_sec: restSec,
-        strength_sets: sets,
-        hr_bpm: parseInt(bpm) || null,
-      }, { weight_kg: bodyWeight, age: userAge, gender: userGender })
+  const result =
+    exercise && session && durationMin > 0
+      ? calculateCalories(
+          exercise,
+          {
+            duration_min: durationMin,
+            rest_sec: restSec,
+            strength_sets: sets,
+            hr_bpm: parseInt(bpm) || null,
+          },
+          { weight_kg: bodyWeight, age: userAge, gender: userGender },
+        )
+      : null;
+
+  const tier = result
+    ? confidenceTier(result.method, session?.met_resolved ?? false)
     : null;
-
-  const tier = result ? confidenceTier(result.method, session?.met_resolved ?? false) : null;
   const range = result && tier ? calorieRange(result.kcal, tier) : null;
-  const chip = tier === "high" ? "Heart-rate adjusted"
-    : tier === "medium" ? "Estimated" : "Rough estimate";
+  const chip =
+    tier === "high"
+      ? "Heart-rate adjusted"
+      : tier === "medium"
+        ? "Estimated"
+        : "Rough estimate";
 
   const restMin = session ? session.rest_sec / 60 : 0;
   const activeMin = Math.max(0, durationMin - restMin);
@@ -241,7 +279,9 @@ function CalorieCalculator() {
   };
 
   const searchHits = query.trim()
-    ? ALL_NAMES.filter((n) => n.toLowerCase().includes(query.toLowerCase())).slice(0, 40)
+    ? ALL_NAMES.filter((n) =>
+        n.toLowerCase().includes(query.toLowerCase()),
+      ).slice(0, 40)
     : [];
 
   return (
@@ -270,10 +310,16 @@ function CalorieCalculator() {
       <main className="mx-auto max-w-md p-5 pt-4">
         <Tabs defaultValue="calc" className="w-full max-w-full">
           <TabsList className="flex w-full py-2">
-            <TabsTrigger value="calc" className="flex-1 px-2 py-3 text-[11px] font-bold sm:text-sm">
+            <TabsTrigger
+              value="calc"
+              className="flex-1 px-2 py-3 text-[11px] font-bold sm:text-sm"
+            >
               <Calculator className="mr-1.5 h-3 w-3 sm:h-4 sm:w-4" /> Calculate
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex-1 px-2 py-3 text-[11px] font-bold sm:text-sm">
+            <TabsTrigger
+              value="history"
+              className="flex-1 px-2 py-3 text-[11px] font-bold sm:text-sm"
+            >
               <History className="mr-1.5 h-3 w-3 sm:h-4 sm:w-4" /> History
             </TabsTrigger>
           </TabsList>
@@ -291,12 +337,17 @@ function CalorieCalculator() {
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{exercise}</p>
                     <p className="text-xs text-muted-foreground">
-                      {session?.met_resolved ? `${session.met.toFixed(1)} MET` : "MET estimated"}
+                      {session?.met_resolved
+                        ? `${session.met.toFixed(1)} MET`
+                        : "MET estimated"}
                       {kind !== "weighted" && ` · ${kind}`}
                     </p>
                   </div>
                   <button
-                    onClick={() => { setExercise(null); setOpenMuscle(null); }}
+                    onClick={() => {
+                      setExercise(null);
+                      setOpenMuscle(null);
+                    }}
                     className="shrink-0 rounded-full px-3 py-1.5 text-xs font-bold text-accent"
                   >
                     Change
@@ -333,7 +384,10 @@ function CalorieCalculator() {
                       {searchHits.map((n) => (
                         <button
                           key={n}
-                          onClick={() => { setExercise(n); setQuery(""); }}
+                          onClick={() => {
+                            setExercise(n);
+                            setQuery("");
+                          }}
                           className="w-full rounded-xl border border-border/50 bg-muted/10 px-4 py-3 text-left text-sm font-medium active:scale-[0.98]"
                         >
                           {n}
@@ -366,7 +420,12 @@ function CalorieCalculator() {
                           onClick={() => setOpenMuscle(m.id)}
                           className="flex flex-col overflow-hidden rounded-2xl transition-transform duration-150 active:scale-95"
                         >
-                          <img src={m.img} alt="" className="block h-auto w-full" loading="lazy" />
+                          <img
+                            src={m.img}
+                            alt=""
+                            className="block h-auto w-full"
+                            loading="lazy"
+                          />
                           <span className="w-full py-1.5 text-center text-[13px] font-semibold text-foreground">
                             {m.name}
                           </span>
@@ -388,10 +447,14 @@ function CalorieCalculator() {
 
                   <div className="flex gap-2 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                     <span className="w-10">Set</span>
-                    <span className="flex-1">{isHold ? "Seconds" : "Reps"}</span>
+                    <span className="flex-1">
+                      {isHold ? "Seconds" : "Reps"}
+                    </span>
                     {showsWeight && (
                       <span className="flex-1">
-                        {kind === "assisted" ? `Assist (${unit})` : `Weight (${unit})`}
+                        {kind === "assisted"
+                          ? `Assist (${unit})`
+                          : `Weight (${unit})`}
                       </span>
                     )}
                     <span className="w-8" />
@@ -399,14 +462,28 @@ function CalorieCalculator() {
 
                   {rows.map((r, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="w-10 text-sm font-bold text-muted-foreground">{i + 1}</span>
+                      <span className="w-10 text-sm font-bold text-muted-foreground">
+                        {i + 1}
+                      </span>
                       <Input
                         type="number"
                         inputMode="numeric"
-                        aria-label={isHold ? `Set ${i + 1} seconds` : `Set ${i + 1} reps`}
+                        aria-label={
+                          isHold ? `Set ${i + 1} seconds` : `Set ${i + 1} reps`
+                        }
                         value={isHold ? r.hold : r.reps}
-                        onChange={(e) => setRows(rows.map((row, j) =>
-                          j === i ? { ...row, [isHold ? "hold" : "reps"]: e.target.value } : row))}
+                        onChange={(e) =>
+                          setRows(
+                            rows.map((row, j) =>
+                              j === i
+                                ? {
+                                    ...row,
+                                    [isHold ? "hold" : "reps"]: e.target.value,
+                                  }
+                                : row,
+                            ),
+                          )
+                        }
                         placeholder={isHold ? "45" : "10"}
                         className="h-11 flex-1 bg-background/60 text-center font-semibold"
                       />
@@ -416,8 +493,15 @@ function CalorieCalculator() {
                           inputMode="decimal"
                           aria-label={`Set ${i + 1} weight`}
                           value={r.weight}
-                          onChange={(e) => setRows(rows.map((row, j) =>
-                            j === i ? { ...row, weight: e.target.value } : row))}
+                          onChange={(e) =>
+                            setRows(
+                              rows.map((row, j) =>
+                                j === i
+                                  ? { ...row, weight: e.target.value }
+                                  : row,
+                              ),
+                            )
+                          }
                           placeholder="—"
                           className="h-11 flex-1 bg-background/60 text-center font-semibold"
                         />
@@ -436,7 +520,9 @@ function CalorieCalculator() {
                   <button
                     // Copying the last row matches how people actually train:
                     // the load repeats, or climbs from what came before.
-                    onClick={() => setRows([...rows, { ...rows[rows.length - 1] }])}
+                    onClick={() =>
+                      setRows([...rows, { ...rows[rows.length - 1] }])
+                    }
                     className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-xs font-bold uppercase tracking-wide text-muted-foreground active:scale-[0.98]"
                   >
                     <Plus className="h-3.5 w-3.5" /> Add set
@@ -452,7 +538,10 @@ function CalorieCalculator() {
                     {REST_PRESETS.map((s) => (
                       <button
                         key={s}
-                        onClick={() => { setRestSec(s); setDurationOverride(null); }}
+                        onClick={() => {
+                          setRestSec(s);
+                          setDurationOverride(null);
+                        }}
                         className={`flex-1 rounded-xl py-2 text-xs font-bold transition-colors ${
                           restSec === s
                             ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
@@ -486,7 +575,10 @@ function CalorieCalculator() {
                       type="number"
                       inputMode="decimal"
                       aria-label="Total workout time in minutes"
-                      value={durationOverride ?? (autoMinutes ? autoMinutes.toFixed(1) : "")}
+                      value={
+                        durationOverride ??
+                        (autoMinutes ? autoMinutes.toFixed(1) : "")
+                      }
                       onChange={(e) => setDurationOverride(e.target.value)}
                       className="h-12 bg-background/50 pr-20 text-center text-lg font-bold"
                     />
@@ -504,9 +596,12 @@ function CalorieCalculator() {
                     className="flex w-full items-center justify-between rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
                   >
                     <span className="flex items-center gap-2 text-sm font-semibold">
-                      <Heart className="h-4 w-4 text-muted-foreground" /> Improve accuracy
+                      <Heart className="h-4 w-4 text-muted-foreground" />{" "}
+                      Improve accuracy
                     </span>
-                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showHr ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${showHr ? "rotate-180" : ""}`}
+                    />
                   </button>
                   {showHr && (
                     <div className="space-y-2 rounded-2xl border border-border/50 bg-muted/10 p-4">
@@ -522,8 +617,8 @@ function CalorieCalculator() {
                         className="h-12 bg-background/50 text-center font-semibold"
                       />
                       <p className="text-[11px] text-muted-foreground">
-                        Have a monitor? Enter your average HR for a tighter estimate.
-                        Otherwise we'll use the MET formula.
+                        Have a monitor? Enter your average HR for a tighter
+                        estimate. Otherwise we'll use the MET formula.
                       </p>
                     </div>
                   )}
@@ -541,7 +636,10 @@ function CalorieCalculator() {
             ) : (
               <>
                 <button
-                  onClick={() => { setHistory([]); if (user) writeHistory(user.id, []); }}
+                  onClick={() => {
+                    setHistory([]);
+                    if (user) writeHistory(user.id, []);
+                  }}
                   className="mb-1 ml-auto block rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground"
                 >
                   Clear all
@@ -555,8 +653,8 @@ function CalorieCalculator() {
                       <p className="truncate font-semibold">{h.exercise}</p>
                       <p className="text-xs text-muted-foreground">
                         {h.sets.length} {h.sets.length === 1 ? "set" : "sets"} ·{" "}
-                        {h.sets.reduce((t, s) => t + (s.reps || 0), 0) || "—"} reps ·{" "}
-                        {h.rest_sec}s rest · {h.duration_min} min
+                        {h.sets.reduce((t, s) => t + (s.reps || 0), 0) || "—"}{" "}
+                        reps · {h.rest_sec}s rest · {h.duration_min} min
                       </p>
                       <p className="mt-1 text-sm font-bold text-accent">
                         {h.low} – {h.high} kcal
@@ -587,7 +685,9 @@ function CalorieCalculator() {
             <div aria-live="polite">
               <p className="font-display text-2xl font-bold tracking-tight">
                 {range.low} – {range.high}
-                <span className="ml-1.5 text-sm font-semibold text-muted-foreground">kcal</span>
+                <span className="ml-1.5 text-sm font-semibold text-muted-foreground">
+                  kcal
+                </span>
               </p>
               <p className="text-[11px] text-muted-foreground">
                 {Math.round(bodyWeight)} kg · {durationMin.toFixed(0)} min ·{" "}
@@ -600,7 +700,9 @@ function CalorieCalculator() {
             <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
               <div
                 className="bg-accent"
-                style={{ width: `${durationMin > 0 ? (activeMin / durationMin) * 100 : 0}%` }}
+                style={{
+                  width: `${durationMin > 0 ? (activeMin / durationMin) * 100 : 0}%`,
+                }}
               />
             </div>
 

@@ -31,28 +31,161 @@ interface BadgeDef {
 
 const BADGES: BadgeDef[] = [
   // ── Nutrition ──
-  { id: "first-bite", emoji: "🍽️", title: "First Bite", desc: "Log your first food", target: 1, value: (s) => s.foodCount },
-  { id: "streak-3", emoji: "🌱", title: "Getting Warm", desc: "3-day logging streak", target: 3, value: (s) => s.foodStreak },
-  { id: "streak-7", emoji: "🔥", title: "Week Warrior", desc: "7-day logging streak", target: 7, value: (s) => s.foodStreak },
-  { id: "streak-14", emoji: "⚡", title: "Fortnight Force", desc: "14-day logging streak", target: 14, value: (s) => s.foodStreak },
-  { id: "streak-30", emoji: "👑", title: "Iron Month", desc: "30-day logging streak", target: 30, value: (s) => s.foodStreak },
-  { id: "food-100", emoji: "💯", title: "Century Club", desc: "Log 100 foods", target: 100, value: (s) => s.foodCount },
-  { id: "food-500", emoji: "🤓", title: "Nutrition Nerd", desc: "Log 500 foods", target: 500, value: (s) => s.foodCount },
-  { id: "early-bird", emoji: "🌅", title: "Early Bird", desc: "Log breakfast before 8 AM, 5 times", target: 5, value: (s) => s.earlyLogs },
+  {
+    id: "first-bite",
+    emoji: "🍽️",
+    title: "First Bite",
+    desc: "Log your first food",
+    target: 1,
+    value: (s) => s.foodCount,
+  },
+  {
+    id: "streak-3",
+    emoji: "🌱",
+    title: "Getting Warm",
+    desc: "3-day logging streak",
+    target: 3,
+    value: (s) => s.foodStreak,
+  },
+  {
+    id: "streak-7",
+    emoji: "🔥",
+    title: "Week Warrior",
+    desc: "7-day logging streak",
+    target: 7,
+    value: (s) => s.foodStreak,
+  },
+  {
+    id: "streak-14",
+    emoji: "⚡",
+    title: "Fortnight Force",
+    desc: "14-day logging streak",
+    target: 14,
+    value: (s) => s.foodStreak,
+  },
+  {
+    id: "streak-30",
+    emoji: "👑",
+    title: "Iron Month",
+    desc: "30-day logging streak",
+    target: 30,
+    value: (s) => s.foodStreak,
+  },
+  {
+    id: "food-100",
+    emoji: "💯",
+    title: "Century Club",
+    desc: "Log 100 foods",
+    target: 100,
+    value: (s) => s.foodCount,
+  },
+  {
+    id: "food-500",
+    emoji: "🤓",
+    title: "Nutrition Nerd",
+    desc: "Log 500 foods",
+    target: 500,
+    value: (s) => s.foodCount,
+  },
+  {
+    id: "early-bird",
+    emoji: "🌅",
+    title: "Early Bird",
+    desc: "Log breakfast before 8 AM, 5 times",
+    target: 5,
+    value: (s) => s.earlyLogs,
+  },
   // ── Training ──
-  { id: "first-rep", emoji: "🏋️", title: "First Rep", desc: "Log your first workout", target: 1, value: (s) => s.workoutCount },
-  { id: "workouts-10", emoji: "💪", title: "Ten Strong", desc: "Complete 10 workouts", target: 10, value: (s) => s.workoutCount },
-  { id: "workouts-50", emoji: "🦾", title: "Half Century", desc: "Complete 50 workouts", target: 50, value: (s) => s.workoutCount },
-  { id: "workouts-100", emoji: "🐺", title: "Beast Mode", desc: "Complete 100 workouts", target: 100, value: (s) => s.workoutCount },
+  {
+    id: "first-rep",
+    emoji: "🏋️",
+    title: "First Rep",
+    desc: "Log your first workout",
+    target: 1,
+    value: (s) => s.workoutCount,
+  },
+  {
+    id: "workouts-10",
+    emoji: "💪",
+    title: "Ten Strong",
+    desc: "Complete 10 workouts",
+    target: 10,
+    value: (s) => s.workoutCount,
+  },
+  {
+    id: "workouts-50",
+    emoji: "🦾",
+    title: "Half Century",
+    desc: "Complete 50 workouts",
+    target: 50,
+    value: (s) => s.workoutCount,
+  },
+  {
+    id: "workouts-100",
+    emoji: "🐺",
+    title: "Beast Mode",
+    desc: "Complete 100 workouts",
+    target: 100,
+    value: (s) => s.workoutCount,
+  },
   // ── Progress ──
-  { id: "on-scale", emoji: "⚖️", title: "On the Scale", desc: "Log your first weight", target: 1, value: (s) => s.weightCount },
-  { id: "weigh-20", emoji: "📈", title: "Trend Setter", desc: "20 weight entries", target: 20, value: (s) => s.weightCount },
-  { id: "first-photo", emoji: "📸", title: "Progress Pic", desc: "Add your first progress photo", target: 1, value: (s) => s.photoCount },
-  { id: "photos-10", emoji: "🎞️", title: "Transformation Log", desc: "10 progress photos", target: 10, value: (s) => s.photoCount },
+  {
+    id: "on-scale",
+    emoji: "⚖️",
+    title: "On the Scale",
+    desc: "Log your first weight",
+    target: 1,
+    value: (s) => s.weightCount,
+  },
+  {
+    id: "weigh-20",
+    emoji: "📈",
+    title: "Trend Setter",
+    desc: "20 weight entries",
+    target: 20,
+    value: (s) => s.weightCount,
+  },
+  {
+    id: "first-photo",
+    emoji: "📸",
+    title: "Progress Pic",
+    desc: "Add your first progress photo",
+    target: 1,
+    value: (s) => s.photoCount,
+  },
+  {
+    id: "photos-10",
+    emoji: "🎞️",
+    title: "Transformation Log",
+    desc: "10 progress photos",
+    target: 10,
+    value: (s) => s.photoCount,
+  },
   // ── Hydration & meals ──
-  { id: "hydra-7", emoji: "💧", title: "Hydration Hero", desc: "Hit 2L+ water on 7 days", target: 7, value: (s) => s.hydratedDays },
-  { id: "hydra-30", emoji: "🌊", title: "Aquaholic", desc: "Hit 2L+ water on 30 days", target: 30, value: (s) => s.hydratedDays },
-  { id: "chef-5", emoji: "👨‍🍳", title: "Chef's Special", desc: "Save 5 favorite meals", target: 5, value: (s) => s.savedMeals },
+  {
+    id: "hydra-7",
+    emoji: "💧",
+    title: "Hydration Hero",
+    desc: "Hit 2L+ water on 7 days",
+    target: 7,
+    value: (s) => s.hydratedDays,
+  },
+  {
+    id: "hydra-30",
+    emoji: "🌊",
+    title: "Aquaholic",
+    desc: "Hit 2L+ water on 30 days",
+    target: 30,
+    value: (s) => s.hydratedDays,
+  },
+  {
+    id: "chef-5",
+    emoji: "👨‍🍳",
+    title: "Chef's Special",
+    desc: "Save 5 favorite meals",
+    target: 5,
+    value: (s) => s.savedMeals,
+  },
 ];
 
 function computeFoodStreak(dates: string[]): number {
@@ -98,12 +231,12 @@ export function AchievementsPage({
           .eq("user_id", userId)
           .gte("amount_ml", 2000),
         supabase
-          .from("saved_meals" as any)
+          .from("saved_meals")
           .select("id", { count: "exact", head: true })
           .eq("user_id", userId),
       ]);
 
-      const foodRows = (food.data ?? []) as any[];
+      const foodRows = food.data ?? [];
       const earlyLogs = foodRows.filter((r) => {
         if (!r.logged_at) return false;
         return new Date(r.logged_at).getHours() < 8;
@@ -113,14 +246,18 @@ export function AchievementsPage({
         foodCount: foodRows.length,
         foodStreak: computeFoodStreak(
           foodRows
-            .filter((r) => r.logged_at && toLocalISO(new Date(r.logged_at)) === r.date)
-            .map((r) => r.date)
+            .filter(
+              (r) =>
+                r.logged_at && toLocalISO(new Date(r.logged_at)) === r.date,
+            )
+            // The filter compared date to a string, so it is non-null here.
+            .map((r) => r.date!),
         ),
         workoutCount: workouts.count ?? 0,
         weightCount: (weights.data ?? []).length,
-        photoCount: (weights.data ?? []).filter((w: any) => w.photo_url).length,
+        photoCount: (weights.data ?? []).filter((w) => w.photo_url).length,
         hydratedDays: (water.data ?? []).length,
-        savedMeals: (meals as any).count ?? 0,
+        savedMeals: meals.count ?? 0,
         earlyLogs,
       });
     };
@@ -135,7 +272,12 @@ export function AchievementsPage({
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={onBack}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            onClick={onBack}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-base font-semibold">Achievements</h2>
