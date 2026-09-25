@@ -173,6 +173,7 @@ import {
 } from "@/lib/musclePlan";
 import { MuscleIcon } from "@/components/MuscleIcon";
 import { PremiumGate } from "@/components/PremiumGate";
+import { useAccessGate } from "@/hooks/useAccessGate";
 
 // ── AI Workout Plan types ─────────────────────────────────────
 interface PlanExercise {
@@ -2024,6 +2025,28 @@ function WorkoutPage() {
       kind === "weighted" || kind === "assisted" || (canAddWeight && addWeight);
     const showRpe = canAddWeight;
 
+    /* Daily set cap per exercise: 10 with access (trial, paid or premium
+       days), 6 without. Counts every set already logged today for this
+       exercise, so one session of 6 and six sessions of 1 hit it alike. */
+    const { state: accessState } = useAccessGate();
+    const setCap = accessState === "entitled" ? 10 : 6;
+    const today = todayLocal();
+    const setsLoggedToday = history
+      .filter((h) => h.date === today)
+      .reduce((n, h) => n + readSets(h.exercises_done).length, 0);
+    const setsLeft = Math.max(0, setCap - setsLoggedToday);
+    const atSetCap = sets.length >= setsLeft;
+    const setCapMessage =
+      setCap === 10
+        ? "That's 10 sets of this one today — great work! Your sets refresh tomorrow."
+        : "That's 6 sets of this one today — nice work! Free plans log up to 6 sets per exercise a day; a plan gets you 10.";
+
+    // A prefill copied from the last session can overshoot what's left today.
+    useEffect(() => {
+      if (accessState !== "loading" && setsLeft > 0 && sets.length > setsLeft)
+        setSets((s) => s.slice(0, setsLeft));
+    }, [accessState, setsLeft, sets.length]);
+
     // Rest timer
     const [restLeft, setRestLeft] = useState(0);
     const [restTotal, setRestTotal] = useState(0);
@@ -2150,6 +2173,10 @@ function WorkoutPage() {
 
     const handleLog = async () => {
       if (!user) return;
+      if (sets.length > setsLeft) {
+        toast(setCapMessage, { id: "set-cap" });
+        return;
+      }
       const t = toast.loading("Logging exercise...");
       // Only the fields this kind actually uses are written, so readers can
       // tell a weightless bodyweight set from a 0kg one.
@@ -2476,6 +2503,10 @@ function WorkoutPage() {
                   variant="outline"
                   className="w-full mt-4 text-[11px] font-bold border-dashed border-border/50 rounded-xl h-10 hover:bg-accent/10 hover:text-accent hover:border-accent/50 transition-colors"
                   onClick={() => {
+                    if (atSetCap) {
+                      toast(setCapMessage, { id: "set-cap" });
+                      return;
+                    }
                     const prev = sets[sets.length - 1];
                     setSets([
                       ...sets,

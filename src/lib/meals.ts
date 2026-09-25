@@ -20,6 +20,11 @@ export type MealIngredient = {
   name: string;
   quantity_g: number;
   calories: number;
+  /**
+   * Set on a restaurant build's ingredients ("brand|meal|size|step"), which
+   * reopens the builder on it; their quantity_g is 0, as no weight is given.
+   */
+  ref?: string;
 };
 
 /** A saved_meals row with its json ingredients given their real shape. */

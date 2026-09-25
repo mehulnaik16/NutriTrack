@@ -56,7 +56,13 @@ import {
 } from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
 import { useAccessGate } from "@/hooks/useAccessGate";
-import { todayLocal } from "@/lib/dates";
+import {
+  daysAgoLocal,
+  EDIT_WINDOW_DAYS,
+  isEditableDate,
+  todayLocal,
+  VIEW_ONLY_MESSAGE,
+} from "@/lib/dates";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
 
@@ -276,9 +282,16 @@ function WeightPage() {
     newPhoto: File | null,
   ) => {
     if (!user) return;
+    const originalEntry = entries.find((e) => e.id === updated.id);
+    if (
+      !isEditableDate(originalEntry?.date ?? updated.date) ||
+      !isEditableDate(updated.date)
+    ) {
+      toast(VIEW_ONLY_MESSAGE, { id: "view-only" });
+      throw new Error("view-only");
+    }
     try {
       let finalPhotoUrl = updated.photo_url;
-      const originalEntry = entries.find((e) => e.id === updated.id);
 
       if (newPhoto) {
         const result = await replaceWeightPhoto(
@@ -1047,6 +1060,8 @@ function WeightEntryModal({
                     <input
                       type="date"
                       value={editDate}
+                      min={daysAgoLocal(EDIT_WINDOW_DAYS)}
+                      max={todayLocal()}
                       onChange={(e) => setEditDate(e.target.value)}
                       className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
                     />
@@ -1151,7 +1166,11 @@ function WeightEntryModal({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsEditing(true)}
+                    onClick={() =>
+                      entry && !isEditableDate(entry.date)
+                        ? toast(VIEW_ONLY_MESSAGE, { id: "view-only" })
+                        : setIsEditing(true)
+                    }
                   >
                     Edit
                   </Button>

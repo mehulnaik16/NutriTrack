@@ -27,10 +27,17 @@ import { hasAccess } from "@/lib/entitlement";
 
 export type AccessState = "loading" | "entitled" | "lapsed";
 
+/** What the access that ended was, so the upsell can say the right thing. */
+export type LapseReason = "trial" | "subscription" | "premium";
+
 export interface AccessGate {
   state: AccessState;
   accessUntil: string | null;
+  /** Null until the network read lands (a cache hit alone doesn't know). */
+  reason: LapseReason | null;
 }
+
+const reasons = new Map<string, LapseReason>();
 
 const CACHE_PREFIX = "dombelz.access_until.";
 
@@ -63,6 +70,16 @@ function loadAccessUntil(userId: string): Promise<string | null> {
     p = getBillingSummary()
       .then((s) => {
         writeCache(userId, s.access_until);
+        // Any charge means they paid once; bonus days mean referral premium
+        // ran out; otherwise it was the free trial.
+        reasons.set(
+          userId,
+          s.charges.length > 0 || s.subscription
+            ? "subscription"
+            : s.bonus_premium_days > 0
+              ? "premium"
+              : "trial",
+        );
         return s.access_until;
       })
       .catch(() => {
@@ -110,11 +127,13 @@ export function useAccessGate(): AccessGate {
   }, [userId]);
 
   // Signed out is the auth redirect's problem, not this gate's.
-  if (authLoading || !userId) return { state: "loading", accessUntil: null };
+  if (authLoading || !userId)
+    return { state: "loading", accessUntil: null, reason: null };
+  const reason = reasons.get(userId) ?? null;
 
   // A cache hit that is still in the future renders straight through, so a
   // returning subscriber never waits on the network to see their own page.
-  if (hasAccess(accessUntil)) return { state: "entitled", accessUntil };
+  if (hasAccess(accessUntil)) return { state: "entitled", accessUntil, reason };
 
-  return { state: checked ? "lapsed" : "loading", accessUntil };
+  return { state: checked ? "lapsed" : "loading", accessUntil, reason };
 }

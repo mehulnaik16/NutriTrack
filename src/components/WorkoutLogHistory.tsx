@@ -32,7 +32,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { EXERCISES_DB } from "@/lib/exercises";
-import { todayLocal } from "@/lib/dates";
+import { todayLocal, toLocalISO } from "@/lib/dates";
 import {
   estimate1RM,
   formatSet,
@@ -604,7 +604,19 @@ export function WorkoutLogHistory() {
               setCardioExpanded(null);
               setCalOpen(false);
             }}
-            disabled={{ after: new Date() }}
+            disabled={[
+              { after: new Date() },
+              // Nothing to browse before the account existed.
+              ...(user?.created_at
+                ? [
+                    {
+                      before: new Date(
+                        toLocalISO(new Date(user.created_at)) + "T00:00:00",
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
             modifiers={{
               logged: loggedDates.map((d) => new Date(d + "T00:00:00")),
             }}

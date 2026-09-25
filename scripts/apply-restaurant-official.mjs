@@ -318,11 +318,62 @@ export function tidy(rows) {
   });
 }
 
+/**
+ * The portion a row is logged in: "1 burger = 137 g", "1 regular pizza
+ * (4 slices) ≈ 316 g", or "1 serving = 110 g" when nothing names a clearer
+ * unit. The unit comes from the brand's own portion word, or else from the
+ * item's own name when that name is one countable thing (a burger, a bowl, a
+ * wrap). Combos, packs and multi-serve orders stay "serving". Rows the brand
+ * publishes per 100 g only are left in grams. Idempotent: it reads its own
+ * output format back.
+ */
+const PER_100G = /as published|as served/;
+const NOT_ONE_THING = /^\d+\s|\bcake\b|\bmeal\b|combo|\+|serves\s*[2-9]|pack|bucket|\b\d+\s*(pc|pcs|pieces)\b|\bx\s*\d|\bdip\b|sauce|mayo|add-on|\(\d+ ?pcs?\)/i;
+const NAME_UNIT = [
+  [/\bburger\b|whopper/i, "burger"],
+  [/footlong/i, "footlong sub"],
+  [/6-inch/i, "6-inch sub"],
+  [/\bsandwich\b/i, "sandwich"],
+  [/\bwrap\b/i, "wrap"],
+  [/\broll\b/i, "roll"],
+  [/\bbowl\b/i, "bowl"],
+  [/\bpizza\b/i, "pizza"],
+  [/\bsundae\b/i, "sundae"],
+  [/\bscoop\b/i, "scoop"],
+  [/\bquesadilla\b/i, "quesadilla"],
+  [/\bburrito\b/i, "burrito"],
+  [/\btaco\b/i, "taco"],
+  [/waffle-?wich|waffwich/i, "waffle-wich"],
+  [/\bwaffle\b/i, "waffle"],
+  [/lunchbox|\bdabba\b/i, "box"],
+];
+export function portion(r) {
+  if (!r.serving_g || PER_100G.test(r.serving_label ?? "")) return r;
+  const phrase = (r.serving_label ?? "1 serving")
+    .replace(/\s*\((?:≈|=)?\s*[\d.]+ g\)$/, "")
+    .replace(/\s*[=≈]\s*[\d.]+ g$/, "")
+    .replace(/^1 /, "");
+  let [unit, ...rest] = phrase.split(/,\s*|\s*\(/).map((s) => s.replace(/\)$/, "").trim());
+  const extra = rest.filter((s) => s && s !== "as sold").join(", ");
+  if (unit === "serving" || unit === "order") {
+    const item = r.name.slice(r.lang.length + 1);
+    const hit = !NOT_ONE_THING.test(item) && NAME_UNIT.find(([re]) => re.test(item));
+    unit = hit ? hit[1] : "serving";
+  }
+  return {
+    ...r,
+    piece_g: r.serving_g,
+    portion_unit: unit,
+    units: ["pcs", "g"],
+    serving_label: `1 ${unit}${extra ? ` (${extra})` : ""} ${r.serving_est ? "≈" : "="} ${r.serving_g} g`,
+  };
+}
+
 if (process.argv[1]?.endsWith("apply-restaurant-official.mjs")) {
   const rows = JSON.parse(fs.readFileSync(OUT, "utf8"));
   const kept = tidy(rows.filter((r) => !REPLACED.has(r.lang)));
   const fresh = [...dominos(), ...kfc(), ...ccd(), ...BRANDS.flatMap(brandRows)];
-  fs.writeFileSync(OUT, JSON.stringify([...kept, ...fresh], null, 0) + "\n");
+  fs.writeFileSync(OUT, JSON.stringify([...kept, ...fresh].map(portion), null, 0) + "\n");
   const by = {};
   fresh.forEach((r) => (by[r.lang] = (by[r.lang] || 0) + 1));
   console.log(`kept ${kept.length}, rebuilt`, by);

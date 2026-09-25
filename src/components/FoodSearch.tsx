@@ -56,6 +56,8 @@ import {
   pieceGrams,
   toGrams,
   unitsFor,
+  unitLabel,
+  UNITS,
   validateQuantity,
 } from "@/lib/foodUnits";
 import {
@@ -109,6 +111,18 @@ export interface FoodSearchRef {
    * hears whether it was logged, so the caller can come back on a cancel.
    */
   openFood: (item: IFCTItem, onClose?: (logged: boolean) => void) => void;
+  /** Save (or update, by name) a Favourites meal. Resolves true once saved. */
+  saveFavorite: (meal: FavoriteMealInput) => Promise<boolean>;
+}
+
+export interface FavoriteMealInput {
+  name: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  ingredients?: MealIngredient[];
 }
 
 export const FoodSearch = forwardRef<
@@ -196,15 +210,7 @@ export const FoodSearch = forwardRef<
       });
   };
 
-  const saveFavoriteMeal = async (mealData: {
-    name: string;
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fiber_g: number;
-    ingredients?: MealIngredient[];
-  }) => {
+  const saveFavoriteMeal = async (mealData: FavoriteMealInput) => {
     const { data: existing } = await supabase
       .from("saved_meals")
       .select("id")
@@ -257,6 +263,12 @@ export const FoodSearch = forwardRef<
       const baseC = ratio > 0 ? (log.carbs_g ?? 0) / ratio : 0;
       const baseF = ratio > 0 ? (log.fat_g ?? 0) / ratio : 0;
 
+      // Reopen on the unit it was entered in, so an entry logged as "2 pcs"
+      // does not come back as 80 g and lose the count the user typed. A
+      // restaurant portion ("2 burger") comes back as pieces of that portion.
+      const loggedUnit = log.unit ?? "g";
+      const known = (UNITS as string[]).includes(loggedUnit);
+      const counted = !known || loggedUnit === "pcs";
       setSelected({
         code: "edit",
         name: log.food_name,
@@ -268,10 +280,14 @@ export const FoodSearch = forwardRef<
         choavldf: baseC,
         fatce: baseF,
         fibtg: ratio > 0 ? (log.fiber_g ?? 0) / ratio : 0,
+        ...(counted && log.unit_quantity
+          ? {
+              piece_g: log.quantity_g / log.unit_quantity,
+              ...(known ? {} : { portion_unit: loggedUnit }),
+            }
+          : {}),
       });
-      // Reopen on the unit it was entered in, so an entry logged as "2 pcs"
-      // does not come back as 80 g and lose the count the user typed.
-      setUnit((log.unit as Unit) ?? "g");
+      setUnit(counted ? "pcs" : (loggedUnit as Unit));
       setQty(String(log.unit_quantity ?? log.quantity_g));
       setMeal(log.meal_type);
       setOpen(true);
@@ -281,6 +297,7 @@ export const FoodSearch = forwardRef<
       closeHook.current = onClose ?? null;
       pickFood(item);
     },
+    saveFavorite: saveFavoriteMeal,
   }));
 
   // Custom Food
@@ -963,7 +980,7 @@ export const FoodSearch = forwardRef<
                                 {mealItem.ingredients
                                   .map(
                                     (ig) =>
-                                      `${ig.name} (${ig.quantity_g}g - ${Math.round(ig.calories)}kcal)`,
+                                      `${ig.name} (${ig.quantity_g ? `${ig.quantity_g}g - ` : ""}${Math.round(ig.calories)}kcal)`,
                                   )
                                   .join(", ")}
                               </span>
@@ -1226,7 +1243,7 @@ export const FoodSearch = forwardRef<
         <DialogContent className="w-[95vw] sm:w-full sm:max-w-md rounded-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pr-6">
             <DialogTitle className="flex items-center gap-2 text-left">
-              <span className="truncate">{selected?.name}</span>
+              <span className="line-clamp-2">{selected?.name}</span>
               <Button
                 type="button"
                 variant="ghost"
@@ -1312,7 +1329,7 @@ export const FoodSearch = forwardRef<
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-[3fr_2fr] gap-3">
                 <div className="space-y-1">
                   <Label>Quantity</Label>
                   <div className="flex gap-2">
@@ -1322,14 +1339,14 @@ export const FoodSearch = forwardRef<
                       value={qty}
                       placeholder={unit === "pcs" ? "Enter count" : undefined}
                       onChange={(e) => setQty(e.target.value)}
-                      className="flex-1 min-w-0"
+                      className="min-w-[3.5rem] flex-1"
                     />
                     <Select
                       value={unit}
                       onValueChange={(u) => changeUnit(u as Unit)}
                     >
                       <SelectTrigger
-                        className="w-[78px] shrink-0"
+                        className="w-auto min-w-[78px] max-w-[70%] shrink-0"
                         aria-label="Unit"
                       >
                         <SelectValue />
@@ -1341,7 +1358,7 @@ export const FoodSearch = forwardRef<
                             value={u}
                             className="min-h-[44px]"
                           >
-                            {u}
+                            {unitLabel(u, selected)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1355,8 +1372,10 @@ export const FoodSearch = forwardRef<
               </div>
               {unit !== "g" && (
                 <p className="-mt-1 text-xs text-muted-foreground">
-                  {unit === "pcs" && `1 piece = ${pieceGrams(selected)} g · `}≈{" "}
-                  {grams} g
+                  {unit === "pcs" &&
+                    `1 ${unitLabel(unit, selected).replace(/^pcs$/, "piece")} ${selected?.serving_est ? "≈" : "="} ${pieceGrams(selected)} g`}
+                  {(unit !== "pcs" || +qty !== 1) &&
+                    `${unit === "pcs" ? " · " : ""}≈ ${grams} g`}
                 </p>
               )}
               {!qv.ok && qv.error && (
@@ -1364,7 +1383,7 @@ export const FoodSearch = forwardRef<
               )}
               {/* Menu items come as a portion, so offer that portion directly —
                   the field still holds grams, which keeps one unit throughout. */}
-              {selected?.serving_g && (
+              {selected?.serving_g && !selected.portion_unit && (
                 <div className="flex items-center gap-2 -mt-1">
                   <button
                     type="button"
@@ -1400,7 +1419,7 @@ export const FoodSearch = forwardRef<
                     qv.value,
                     meal,
                     overrides,
-                    { unit, qty: +qty },
+                    { unit: unitLabel(unit, selected), qty: +qty },
                   );
                   if (ok) {
                     if (saveAsMeal) {

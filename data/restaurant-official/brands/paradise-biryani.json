@@ -1,0 +1,211 @@
+{
+ "brand": "Paradise Biryani",
+ "code": "Z9",
+ "source": "Paradise Biryani's own menu listing on Swiggy (Bangalore, restaurant 232611): kcal and protein (and for some items carbs and fat) plus weight for the biryanis. Fetched 2026-09-25.",
+ "basis": "Per item as sold; biryani weights as listed (515 g, 850 g...), others estimated (≈). Carbs and fat are published only for a few items. Rice bowls, thalis and rolls carry no figures and are not listed.",
+ "density": 180,
+ "items": [
+  {
+   "name": "Royal Chicken Biryani (Serves 1)",
+   "g": 515,
+   "kcal": 1288,
+   "protein": 62.06,
+   "serving": "serving"
+  },
+  {
+   "name": "Royal Mutton Dum Biryani (Serves 1)",
+   "g": 470,
+   "kcal": 1403,
+   "protein": 45.85,
+   "serving": "serving"
+  },
+  {
+   "name": "Nizami Chicken Dum Biryani (Serves upto 2)",
+   "g": 850,
+   "kcal": 2603,
+   "protein": 134.17,
+   "serving": "order, serves up to 2"
+  },
+  {
+   "name": "Nizami Mutton Dum Biryani (Serves 1-2)",
+   "g": 850,
+   "kcal": 2376,
+   "protein": 107.43,
+   "serving": "order, serves 1-2"
+  },
+  {
+   "name": "Egg Biryani (Serves 1-2)",
+   "g": 850,
+   "kcal": 2844,
+   "protein": 64.17,
+   "serving": "order, serves 1-2"
+  },
+  {
+   "name": "Chicken Biryani Jumbo Pack (Serves 4-5)",
+   "kcal": 9937,
+   "protein": 507.94,
+   "serving": "order, serves 4-5"
+  },
+  {
+   "name": "Mutton Biryani Jumbo Pack (Serves 4-5)",
+   "kcal": 9003,
+   "protein": 407.08,
+   "serving": "order, serves 4-5"
+  },
+  {
+   "name": "Meal for 1",
+   "g": 515,
+   "kcal": 1556,
+   "protein": 78,
+   "serving": "serving"
+  },
+  {
+   "name": "Meal for 2",
+   "g": 850,
+   "kcal": 2903,
+   "protein": 155,
+   "serving": "order, serves 2"
+  },
+  {
+   "name": "Meal for 4",
+   "kcal": 5756,
+   "protein": 308,
+   "serving": "order, serves 4"
+  },
+  {
+   "name": "2 Mini Chicken Dum Biryani",
+   "kcal": 1624,
+   "protein": 85.68,
+   "serving": "serving"
+  },
+  {
+   "name": "Special Royal Chicken Biryani",
+   "g": 590,
+   "kcal": 1288,
+   "protein": 70,
+   "serving": "serving"
+  },
+  {
+   "name": "Special Nizami Chicken Dum Biryani",
+   "kcal": 2863,
+   "protein": 147.59,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Reshmi Kebab (Half, 4 Pcs)",
+   "kcal": 317,
+   "protein": 14.81,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Garlic Kebab (Half)",
+   "kcal": 271,
+   "protein": 16.83,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Tikka Kebab (Half)",
+   "kcal": 268,
+   "protein": 16.38,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Garlic Kebab",
+   "kcal": 542,
+   "protein": 33.65,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Reshmi Kebab (8 Pcs)",
+   "kcal": 634,
+   "protein": 29.62,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Tikka Kebab",
+   "kcal": 550,
+   "protein": 40,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Fiery Kebab",
+   "kcal": 905,
+   "protein": 44.44,
+   "serving": "serving"
+  },
+  {
+   "name": "Tandoori Chicken (Half)",
+   "kcal": 703,
+   "protein": 56.5,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kalmi Kebab",
+   "kcal": 669,
+   "protein": 27.38,
+   "serving": "serving"
+  },
+  {
+   "name": "Tandoori Chicken (Full)",
+   "kcal": 1345,
+   "protein": 98.67,
+   "serving": "serving"
+  },
+  {
+   "name": "Paneer Tikka Kebab (Half)",
+   "kcal": 284,
+   "protein": 19.28,
+   "serving": "serving"
+  },
+  {
+   "name": "Paneer Tikka Kebab",
+   "kcal": 568,
+   "protein": 38.57,
+   "serving": "serving"
+  },
+  {
+   "name": "Paneer Butter Masala",
+   "kcal": 653,
+   "protein": 23.43,
+   "carbs": 24.72,
+   "fat": 51,
+   "serving": "serving"
+  },
+  {
+   "name": "Rumali Roti",
+   "kcal": 333,
+   "protein": 9.34,
+   "carbs": 65.89,
+   "fat": 3,
+   "serving": "serving"
+  },
+  {
+   "name": "Double Ka Meetha",
+   "kcal": 446,
+   "protein": 6.13,
+   "carbs": 49.58,
+   "fat": 24,
+   "serving": "serving"
+  },
+  {
+   "name": "Gulab Jamun (2 pcs)",
+   "kcal": 400,
+   "protein": 6.87,
+   "carbs": 58.75,
+   "fat": 15.62,
+   "serving": "serving"
+  },
+  {
+   "name": "Biryani Raita",
+   "kcal": 410,
+   "protein": 19.13,
+   "serving": "serving"
+  },
+  {
+   "name": "Mirchi Ka Salan",
+   "kcal": 250,
+   "protein": 6,
+   "serving": "serving"
+  }
+ ]
+}

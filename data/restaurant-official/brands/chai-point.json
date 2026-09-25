@@ -1,0 +1,266 @@
+{
+ "brand": "Chai Point",
+ "code": "Z8",
+ "source": "Chai Point's own menu listing on Swiggy (Bangalore, restaurant 676): 'Calories : N' in each item's description. Fetched 2026-09-25.",
+ "basis": "Per item or flask as sold (Uniflask serves 1-2, Mini Flask 4-5, Megaflask 8-10). Only kcal is published; weights are estimated (≈). Combos ('+') are left out, as are packaged treats and merchandise, which carry no figures.",
+ "density": 200,
+ "items": [
+  {
+   "name": "Ginger Chai - Uniflask (Serves 1-2)",
+   "kcal": 125,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Freshly Made Bun Omelette",
+   "kcal": 580,
+   "serving": "serving"
+  },
+  {
+   "name": "Plain Upma",
+   "kcal": 420,
+   "serving": "serving"
+  },
+  {
+   "name": "Anda Chicken Seekh Peppy Roll",
+   "kcal": 510,
+   "serving": "serving"
+  },
+  {
+   "name": "Classic Banana Cake",
+   "kcal": 165,
+   "serving": "serving"
+  },
+  {
+   "name": "Cutting Chai Flask",
+   "kcal": 125,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Sugarless Chai Flask",
+   "kcal": 125,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Masala Chai Flask",
+   "kcal": 125,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Ginger Chai Megaflask (Serves 8-10)",
+   "kcal": 500,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Ginger Chai Mini Flask (Serves 4-5)",
+   "kcal": 250,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Elaichi Chai Megaflask (Serves 8-10)",
+   "kcal": 500,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Elaichi Chai Mini Flask (Serves 4-5)",
+   "kcal": 250,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Elaichi Chai - Uniflask (Serves 1-2)",
+   "kcal": 125,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Kesar Elaichi Chai Flask No Added Sugar",
+   "kcal": 125,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Kesar Elaichi Chai Flask",
+   "kcal": 150,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Sugarless Masala Chai Flask",
+   "kcal": 125,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Sugarless Ginger Chai Flask",
+   "kcal": 125,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Ginger Lemon Chai Flask",
+   "kcal": 62,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Lemon Chai Flask",
+   "kcal": 62,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Sugarless Lemon Chai Flask",
+   "kcal": 62,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Sugarless Ginger Lemon Chai Flask",
+   "kcal": 62,
+   "serving": "flask",
+   "density": 45
+  },
+  {
+   "name": "Filter Coffee Flask",
+   "kcal": 300,
+   "serving": "flask",
+   "density": 60
+  },
+  {
+   "name": "Black Filter Coffee Flask",
+   "kcal": 300,
+   "serving": "flask",
+   "density": 60
+  },
+  {
+   "name": "Sugarless Filter Coffee Flask",
+   "kcal": 300,
+   "serving": "flask",
+   "density": 60
+  },
+  {
+   "name": "Mango Pop Boba",
+   "kcal": 500,
+   "serving": "serving"
+  },
+  {
+   "name": "Zesty Lemon Iced Tea",
+   "kcal": 140,
+   "serving": "serving"
+  },
+  {
+   "name": "Poha",
+   "kcal": 330,
+   "serving": "serving"
+  },
+  {
+   "name": "Bun Omelette with Cheese",
+   "kcal": 580,
+   "serving": "serving"
+  },
+  {
+   "name": "Mini Samosa Binge (5 Pcs)",
+   "kcal": 270,
+   "serving": "serving"
+  },
+  {
+   "name": "Masala Veggie Puff",
+   "kcal": 240,
+   "serving": "serving"
+  },
+  {
+   "name": "Malabari Egg Puff",
+   "kcal": 485,
+   "serving": "serving"
+  },
+  {
+   "name": "Chatpata Chili - Made with Maggi",
+   "kcal": 452,
+   "serving": "serving"
+  },
+  {
+   "name": "Chatpata Chili with Veggies - Made with Maggi",
+   "kcal": 502,
+   "serving": "serving"
+  },
+  {
+   "name": "Classic - Made with Maggi",
+   "kcal": 360,
+   "serving": "serving"
+  },
+  {
+   "name": "Classic with Butter - Made with Maggi",
+   "kcal": 400,
+   "serving": "serving"
+  },
+  {
+   "name": "Classic with Veggies - Made with Maggi",
+   "kcal": 400,
+   "serving": "serving"
+  },
+  {
+   "name": "Bun Maska Jam",
+   "kcal": 220,
+   "serving": "serving"
+  },
+  {
+   "name": "Coconut Cream Bun",
+   "kcal": 220,
+   "serving": "serving"
+  },
+  {
+   "name": "Bun Maska",
+   "kcal": 349,
+   "serving": "serving"
+  },
+  {
+   "name": "Spinach Corn Sandwich",
+   "kcal": 470,
+   "serving": "serving"
+  },
+  {
+   "name": "Anda Peppy Paratha",
+   "kcal": 370,
+   "serving": "serving"
+  },
+  {
+   "name": "Anda Peppy Paratha With Cheese",
+   "kcal": 380,
+   "serving": "serving"
+  },
+  {
+   "name": "Double Anda Peppy Roll",
+   "kcal": 230,
+   "serving": "serving"
+  },
+  {
+   "name": "Classic Blueberry Muffin",
+   "kcal": 186,
+   "serving": "serving"
+  },
+  {
+   "name": "Rich Walnut Brownie",
+   "kcal": 241,
+   "serving": "serving"
+  },
+  {
+   "name": "Hot Milk - Uniflask",
+   "kcal": 165,
+   "serving": "flask",
+   "density": 60
+  },
+  {
+   "name": "Hot Milk - Miniflask",
+   "kcal": 330,
+   "serving": "flask",
+   "density": 60
+  }
+ ]
+}

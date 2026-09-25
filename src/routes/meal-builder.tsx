@@ -51,6 +51,7 @@ import {
   type VoiceFoodItem,
 } from "@/components/VoiceFoodDialog";
 import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
+import { PremiumGate, endedLine } from "@/components/PremiumGate";
 
 // Both carry a camera dependency — react-webcam here, @zxing/* via
 // BarcodeScanner — and neither renders until its button is tapped, so this page
@@ -66,8 +67,18 @@ const ScanFoodDialog = lazy(() =>
   })),
 );
 
+// Custom meals are a food-logging feature, locked with Food.
 export const Route = createFileRoute("/meal-builder")({
-  component: MealBuilderPage,
+  component: () => (
+    <PremiumGate
+      title="Your meals are waiting"
+      message={(r) =>
+        `${endedLine(r)} keep building custom meals and logging what you eat — everything you've saved is right here.`
+      }
+    >
+      <MealBuilderPage />
+    </PremiumGate>
+  ),
 });
 
 interface BuilderItem {
@@ -328,7 +339,11 @@ function MealBuilderPage() {
   const historyItems = useMemo(() => {
     const uniqueNames = Array.from(
       new Set(
-        savedMeals.flatMap((m) => m.ingredients || []).map((ig) => ig.name),
+        savedMeals
+          .flatMap((m) => m.ingredients || [])
+          // A restaurant build's parts are that brand's, not foods to search.
+          .filter((ig) => !ig.ref)
+          .map((ig) => ig.name),
       ),
     );
     return uniqueNames

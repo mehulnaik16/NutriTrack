@@ -1,0 +1,269 @@
+{
+ "brand": "Chili's",
+ "code": "ZI",
+ "source": "Chili's India Nutrition & Allergen Information chart, https://www.chilis.in/wp-content/uploads/2023/05/Digital_Allergen_menu_Chilis-01.jpg.jpg (linked from chilis.in/menu-nutritional-and-allergen-info/)",
+ "basis": "Per 100 g, as Chili's India publishes it (lab-tested). No portion weights are given. Flatbread names get 'Flatbread' appended since the chart lists them under a Cheesy Flatbreads heading.",
+ "density": 250,
+ "items": [
+  {
+   "name": "Crispy Seafood Trio",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 294.7,
+   "protein": 18.3,
+   "carbs": 21.1,
+   "fat": 15.3
+  },
+  {
+   "name": "White Spinach Queso",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 355.4,
+   "protein": 7.2,
+   "carbs": 34.5,
+   "fat": 20.9
+  },
+  {
+   "name": "Classic Nachos",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 340.9,
+   "protein": 16.1,
+   "carbs": 35.1,
+   "fat": 15.1
+  },
+  {
+   "name": "Spicy Broccoli Poppers",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 234,
+   "protein": 7.2,
+   "carbs": 24.5,
+   "fat": 11.9
+  },
+  {
+   "name": "Southwestern Rolls",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 267.7,
+   "protein": 5.8,
+   "carbs": 38.9,
+   "fat": 9.9
+  },
+  {
+   "name": "Texas Cheese Poppers",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 323.3,
+   "protein": 11.4,
+   "carbs": 27.6,
+   "fat": 18.6
+  },
+  {
+   "name": "Bottomless Tostada Chips & Salsa",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 322,
+   "protein": 4,
+   "carbs": 34.6,
+   "fat": 18.6
+  },
+  {
+   "name": "Southwestern Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 273.4,
+   "protein": 6.9,
+   "carbs": 36.6,
+   "fat": 11
+  },
+  {
+   "name": "Bombay Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 260.9,
+   "protein": 5,
+   "carbs": 29.4,
+   "fat": 13.7
+  },
+  {
+   "name": "Tempura Crisp Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 286.7,
+   "protein": 5.3,
+   "carbs": 33.9,
+   "fat": 14.4
+  },
+  {
+   "name": "Cajun Club Cottage Cheese Sandwich",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 324.3,
+   "protein": 8.3,
+   "carbs": 29.5,
+   "fat": 19.3
+  },
+  {
+   "name": "Cajun Club Chicken Sandwich",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 301.4,
+   "protein": 10.4,
+   "carbs": 25.6,
+   "fat": 17.5
+  },
+  {
+   "name": "Ultimate Bacon Lamb Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 206.2,
+   "protein": 17.7,
+   "carbs": 7.4,
+   "fat": 11.7
+  },
+  {
+   "name": "Oldtimer Lamb with Cheese",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 239.3,
+   "protein": 10.9,
+   "carbs": 19.6,
+   "fat": 13
+  },
+  {
+   "name": "Grilled Chicken Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 226.3,
+   "protein": 7.2,
+   "carbs": 28.6,
+   "fat": 9.3
+  },
+  {
+   "name": "Chicken Ranch Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 237.1,
+   "protein": 18.4,
+   "carbs": 11.9,
+   "fat": 12.8
+  },
+  {
+   "name": "Southern Smokehouse Lamb Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 192.5,
+   "protein": 17.3,
+   "carbs": 10.5,
+   "fat": 9
+  },
+  {
+   "name": "Southern Smokehouse Chicken Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 232.1,
+   "protein": 21.5,
+   "carbs": 5.8,
+   "fat": 13.6
+  },
+  {
+   "name": "Sunrise Chicken Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 242.4,
+   "protein": 12.5,
+   "carbs": 15.8,
+   "fat": 14.4
+  },
+  {
+   "name": "Sunrise Lamb Burger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 260.7,
+   "protein": 11.6,
+   "carbs": 22.2,
+   "fat": 13.9
+  },
+  {
+   "name": "Chipotle Cottage Cheese Rice Bowl",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 213.1,
+   "protein": 9.1,
+   "carbs": 16,
+   "fat": 12.5
+  },
+  {
+   "name": "Chipotle Chicken Rice Bowl",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 178.6,
+   "protein": 8.4,
+   "carbs": 16.8,
+   "fat": 8.6
+  },
+  {
+   "name": "Green Chile Enchiladas",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 165.6,
+   "protein": 6.1,
+   "carbs": 17.4,
+   "fat": 8
+  },
+  {
+   "name": "California Grilled Chicken Flatbread",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 244.5,
+   "protein": 19.1,
+   "carbs": 17.2,
+   "fat": 11
+  },
+  {
+   "name": "Chipotle Chicken Flatbread",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 257.2,
+   "protein": 15.1,
+   "carbs": 20.6,
+   "fat": 12.7
+  },
+  {
+   "name": "Chipotle Cottage Cheese Flatbread",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 291.9,
+   "protein": 18.3,
+   "carbs": 23.8,
+   "fat": 13.8
+  }
+ ]
+}

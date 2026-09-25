@@ -1,0 +1,1175 @@
+{
+ "brand": "Tim Hortons",
+ "code": "ZT",
+ "source": "Tim Hortons India's own menu listing on Swiggy (Bangalore, Koramangala 8th Block outlet, restaurant 751353): kcal per cup size and per food item with its serving weight. Fetched 2026-09-25.",
+ "basis": "Drinks: per cup at each listed size (ml; weight taken as the ml). Food: per item at the listed serving weight. Only kcal is published, plus protein for a few items. Left out: combos ('Choice of...', drink + food), the '(S)' repeats of drinks, Trail Mix (listed as '127g per 25g serve'), and the Small Vanilla Iced Capp (listed at 945 kcal, above its own Medium at 918).",
+ "density": 250,
+ "items": [
+  {
+   "name": "Protein Cold Chocolate (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 287
+  },
+  {
+   "name": "Protein Cold Chocolate (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 408
+  },
+  {
+   "name": "Jaggery Protein Latte (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 151
+  },
+  {
+   "name": "Jaggery Protein Latte (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 191
+  },
+  {
+   "name": "Maple Cinnamon Protein Latte (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 201
+  },
+  {
+   "name": "Maple Cinnamon Protein Latte (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 267
+  },
+  {
+   "name": "Protein Cold Coffee (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 237,
+   "protein": 15
+  },
+  {
+   "name": "Protein Cold Coffee (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 316,
+   "protein": 18
+  },
+  {
+   "name": "Salted Caramel Hot Chocolate (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 303
+  },
+  {
+   "name": "Salted Caramel Hot Chocolate (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 464
+  },
+  {
+   "name": "Salted Caramel Hot Chocolate (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 624
+  },
+  {
+   "name": "Tiramisu Hot Chocolate (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 304
+  },
+  {
+   "name": "Tiramisu Hot Chocolate (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 465
+  },
+  {
+   "name": "Tiramisu Hot Chocolate (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 627
+  },
+  {
+   "name": "Orange Hot Chocolate (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 298
+  },
+  {
+   "name": "Orange Hot Chocolate (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 450
+  },
+  {
+   "name": "Orange Hot Chocolate (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 606
+  },
+  {
+   "name": "Salted Caramel Iced Chocolate (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 266
+  },
+  {
+   "name": "Salted Caramel Iced Chocolate (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 398
+  },
+  {
+   "name": "Salted Caramel Iced Chocolate (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 558
+  },
+  {
+   "name": "Tiramisu Iced Chocolate (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 267
+  },
+  {
+   "name": "Tiramisu Iced Chocolate (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 399
+  },
+  {
+   "name": "Tiramisu Iced Chocolate (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 561
+  },
+  {
+   "name": "Orange Iced Chocolate (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 261
+  },
+  {
+   "name": "Orange Iced Chocolate (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 385
+  },
+  {
+   "name": "Orange Iced Chocolate (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 540
+  },
+  {
+   "name": "Death by Cold Chocolate (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 579
+  },
+  {
+   "name": "Death by Cold Chocolate (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 787
+  },
+  {
+   "name": "Death by Cold Chocolate (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 1024
+  },
+  {
+   "name": "Iced Mango Matcha (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 186
+  },
+  {
+   "name": "Iced Mango Matcha (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 253
+  },
+  {
+   "name": "Iced Strawberry Matcha (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 171
+  },
+  {
+   "name": "Iced Strawberry Matcha (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 238
+  },
+  {
+   "name": "Iced Spanish Matcha Latte (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 244
+  },
+  {
+   "name": "Iced Spanish Matcha Latte (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 383
+  },
+  {
+   "name": "Vanilla Matcha Latte (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 161
+  },
+  {
+   "name": "Vanilla Matcha Latte (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 264
+  },
+  {
+   "name": "Iced Americano (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 0
+  },
+  {
+   "name": "Iced Americano (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 0
+  },
+  {
+   "name": "Iced Americano (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 0
+  },
+  {
+   "name": "Iced Latte (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 145.79
+  },
+  {
+   "name": "Iced Latte (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 218.69
+  },
+  {
+   "name": "Iced Latte (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 291.59
+  },
+  {
+   "name": "Cold Coffee (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 184.14
+  },
+  {
+   "name": "Cold Coffee (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 247.71
+  },
+  {
+   "name": "Cold Coffee (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 318.56
+  },
+  {
+   "name": "Iced Double Double Latte (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 214.49
+  },
+  {
+   "name": "Iced Double Double Latte (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 321.74
+  },
+  {
+   "name": "Iced Double Double Latte (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 428.99
+  },
+  {
+   "name": "Iced Caramel Macchiato (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 237.86
+  },
+  {
+   "name": "Iced Caramel Macchiato (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 346
+  },
+  {
+   "name": "Iced Caramel Macchiato (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 454.14
+  },
+  {
+   "name": "Frozen French Vanilla (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 667.71
+  },
+  {
+   "name": "Frozen French Vanilla (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 887.1
+  },
+  {
+   "name": "Frozen French Vanilla (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 1106.45
+  },
+  {
+   "name": "Frozen French Vanilla with Espresso (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 560.05
+  },
+  {
+   "name": "Frozen French Vanilla with Espresso (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 806.4
+  },
+  {
+   "name": "Frozen French Vanilla with Espresso (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 1052.75
+  },
+  {
+   "name": "Biscoff Cookie Crunch Cold Coffee (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 551
+  },
+  {
+   "name": "Biscoff Cookie Crunch Cold Coffee (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 711
+  },
+  {
+   "name": "Biscoff Cookie Crunch Cold Coffee (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 871
+  },
+  {
+   "name": "Iced Chocolate (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 239
+  },
+  {
+   "name": "Iced Chocolate (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 344
+  },
+  {
+   "name": "Iced Chocolate (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 478
+  },
+  {
+   "name": "Chocolate Brownie Dream Frappe (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 549,
+   "protein": 6
+  },
+  {
+   "name": "Chocolate Brownie Dream Frappe (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 726,
+   "protein": 9
+  },
+  {
+   "name": "Chocolate Brownie Dream Frappe (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 904,
+   "protein": 12
+  },
+  {
+   "name": "Strawberry Shortcake Dream Frappe (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 398
+  },
+  {
+   "name": "Strawberry Shortcake Dream Frappe (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 508
+  },
+  {
+   "name": "Strawberry Shortcake Dream Frappe (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 617
+  },
+  {
+   "name": "Biscoff Dream Frappe (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 472
+  },
+  {
+   "name": "Biscoff Dream Frappe (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 602
+  },
+  {
+   "name": "Biscoff Dream Frappe (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 818
+  },
+  {
+   "name": "Classic Cold Brew (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 0
+  },
+  {
+   "name": "Classic Cold Brew (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 0
+  },
+  {
+   "name": "Classic Cold Brew (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 0
+  },
+  {
+   "name": "Vanilla Cold Brew (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 92.99
+  },
+  {
+   "name": "Vanilla Cold Brew (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 119.12
+  },
+  {
+   "name": "Vanilla Cold Brew (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 145.26
+  },
+  {
+   "name": "Hibiscus Cold Brew (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 65
+  },
+  {
+   "name": "Hibiscus Cold Brew (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 97
+  },
+  {
+   "name": "Hibiscus Cold Brew (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 121
+  },
+  {
+   "name": "Grapefruit Cold Brew (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 78
+  },
+  {
+   "name": "Grapefruit Cold Brew (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 104
+  },
+  {
+   "name": "Grapefruit Cold Brew (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 130
+  },
+  {
+   "name": "Java Chip Iced Capp (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 731,
+   "protein": 5
+  },
+  {
+   "name": "Java Chip Iced Capp (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 897.75,
+   "protein": 6
+  },
+  {
+   "name": "Java Chip Iced Capp (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 1064.4,
+   "protein": 8
+  },
+  {
+   "name": "Original Iced Capp (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 465.24
+  },
+  {
+   "name": "Original Iced Capp (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 596.69
+  },
+  {
+   "name": "Original Iced Capp (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 728.14
+  },
+  {
+   "name": "Caramel Iced Capp (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 777.11
+  },
+  {
+   "name": "Caramel Iced Capp (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 966.76
+  },
+  {
+   "name": "Caramel Iced Capp (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 1156.42
+  },
+  {
+   "name": "Vanilla Iced Capp (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 918.67
+  },
+  {
+   "name": "Vanilla Iced Capp (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 1092.29
+  },
+  {
+   "name": "Lemon Iced Tea (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 78.3
+  },
+  {
+   "name": "Lemon Iced Tea (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 97.88
+  },
+  {
+   "name": "Lemon Iced Tea (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 117.45
+  },
+  {
+   "name": "Peach Iced Tea (Small)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 104.8
+  },
+  {
+   "name": "Peach Iced Tea (Medium)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 131
+  },
+  {
+   "name": "Peach Iced Tea (Large)",
+   "serving": "cup, 591 ml",
+   "g": 591,
+   "kcal": 157.2
+  },
+  {
+   "name": "Americano (Mini)",
+   "serving": "cup, 177 ml",
+   "g": 177,
+   "kcal": 0
+  },
+  {
+   "name": "Americano (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 0
+  },
+  {
+   "name": "Americano (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 0
+  },
+  {
+   "name": "Americano (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 0
+  },
+  {
+   "name": "Cappuccino (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 109.34
+  },
+  {
+   "name": "Cappuccino (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 145.8
+  },
+  {
+   "name": "Cappuccino (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 182.24
+  },
+  {
+   "name": "Latte (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 145.8
+  },
+  {
+   "name": "Latte (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 218.7
+  },
+  {
+   "name": "Latte (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 291.59
+  },
+  {
+   "name": "Flat White (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 132.32
+  },
+  {
+   "name": "Flat White (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 198.49
+  },
+  {
+   "name": "Flat White (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 265.21
+  },
+  {
+   "name": "Café Mocha (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 236,
+   "protein": 7
+  },
+  {
+   "name": "Café Mocha (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 351,
+   "protein": 10
+  },
+  {
+   "name": "Café Mocha (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 465,
+   "protein": 13
+  },
+  {
+   "name": "Caramel Macchiato (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 211.73
+  },
+  {
+   "name": "Caramel Macchiato (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 319.87
+  },
+  {
+   "name": "Caramel Macchiato (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 428.01
+  },
+  {
+   "name": "Double Double Latte (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 228.23
+  },
+  {
+   "name": "Double Double Latte (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 342.35
+  },
+  {
+   "name": "Double Double Latte (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 456.47
+  },
+  {
+   "name": "French Vanilla (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 250
+  },
+  {
+   "name": "French Vanilla (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 333.34
+  },
+  {
+   "name": "French Vanilla (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 416.67
+  },
+  {
+   "name": "Hot Chocolate (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 310.37
+  },
+  {
+   "name": "Hot Chocolate (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 462.43
+  },
+  {
+   "name": "Hot Chocolate (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 614.49
+  },
+  {
+   "name": "Biscoff Latte (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 207
+  },
+  {
+   "name": "Biscoff Latte (Medium)",
+   "serving": "cup, 354 ml",
+   "g": 354,
+   "kcal": 299
+  },
+  {
+   "name": "Biscoff Latte (Large)",
+   "serving": "cup, 473 ml",
+   "g": 473,
+   "kcal": 392
+  },
+  {
+   "name": "Kadak Chai (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 133.03
+  },
+  {
+   "name": "Ginger Chai (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 135.63
+  },
+  {
+   "name": "Green Tea (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 0.02
+  },
+  {
+   "name": "English Breakfast Tea (Small)",
+   "serving": "cup, 236 ml",
+   "g": 236,
+   "kcal": 0.02
+  },
+  {
+   "name": "Grilled Veg Pesto Toastie",
+   "serving": "serving",
+   "g": 145,
+   "kcal": 422
+  },
+  {
+   "name": "Chilli Cheese Toast",
+   "serving": "serving",
+   "g": 136,
+   "kcal": 349
+  },
+  {
+   "name": "Loaded Egg Toast",
+   "serving": "serving",
+   "g": 178,
+   "kcal": 335
+  },
+  {
+   "name": "Chicken Pepperoni and Cheese Toast",
+   "serving": "serving",
+   "g": 136,
+   "kcal": 349
+  },
+  {
+   "name": "Five Cheese Melt Sandwich",
+   "serving": "serving",
+   "g": 227,
+   "kcal": 762
+  },
+  {
+   "name": "Paneer Tikka Wrap",
+   "serving": "serving",
+   "g": 210,
+   "kcal": 444
+  },
+  {
+   "name": "Spicy Cottage Cheese Melt Sandwich",
+   "serving": "serving",
+   "g": 277,
+   "kcal": 837,
+   "protein": 35
+  },
+  {
+   "name": "Mushroom & Cheese Melt Sandwich",
+   "serving": "serving",
+   "g": 250,
+   "kcal": 582.05
+  },
+  {
+   "name": "Chicken & Cheese Melt Sandwich",
+   "serving": "serving",
+   "g": 250,
+   "kcal": 740
+  },
+  {
+   "name": "Chicken Tikka Wrap",
+   "serving": "serving",
+   "g": 195,
+   "kcal": 346
+  },
+  {
+   "name": "Double Chicken Melt",
+   "serving": "serving",
+   "g": 210,
+   "kcal": 535
+  },
+  {
+   "name": "Chicken Tikka Croissant Sandwich",
+   "serving": "serving",
+   "g": 230,
+   "kcal": 589.99
+  },
+  {
+   "name": "Egg, Cheese & Tomato Croissant Sandwich",
+   "serving": "serving",
+   "g": 220,
+   "kcal": 617.29
+  },
+  {
+   "name": "Veg Super Meal Bowl",
+   "serving": "serving",
+   "g": 321,
+   "kcal": 732,
+   "protein": 26
+  },
+  {
+   "name": "Chicken Super Meal Bowl",
+   "serving": "serving",
+   "g": 321,
+   "kcal": 584,
+   "protein": 24
+  },
+  {
+   "name": "Egg & Pesto Bagel",
+   "serving": "serving",
+   "g": 248,
+   "kcal": 526
+  },
+  {
+   "name": "Bagel with Cream Cheese",
+   "serving": "serving",
+   "g": 115,
+   "kcal": 321
+  },
+  {
+   "name": "Bagel with Tomato & Cream Cheese",
+   "serving": "serving",
+   "g": 140,
+   "kcal": 326
+  },
+  {
+   "name": "Chicken Pepperoni & Cream Cheese Bagel",
+   "serving": "serving",
+   "g": 128,
+   "kcal": 319
+  },
+  {
+   "name": "Italian Style Chicken Bagel",
+   "serving": "serving",
+   "g": 185,
+   "kcal": 422
+  },
+  {
+   "name": "Pesto Veggie Bagel",
+   "serving": "serving",
+   "g": 198,
+   "kcal": 551
+  },
+  {
+   "name": "BBQ Paneer Loaded Rice Bowl",
+   "serving": "serving",
+   "g": 300,
+   "kcal": 574
+  },
+  {
+   "name": "BBQ Chicken Loaded Rice Bowl",
+   "serving": "serving",
+   "g": 300,
+   "kcal": 629
+  },
+  {
+   "name": "Chilli Paneer Roll",
+   "serving": "serving",
+   "g": 125,
+   "kcal": 290
+  },
+  {
+   "name": "Chilli Chicken Roll",
+   "serving": "serving",
+   "g": 125,
+   "kcal": 291
+  },
+  {
+   "name": "Chicken Puff",
+   "serving": "serving",
+   "g": 135,
+   "kcal": 248
+  },
+  {
+   "name": "Paneer Puff",
+   "serving": "serving",
+   "g": 135,
+   "kcal": 352
+  },
+  {
+   "name": "Brownie Pop Timbit",
+   "serving": "serving",
+   "g": 19,
+   "kcal": 64
+  },
+  {
+   "name": "Chocolate Filled Timbit",
+   "serving": "serving",
+   "g": 16,
+   "kcal": 50
+  },
+  {
+   "name": "Blueberry Filled Timbit",
+   "serving": "serving",
+   "g": 16,
+   "kcal": 47
+  },
+  {
+   "name": "Rainbow Sprinkles Timbit",
+   "serving": "serving",
+   "g": 21,
+   "kcal": 66
+  },
+  {
+   "name": "Salted Caramel Crumble Timbit",
+   "serving": "serving",
+   "g": 21,
+   "kcal": 66
+  },
+  {
+   "name": "Biscoff Timbit",
+   "serving": "serving",
+   "g": 21,
+   "kcal": 71
+  },
+  {
+   "name": "Chocolate Dip Donut",
+   "serving": "serving",
+   "g": 58,
+   "kcal": 205
+  },
+  {
+   "name": "Maple Dip Donut",
+   "serving": "serving",
+   "g": 58,
+   "kcal": 188
+  },
+  {
+   "name": "Vanilla Dip Donut",
+   "serving": "serving",
+   "g": 73,
+   "kcal": 255
+  },
+  {
+   "name": "Chocolate & Cookies Donut",
+   "serving": "serving",
+   "g": 82,
+   "kcal": 289
+  },
+  {
+   "name": "Chocolate Filled Donut",
+   "serving": "serving",
+   "g": 100,
+   "kcal": 297
+  },
+  {
+   "name": "Boston Cream Donut",
+   "serving": "serving",
+   "g": 88,
+   "kcal": 287
+  },
+  {
+   "name": "Blueberry Donut",
+   "serving": "serving",
+   "g": 85,
+   "kcal": 256
+  },
+  {
+   "name": "Maple & Caramel Donut",
+   "serving": "serving",
+   "g": 105,
+   "kcal": 347
+  },
+  {
+   "name": "Chocolate Brownie Donut",
+   "serving": "serving",
+   "g": 112,
+   "kcal": 373
+  },
+  {
+   "name": "Berry Cream Donut",
+   "serving": "serving",
+   "g": 107,
+   "kcal": 320
+  },
+  {
+   "name": "Classic Cheesecake Slice",
+   "serving": "serving",
+   "g": 160,
+   "kcal": 757
+  },
+  {
+   "name": "Lotus Biscoff Cheesecake",
+   "serving": "serving",
+   "g": 160,
+   "kcal": 698
+  },
+  {
+   "name": "Oatmeal & Raisin Cookie",
+   "serving": "serving",
+   "g": 65,
+   "kcal": 280
+  },
+  {
+   "name": "Double Chocolate Chip Cookie",
+   "serving": "serving",
+   "g": 55,
+   "kcal": 302
+  },
+  {
+   "name": "Blueberry Muffin",
+   "serving": "serving",
+   "g": 120,
+   "kcal": 413
+  },
+  {
+   "name": "Double Chocolate Chip Muffin",
+   "serving": "serving",
+   "g": 120,
+   "kcal": 441
+  },
+  {
+   "name": "Butter Croissant",
+   "serving": "serving",
+   "g": 90,
+   "kcal": 365
+  },
+  {
+   "name": "Almond Croissant",
+   "serving": "serving",
+   "g": 170,
+   "kcal": 653
+  },
+  {
+   "name": "Chocolate Croissant",
+   "serving": "serving",
+   "g": 90,
+   "kcal": 386
+  },
+  {
+   "name": "Chocolate Truffle Cake Slice",
+   "serving": "serving",
+   "g": 150,
+   "kcal": 746
+  },
+  {
+   "name": "Almond Brownie",
+   "serving": "serving",
+   "g": 85,
+   "kcal": 385
+  },
+  {
+   "name": "Date & Fig Cake",
+   "serving": "serving",
+   "g": 90,
+   "kcal": 358
+  }
+ ]
+}

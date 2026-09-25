@@ -31,7 +31,13 @@ export type UnitFood = {
   density?: number;
   /** The units that make sense for this food. Absent means all of them. */
   units?: Unit[];
+  /** A restaurant row's name for one piece: "burger", "bowl", "serving". */
+  portion_unit?: string;
 };
+
+/** How a unit reads for this food: a burger's `pcs` is "burger". */
+export const unitLabel = (u: Unit, food?: UnitFood | null): string =>
+  u === "pcs" && food?.portion_unit ? food.portion_unit : u;
 
 /** Every unit, in the order the selector shows them. */
 export const UNITS: Unit[] = ["g", "ml", "tsp", "tbsp", "cup", "pcs"];

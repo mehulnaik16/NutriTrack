@@ -8,19 +8,27 @@
  * chunk, so it is not part of the app's startup download.
  */
 import type { IFCTItem } from "./foodDb.ts";
+import type { RestaurantBuilder } from "./mealBuilder.ts";
 
 export interface RestaurantDb {
   rows: IFCTItem[];
-  /** Brand names, as stored in each row's `lang`. */
+  /** Build-your-own brands (California Burrito): meals picked ingredient by ingredient. */
+  builders: RestaurantBuilder[];
+  /** Brand names: each row's `lang`, and every builder brand. */
   brands: string[];
 }
 
 let loading: Promise<RestaurantDb> | null = null;
 
 export function loadRestaurants(): Promise<RestaurantDb> {
-  loading ??= import("../data/restaurantFoods.json").then((m) => {
-    const rows = (m.default ?? m) as unknown as IFCTItem[];
-    return { rows, brands: [...new Set(rows.map((r) => r.lang))].sort() };
+  loading ??= Promise.all([
+    import("../data/restaurantFoods.json"),
+    import("../data/restaurantBuilders.json"),
+  ]).then(([f, b]) => {
+    const rows = (f.default ?? f) as unknown as IFCTItem[];
+    const builders = (b.default ?? b) as unknown as RestaurantBuilder[];
+    const names = [...rows.map((r) => r.lang), ...builders.map((x) => x.brand)];
+    return { rows, builders, brands: [...new Set(names)].sort() };
   });
   return loading;
 }

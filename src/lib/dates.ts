@@ -37,3 +37,17 @@ export function daysBetweenLocal(from: string, to: string): number {
   if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
   return Math.round((b.getTime() - a.getTime()) / 86_400_000);
 }
+
+/**
+ * Logs can be added or edited only for today and the 7 days before it;
+ * anything older is view-only. Deleting stays allowed at any age. The database enforces the same window
+ * (enforce_log_edit_window), this copy is for the UI.
+ */
+export const EDIT_WINDOW_DAYS = 7;
+
+export function isEditableDate(isoDate: string): boolean {
+  return isoDate >= daysAgoLocal(EDIT_WINDOW_DAYS);
+}
+
+export const VIEW_ONLY_MESSAGE =
+  "This day is past the 7-day edit window, so it's view-only now. You can still add or change anything from the last 7 days, and delete entries any time.";
