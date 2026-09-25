@@ -127,7 +127,7 @@ export function FastFoodDialog({
               id="ff-restaurant"
               value={restaurant}
               onChange={(e) => onRestaurantChange(e.target.value)}
-              placeholder="e.g. Domino's, KFC, Truffles"
+              placeholder="e.g. Domino's, KFC, Burger King"
               autoComplete="off"
               disabled={searching}
               className="pl-9"
