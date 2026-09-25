@@ -1,0 +1,785 @@
+{
+ "brand": "Sharief Bhai",
+ "code": "ZV",
+ "source": "Sharief Bhai Biryani's own menu listing on Swiggy (Bangalore, restaurant 63048): energy, protein, carbohydrate and fat in each item's description. Fetched 2026-09-25.",
+ "basis": "Per item as sold. Weights are published only for the haleems (350 g); others are estimated (≈). Left out as clear typos in the listing: Mutton Sheek Kebab Roll (2749 kcal), Ande ka Meetha (600 g fat), Matka Phirni (81.4 kcal, the same figure as Ande ka Meetha, against 39 g carbs), Chicken Tandoori Tikka Biryani (12071 kcal), Roti (313 kcal against macros of 95), and the three Mini Bucket Biryanis (Serves 3), listed at exactly the single-serve figures. Items without figures (Arabian Mandi, Ghee Rice) are not listed.",
+ "density": 180,
+ "items": [
+  {
+   "name": "Mutton Biryani (Har-dil-Azeez Gosht)",
+   "kcal": 1408,
+   "protein": 41,
+   "carbs": 131,
+   "fat": 78,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Biryani (Har-dil-Azeez Murg)",
+   "kcal": 1400,
+   "protein": 40,
+   "carbs": 131,
+   "fat": 83,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Boneless Special Biryani",
+   "kcal": 1164,
+   "protein": 47,
+   "carbs": 139,
+   "fat": 43,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Kheema Biryani",
+   "kcal": 1196,
+   "protein": 34,
+   "carbs": 135,
+   "fat": 55,
+   "serving": "serving"
+  },
+  {
+   "name": "Biryani Rice (Masala Khushka)",
+   "kcal": 917,
+   "protein": 16,
+   "carbs": 137,
+   "fat": 31,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Black Pepper Tandoori Alfaham",
+   "kcal": 545.07,
+   "protein": 45.02,
+   "carbs": 18.83,
+   "fat": 32.88,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kofta Biryani (Kola Urundai)",
+   "kcal": 1196,
+   "protein": 34,
+   "carbs": 135,
+   "fat": 55,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken 65 Boneless Biryani",
+   "kcal": 1114,
+   "protein": 47,
+   "carbs": 144,
+   "fat": 35,
+   "serving": "serving"
+  },
+  {
+   "name": "Pepper Chicken Biryani",
+   "kcal": 1264,
+   "protein": 52,
+   "carbs": 139,
+   "fat": 43,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Sheek Kebab Biryani",
+   "kcal": 937,
+   "protein": 40,
+   "carbs": 132,
+   "fat": 24,
+   "serving": "serving"
+  },
+  {
+   "name": "Egg Biryani",
+   "kcal": 1115,
+   "protein": 27,
+   "carbs": 128,
+   "fat": 53,
+   "serving": "serving"
+  },
+  {
+   "name": "Veg Biryani",
+   "kcal": 1219,
+   "protein": 23,
+   "carbs": 155,
+   "fat": 53,
+   "serving": "serving"
+  },
+  {
+   "name": "Paneer Biryani",
+   "kcal": 1124,
+   "protein": 31,
+   "carbs": 147,
+   "fat": 43,
+   "serving": "serving"
+  },
+  {
+   "name": "Mushroom Biryani",
+   "kcal": 1174.11,
+   "protein": 20.66,
+   "carbs": 85.49,
+   "fat": 87.51,
+   "serving": "serving"
+  },
+  {
+   "name": "Soya Chaap Biryani (Veg)",
+   "kcal": 1131.59,
+   "protein": 22.13,
+   "carbs": 86.07,
+   "fat": 80.47,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kheema Biryani, Chicken Sheek Kebab, Jamun & Rose Sharbat",
+   "kcal": 2265.71,
+   "protein": 80.99,
+   "carbs": 200.6,
+   "fat": 128.15,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kheema Biryani, Chicken 65, Ande ka mitha & Rose Sharbat",
+   "kcal": 2469.91,
+   "serving": "serving",
+   "note": "Listed macros add up to 3491 kcal against the listed 2469.91; kcal kept."
+  },
+  {
+   "name": "Veg Biryani, Paneer 65, Gulab Jamun & Rose Sharbat",
+   "kcal": 2506.45,
+   "protein": 48.94,
+   "carbs": 250.49,
+   "fat": 149.98,
+   "serving": "serving"
+  },
+  {
+   "name": "Tandoori Chicken Wings",
+   "kcal": 1600.06,
+   "protein": 82.41,
+   "carbs": 46.23,
+   "fat": 121.98,
+   "serving": "serving"
+  },
+  {
+   "name": "Brain Tawa Fry (Mutton)",
+   "kcal": 448.31,
+   "protein": 16,
+   "carbs": 10,
+   "fat": 34.45,
+   "serving": "serving"
+  },
+  {
+   "name": "Brain 65 (Mutton)",
+   "kcal": 657.85,
+   "protein": 21.73,
+   "carbs": 45.69,
+   "fat": 44.63,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Sheek Kebab",
+   "kcal": 461.93,
+   "protein": 31.75,
+   "carbs": 17.82,
+   "fat": 29.23,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Tikka",
+   "kcal": 528.52,
+   "protein": 62.23,
+   "carbs": 15.46,
+   "fat": 23.43,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Sheek Kebab",
+   "kcal": 349.5,
+   "protein": 26.62,
+   "carbs": 13.61,
+   "fat": 21.97,
+   "serving": "serving"
+  },
+  {
+   "name": "Tandoori Leg Piece",
+   "kcal": 560.32,
+   "protein": 60.5,
+   "carbs": 20.14,
+   "fat": 25.39,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Pakoda",
+   "kcal": 409.54,
+   "protein": 25.21,
+   "carbs": 28.62,
+   "fat": 21.8,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Red Chilli Tawa Chops",
+   "kcal": 555.55,
+   "protein": 44.75,
+   "carbs": 18.9,
+   "fat": 33.93,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Haleem (Gosht)",
+   "g": 350,
+   "kcal": 744.43,
+   "protein": 35.61,
+   "carbs": 26.72,
+   "fat": 56.41,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Shami Kebab",
+   "kcal": 584.84,
+   "protein": 26.76,
+   "carbs": 15.89,
+   "fat": 47.25,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Black Pepper Tawa Chops",
+   "kcal": 545.07,
+   "protein": 45.02,
+   "carbs": 18.83,
+   "fat": 32.88,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Haleem (Murg)",
+   "g": 350,
+   "kcal": 766.36,
+   "protein": 31.76,
+   "carbs": 26.26,
+   "fat": 59.96,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Pakoda",
+   "kcal": 419.62,
+   "protein": 27.24,
+   "carbs": 28.07,
+   "fat": 21.68,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kebab",
+   "kcal": 902.14,
+   "protein": 62.41,
+   "carbs": 55.1,
+   "fat": 47.1,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Kheema Tawa Fry",
+   "kcal": 564,
+   "serving": "serving",
+   "note": "Listed macros add up to 1183 kcal against the listed 564; kcal kept."
+  },
+  {
+   "name": "Chicken 65 - Boneless",
+   "kcal": 431,
+   "protein": 31,
+   "carbs": 9,
+   "fat": 28,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Shami Kebab",
+   "kcal": 599.5,
+   "protein": 39.77,
+   "carbs": 14.99,
+   "fat": 47.06,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Lollipop",
+   "kcal": 1004,
+   "protein": 29,
+   "carbs": 42,
+   "fat": 78,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kheema Tawa Fry",
+   "kcal": 552.81,
+   "serving": "serving",
+   "note": "Listed macros add up to 282 kcal against the listed 552.81; kcal kept."
+  },
+  {
+   "name": "Paneer Black Pepper Tawa Fry",
+   "kcal": 542.2,
+   "protein": 24.5,
+   "carbs": 26.42,
+   "fat": 39.57,
+   "serving": "serving"
+  },
+  {
+   "name": "Soya Red Chilli Tawa Fry",
+   "kcal": 310.19,
+   "protein": 11.45,
+   "carbs": 21.48,
+   "fat": 21.06,
+   "serving": "serving"
+  },
+  {
+   "name": "Paneer 65",
+   "kcal": 633.27,
+   "protein": 27.18,
+   "carbs": 34.7,
+   "fat": 43.6,
+   "serving": "serving"
+  },
+  {
+   "name": "Mushroom Red Chilli Tawa Fry",
+   "kcal": 385.94,
+   "protein": 10.74,
+   "carbs": 29.16,
+   "fat": 27.85,
+   "serving": "serving"
+  },
+  {
+   "name": "Mushroom Black Pepper Tawa Fry",
+   "kcal": 370.22,
+   "protein": 11.14,
+   "carbs": 29.06,
+   "fat": 26.28,
+   "serving": "serving"
+  },
+  {
+   "name": "Egg Pakoda",
+   "kcal": 549,
+   "protein": 24,
+   "carbs": 28,
+   "fat": 37,
+   "serving": "serving"
+  },
+  {
+   "name": "Egg Red Chili Tawa Fry",
+   "kcal": 325,
+   "protein": 14,
+   "carbs": 5,
+   "fat": 27,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Tandoori Platter",
+   "kcal": 1894,
+   "serving": "serving",
+   "note": "Listed macros add up to 2995 kcal against the listed 1894; kcal kept."
+  },
+  {
+   "name": "Mutton Tawa Platter",
+   "kcal": 2051.94,
+   "protein": 129.08,
+   "carbs": 68.44,
+   "fat": 145.97,
+   "serving": "serving"
+  },
+  {
+   "name": "Special Mix Platter (Mutton & Chicken)",
+   "kcal": 3017.19,
+   "protein": 223.79,
+   "carbs": 103.64,
+   "fat": 192.03,
+   "serving": "serving"
+  },
+  {
+   "name": "Sharief's Special Veg Platter",
+   "kcal": 1501.73,
+   "protein": 64.02,
+   "carbs": 85.13,
+   "fat": 104.7,
+   "serving": "serving"
+  },
+  {
+   "name": "Healthy Yakhni Chicken Soup",
+   "kcal": 275.91,
+   "protein": 14.85,
+   "carbs": 5.87,
+   "fat": 21.95,
+   "serving": "serving"
+  },
+  {
+   "name": "Paya with Soup",
+   "kcal": 561.13,
+   "protein": 29.51,
+   "carbs": 11,
+   "fat": 54,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Biryani Combo Meal",
+   "kcal": 1703.89,
+   "protein": 54.62,
+   "carbs": 124.75,
+   "fat": 113.51,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Biryani Combo Meal",
+   "kcal": 1791.66,
+   "protein": 61,
+   "carbs": 126.71,
+   "fat": 118.22,
+   "serving": "serving"
+  },
+  {
+   "name": "Veg Biryani Combo Meal",
+   "kcal": 1738.29,
+   "protein": 34.55,
+   "carbs": 140.3,
+   "fat": 120.3,
+   "serving": "serving"
+  },
+  {
+   "name": "All Day Ramzan Combo (Mutton)",
+   "kcal": 1734.22,
+   "protein": 64.29,
+   "carbs": 94.34,
+   "fat": 123.24,
+   "serving": "serving"
+  },
+  {
+   "name": "All Day Ramzan Combo (Chicken)",
+   "kcal": 1734.22,
+   "protein": 64.29,
+   "carbs": 94.34,
+   "fat": 123.24,
+   "serving": "serving"
+  },
+  {
+   "name": "Dakhni Hara Masala Ka Mutton Curry",
+   "kcal": 677,
+   "protein": 34.53,
+   "carbs": 23,
+   "fat": 50,
+   "serving": "serving"
+  },
+  {
+   "name": "Nalli Nihari (Mutton Shank)",
+   "kcal": 944.07,
+   "protein": 73.59,
+   "carbs": 34.69,
+   "fat": 60,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Hyderabadi Kheema Nihari",
+   "kcal": 907,
+   "protein": 23,
+   "carbs": 26,
+   "fat": 76,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Leg Piece Hyderabadi Nihari",
+   "kcal": 631.96,
+   "protein": 33.22,
+   "carbs": 24.9,
+   "fat": 45.75,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Hyderabadi Nihari",
+   "kcal": 707,
+   "protein": 35,
+   "carbs": 30,
+   "fat": 46,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Hyderabadi Nihari",
+   "kcal": 905,
+   "protein": 43,
+   "carbs": 19,
+   "fat": 70,
+   "serving": "serving"
+  },
+  {
+   "name": "Dakhni Hara Masala Ka Mutton Kheema Curry",
+   "kcal": 974,
+   "protein": 27,
+   "carbs": 26,
+   "fat": 82,
+   "serving": "serving"
+  },
+  {
+   "name": "Dakhni Hara Masala Ka Chicken Curry",
+   "kcal": 979,
+   "protein": 70,
+   "carbs": 41,
+   "fat": 52,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Boneless Hyderabadi Nihari",
+   "kcal": 574.58,
+   "protein": 34.47,
+   "carbs": 24.7,
+   "fat": 39.07,
+   "serving": "serving"
+  },
+  {
+   "name": "Dakhni Hara Masala Ka Chicken Kheema Curry",
+   "kcal": 979,
+   "protein": 70,
+   "carbs": 41,
+   "fat": 52,
+   "serving": "serving"
+  },
+  {
+   "name": "Dakhni Hara Masala Paneer",
+   "kcal": 589.13,
+   "protein": 18.69,
+   "carbs": 18.96,
+   "fat": 50.34,
+   "serving": "serving"
+  },
+  {
+   "name": "Egg Hyderabadi Nihari",
+   "kcal": 642,
+   "protein": 17,
+   "carbs": 17,
+   "fat": 54,
+   "serving": "serving"
+  },
+  {
+   "name": "Paratha (Parotta)",
+   "kcal": 287,
+   "protein": 6,
+   "carbs": 47,
+   "fat": 7,
+   "serving": "serving"
+  },
+  {
+   "name": "Seviyan (Idiyappam)",
+   "kcal": 94,
+   "protein": 2,
+   "carbs": 13,
+   "fat": 3,
+   "serving": "serving"
+  },
+  {
+   "name": "Rumali Roti",
+   "kcal": 106.4,
+   "protein": 3.2,
+   "carbs": 20.8,
+   "fat": 1,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Bucket Biryani (Serves 6)",
+   "kcal": 8867.69,
+   "protein": 390.28,
+   "carbs": 505.54,
+   "fat": 602.03,
+   "serving": "order, serves 6"
+  },
+  {
+   "name": "Chicken Bucket Biryani (Serves 6)",
+   "kcal": 8688.11,
+   "protein": 316.27,
+   "carbs": 503.33,
+   "fat": 609.92,
+   "serving": "order, serves 6"
+  },
+  {
+   "name": "Veg Bucket Biryani (Serves 6)",
+   "kcal": 8686.01,
+   "protein": 116.29,
+   "carbs": 698.41,
+   "fat": 625,
+   "serving": "order, serves 6"
+  },
+  {
+   "name": "Classic Chicken Shawarma",
+   "kcal": 680,
+   "protein": 52,
+   "carbs": 38,
+   "fat": 37,
+   "serving": "serving"
+  },
+  {
+   "name": "Chatpata Chicken Shawarma",
+   "kcal": 710,
+   "protein": 53,
+   "carbs": 38,
+   "fat": 39,
+   "serving": "serving"
+  },
+  {
+   "name": "Soya Chaap Shawarma (All Veg)",
+   "kcal": 680,
+   "protein": 39,
+   "carbs": 36,
+   "fat": 41,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Kheema Roll",
+   "kcal": 516,
+   "protein": 14,
+   "carbs": 56,
+   "fat": 23,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kheema Roll",
+   "kcal": 496,
+   "protein": 22.25,
+   "carbs": 56,
+   "fat": 19,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Sheek Kebab Roll",
+   "kcal": 488,
+   "protein": 26.01,
+   "carbs": 52,
+   "fat": 21,
+   "serving": "serving"
+  },
+  {
+   "name": "Paneer Roll",
+   "kcal": 771.9,
+   "protein": 21.46,
+   "carbs": 39.08,
+   "fat": 60.36,
+   "serving": "serving"
+  },
+  {
+   "name": "Egg Roll",
+   "kcal": 415,
+   "protein": 17.95,
+   "carbs": 60,
+   "fat": 14,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Egg Kheema Roti",
+   "kcal": 800,
+   "protein": 30.88,
+   "carbs": 62,
+   "fat": 47,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Egg Kheema Roti",
+   "kcal": 850,
+   "protein": 30,
+   "carbs": 50,
+   "fat": 56,
+   "serving": "serving"
+  },
+  {
+   "name": "Onion Samosa",
+   "kcal": 143,
+   "serving": "serving",
+   "note": "Listed macros add up to 527 kcal against the listed 143; kcal kept."
+  },
+  {
+   "name": "Chicken Kheema Samosa",
+   "kcal": 297,
+   "protein": 10.04,
+   "carbs": 13,
+   "fat": 22,
+   "serving": "serving"
+  },
+  {
+   "name": "Mutton Kheema Samosa",
+   "kcal": 349,
+   "protein": 7,
+   "carbs": 13,
+   "fat": 28,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kofta Biryani Bowl (Kola Urundai)",
+   "kcal": 913.11,
+   "protein": 40.01,
+   "carbs": 59.91,
+   "fat": 66.97,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Boneless Special Biryani Bowl",
+   "kcal": 979.29,
+   "protein": 44.1,
+   "carbs": 60.56,
+   "fat": 63.6,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken 65 Boneless Biryani Bowl",
+   "kcal": 1010.71,
+   "protein": 39.53,
+   "carbs": 63.77,
+   "fat": 67.54,
+   "serving": "serving"
+  },
+  {
+   "name": "Chicken Kheema Biryani Bowl",
+   "kcal": 913.11,
+   "protein": 31.86,
+   "carbs": 59.91,
+   "fat": 66.97,
+   "serving": "serving"
+  },
+  {
+   "name": "Egg Biryani Bowl",
+   "kcal": 794.26,
+   "protein": 15.92,
+   "carbs": 54.81,
+   "fat": 58.63,
+   "serving": "serving"
+  },
+  {
+   "name": "Paneer Biryani Bowl",
+   "kcal": 857.24,
+   "protein": 19.24,
+   "carbs": 54.95,
+   "fat": 64.08,
+   "serving": "serving"
+  },
+  {
+   "name": "Mushroom Biryani Bowl",
+   "kcal": 794.6,
+   "protein": 13.81,
+   "carbs": 59.25,
+   "fat": 58.55,
+   "serving": "serving"
+  },
+  {
+   "name": "Gulab Jamun",
+   "kcal": 280,
+   "protein": 3.2,
+   "carbs": 44,
+   "fat": 10.4,
+   "serving": "serving"
+  },
+  {
+   "name": "Arabian Grape Juice",
+   "kcal": 154,
+   "protein": 1,
+   "carbs": 35,
+   "fat": 0,
+   "serving": "serving"
+  },
+  {
+   "name": "Fresh Lime Water",
+   "kcal": 113,
+   "protein": 0,
+   "carbs": 28,
+   "fat": 0,
+   "serving": "serving"
+  },
+  {
+   "name": "Fresh Lime Soda",
+   "kcal": 113,
+   "protein": 0,
+   "carbs": 28,
+   "fat": 0,
+   "serving": "serving"
+  }
+ ]
+}

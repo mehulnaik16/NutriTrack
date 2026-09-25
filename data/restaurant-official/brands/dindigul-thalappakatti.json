@@ -1,0 +1,1025 @@
+{
+ "brand": "Dindigul Thalappakatti",
+ "code": "Z7",
+ "source": "Dindigul Thalappakatti's own ordering site, thalappakatti.com product pages (e.g. https://thalappakatti.com/products/biryani-variety): 'Nutritional Information (per 100g)' in each product's description. Fetched 2026-09-25.",
+ "basis": "Per 100 g, as published. No portion weights are given. Many dishes, including most biryanis, carry no figures on the site and are not listed.",
+ "density": 200,
+ "items": [
+  {
+   "name": "Kadai Veg",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 79,
+   "carbs": 2.3,
+   "protein": 8.6,
+   "fat": 3.9
+  },
+  {
+   "name": "Kadai Paneer",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 230,
+   "carbs": 20.9,
+   "protein": 6.1,
+   "fat": 13.5
+  },
+  {
+   "name": "Paneer Butter Masala",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 251,
+   "carbs": 24.2,
+   "protein": 6.1,
+   "fat": 14.4
+  },
+  {
+   "name": "Butter Chicken Masala",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 198,
+   "carbs": 12.8,
+   "protein": 8.8,
+   "fat": 12.4
+  },
+  {
+   "name": "Kadai Chicken Masala",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 205,
+   "carbs": 25.3,
+   "protein": 8.9,
+   "fat": 7.5
+  },
+  {
+   "name": "Thalappakatti Veg Biryani",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 154,
+   "carbs": 24.4,
+   "protein": 3.5,
+   "fat": 4.7
+  },
+  {
+   "name": "Thalappakatti Paneer Biryani",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 205,
+   "carbs": 23.3,
+   "protein": 6.1,
+   "fat": 9.7
+  },
+  {
+   "name": "Thalappakatti Naidu Mutton Biryani",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 163,
+   "carbs": 20.1,
+   "protein": 9.2,
+   "fat": 5.1
+  },
+  {
+   "name": "Thalappakatti Boneless Chicken 65 Biryani",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 166,
+   "carbs": 22.2,
+   "protein": 8.5,
+   "fat": 4.8
+  },
+  {
+   "name": "Hot & Sour Veg Soup",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 28,
+   "carbs": 5.2,
+   "protein": 0.6,
+   "fat": 0.5
+  },
+  {
+   "name": "Sweet Corn Veg Soup",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 46,
+   "carbs": 8.8,
+   "protein": 0.3,
+   "fat": 1
+  },
+  {
+   "name": "Hot And Sour Chicken Soup",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 66,
+   "carbs": 9.1,
+   "protein": 3,
+   "fat": 1.9
+  },
+  {
+   "name": "Sweet Corn Chicken Soup",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 84,
+   "carbs": 13.2,
+   "protein": 6.5,
+   "fat": 0.5
+  },
+  {
+   "name": "Mutton Milagu Soup",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 82,
+   "carbs": 3.5,
+   "protein": 7.9,
+   "fat": 4
+  },
+  {
+   "name": "Veg Fried Rice",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 142,
+   "carbs": 26,
+   "protein": 2.5,
+   "fat": 3.1
+  },
+  {
+   "name": "Chicken Fried Rice",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 175,
+   "carbs": 24.5,
+   "protein": 11.3,
+   "fat": 3.5
+  },
+  {
+   "name": "Egg Fried Rice",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 193,
+   "carbs": 30.7,
+   "protein": 5.7,
+   "fat": 5.2
+  },
+  {
+   "name": "Wheat Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 324,
+   "carbs": 53.4,
+   "protein": 7.6,
+   "fat": 8.9
+  },
+  {
+   "name": "Tandoori Roti",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 253,
+   "carbs": 53.6,
+   "protein": 7.9,
+   "fat": 0.8
+  },
+  {
+   "name": "Naan",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 312,
+   "carbs": 54,
+   "protein": 8.5,
+   "fat": 6.9
+  },
+  {
+   "name": "Butter Naan",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 350,
+   "carbs": 52.6,
+   "protein": 9.1,
+   "fat": 11.5
+  },
+  {
+   "name": "Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 344,
+   "carbs": 54.2,
+   "protein": 7.6,
+   "fat": 10.8
+  },
+  {
+   "name": "Veg Kothu Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 186,
+   "carbs": 21.1,
+   "protein": 4.3,
+   "fat": 9.4
+  },
+  {
+   "name": "Nool Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 344,
+   "carbs": 54.2,
+   "protein": 7.6,
+   "fat": 10.8
+  },
+  {
+   "name": "Chicken Kothu Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 232,
+   "carbs": 14.9,
+   "protein": 12,
+   "fat": 13.8
+  },
+  {
+   "name": "Ceylon Egg Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 206,
+   "carbs": 15.6,
+   "protein": 7.9,
+   "fat": 12.4
+  },
+  {
+   "name": "Egg Kothu Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 226,
+   "carbs": 21.3,
+   "protein": 7.8,
+   "fat": 12.2
+  },
+  {
+   "name": "Plain Omelette",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 184,
+   "carbs": 11,
+   "protein": 12.4,
+   "fat": 10.1
+  },
+  {
+   "name": "Masala Omelette",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 111,
+   "carbs": 13.4,
+   "protein": 8.8,
+   "fat": 2.4
+  },
+  {
+   "name": "Plain Dosai",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 249,
+   "carbs": 47.6,
+   "protein": 6.3,
+   "fat": 3.7
+  },
+  {
+   "name": "Chicken Kothu Idiyappam",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 142,
+   "carbs": 24.8,
+   "protein": 4.8,
+   "fat": 2.8
+  },
+  {
+   "name": "Thalappakatti Masala Cola",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 77,
+   "carbs": 19.3,
+   "protein": 0,
+   "fat": 0
+  },
+  {
+   "name": "Lemon Soda",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 80,
+   "carbs": 19.9,
+   "protein": 0,
+   "fat": 0
+  },
+  {
+   "name": "Coke Can [300 Ml]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 44,
+   "carbs": 10.9,
+   "protein": 0,
+   "fat": 0
+  },
+  {
+   "name": "Fresh Watermelon Juice",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 57,
+   "carbs": 13.7,
+   "protein": 0.7,
+   "fat": 0
+  },
+  {
+   "name": "Thumsup Can [300 Ml]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 39,
+   "carbs": 9.7,
+   "protein": 0,
+   "fat": 0
+  },
+  {
+   "name": "Gulab Jamun (2 Pcs)",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 313,
+   "carbs": 62.4,
+   "protein": 3.3,
+   "fat": 5.5
+  },
+  {
+   "name": "Special Falooda",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 215,
+   "carbs": 33.8,
+   "protein": 3.1,
+   "fat": 7.4
+  },
+  {
+   "name": "Thalappakatti Jigarthanda",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 127,
+   "carbs": 19.8,
+   "protein": 2.6,
+   "fat": 4.1
+  },
+  {
+   "name": "Bread Halwa",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 612,
+   "carbs": 29.6,
+   "protein": 8.2,
+   "fat": 51.2
+  },
+  {
+   "name": "Drumstick Black Pepper Chicken",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 236,
+   "carbs": 8.8,
+   "protein": 17.4,
+   "fat": 14.6
+  },
+  {
+   "name": "Black Pepper Chicken Boneless",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 236,
+   "carbs": 18.4,
+   "protein": 13.2,
+   "fat": 12.2
+  },
+  {
+   "name": "Dindigul 555 Egg",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 224,
+   "carbs": 8.2,
+   "protein": 12,
+   "fat": 15.9
+  },
+  {
+   "name": "Thalappakatti Chicken Biryani",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 163,
+   "carbs": 20.1,
+   "protein": 9.2,
+   "fat": 5.1
+  },
+  {
+   "name": "Paneer 65",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 339,
+   "carbs": 29.8,
+   "protein": 18.4,
+   "fat": 13.5
+  },
+  {
+   "name": "Gobi Manchurian",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 195,
+   "carbs": 26.2,
+   "protein": 3.1,
+   "fat": 8.6
+  },
+  {
+   "name": "Gobi 65",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 220,
+   "carbs": 38.1,
+   "protein": 3.3,
+   "fat": 6
+  },
+  {
+   "name": "Dindigul 555 Prawn",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 228,
+   "carbs": 16.5,
+   "protein": 19.4,
+   "fat": 9.4
+  },
+  {
+   "name": "Chilli Prawns",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 114,
+   "carbs": 12.6,
+   "protein": 6.6,
+   "fat": 4.1
+  },
+  {
+   "name": "Fish Finger",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 160,
+   "carbs": 16.4,
+   "protein": 11.2,
+   "fat": 5.5
+  },
+  {
+   "name": "Theepori Chicken Lollipop",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 304,
+   "carbs": 13.7,
+   "protein": 23.5,
+   "fat": 17.2
+  },
+  {
+   "name": "Dindigul 555 Chicken Boneless",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 258,
+   "carbs": 17.6,
+   "protein": 22.7,
+   "fat": 10.8
+  },
+  {
+   "name": "Chilli Chicken Boneless",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 241,
+   "carbs": 16.7,
+   "protein": 12.4,
+   "fat": 13.8
+  },
+  {
+   "name": "Moru Moru Prawns [Crispy Fried]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 322,
+   "carbs": 19.5,
+   "protein": 17.6,
+   "fat": 19.3
+  },
+  {
+   "name": "Moru Moru Fish [Crispy Fried]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 174,
+   "carbs": 10.6,
+   "protein": 10.6,
+   "fat": 10
+  },
+  {
+   "name": "Andhra Special Veg Meals (16 Items)",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 143,
+   "carbs": 20.6,
+   "protein": 7.1,
+   "fat": 3.62
+  },
+  {
+   "name": "Guntur Chicken Roast",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 213,
+   "carbs": 8.33,
+   "protein": 15.7,
+   "fat": 13
+  },
+  {
+   "name": "Chapathi (1 No)",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 301,
+   "carbs": 62.8,
+   "protein": 8.7,
+   "fat": 1.6
+  },
+  {
+   "name": "Aattu Kaal Kootu Rasam [Soup]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 89,
+   "note": "Listed macros add up to 471 kcal against the listed 89; kcal kept."
+  },
+  {
+   "name": "Alanganallur Kozhi Varuval Kulambu [Chicken]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 149,
+   "carbs": 7.1,
+   "protein": 11.7,
+   "fat": 8.2
+  },
+  {
+   "name": "Alfaham Barbeque",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 181,
+   "carbs": 5.8,
+   "protein": 21.7,
+   "fat": 7.9
+  },
+  {
+   "name": "Arapalayam Mutton Nalli Chops Kulambu",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 224,
+   "carbs": 17.8,
+   "protein": 12.5,
+   "fat": 11.4
+  },
+  {
+   "name": "Barbeque Chicken",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 216,
+   "carbs": 6.3,
+   "protein": 22.5,
+   "fat": 11.2
+  },
+  {
+   "name": "Chapathi (2 Pcs)",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 301,
+   "carbs": 62.8,
+   "protein": 8.7,
+   "fat": 1.6
+  },
+  {
+   "name": "Charminar Tandoori Chicken",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 206,
+   "carbs": 2.2,
+   "protein": 27.9,
+   "fat": 9.6
+  },
+  {
+   "name": "Chicken Porichadu - Boneless Stick",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 185,
+   "carbs": 5.1,
+   "protein": 22.8,
+   "fat": 8.2
+  },
+  {
+   "name": "Chinnalapatti Kozhi Kulambu [Chicken]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 239,
+   "carbs": 7.7,
+   "protein": 13.8,
+   "fat": 17
+  },
+  {
+   "name": "Dindigul 555 Panner",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 355,
+   "carbs": 18.9,
+   "protein": 19.1,
+   "fat": 22.6
+  },
+  {
+   "name": "Gramathu Nenjukari Kulambu [Mutton Chops]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 271,
+   "carbs": 24.7,
+   "protein": 5.6,
+   "fat": 16.6
+  },
+  {
+   "name": "Gun Fire Chicken [1 Pc Leg Thigh]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 205,
+   "carbs": 10.7,
+   "protein": 15.4,
+   "fat": 11.2
+  },
+  {
+   "name": "Kozhi Milagu Sarru [Chicken Soup]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 103,
+   "carbs": 13.1,
+   "protein": 5.6,
+   "fat": 3.2
+  },
+  {
+   "name": "Kuru Milagu Eeral Piratal [Mutton Liver Roast]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 227,
+   "carbs": 17.2,
+   "protein": 24.8,
+   "fat": 6.5
+  },
+  {
+   "name": "Madurai Chicken Kari Dosai",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 163,
+   "carbs": 11,
+   "protein": 16.4,
+   "fat": 5.9
+  },
+  {
+   "name": "Madurai Nool Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 344,
+   "carbs": 54.2,
+   "protein": 7.6,
+   "fat": 10.8
+  },
+  {
+   "name": "Madurai Parotta",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 344,
+   "carbs": 54.2,
+   "protein": 7.6,
+   "fat": 10.8
+  },
+  {
+   "name": "Moru Moru Chicken Stick - [Fried Chicken]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 287,
+   "carbs": 33.9,
+   "protein": 11.8,
+   "fat": 11.6
+  },
+  {
+   "name": "Muttai Kal Dosai [Egg Dosai]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 157,
+   "carbs": 13.7,
+   "protein": 10.8,
+   "fat": 6.5
+  },
+  {
+   "name": "Muttai Kalaki",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 181,
+   "carbs": 12.9,
+   "protein": 10.7,
+   "fat": 9.6
+  },
+  {
+   "name": "Muttai Masala [Egg]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 188,
+   "carbs": 25.1,
+   "protein": 6.8,
+   "fat": 6.8
+  },
+  {
+   "name": "Nei Kozhi Piratal [Chicken Ghee Roast]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 230,
+   "carbs": 9.7,
+   "protein": 16.3,
+   "fat": 14
+  },
+  {
+   "name": "Nethili Meen Varuval [Fish Fry]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 341,
+   "carbs": 15.2,
+   "protein": 16.3,
+   "fat": 23.9
+  },
+  {
+   "name": "Paatti Vettu Kozhi Paniyaram [Karandi]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 168,
+   "carbs": 20.3,
+   "protein": 14,
+   "fat": 3.4
+  },
+  {
+   "name": "Paatti Vettu Muttai Paniyaram [Karandi]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 175,
+   "carbs": 25.6,
+   "protein": 12.9,
+   "fat": 2.3
+  },
+  {
+   "name": "Pallipalayam Boneless Kozhi Roast [Chicken]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 214,
+   "carbs": 6.7,
+   "protein": 25.1,
+   "fat": 9.6
+  },
+  {
+   "name": "Pepper Chicken Barbeque",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 220,
+   "carbs": 11.9,
+   "protein": 20.4,
+   "fat": 10.1
+  },
+  {
+   "name": "Peri-Peri Red Chicken",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 202,
+   "carbs": 4.7,
+   "protein": 23.8,
+   "fat": 9.8
+  },
+  {
+   "name": "Pichapotta Kara Nattu Kozhi [Country Chicken]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 179,
+   "carbs": 4.5,
+   "protein": 27,
+   "fat": 5.9
+  },
+  {
+   "name": "Rasam Sappadu [Rasam, Plain Rice]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 89,
+   "carbs": 16.6,
+   "protein": 3.84,
+   "fat": 0.8
+  },
+  {
+   "name": "Simakkal Mutton Boneless Kulambu",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 194,
+   "carbs": 5.1,
+   "protein": 13.1,
+   "fat": 13.5
+  },
+  {
+   "name": "Tawa Fish Roast",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 173,
+   "carbs": 18.8,
+   "protein": 14.5,
+   "fat": 4.4
+  },
+  {
+   "name": "Usilampatti Nattu Kozhi Kulambu",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 154,
+   "carbs": 12.3,
+   "protein": 9.8,
+   "fat": 7.3
+  },
+  {
+   "name": "Vanjaram Meen Porichadhu",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 167,
+   "carbs": 15.4,
+   "protein": 16.8,
+   "fat": 4.2
+  },
+  {
+   "name": "Vayakattu Boneless Mutton Sukka",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 206,
+   "carbs": 16.6,
+   "protein": 22.6,
+   "fat": 5.4
+  },
+  {
+   "name": "Veetu Style Kola Urundai [Mutton Kola]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 255,
+   "carbs": 23.1,
+   "protein": 17,
+   "fat": 10.5
+  },
+  {
+   "name": "Vilaa Kari Milagu Varuval [Kuchi Mutton]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 286,
+   "carbs": 30.7,
+   "protein": 16.9,
+   "fat": 10.6
+  },
+  {
+   "name": "Madurai Parotta (2 Pcs)",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 344,
+   "carbs": 54.2,
+   "protein": 7.6,
+   "fat": 10.8
+  },
+  {
+   "name": "Madurai Nool Parotta (2 Pcs)",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 344,
+   "carbs": 54.2,
+   "protein": 7.6,
+   "fat": 10.8
+  },
+  {
+   "name": "Curd Rice",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 118,
+   "carbs": 22.8,
+   "protein": 3.88,
+   "fat": 1.28
+  },
+  {
+   "name": "Boiled Egg (2 Pcs)",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 112,
+   "carbs": 1.4,
+   "protein": 12.3,
+   "fat": 6.4
+  },
+  {
+   "name": "Aattu Kaal Soup",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 89,
+   "note": "Listed macros add up to 471 kcal against the listed 89; kcal kept."
+  },
+  {
+   "name": "Crispy Fried Chicken Lollipop",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 380,
+   "carbs": 22,
+   "protein": 28.6,
+   "fat": 19.7
+  },
+  {
+   "name": "Pallipalayam Kozhi Roast [chicken]",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 214,
+   "carbs": 6.7,
+   "protein": 25.1,
+   "fat": 9.6
+  }
+ ]
+}
