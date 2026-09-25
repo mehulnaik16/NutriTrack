@@ -27,8 +27,14 @@ export interface IFCTItem {
    * portion.
    */
   serving_g?: number;
-  /** Display text for the serving, e.g. "1 serving (168 g)". */
+  /** Display text for the serving, e.g. "1 burger = 168 g". */
   serving_label?: string;
+  /**
+   * What one piece is called on a restaurant row ("burger", "bowl", "regular
+   * pizza", "serving"). The row sets `piece_g` to its serving, so logging in
+   * `pcs` logs whole portions, and the UI says "1 burger" instead of "1 pcs".
+   */
+  portion_unit?: string;
   /**
    * True when `serving_g` was estimated rather than published. Logging one
    * serving still reproduces the source's own per-serving figures exactly —

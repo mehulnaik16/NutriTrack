@@ -783,8 +783,8 @@
    "carbs": 110.5,
    "fat": 26.7,
    "g": 430,
-   "serving": "scoop",
-   "label": "scoop (430 g)"
+   "serving": "serving",
+   "label": "serving (430 g)"
   },
   {
    "name": "Trilogy",

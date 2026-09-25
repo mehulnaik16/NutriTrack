@@ -56,6 +56,8 @@ import {
   pieceGrams,
   toGrams,
   unitsFor,
+  unitLabel,
+  UNITS,
   validateQuantity,
 } from "@/lib/foodUnits";
 import {
@@ -257,6 +259,12 @@ export const FoodSearch = forwardRef<
       const baseC = ratio > 0 ? (log.carbs_g ?? 0) / ratio : 0;
       const baseF = ratio > 0 ? (log.fat_g ?? 0) / ratio : 0;
 
+      // Reopen on the unit it was entered in, so an entry logged as "2 pcs"
+      // does not come back as 80 g and lose the count the user typed. A
+      // restaurant portion ("2 burger") comes back as pieces of that portion.
+      const loggedUnit = log.unit ?? "g";
+      const known = (UNITS as string[]).includes(loggedUnit);
+      const counted = !known || loggedUnit === "pcs";
       setSelected({
         code: "edit",
         name: log.food_name,
@@ -268,10 +276,14 @@ export const FoodSearch = forwardRef<
         choavldf: baseC,
         fatce: baseF,
         fibtg: ratio > 0 ? (log.fiber_g ?? 0) / ratio : 0,
+        ...(counted && log.unit_quantity
+          ? {
+              piece_g: log.quantity_g / log.unit_quantity,
+              ...(known ? {} : { portion_unit: loggedUnit }),
+            }
+          : {}),
       });
-      // Reopen on the unit it was entered in, so an entry logged as "2 pcs"
-      // does not come back as 80 g and lose the count the user typed.
-      setUnit((log.unit as Unit) ?? "g");
+      setUnit(counted ? "pcs" : (loggedUnit as Unit));
       setQty(String(log.unit_quantity ?? log.quantity_g));
       setMeal(log.meal_type);
       setOpen(true);
@@ -1329,7 +1341,7 @@ export const FoodSearch = forwardRef<
                       onValueChange={(u) => changeUnit(u as Unit)}
                     >
                       <SelectTrigger
-                        className="w-[78px] shrink-0"
+                        className="w-auto min-w-[78px] max-w-[50%] shrink-0"
                         aria-label="Unit"
                       >
                         <SelectValue />
@@ -1341,7 +1353,7 @@ export const FoodSearch = forwardRef<
                             value={u}
                             className="min-h-[44px]"
                           >
-                            {u}
+                            {unitLabel(u, selected)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1355,8 +1367,10 @@ export const FoodSearch = forwardRef<
               </div>
               {unit !== "g" && (
                 <p className="-mt-1 text-xs text-muted-foreground">
-                  {unit === "pcs" && `1 piece = ${pieceGrams(selected)} g · `}≈{" "}
-                  {grams} g
+                  {unit === "pcs" &&
+                    `1 ${unitLabel(unit, selected).replace(/^pcs$/, "piece")} ${selected?.serving_est ? "≈" : "="} ${pieceGrams(selected)} g`}
+                  {(unit !== "pcs" || +qty !== 1) &&
+                    `${unit === "pcs" ? " · " : ""}≈ ${grams} g`}
                 </p>
               )}
               {!qv.ok && qv.error && (
@@ -1364,7 +1378,7 @@ export const FoodSearch = forwardRef<
               )}
               {/* Menu items come as a portion, so offer that portion directly —
                   the field still holds grams, which keeps one unit throughout. */}
-              {selected?.serving_g && (
+              {selected?.serving_g && !selected.portion_unit && (
                 <div className="flex items-center gap-2 -mt-1">
                   <button
                     type="button"
@@ -1400,7 +1414,7 @@ export const FoodSearch = forwardRef<
                     qv.value,
                     meal,
                     overrides,
-                    { unit, qty: +qty },
+                    { unit: unitLabel(unit, selected), qty: +qty },
                   );
                   if (ok) {
                     if (saveAsMeal) {

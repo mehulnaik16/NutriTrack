@@ -221,10 +221,10 @@ export function FastFoodDialog({
                     <span className="block">
                       {it.name.replace(`${brand} `, "")}
                     </span>
-                    {/* What the calories are for: "half medium pizza, 3 slices". */}
+                    {/* What the calories are for: "1 burger = 168 g". */}
                     {it.serving_label && (
                       <span className="block text-xs text-muted-foreground">
-                        {it.serving_label.replace(/^1 /, "")}
+                        {it.serving_label}
                       </span>
                     )}
                   </span>
