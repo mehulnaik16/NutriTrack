@@ -355,8 +355,11 @@ const KJ_PER_KCAL = 4.184;
  * the fit against IFCT's own 1,556 rows, so the simpler formula is also the
  * more accurate one here.
  */
-const atwaterKJ = (it: { protcnt: number; fatce: number; choavldf: number }) =>
-  (4 * it.protcnt + 9 * it.fatce + 4 * it.choavldf) * KJ_PER_KCAL;
+export const atwaterKJ = (it: {
+  protcnt: number;
+  fatce: number;
+  choavldf: number;
+}) => (4 * it.protcnt + 9 * it.fatce + 4 * it.choavldf) * KJ_PER_KCAL;
 
 /**
  * Measured against all 1,556 IFCT rows: the ratio of stated to implied energy

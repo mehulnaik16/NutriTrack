@@ -248,6 +248,51 @@ assert.equal(
   false,
 );
 
+// ── the live incident this gate was retuned for ───────────────────────────
+// Six answers for one tofu cheesecake, two accounts, 15 minutes. They formed
+// two complete groups and BOTH were rejected and destroyed; ai_verified sat
+// empty for three days. Kept as real numbers, not a fixture, so a future tighten
+// has to look at what it is refusing. enerc is kcal x 4.184.
+import { QUORUM_TOL, QUORUM_TOL_ENERC, energyConsistent } from "./foodCache.ts";
+{
+  const m = (
+    enerc: number,
+    protcnt: number,
+    fatce: number,
+    choavldf: number,
+    fibtg: number,
+  ) => ({ enerc, protcnt, fatce, choavldf, fibtg });
+  const a170 = m(711.28, 5.2, 9.5, 16, 0.8);
+  const a163 = m(682, 5.5, 8.2, 16.5, 0.8);
+  const a180 = m(753.12, 6.5, 9.5, 17.2, 0.8);
+  const a200 = m(836.8, 6.5, 10.5, 20, 1.2);
+  const a155 = m(648.52, 5.5, 6, 18, 0.8);
+
+  assert.equal(QUORUM_TOL, 0.15);
+  assert.equal(QUORUM_TOL_ENERC, 0.08);
+
+  // Round 1. Protein spreads 13.4% and fat 9.6%, but the deviations cancel in
+  // the energy total, which lands at 5.3% — three answers about one dessert.
+  // At the old 0.05 this failed on energy by 1.88 kJ, 0.45 kcal.
+  assert.equal(quorumPasses([a170, a163, a180]), true, "round 1 must verify");
+
+  // Round 2. Fat spreads 27.5% and surfaces as 15.8% on energy: a real
+  // disagreement, still refused, which is the point of retuning rather than
+  // removing the gate.
+  assert.equal(quorumPasses([a200, a163, a155]), false, "round 2 must not");
+
+  // The two knobs are not one knob. Every macro here is inside 15% — protein
+  // 10.8, fat 12.8, carbs 11.7 — and energy alone rejects it at 10.5%.
+  assert.equal(quorumPasses([a163, a180, a200]), false, "energy alone decides");
+
+  // A promoted row must also agree with itself. Round 1's mean implies 714.6 kJ
+  // against a stored 715.47.
+  assert.equal(energyConsistent(consolidate([a170, a163, a180])), true);
+  // A per-piece energy stored against per-100g macros is the failure this
+  // catches: 2500 kJ beside macros implying 677.
+  assert.equal(energyConsistent(m(2500, 5.5, 8.2, 16.5, 0.8)), false);
+}
+
 // consolidate takes the per-macro mean of the three.
 assert.deepEqual(
   consolidate([
@@ -469,9 +514,24 @@ const answer = (over: Record<string, unknown>) => ({
   ...over,
 });
 
-/** raw reply -> the rows the cache would store, exactly as ai.ts derives them. */
-const rowsFor = (reply: { items: unknown[] }) =>
-  cacheableAnswers(reply.items, validateFoodSlots(reply, "q")?.slots ?? []);
+/**
+ * raw reply -> the rows the cache would store, exactly as ai.ts derives them.
+ *
+ * kind defaults to "meal" because these fixtures are about PAIRING an item with
+ * its own validated identity, and every item has to survive for that to be
+ * observable. Under "single" only the first is kept, which would make the
+ * multi-item assertions below pass for the wrong reason. The single-vs-meal
+ * policy has its own block further down.
+ */
+const rowsFor = (
+  reply: { items: unknown[] },
+  kind: "single" | "meal" = "meal",
+) =>
+  cacheableAnswers(
+    reply.items,
+    validateFoodSlots(reply, "q")?.slots ?? [],
+    kind,
+  );
 
 // The two-Koftas case, from review. Both items are named "Kofta".
 //   A: malai kofta, a curry. 6P/20F/12C implies 1054.4 kJ; it claims 1600,
@@ -585,11 +645,11 @@ const rowsFor = (reply: { items: unknown[] }) =>
     basis: "100g" as const,
     aliases: [],
   };
-  assert.deepEqual(cacheableAnswers([null], [slot]), []);
-  assert.deepEqual(cacheableAnswers(["idli"], [slot]), []);
-  assert.deepEqual(cacheableAnswers(undefined, []), []);
+  assert.deepEqual(cacheableAnswers([null], [slot], "meal"), []);
+  assert.deepEqual(cacheableAnswers(["idli"], [slot], "meal"), []);
+  assert.deepEqual(cacheableAnswers(undefined, [], "meal"), []);
   // Arrays that disagree in length cannot be paired by position: refuse.
-  assert.deepEqual(cacheableAnswers([{}, {}], [slot]), []);
+  assert.deepEqual(cacheableAnswers([{}, {}], [slot], "meal"), []);
 }
 
 // A key of only spaces is no key.
@@ -611,6 +671,57 @@ const rowsFor = (reply: { items: unknown[] }) =>
   assert.deepEqual(rowsFor(idli("   ")), [], "a whitespace key is not stored");
   // And a real key is stored trimmed, so " idli " and "idli" share a group.
   assert.equal(rowsFor(idli(" idli "))[0]?.canonical_key, "idli");
+}
+
+// ── alternatives are not foods anybody searched ────────────────────────────
+// Under kind "single" the items are 2-3 candidates for ONE query, returned
+// because the model is not confident. Caching all of them put "mango
+// cheesecake" into ai_unverified off a search for tofu cheesecake, built from
+// the model's own lower-confidence numbers.
+{
+  const shake = (over: Record<string, unknown>) =>
+    answer({
+      food_class: "sweet",
+      enerc: 419,
+      protcnt: 3.4,
+      fatce: 1.2,
+      choavldf: 17.5,
+      fibtg: 0.5,
+      ...over,
+    });
+  const reply = {
+    items: [
+      shake({ name: "Tofu Cheesecake", canonical_key: "tofu cheesecake" }),
+      shake({ name: "Mango cheesecake", canonical_key: "mango cheesecake" }),
+      shake({ name: "Baked cheesecake", canonical_key: "baked cheesecake" }),
+    ],
+  };
+  const alternatives = rowsFor(reply, "single");
+  assert.equal(alternatives.length, 1, "only the best candidate is cached");
+  assert.equal(alternatives[0].canonical_key, "tofu cheesecake");
+  // The same three items eaten together are three real answers.
+  assert.equal(rowsFor(reply, "meal").length, 3);
+
+  // "The first item that SURVIVES", not "items[0]": a first item the gate
+  // refuses must not take the one slot with it, or a bad lead answer would
+  // silence the whole reply.
+  const badFirst = {
+    items: [
+      shake({
+        name: "Tofu Cheesecake",
+        canonical_key: "tofu cheesecake",
+        enerc: 0,
+        protcnt: 0,
+        fatce: 0,
+        choavldf: 0,
+        fibtg: 0,
+      }),
+      shake({ name: "Mango cheesecake", canonical_key: "mango cheesecake" }),
+    ],
+  };
+  const kept = rowsFor(badFirst, "single");
+  assert.equal(kept.length, 1);
+  assert.equal(kept[0].canonical_key, "mango cheesecake");
 }
 
 // ── a correction goes back on the cache's own basis ────────────────────────

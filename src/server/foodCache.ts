@@ -29,6 +29,7 @@ import {
   type Macros,
   consolidate,
   consolidateIdentity,
+  energyConsistent,
   enoughUsers,
   per100g,
   quorumPasses,
@@ -335,6 +336,7 @@ export async function recordAnswer(
       .select("id", { count: "exact", head: true })
       .eq("group_key", gkey)
       .eq("food_class", row.food_class)
+      .eq("basis", row.basis)
       .eq("user_hash", user_hash);
     if (capError || mine == null) {
       warn(
@@ -383,6 +385,12 @@ export async function recordAnswer(
     // Still a coarse guard — the class is one of 13 broad buckets, and two foods
     // in the same bucket ("curry" holds malai kofta and chicken kofta alike)
     // group together if their keys are close enough.
+    //
+    // basis is the second guard, and a harder one: a "piece" answer's macros are
+    // per piece and a "100g" answer's are per 100 g, so averaging them compares
+    // two different scales as though they were one number. It is filtered here
+    // and counted in the cap above, so the two bases form separate groups rather
+    // than competing for the same three slots.
     const { data: all, error: groupError } = await unverified()
       .select("*")
       .eq("group_key", gkey)
@@ -390,7 +398,7 @@ export async function recordAnswer(
     warn("ai_unverified group read failed", groupError);
 
     const group: GroupRow[] = ((all ?? []) as GroupRow[])
-      .filter((g) => g.food_class === row.food_class)
+      .filter((g) => g.food_class === row.food_class && g.basis === row.basis)
       .slice(0, QUORUM_SIZE);
 
     if (group.length < QUORUM_SIZE) return;
@@ -401,10 +409,21 @@ export async function recordAnswer(
       return m;
     });
 
+    const macros = consolidate(macroRows);
+
     // enoughUsers is defence in depth: the staging cap already guarantees it,
     // barring a race between two of one user's own searches. A group short of
-    // people is reset like a group that disagrees.
-    if (enoughUsers(group) && quorumPasses(macroRows)) {
+    // people slides like a group that disagrees.
+    //
+    // energyConsistent is the last check, on the consolidated row rather than on
+    // the answers: everything above compares answers to each other, and nothing
+    // asks whether what is about to become permanent agrees with itself.
+    let promoted = false;
+    if (
+      enoughUsers(group) &&
+      quorumPasses(macroRows) &&
+      energyConsistent(macros)
+    ) {
       // The group's members no longer share one spelling, so the key to store
       // is the majority one, not this last answer's.
       const identity = consolidateIdentity(group);
@@ -451,7 +470,7 @@ export async function recordAnswer(
           ...identity,
           search_key: rowKey,
           food_class: row.food_class,
-          ...consolidate(macroRows),
+          ...macros,
           aliases,
           alias_keys: aliasKeys,
           models: group.map((g) => g.model),
@@ -462,17 +481,26 @@ export async function recordAnswer(
       // Leave the group standing if the promotion did not land, so the next
       // answer retries it instead of the food restarting from zero.
       if (error) return;
+      promoted = true;
     }
 
-    // Pass or fail, the group's rows are done: promoted, or deleted so the
-    // next search starts a brand-new group at entry one. Deliberately not a
-    // sliding window.
+    // Promoted: all three rows are consumed into the verified row. Failed: only
+    // the OLDEST goes, and the next answer is compared against the two that
+    // remain — a sliding window.
+    //
+    // It used to delete the whole group either way, on the grounds that a run of
+    // bad answers must not accumulate into a verified row. It cannot: the gate
+    // re-runs on all three every time and nothing promotes until three agree at
+    // once, so a window of the last three is no weaker. What the old behaviour
+    // did do was throw away two good answers next to one outlier — measured on
+    // live data, three answers of 170/163/180 kcal were destroyed because one of
+    // them was 0.45 kcal outside the tolerance.
+    //
+    // group is ordered created_at ascending, so group[0] is the oldest. The cap
+    // needs no adjustment: dropping a row frees that user's slot.
     const { error: deleteError } = await unverified()
       .delete()
-      .in(
-        "id",
-        group.map((g) => g.id),
-      );
+      .in("id", promoted ? group.map((g) => g.id) : [group[0].id]);
     warn("ai_unverified group delete failed", deleteError);
   } catch (err) {
     console.warn(

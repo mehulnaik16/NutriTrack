@@ -313,9 +313,15 @@ async function runFoodSearch(
     // no test sees is THIS call: that first argument must be the parsed
     // reply's own items, never anything validation has touched. Nothing on
     // this path dereferences a raw item that is not an object.
+    // kind decides how many of the items are answers: "single" means they are
+    // alternatives for one query and only the first is, "meal" means they are
+    // separate foods and all of them are. Defaulted rather than optional so a
+    // reply that failed validation entirely caches nothing extra — the schema
+    // already catches an unknown kind to "single".
     const rows = cacheableAnswers(
       (parsed as { items?: unknown } | null)?.items,
       validated?.slots ?? [],
+      validated?.kind ?? "single",
     );
     if (rows.length) {
       // One batched call rather than a loop over recordAnswer: the batch

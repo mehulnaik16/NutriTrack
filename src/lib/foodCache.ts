@@ -9,6 +9,7 @@
  * client bundle. The romanised match keys — searchKey and the alias
  * cross-check built on it — live in src/server/foodCacheKeys.ts instead.
  */
+import { atwaterKJ, ENERGY_FLOOR_KJ, ENERGY_TOL } from "./foodAiSchema.ts";
 import { altNames } from "./foodFuzzy.ts";
 
 /**
@@ -150,6 +151,7 @@ export type CacheableAnswer = Macros & {
 export function cacheableAnswers(
   rawItems: unknown,
   slots: readonly ValidatedSlot[],
+  kind: "single" | "meal",
 ): CacheableAnswer[] {
   if (!Array.isArray(rawItems) || rawItems.length !== slots.length) return [];
   const out: CacheableAnswer[] = [];
@@ -173,17 +175,63 @@ export function cacheableAnswers(
       aliases: slot.aliases,
       ...m,
     });
+    // An alternative is not a food anybody searched. Under kind "single" the
+    // items are 2-3 candidates for ONE query, best first (see CONFIDENCE AND
+    // ALTERNATIVES in the prompt), returned precisely because the model is not
+    // sure — so items 2 and 3 are its lower-confidence numbers for foods nobody
+    // asked about. Caching them put "mango cheesecake" in ai_unverified off a
+    // search for tofu cheesecake. The first item is the answer; the rest were
+    // shown to the user to choose from and end there.
+    //
+    // kind "meal" keeps every item: those are different foods eaten together,
+    // and each one is a real answer about the food it names.
+    if (kind === "single") break;
   }
   return out;
 }
 
-/** How far each answer may sit from the group mean, per macro. */
-export const QUORUM_TOL = 0.05;
+/**
+ * How far each answer may sit from the group mean, per macro.
+ *
+ * 0.05 was unreachable and kept the cache empty. Measured on the six live
+ * answers for one food, the worst spread per macro as a % of the group mean:
+ *
+ *   [170,163,180] kcal  enerc 5.3   protcnt 13.4  fatce 9.6   choavldf 3.8
+ *   [163,180,200] kcal  enerc 10.5  protcnt 10.8  fatce 12.8  choavldf 11.7
+ *   [200,163,155] kcal  enerc 15.8  protcnt 11.4  fatce 27.5  choavldf 10.1
+ *
+ * The first group is three answers about one dessert that agree; the last is a
+ * real disagreement. 0.15 is the smallest value that separates them.
+ */
+export const QUORUM_TOL = 0.15;
+
+/**
+ * Energy is held tighter than the other four, and 15% on the macros is not the
+ * licence it looks like because of it.
+ *
+ * enerc is Atwater-derived from protcnt, fatce and choavldf (see atwaterKJ),
+ * and the models return internally consistent rows — stated against implied
+ * energy agreed to under 1% on five of the six answers above. So this is a
+ * JOINT constraint on the other three: 15% of individual wobble is admitted
+ * only when it cancels out in the energy total, which is what group one is —
+ * fat spreads 9.6%, but the answer with the low fat has the higher carbs, and
+ * energy lands at 5.3%. A macro that is genuinely wrong cannot hide: group
+ * three's fat error surfaces as 15.8% on energy and is rejected twice over.
+ *
+ * It is also the number the user reads on every logged food.
+ */
+export const QUORUM_TOL_ENERC = 0.08;
 
 /**
  * Below this the relative test is meaningless and an absolute one takes over.
  * 0.1 g and 0.3 g of fibre are 200% apart and the same food; without this
  * floor every food with a near-zero macro fails forever.
+ *
+ * Unchanged at 0.5, and raising QUORUM_TOL is what fixed its side effect: it
+ * now only overrides the ratio below a mean of 3.3 g (0.5 / 0.15), the
+ * near-zero region it was written for. At the old 0.05 it dominated every macro
+ * under 10 g, so 0.5 g on 5.7 g of protein was an 8.6% bar — tighter than the
+ * 5% ratio it exists to back up, and the real reason nothing ever verified.
  */
 export const QUORUM_ABS_FLOOR = 0.5;
 
@@ -223,26 +271,64 @@ export const enoughUsers = (group: readonly { user_hash: string | null }[]) =>
  * (Independent of each other, and from at least MIN_DISTINCT_USERS people —
  * see enoughUsers, which recordAnswer checks beside this.)
  *
- * All five macros must pass. A single failure deletes the whole group and
- * restarts it from empty — deliberately not a sliding window, so a run of bad
- * answers can never accumulate into a verified row.
+ * All five macros must pass: within mean ±8% for energy, ±15% for the other
+ * four, with QUORUM_ABS_FLOOR taking over near zero. A single failure drops the
+ * group's OLDEST answer and keeps the rest (see the delete in recordAnswer), so
+ * one outlier costs one answer instead of three. A run of bad answers still
+ * cannot accumulate into a verified row: the gate re-runs on all three every
+ * time, and nothing is promoted until three of them agree at once.
+ *
+ * What a promoted row is worth, stated plainly: the mean of three independent
+ * answers that agree within those bounds. Better than the single unchecked
+ * answer the user gets today on every uncached search, and not a measurement.
  */
 export function quorumPasses(rows: Macros[]): boolean {
   if (rows.length !== QUORUM_SIZE) return false;
   return MACROS.every((m) => {
     const values = rows.map((r) => r[m]);
     const avg = mean(values);
-    const tol = Math.max(QUORUM_TOL * avg, QUORUM_ABS_FLOOR);
+    const tol = Math.max(
+      (m === "enerc" ? QUORUM_TOL_ENERC : QUORUM_TOL) * avg,
+      QUORUM_ABS_FLOOR,
+    );
     return values.every((v) => Math.abs(v - avg) <= tol);
   });
 }
 
-/** The per-macro mean of an agreeing group — what reaches ai_verified. */
+/**
+ * The per-macro mean of an agreeing group — what reaches ai_verified.
+ *
+ * The mean, not the median: quorumPasses has already excluded outliers, so what
+ * is left is roughly symmetric noise, where averaging three beats picking the
+ * middle one and discarding two.
+ */
 export function consolidate(rows: Macros[]): Macros {
   const out = {} as Macros;
   for (const m of MACROS) out[m] = +mean(rows.map((r) => r[m])).toFixed(2);
   return out;
 }
+
+/**
+ * Whether a row's energy is consistent with its own macros.
+ *
+ * quorumPasses compares answers to each other; this checks the row that is
+ * about to become permanent against itself. On answers that passed the gate it
+ * never fires — that is the point. It costs three lines and makes it impossible
+ * for a unit or basis mix-up to store calories that contradict the macros
+ * printed beside them, which is the one error a user would see and could not
+ * correct.
+ *
+ * Same Atwater comparison, tolerance and near-zero floor reconcileEnergy
+ * applies to each answer on the way in, so a row cannot fail here for a reason
+ * that was acceptable there.
+ */
+export const energyConsistent = (m: Macros): boolean => {
+  const implied = atwaterKJ(m);
+  return (
+    Math.abs(m.enerc - implied) <=
+    Math.max(ENERGY_TOL * implied, ENERGY_FLOOR_KJ)
+  );
+};
 
 /**
  * The non-macro fields of an agreeing group, which quorumPasses never
