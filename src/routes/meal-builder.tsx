@@ -328,7 +328,11 @@ function MealBuilderPage() {
   const historyItems = useMemo(() => {
     const uniqueNames = Array.from(
       new Set(
-        savedMeals.flatMap((m) => m.ingredients || []).map((ig) => ig.name),
+        savedMeals
+          .flatMap((m) => m.ingredients || [])
+          // A restaurant build's parts are that brand's, not foods to search.
+          .filter((ig) => !ig.ref)
+          .map((ig) => ig.name),
       ),
     );
     return uniqueNames

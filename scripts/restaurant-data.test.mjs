@@ -35,7 +35,8 @@ assert.deepEqual(portion(pizza), pizza);
 const rows = JSON.parse(fs.readFileSync("src/data/restaurantFoods.json", "utf8"));
 const { brands } = JSON.parse(fs.readFileSync("data/restaurant-official/sources.json", "utf8"));
 const recorded = new Map(brands.map((b) => [b.brand, b]));
-for (const brand of new Set(rows.map((x) => x.lang))) {
+const builders = JSON.parse(fs.readFileSync("src/data/restaurantBuilders.json", "utf8"));
+for (const brand of new Set([...rows.map((x) => x.lang), ...builders.map((x) => x.brand)])) {
   const b = recorded.get(brand);
   assert.ok(b, `${brand} has no entry in data/restaurant-official/sources.json`);
   assert.match(b.sourced_at, /^\d{4}-\d{2}-\d{2}$/, `${brand} needs a sourced_at date`);

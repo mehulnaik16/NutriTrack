@@ -725,6 +725,10 @@ function FoodPage() {
                   }
                 });
               }}
+              userId={user.id}
+              onSaveFavorite={async (m) =>
+                (await searchRef.current?.saveFavorite(m)) ?? false
+              }
             />
           </CardContent>
         </Card>

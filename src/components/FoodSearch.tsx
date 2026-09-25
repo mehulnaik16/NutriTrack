@@ -111,6 +111,18 @@ export interface FoodSearchRef {
    * hears whether it was logged, so the caller can come back on a cancel.
    */
   openFood: (item: IFCTItem, onClose?: (logged: boolean) => void) => void;
+  /** Save (or update, by name) a Favourites meal. Resolves true once saved. */
+  saveFavorite: (meal: FavoriteMealInput) => Promise<boolean>;
+}
+
+export interface FavoriteMealInput {
+  name: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  ingredients?: MealIngredient[];
 }
 
 export const FoodSearch = forwardRef<
@@ -198,15 +210,7 @@ export const FoodSearch = forwardRef<
       });
   };
 
-  const saveFavoriteMeal = async (mealData: {
-    name: string;
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fiber_g: number;
-    ingredients?: MealIngredient[];
-  }) => {
+  const saveFavoriteMeal = async (mealData: FavoriteMealInput) => {
     const { data: existing } = await supabase
       .from("saved_meals")
       .select("id")
@@ -293,6 +297,7 @@ export const FoodSearch = forwardRef<
       closeHook.current = onClose ?? null;
       pickFood(item);
     },
+    saveFavorite: saveFavoriteMeal,
   }));
 
   // Custom Food
@@ -975,7 +980,7 @@ export const FoodSearch = forwardRef<
                                 {mealItem.ingredients
                                   .map(
                                     (ig) =>
-                                      `${ig.name} (${ig.quantity_g}g - ${Math.round(ig.calories)}kcal)`,
+                                      `${ig.name} (${ig.quantity_g ? `${ig.quantity_g}g - ` : ""}${Math.round(ig.calories)}kcal)`,
                                   )
                                   .join(", ")}
                               </span>
@@ -1238,7 +1243,7 @@ export const FoodSearch = forwardRef<
         <DialogContent className="w-[95vw] sm:w-full sm:max-w-md rounded-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pr-6">
             <DialogTitle className="flex items-center gap-2 text-left">
-              <span className="truncate">{selected?.name}</span>
+              <span className="line-clamp-2">{selected?.name}</span>
               <Button
                 type="button"
                 variant="ghost"
@@ -1324,7 +1329,7 @@ export const FoodSearch = forwardRef<
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-[3fr_2fr] gap-3">
                 <div className="space-y-1">
                   <Label>Quantity</Label>
                   <div className="flex gap-2">
@@ -1334,14 +1339,14 @@ export const FoodSearch = forwardRef<
                       value={qty}
                       placeholder={unit === "pcs" ? "Enter count" : undefined}
                       onChange={(e) => setQty(e.target.value)}
-                      className="flex-1 min-w-0"
+                      className="min-w-[3.5rem] flex-1"
                     />
                     <Select
                       value={unit}
                       onValueChange={(u) => changeUnit(u as Unit)}
                     >
                       <SelectTrigger
-                        className="w-auto min-w-[78px] max-w-[50%] shrink-0"
+                        className="w-auto min-w-[78px] max-w-[70%] shrink-0"
                         aria-label="Unit"
                       >
                         <SelectValue />
