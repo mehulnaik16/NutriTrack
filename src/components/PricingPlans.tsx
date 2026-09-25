@@ -22,8 +22,8 @@ import { todayLocal } from "@/lib/dates";
 import {
   PLANS,
   PLAN_FEATURES,
+  PRICE_TAX_NOTE,
   activeGift,
-  effectivePrice,
   giftLabel,
   monthlyRate,
   periodLabel,
@@ -59,8 +59,7 @@ export function PricingPlans({
       [planId]: !prev[planId],
     }));
   };
-  // While this is loading the cards render the list price. Correcting ₹999 down
-  // to ₹849 is safe; the reverse would be a promise taken back.
+  // Only decides the gift label. Every buyer pays the list price.
   const { status: referralStatus, gymLink, loading: giftLoading } = useGift();
 
   const start = async (planId: string) => {
@@ -85,9 +84,9 @@ export function PricingPlans({
   };
 
   /**
-   * Buy. The tier is all the browser sends: amount, plan id and whether the
-   * ₹150 referral gift applies are decided server-side, and no day of access is
-   * granted here — the webhook does that when Razorpay confirms the charge.
+   * Buy. The tier is all the browser sends: amount and plan id are decided
+   * server-side, and no day of access is granted here — the charge does that
+   * once Razorpay confirms it, gift days included.
    */
   const buy = async (planId: string) => {
     if (!user) {
@@ -142,15 +141,12 @@ export function PricingPlans({
             selectedPlan,
             native,
           });
-          // A friend's code and a gym's code both take ₹150 off Yearly; only
-          // the wording differs. activeGift() is the same function
-          // serverCreateSubscription() charges by, so the card cannot quote a
-          // price the checkout will not honour.
+          // A friend's code and a partner code both add 60 days to Yearly;
+          // only the wording differs. The price never changes.
           const kind = giftLoading
             ? null
             : activeGift({ referralStatus, gymLink, planId: p.id });
-          const gift = kind !== null;
-          const price = effectivePrice(p, gift);
+          const price = p.price;
           const isFeaturesOpen = !!expandedPlans[p.id];
           return (
             <Card
@@ -170,11 +166,6 @@ export function PricingPlans({
               <CardContent className="p-6">
                 <h3 className="font-display text-xl font-bold">{p.name}</h3>
                 <div className="mt-3 flex items-baseline gap-2">
-                  {gift && (
-                    <span className="font-display text-2xl font-bold text-muted-foreground/70 line-through">
-                      ₹{p.price}
-                    </span>
-                  )}
                   <span className="font-display text-4xl font-bold">
                     ₹{price}
                   </span>
@@ -182,6 +173,9 @@ export function PricingPlans({
                     {periodLabel(p.months)}
                   </span>
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {PRICE_TAX_NOTE}
+                </p>
                 {kind && (
                   <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">
                     <Gift className="h-3.5 w-3.5" /> {giftLabel(kind)}

@@ -18,18 +18,17 @@ import {
   DAYS_PER_REFERRAL,
   MAX_FREE_DAYS,
   PREMIUM_DAYS_PER_SUBSCRIPTION,
-  REFEREE_DISCOUNT_RUPEES,
+  REFEREE_GIFT_DAYS,
   referralUrl,
   giftMessage,
 } from "@/lib/referral";
-import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
+import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
 
 export const Route = createFileRoute("/refer-how-it-works")({
   component: HowItWorks,
 });
 
-const yearly = findPlan(REFERRAL_DISCOUNT_PLAN_ID);
-const discounted = yearly ? yearly.price - REFEREE_DISCOUNT_RUPEES : null;
+const yearly = findPlan(GIFT_PLAN_ID);
 const capReferral = MAX_FREE_DAYS / DAYS_PER_REFERRAL;
 
 function HowItWorks() {
@@ -122,10 +121,10 @@ function HowItWorks() {
         </Step>
 
         {/* STEP 3 */}
-        <Step icon={Smartphone} n={3} title="Friend Signs Up (OTP Verified)">
-          Your friend downloads the app, enters your code, and verifies their
-          identity via OTP. ✅ OTP verification is mandatory for your friend to
-          claim the gift — this prevents fake referrals and keeps rewards fair.
+        <Step icon={Smartphone} n={3} title="Friend Starts Their Free Trial">
+          Your friend downloads the app, enters your code when they sign up, and
+          starts their free trial. ✅ The referral counts the moment their trial
+          starts — each account gets one trial, ever, which keeps rewards fair.
         </Step>
 
         {/* STEP 4 */}
@@ -146,22 +145,18 @@ function HowItWorks() {
               <p className="text-xs font-bold">📱 Free Trial Track</p>
               <p className="mt-1.5 text-xs text-muted-foreground">
                 You get +{DAYS_PER_REFERRAL} free trial days for every friend
-                who signs up and completes onboarding. Days add up horizontally
-                — no minimum threshold. Accrual stops at {MAX_FREE_DAYS} days
-                (your {capReferral}th referral), but you can keep referring as
-                many friends as you like.
+                who signs up and starts their free trial. Days add up — no
+                minimum threshold. Accrual stops at {MAX_FREE_DAYS} days (your{" "}
+                {capReferral}th referral), but you can keep referring as many
+                friends as you like.
               </p>
             </div>
             <div className="rounded-xl border border-[var(--fat)]/30 bg-[var(--fat)]/10 p-3">
               <p className="text-xs font-bold">💰 Subscription Track</p>
               <p className="mt-1.5 text-xs text-muted-foreground">
-                You get {PREMIUM_DAYS_PER_SUBSCRIPTION} free premium days per
-                paid subscription — no limit. Your friend gets ₹
-                {REFEREE_DISCOUNT_RUPEES} OFF the Yearly plan
-                {yearly && discounted
-                  ? ` (₹${yearly.price} → ₹${discounted})`
-                  : ""}
-                .
+                When a friend buys the {yearly?.name ?? "Yearly"} plan, you get{" "}
+                {PREMIUM_DAYS_PER_SUBSCRIPTION} free premium days and your
+                friend gets {REFEREE_GIFT_DAYS} extra days too.
               </p>
             </div>
           </div>
@@ -179,10 +174,8 @@ function HowItWorks() {
             </li>
             <li className="flex gap-2">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-              Your code works for everyone, but the ₹{
-                REFEREE_DISCOUNT_RUPEES
-              }{" "}
-              OFF is only for new users.
+              Your code works for everyone, but the {REFEREE_GIFT_DAYS}-day gift
+              is only for new users.
             </li>
             <li className="flex gap-2">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />

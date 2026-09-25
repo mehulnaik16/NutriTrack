@@ -27,7 +27,13 @@ import {
 import { useAuth } from "@/lib/auth";
 // The landing page used to carry its own Starter/Pro/Elite array at prices the
 // product no longer sells. Pricing has one definition now.
-import { PLANS, PLAN_FEATURES, monthlyRate, periodLabel } from "@/lib/plans";
+import {
+  PLANS,
+  PLAN_FEATURES,
+  PRICE_TAX_NOTE,
+  monthlyRate,
+  periodLabel,
+} from "@/lib/plans";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export const Route = createFileRoute("/")({ component: Landing });
@@ -464,6 +470,9 @@ function Landing() {
                   {periodLabel(p.months)}
                 </span>
               </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {PRICE_TAX_NOTE}
+              </p>
               {p.months > 1 && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   Works out to ₹{monthlyRate(p)}/month

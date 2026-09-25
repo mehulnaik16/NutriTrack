@@ -127,7 +127,8 @@ export interface RecordChargeArgs {
   userId: string;
   chargeId: string;
   amountPaise: number;
-  /** The same amount with GST taken back out. What every rate is applied to. */
+  /** The same amount with its GST taken out. The partner side recomputes it
+   *  exactly; commission is a share of the amount less GST and rail fees. */
   basePaise: number;
   tier: string;
   /** 'razorpay' | 'google_play' | 'apple'. Decides the rate and the fee. */

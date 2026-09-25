@@ -9,7 +9,8 @@
  *           qualified referral. Referring itself is never capped; further
  *           referrals simply add no more days.
  *   Paid  — a referred friend buying the 12-month plan gives the referrer 60
- *           premium days and the friend ₹150 off. Accrual stops at 480 days
+ *           premium days and the friend 60 days too (public.gift_grants), both
+ *           after the same three-day hold. Accrual stops at 480 days
  *           ever granted, i.e. at the 8th friend who buys yearly, and the days
  *           only land after a three-day hold.
  *
@@ -17,7 +18,7 @@
  * see src/lib/entitlement.ts and public.recompute_access().
  */
 
-import { REFEREE_DISCOUNT_RUPEES, REFERRAL_DISCOUNT_PLAN_ID } from "./plans";
+import { REFEREE_GIFT_DAYS, GIFT_PLAN_ID } from "./plans";
 
 export const DAYS_PER_REFERRAL = 5;
 /** Accrual ceiling. Reached at the 12th qualified referral (12 × 5). */
@@ -142,7 +143,7 @@ export function giftMessage(opts: {
   return [
     "Hey! 👋",
     "",
-    `I've been loving Dombelz and thought of you. I'm sending you a personal gift — use my code when you sign up and you'll get ₹${REFEREE_DISCOUNT_RUPEES} off the Yearly plan, plus a free trial to explore everything. 🎁`,
+    `I've been loving Dombelz and thought of you. I'm sending you a personal gift — use my code when you sign up, start with a free trial, and if you go Yearly you'll get ${REFEREE_GIFT_DAYS} extra days free. 🎁`,
     "",
     `Your gift code: ${opts.code}`,
     `Join me: ${opts.url}`,
@@ -153,8 +154,8 @@ export function giftMessage(opts: {
 }
 
 /**
- * Re-exported so the referral UI never hardcodes which plan the gift applies to,
- * or what it is worth. Both live in plans.ts — pricing cannot import this module
- * without a cycle, and the gift is a pricing fact.
+ * Re-exported so the referral UI never hardcodes which plan the gift comes with,
+ * or how many days it is. Both live in plans.ts — pricing cannot import this
+ * module without a cycle, and the gift is a pricing fact.
  */
-export { REFERRAL_DISCOUNT_PLAN_ID, REFEREE_DISCOUNT_RUPEES };
+export { GIFT_PLAN_ID, REFEREE_GIFT_DAYS };

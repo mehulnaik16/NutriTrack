@@ -13,7 +13,6 @@ import { supabase } from "@/integrations/client";
 import { requireSupabaseAuth } from "@/integrations/auth-middleware";
 import { checkRateLimit } from "@/lib/ai";
 import { serverSyncEntitlement } from "@/lib/gym-link";
-import { activeGift } from "@/lib/plans";
 
 /** The three plan durations. Mirrors PLANS in src/lib/plans.ts. */
 export type Tier = "monthly" | "quarterly" | "yearly";
@@ -46,14 +45,9 @@ export function isTier(id: string): id is Tier {
 /**
  * Create a Razorpay subscription and hand the browser what Checkout needs.
  *
- * The input is a tier and nothing else. Amount, plan id, and whether the ₹150
- * referral gift applies are all decided here — the discount is looked up from
- * the referrals table, so it is not a flag a client could set, and the
- * discounted plan is a separate Razorpay plan id rather than an offer applied
- * at checkout.
- *
- * The gift stays yearly-only by construction: planFor() ignores `discounted`
- * for every other tier, so a monthly checkout cannot be talked into it.
+ * The input is a tier and nothing else. Amount and plan id are looked up here,
+ * and every buyer pays the list price: the referral gift is 60 days granted in
+ * SQL by gift_grants() once the charge lands, not a cheaper checkout.
  */
 export const serverCreateSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -131,40 +125,8 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
         .eq("id", live.id);
     }
 
-    // The gift is spent once, whichever code earned it. A referral row that
-    // already reached 'subscribed', or a gym link with gift_spent_at set, means
-    // this user has bought before and the discount is gone. activeGift() is the
-    // same function the pricing cards render with, so what is shown and what is
-    // charged cannot drift apart.
-    //
-    // Read through supabaseAdmin rather than the user client on purpose: these
-    // are two RLS-scoped tables and this must not depend on a policy staying
-    // permissive. The rows are still selected by this caller's own id.
-    let discounted = false;
-    if (data.tier === "yearly") {
-      const [ref, gym] = await Promise.all([
-        supabaseAdmin
-          .from("referrals")
-          .select("status")
-          .eq("referee_id", userId)
-          .maybeSingle(),
-        supabaseAdmin
-          .from("gym_links")
-          .select("source, gift_spent_at, partner_type")
-          .eq("user_id", userId)
-          .maybeSingle(),
-      ]);
-      discounted =
-        activeGift({
-          referralStatus: ref.data?.status,
-          gymLink: gym.data,
-          planId: data.tier,
-        }) !== null;
-    }
-
     const { subscriptionId } = await createSubscription({
       tier: data.tier,
-      discounted,
       userId,
     });
 
@@ -186,7 +148,7 @@ export const serverCreateSubscription = createServerFn({ method: "POST" })
       throw new Error(`Could not record the subscription: ${error.message}`);
     }
 
-    const plan = planFor(data.tier, discounted);
+    const plan = planFor(data.tier);
     return {
       keyId: keyId(),
       subscriptionId,
@@ -337,9 +299,8 @@ export const serverConfirmCheckout = createServerFn({ method: "POST" })
         p_status: rzpSub.status || null,
         p_period_days: null,
         p_refunded: false,
-        // What an affiliate commission is calculated on. Identical to the
-        // amount while Dombelz collects no GST; the day it does, this stays the
-        // plan price and only p_amount_paise grows.
+        // The price with its 18% GST taken out. Prices are inclusive of all
+        // taxes, so the amount charged is the list price and this is less.
         p_base_paise: basePaise(payment.amount),
         p_provider: "razorpay",
       },
@@ -482,9 +443,7 @@ export async function getBillingSummary(): Promise<BillingSummary> {
  * Open Razorpay Checkout for a tier.
  *
  * The browser sends a tier name and nothing else — never an amount and never a
- * plan id. Both are looked up server-side, and whether the ₹150 referral gift
- * applies is decided there too by reading the referrals table, so there is no
- * discount flag a client could set.
+ * plan id. Both are looked up server-side.
  *
  * Resolves with whether access was actually granted before the user let go of
  * the screen. `false` is not a failure — it means the webhook has to finish the

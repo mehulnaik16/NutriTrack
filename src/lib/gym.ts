@@ -3,8 +3,8 @@
  *
  * A gym code is issued by the Dombelz Partner app and looks like
  * GYM-IRONVAULT-123. Where a user enters it decides money: at signup it earns
- * them ₹150 off Yearly and earns the gym 20%; anywhere else it earns nobody
- * anything and only puts the member on that gym's roster. That decision is made
+ * them 60 extra days on Yearly and earns the gym commission; anywhere else it
+ * earns nobody anything and only puts the member on that gym's roster. That decision is made
  * in SQL by link_gym(), never here — nothing in this file grants anything.
  *
  * Kept free of server imports so the self-check script can build it alone. The

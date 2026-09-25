@@ -26,9 +26,9 @@ const RAZORPAY_API = "https://api.razorpay.com/v1";
 // id. Both are looked up here, so a tampered request can only ever ask for one
 // of three known plans at their real prices.
 //
-// The discounted yearly plan is a *separate Razorpay plan id* rather than an
-// offer applied at checkout. That keeps the discount decision entirely on the
-// server — there is no flag a client could set, and no offer id to forge.
+// There is no discounted plan any more. The referral gift is 60 days of access
+// granted in SQL (public.gift_grants), so every buyer is charged the list price
+// and there is nothing about the charge a client could ask to change.
 
 export type Tier = "monthly" | "quarterly" | "yearly";
 
@@ -75,62 +75,50 @@ export const PLAN_CATALOG: Record<Tier, PlanEntry> = {
     envVar: "RAZORPAY_PLAN_MONTHLY",
     totalCount: 120,
     periodDays: 30,
-    rupees: 249,
+    rupees: 299,
   },
   quarterly: {
     planId: planEnv("RAZORPAY_PLAN_QUARTERLY"),
     envVar: "RAZORPAY_PLAN_QUARTERLY",
     totalCount: 40,
     periodDays: 91,
-    rupees: 499,
+    rupees: 599,
   },
   yearly: {
     planId: planEnv("RAZORPAY_PLAN_YEARLY"),
     envVar: "RAZORPAY_PLAN_YEARLY",
     totalCount: 10,
     periodDays: 365,
-    rupees: 999,
+    rupees: 1199,
   },
 };
 
-/** The referral gift: a separate plan id at ₹150 off, yearly only. */
-export const YEARLY_DISCOUNTED: PlanEntry = {
-  planId: planEnv("RAZORPAY_PLAN_YEARLY_DISCOUNTED"),
-  envVar: "RAZORPAY_PLAN_YEARLY_DISCOUNTED",
-  totalCount: 10,
-  periodDays: 365,
-  rupees: 849,
-};
-
 /**
- * GST added on top of the plan price, in basis points.
+ * GST contained in every price, in basis points.
  *
- * Zero today, and deliberately a number rather than an absence: Dombelz is below
- * the ₹20 lakh turnover threshold and collects no GST, so ₹249 / ₹499 / ₹999 /
- * ₹849 are both the price and the base. When registration becomes compulsory,
- * 18% goes *on top of* those figures — set this to 1800 and nothing else has to
- * change, because every affiliate commission is already calculated on the base
- * this produces rather than on the amount charged.
+ * ₹299 / ₹599 / ₹1199 are inclusive of all taxes: 18% GST is inside them, not
+ * added on top, so what Razorpay charges is exactly the list price and the base
+ * is that price × 100/118.
+ *
+ * Mirrors public.gst_bps() in the partner project, which is what affiliate
+ * commission is actually worked out with. Change both together.
  */
-export const GST_BPS = 0;
+export const GST_BPS = 1800;
 
 /**
  * The part of an amount that is ours: the plan price with any GST taken back
  * out. Collected GST is the government's money, so no platform fee and no
  * affiliate commission is ever taken on it.
  *
- * Exact while GST_BPS is 0, which is the only case that exists so far.
+ * Rounded to the paisa. The partner project recomputes it exactly from the
+ * amount, so this rounding never reaches a commission.
  */
 export function basePaise(amountPaise: number): number {
   return Math.round((amountPaise * 10000) / (10000 + GST_BPS));
 }
 
-/**
- * The plan actually charged. `discounted` is decided by the server after
- * reading the referrals table — it is never a parameter from the browser.
- */
-export function planFor(tier: Tier, discounted: boolean): PlanEntry {
-  if (tier === "yearly" && discounted) return YEARLY_DISCOUNTED;
+/** The plan actually charged. The tier is the only input there is. */
+export function planFor(tier: Tier): PlanEntry {
   return PLAN_CATALOG[tier];
 }
 
@@ -279,15 +267,12 @@ async function razorpayFetch(
  */
 export async function createSubscription(args: {
   tier: Tier;
-  discounted: boolean;
   /** Stored on the Razorpay side so a support query can be traced back. */
   userId: string;
 }): Promise<{ subscriptionId: string; planId: string; rupees: number }> {
-  const plan = planFor(args.tier, args.discounted);
+  const plan = planFor(args.tier);
   if (!plan.planId) {
-    throw new Error(
-      `[razorpay] no plan id configured for ${args.tier}${args.discounted ? " (discounted)" : ""}`,
-    );
+    throw new Error(`[razorpay] no plan id configured for ${args.tier}`);
   }
 
   // Razorpay answers a plan id it does not recognise with "The ID provided is
@@ -296,7 +281,7 @@ export async function createSubscription(args: {
   // act on. The usual cause is an id belonging to a different account or the
   // other mode (test ids do not work with a live key, or vice versa), which is
   // easy to hit after rotating a key.
-  const label = `${args.tier}${args.discounted ? " (discounted)" : ""}`;
+  const label = args.tier;
   let json: Record<string, unknown>;
   try {
     json = await razorpayFetch("/subscriptions", {

@@ -1,15 +1,15 @@
 /**
  * The caller's own gift state, for the pricing cards.
  *
- * Two rows decide whether someone pays ₹999 or ₹849: their `referrals` row
+ * Two rows decide whether someone holds the 60-day gift: their `referrals` row
  * (a friend's code) and their `gym_links` row (a gym's code). Both are readable
  * by a plain select under their own RLS policy — `auth.uid() = referee_id` and
  * `auth.uid() = user_id` — so neither needs an RPC, and neither can see anybody
  * else's.
  *
  * This decides nothing. activeGift() in src/lib/plans.ts turns these two rows
- * into a verdict, and serverCreateSubscription() runs the same function over
- * the same rows to decide what is actually charged.
+ * into a label; public.gift_grants() reads the same two facts in SQL and is
+ * what actually grants the days.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/client";
@@ -53,8 +53,7 @@ async function read(userId: string): Promise<GiftRows> {
     };
   } catch {
     // Drop the memo so the next mount retries, and resolve to "no gift" —
-    // deliberately failing towards the higher price. Quoting ₹999 and
-    // correcting down is recoverable; quoting ₹849 and charging ₹999 is not.
+    // a missing label is harmless, since the days are granted in SQL anyway.
     inFlight.delete(userId);
     return EMPTY;
   }

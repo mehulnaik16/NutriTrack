@@ -25,20 +25,19 @@ import { supabase } from "@/integrations/client";
 import {
   DAYS_PER_REFERRAL,
   PREMIUM_DAYS_PER_SUBSCRIPTION,
-  REFEREE_DISCOUNT_RUPEES,
+  REFEREE_GIFT_DAYS,
   referralUrl,
   giftMessage,
 } from "@/lib/referral";
-import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
+import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
 
 export const Route = createFileRoute("/refer-intro")({ component: ReferIntro });
 
-const yearly = findPlan(REFERRAL_DISCOUNT_PLAN_ID);
-const discountedPrice = yearly ? yearly.price - REFEREE_DISCOUNT_RUPEES : null;
+const yearly = findPlan(GIFT_PLAN_ID);
 
 const STEPS = [
   { icon: Users, title: "Share", sub: "Send your gift code" },
-  { icon: Smartphone, title: "Friend signs up", sub: "(OTP verified)" },
+  { icon: Smartphone, title: "Friend signs up", sub: "(starts free trial)" },
   { icon: PartyPopper, title: "You both get rewarded", sub: "Instantly" },
 ];
 
@@ -259,7 +258,7 @@ function ReferIntro() {
               Friend gets
             </p>
             <p className="mt-0.5 text-sm font-bold">
-              ₹{REFEREE_DISCOUNT_RUPEES} OFF Yearly Plan
+              +{REFEREE_GIFT_DAYS} Days on Yearly
             </p>
           </div>
         </div>
@@ -275,11 +274,8 @@ function ReferIntro() {
               What does my friend get?
             </AccordionTrigger>
             <AccordionContent className="text-sm text-muted-foreground">
-              They get ₹{REFEREE_DISCOUNT_RUPEES} OFF the yearly plan
-              {yearly && discountedPrice
-                ? ` (₹${yearly.price} → ₹${discountedPrice})`
-                : ""}{" "}
-              and a free trial to explore everything.
+              A free trial to explore everything, and {REFEREE_GIFT_DAYS} extra
+              days if they buy the {yearly?.name ?? "Yearly"} plan.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="permanent" className="border-b border-border">
@@ -291,13 +287,13 @@ function ReferIntro() {
               anywhere, any number of times.
             </AccordionContent>
           </AccordionItem>
-          <AccordionItem value="otp" className="border-b-0">
+          <AccordionItem value="counts" className="border-b-0">
             <AccordionTrigger className="text-sm font-semibold">
-              Why OTP?
+              When does a referral count?
             </AccordionTrigger>
             <AccordionContent className="text-sm text-muted-foreground">
-              To ensure everyone gets genuine rewards and prevent spam and
-              scams.
+              The moment your friend starts their free trial. Each account can
+              start only one, which keeps rewards genuine.
             </AccordionContent>
           </AccordionItem>
         </Accordion>

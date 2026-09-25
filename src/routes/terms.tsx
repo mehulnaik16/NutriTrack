@@ -112,7 +112,7 @@ function Terms() {
             Paid plans are billed up front for the chosen period through
             Razorpay; a payment can be refunded within 2 days of the charge,
             after which only unused days are considered. Prices are listed in
-            Indian Rupees (₹).
+            Indian Rupees (₹) and are inclusive of all taxes, including GST.
           </p>
         </Section>
 

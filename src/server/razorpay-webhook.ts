@@ -150,8 +150,8 @@ export async function handleRazorpayWebhook(
       p_status: status,
       p_period_days: null,
       p_refunded: isRefund,
-      // The GST-excluded base, which is what every affiliate rate is applied
-      // to. Identical to the amount while Dombelz collects no GST.
+      // The price with its 18% GST taken out. The partner project recomputes
+      // it exactly from the amount before taking fees and commission.
       p_base_paise: amountPaise == null ? null : basePaise(amountPaise),
       p_provider: "razorpay",
     },
