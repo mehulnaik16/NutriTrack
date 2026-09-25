@@ -65,7 +65,11 @@ import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { validateFoodLogCalories } from "@/lib/calorieLimits";
 import { WaterStreak } from "@/components/WaterStreak";
 import { WeeklyReport } from "@/components/WeeklyReport";
-import { PremiumGate } from "@/components/PremiumGate";
+import {
+  InteractionShield,
+  PremiumGate,
+  endedLine,
+} from "@/components/PremiumGate";
 import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
 import { LunarCalorieSatellite } from "@/components/LunarCalorieSatellite";
 import { useAuth } from "@/lib/auth";
@@ -74,7 +78,12 @@ import type { TablesInsert } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
 import { loadMealNames } from "@/lib/meals";
 import { uploadWeightPhoto } from "@/services/storage";
-import { todayLocal, toLocalISO } from "@/lib/dates";
+import {
+  isEditableDate,
+  todayLocal,
+  toLocalISO,
+  VIEW_ONLY_MESSAGE,
+} from "@/lib/dates";
 import { formatQty } from "@/lib/foodUnits";
 import {
   calcBMR,
@@ -84,13 +93,15 @@ import {
 } from "@/lib/nutrition";
 import { getTelemetryLabel } from "@/lib/telemetry";
 
-// Route-level lock. Dashboard is not mounted while access has lapsed, so none
-// of its reads fire — the blur is over filler, not over the user's own data.
+// Route-level lock. The page renders with the user's own data but does not
+// respond; any tap opens the upsell popup.
 export const Route = createFileRoute("/dashboard")({
   component: () => (
     <PremiumGate
-      title="Your dashboard is locked"
-      message="Your trial has ended. Pick a plan to get your daily targets, streak and reports back — everything you logged is still here."
+      title="Keep your momentum going"
+      message={(r) =>
+        `${endedLine(r)} keep your daily targets, streak and weekly reports moving — all your progress is saved and waiting.`
+      }
     >
       <Dashboard />
     </PremiumGate>
@@ -113,6 +124,7 @@ interface Profile {
   gender: string | null;
   bmr: number | null;
   tdee: number | null;
+  created_at: string | null;
 }
 
 interface FoodLog {
@@ -234,6 +246,12 @@ function Dashboard() {
   const searchRef = useRef<FoodSearchRef>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
+
+  // Date browsing stops at the day the account was created. The date picker
+  // stays usable for lapsed users (data-premium-open) so they can view history.
+  const joinDate = profile?.created_at
+    ? toLocalISO(new Date(profile.created_at))
+    : "0000-00-00";
   const [todayLogs, setTodayLogs] = useState<FoodLog[]>([]);
   const [monthLogs, setMonthLogs] = useState<FoodLog[]>([]);
   // Separate from monthLogs: the calendar highlights every day ever logged,
@@ -676,11 +694,15 @@ function Dashboard() {
                   Stay on track, {firstName}.
                 </p>
               </div>
-              <div className="relative z-10 flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start">
+              <div
+                data-premium-open
+                className="relative z-10 flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start"
+              >
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
+                  disabled={selectedDate <= joinDate}
                   onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -696,7 +718,11 @@ function Dashboard() {
                       <ChevronDown className="h-3 w-3 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-3" align="center">
+                  <PopoverContent
+                    data-premium-open
+                    className="w-auto p-3"
+                    align="center"
+                  >
                     <div className="flex gap-2 mb-3">
                       <Button
                         variant="outline"
@@ -726,7 +752,10 @@ function Dashboard() {
                         todayStart.setHours(0, 0, 0, 0);
                         const dStart = new Date(d);
                         dStart.setHours(0, 0, 0, 0);
-                        return dStart > todayStart;
+                        return (
+                          dStart > todayStart ||
+                          dStart < parseLocalDate(joinDate)
+                        );
                       }}
                       modifiers={{
                         logged: loggedDates,
@@ -834,180 +863,189 @@ function Dashboard() {
           {/* Left/Top Column: Food & Water */}
           <div className="lg:col-span-7 min-w-0 space-y-6 flex flex-col">
             {/* Food Logging */}
-            <Card className="border-accent/10 shadow-sm flex-1">
-              <CardHeader className="pb-3 border-b bg-muted/5">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Utensils className="h-5 w-5 text-accent" /> Log Food
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-5">
-                <FoodSearch
-                  ref={searchRef}
-                  userId={user.id}
-                  date={selectedDate}
-                  onLogged={load}
-                  meals={userMeals}
-                  dailyTarget={profile?.daily_calorie_target}
-                  currentDayCalories={totals.calories}
-                />
+            <InteractionShield
+              active={!isEditableDate(selectedDate)}
+              onBlocked={() => toast(VIEW_ONLY_MESSAGE, { id: "view-only" })}
+              allow="[data-delete-allowed]"
+            >
+              <Card className="border-accent/10 shadow-sm flex-1">
+                <CardHeader className="pb-3 border-b bg-muted/5">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Utensils className="h-5 w-5 text-accent" /> Log Food
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-5">
+                  <FoodSearch
+                    ref={searchRef}
+                    userId={user.id}
+                    date={selectedDate}
+                    onLogged={load}
+                    meals={userMeals}
+                    dailyTarget={profile?.daily_calorie_target}
+                    currentDayCalories={totals.calories}
+                  />
 
-                <div className="mt-6 space-y-5">
-                  {meals.map((m) => {
-                    const items = todayLogs.filter((l) => l.meal_type === m);
-                    if (items.length === 0) return null;
+                  <div className="mt-6 space-y-5">
+                    {meals.map((m) => {
+                      const items = todayLogs.filter((l) => l.meal_type === m);
+                      if (items.length === 0) return null;
 
-                    const sub = items.reduce(
-                      (a, x) => ({
-                        cal: a.cal + x.calories,
-                        p: a.p + x.protein_g,
-                        fib: a.fib + (x.fiber_g || 0),
-                      }),
-                      { cal: 0, p: 0, fib: 0 },
-                    );
+                      const sub = items.reduce(
+                        (a, x) => ({
+                          cal: a.cal + x.calories,
+                          p: a.p + x.protein_g,
+                          fib: a.fib + (x.fiber_g || 0),
+                        }),
+                        { cal: 0, p: 0, fib: 0 },
+                      );
 
-                    return (
-                      <div key={m} className="space-y-2.5">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              {m}
-                            </h3>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
-                              onClick={() => searchRef.current?.openForMeal(m)}
-                            >
-                              <Plus className="h-3 w-3 mr-1" /> Add
-                            </Button>
-                            {items.length > 0 && (
+                      return (
+                        <div key={m} className="space-y-2.5">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                {m}
+                              </h3>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20"
-                                onClick={() => saveMealAsFavorite(m, items)}
+                                className="h-8 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
+                                onClick={() =>
+                                  searchRef.current?.openForMeal(m)
+                                }
                               >
-                                <Flame className="h-3 w-3 mr-1" /> Save as
-                                Favorite
+                                <Plus className="h-3 w-3 mr-1" /> Add
                               </Button>
-                            )}
+                              {items.length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20"
+                                  onClick={() => saveMealAsFavorite(m, items)}
+                                >
+                                  <Flame className="h-3 w-3 mr-1" /> Save as
+                                  Favorite
+                                </Button>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                              {Math.round(sub.cal)} kcal
+                            </span>
                           </div>
-                          <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            {Math.round(sub.cal)} kcal
-                          </span>
-                        </div>
 
-                        <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
-                          {items.map((l) => {
-                            const isFav = favoriteNames.has(l.food_name);
-                            return (
-                              <div
-                                key={l.id}
-                                className="p-3 hover:bg-muted/20 transition-colors group"
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-semibold truncate">
-                                      {l.food_name}
+                          <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
+                            {items.map((l) => {
+                              const isFav = favoriteNames.has(l.food_name);
+                              return (
+                                <div
+                                  key={l.id}
+                                  className="p-3 hover:bg-muted/20 transition-colors group"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-semibold truncate">
+                                        {l.food_name}
+                                      </div>
+                                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                        <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
+                                          {formatQty(
+                                            l.quantity_g,
+                                            l.unit,
+                                            l.unit_quantity,
+                                          )}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                          {Math.round(l.calories)} kcal
+                                        </span>
+                                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                          P{Math.round(l.protein_g)}
+                                        </span>
+                                        <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                          C{Math.round(l.carbs_g)}
+                                        </span>
+                                        <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                          F{Math.round(l.fat_g)}
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                      <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
-                                        {formatQty(
-                                          l.quantity_g,
-                                          l.unit,
-                                          l.unit_quantity,
-                                        )}
-                                      </span>
-                                      <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
-                                        {Math.round(l.calories)} kcal
-                                      </span>
-                                      <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                                        P{Math.round(l.protein_g)}
-                                      </span>
-                                      <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
-                                        C{Math.round(l.carbs_g)}
-                                      </span>
-                                      <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                                        F{Math.round(l.fat_g)}
-                                      </span>
+                                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-0.5">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={`h-9 w-9 transition-all ${
+                                          isFav
+                                            ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                            : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                        }`}
+                                        title={
+                                          isFav
+                                            ? "Remove from Favorites"
+                                            : "Save to Favorites"
+                                        }
+                                        onClick={() => saveFoodAsFavorite(l)}
+                                      >
+                                        <Heart
+                                          className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
+                                        />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                        title="Log again"
+                                        onClick={() => relogFood(l)}
+                                      >
+                                        <RotateCcw className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-9 w-9 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                        title="Modify"
+                                        onClick={() =>
+                                          searchRef.current?.editLog(l)
+                                        }
+                                      >
+                                        <PenTool className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                        title="Delete"
+                                        data-delete-allowed
+                                        onClick={() => deleteLog(l.id)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
                                     </div>
-                                  </div>
-                                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-0.5">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className={`h-9 w-9 transition-all ${
-                                        isFav
-                                          ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                                          : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                      }`}
-                                      title={
-                                        isFav
-                                          ? "Remove from Favorites"
-                                          : "Save to Favorites"
-                                      }
-                                      onClick={() => saveFoodAsFavorite(l)}
-                                    >
-                                      <Heart
-                                        className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
-                                      />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
-                                      title="Log again"
-                                      onClick={() => relogFood(l)}
-                                    >
-                                      <RotateCcw className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-9 w-9 text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                      title="Modify"
-                                      onClick={() =>
-                                        searchRef.current?.editLog(l)
-                                      }
-                                    >
-                                      <PenTool className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                      title="Delete"
-                                      onClick={() => deleteLog(l.id)}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {todayLogs.length === 0 && (
-                  <div className="mt-8 py-10 text-center border-2 border-dashed border-border/50 rounded-2xl bg-muted/5">
-                    <div className="mx-auto w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mb-3">
-                      <Flame className="h-6 w-6 text-accent opacity-80" />
-                    </div>
-                    <h3 className="font-bold text-lg mb-1">
-                      No food logged yet
-                    </h3>
-                    <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
-                      Use the search bar above to start tracking your meals
-                      today.
-                    </p>
+                      );
+                    })}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  {todayLogs.length === 0 && (
+                    <div className="mt-8 py-10 text-center border-2 border-dashed border-border/50 rounded-2xl bg-muted/5">
+                      <div className="mx-auto w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mb-3">
+                        <Flame className="h-6 w-6 text-accent opacity-80" />
+                      </div>
+                      <h3 className="font-bold text-lg mb-1">
+                        No food logged yet
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
+                        Use the search bar above to start tracking your meals
+                        today.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </InteractionShield>
 
             {/* Water Tracker */}
             <WaterStreak userId={user.id} streak={streak} />

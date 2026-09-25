@@ -18,7 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SubHeader } from "@/components/SubHeader";
 import { supabase } from "@/integrations/client";
-import { todayLocal } from "@/lib/dates";
+import {
+  daysAgoLocal,
+  EDIT_WINDOW_DAYS,
+  isEditableDate,
+  todayLocal,
+  VIEW_ONLY_MESSAGE,
+} from "@/lib/dates";
 import {
   METRICS,
   STEP,
@@ -265,8 +271,16 @@ export function BodyMeasurementsPage({
               <input
                 type="date"
                 value={date}
+                min={daysAgoLocal(EDIT_WINDOW_DAYS)}
                 max={todayLocal()}
-                onChange={(e) => setDate(e.target.value || todayLocal())}
+                onChange={(e) => {
+                  const d = e.target.value || todayLocal();
+                  if (!isEditableDate(d)) {
+                    toast(VIEW_ONLY_MESSAGE, { id: "view-only" });
+                    return;
+                  }
+                  setDate(d);
+                }}
                 aria-label="Measurement date"
                 className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
               />

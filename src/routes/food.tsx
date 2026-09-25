@@ -4,7 +4,12 @@ import { Header } from "@/components/Header";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
 import { FastFoodDialog } from "@/components/FastFoodDialog";
 import { validateFoodLogCalories } from "@/lib/calorieLimits";
-import { PremiumGate } from "@/components/PremiumGate";
+import {
+  InteractionShield,
+  PremiumGate,
+  endedLine,
+} from "@/components/PremiumGate";
+import { isEditableDate, toLocalISO, VIEW_ONLY_MESSAGE } from "@/lib/dates";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
 import {
@@ -55,13 +60,15 @@ import {
 import { toast } from "sonner";
 import { getTelemetryLabel } from "@/lib/telemetry";
 
-// Route-level lock, history included. FoodPage never mounts while access has
-// lapsed, so no log — today's or older — is fetched into a lapsed client.
+// Route-level lock. The page renders with the user's own data but does not
+// respond; any tap opens the upsell popup.
 export const Route = createFileRoute("/food")({
   component: () => (
     <PremiumGate
-      title="Food logging is locked"
-      message="Your trial has ended. Pick a plan to log meals and open your history again — nothing you logged has been deleted."
+      title="Your meals are waiting"
+      message={(r) =>
+        `${endedLine(r)} keep logging meals, scanning food and tracking your macros — every meal you've logged is right here, safe.`
+      }
     >
       <FoodPage />
     </PremiumGate>
@@ -147,6 +154,12 @@ function FoodPage() {
   // column being NULL, not "is a new user" — the meal questionnaire's own gate
   // (no meal names) would skip every existing user, who has names already.
   const needsDiet = profile != null && profile.diet_preference == null;
+
+  // Date browsing stops at the day the account was created. The date picker
+  // stays usable for lapsed users (data-premium-open) so they can view history.
+  const joinDate = profile?.created_at
+    ? toLocalISO(new Date(profile.created_at))
+    : "0000-00-00";
 
   // Meal names: DB-first (survives cache/session clear), then localStorage
   // (legacy), then the setup questionnaire for a truly first-time user.
@@ -423,316 +436,340 @@ function FoodPage() {
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
       <Header name={firstName} />
-      <main className="mx-auto max-w-3xl space-y-6 px-3 py-5 sm:px-6 sm:py-6">
-        <Card className="border-accent/10 shadow-sm">
-          <CardHeader className="pb-3 border-b bg-muted/5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Utensils className="h-5 w-5 text-accent" />{" "}
-                {getTelemetryLabel("Log Food")}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-accent hover:bg-accent/10 ml-1"
-                  title="Edit meal categories"
-                  onClick={() => setShowMealSetup(true)}
+      {/* Days past the edit window are view-only; the date picker stays live. */}
+      <InteractionShield
+        active={!isEditableDate(selectedDate)}
+        onBlocked={() => toast(VIEW_ONLY_MESSAGE, { id: "view-only" })}
+        allow="[data-delete-allowed]"
+      >
+        <main className="mx-auto max-w-3xl space-y-6 px-3 py-5 sm:px-6 sm:py-6">
+          <Card className="border-accent/10 shadow-sm">
+            <CardHeader className="pb-3 border-b bg-muted/5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Utensils className="h-5 w-5 text-accent" />{" "}
+                  {getTelemetryLabel("Log Food")}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-accent hover:bg-accent/10 ml-1"
+                    title="Edit meal categories"
+                    onClick={() => setShowMealSetup(true)}
+                  >
+                    <Settings2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 px-2 text-[10px] font-bold uppercase text-muted-foreground hover:text-accent hover:bg-accent/10"
+                    title="Copy previous day's log onto this date"
+                    onClick={copyPreviousDay}
+                  >
+                    <CopyPlus className="h-3.5 w-3.5" /> Copy prev day
+                  </Button>
+                </CardTitle>
+                <div
+                  data-premium-open
+                  className="flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start"
                 >
-                  <Settings2 className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1.5 px-2 text-[10px] font-bold uppercase text-muted-foreground hover:text-accent hover:bg-accent/10"
-                  title="Copy previous day's log onto this date"
-                  onClick={copyPreviousDay}
-                >
-                  <CopyPlus className="h-3.5 w-3.5" /> Copy prev day
-                </Button>
-              </CardTitle>
-              <div className="flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={selectedDate <= joinDate}
+                    onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Popover
+                    open={isCalendarOpen}
+                    onOpenChange={setIsCalendarOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                      >
+                        {formatDateDisplay(selectedDate)}
+                        <ChevronDown className="h-3 w-3 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      data-premium-open
+                      className="w-auto p-3"
+                      align="center"
                     >
-                      {formatDateDisplay(selectedDate)}
-                      <ChevronDown className="h-3 w-3 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-3" align="center">
-                    <div className="flex gap-2 mb-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs"
-                        onClick={() => handleQuickAction(today())}
-                      >
-                        Today
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs"
-                        onClick={() =>
-                          handleQuickAction(shiftDate(today(), -1))
-                        }
-                      >
-                        Yesterday
-                      </Button>
-                    </div>
-                    <Calendar
-                      mode="single"
-                      selected={parseLocalDate(selectedDate)}
-                      onSelect={(d) => handleDateSelect(d)}
-                      disabled={(d) => {
-                        const todayStart = new Date();
-                        todayStart.setHours(0, 0, 0, 0);
-                        const dStart = new Date(d);
-                        dStart.setHours(0, 0, 0, 0);
-                        return dStart > todayStart;
-                      }}
-                      modifiers={{
-                        logged: loggedDates,
-                      }}
-                      modifiersStyles={{
-                        logged: {
-                          fontWeight: "bold",
-                          backgroundColor: "var(--energy)",
-                          color: "white",
-                          borderRadius: "100%",
-                        },
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  disabled={selectedDate >= today()}
-                  onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-5">
-            <FoodSearch
-              ref={searchRef}
-              userId={user.id}
-              date={selectedDate}
-              onLogged={load}
-              meals={userMeals}
-              dailyTarget={profile?.daily_calorie_target}
-              currentDayCalories={currentDayCalories}
-            />
-
-            <div className="mt-5 space-y-5">
-              {meals.map((m) => {
-                const items = todayLogs.filter((l) => l.meal_type === m);
-                if (items.length === 0) return null;
-
-                const sub = items.reduce(
-                  (a, x) => ({
-                    cal: a.cal + (x.calories ?? 0),
-                    p: a.p + (x.protein_g ?? 0),
-                    fib: a.fib + (x.fiber_g || 0),
-                  }),
-                  { cal: 0, p: 0, fib: 0 },
-                );
-
-                return (
-                  <div key={m} className="space-y-2.5">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/15">
-                          <Utensils className="h-3 w-3 text-accent" />
-                        </div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          {m}
-                        </h3>
+                      <div className="flex gap-2 mb-3">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-8 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
-                          onClick={() => searchRef.current?.openForMeal(m)}
+                          className="flex-1 text-xs"
+                          onClick={() => handleQuickAction(today())}
                         >
-                          <Plus className="h-3 w-3 mr-1" /> Add
+                          Today
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() =>
+                            handleQuickAction(shiftDate(today(), -1))
+                          }
+                        >
+                          Yesterday
                         </Button>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
-                          {Math.round(sub.cal)} kcal
-                        </span>
-                        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                          P{Math.round(sub.p)}g
-                        </span>
-                      </div>
-                    </div>
+                      <Calendar
+                        mode="single"
+                        selected={parseLocalDate(selectedDate)}
+                        onSelect={(d) => handleDateSelect(d)}
+                        disabled={(d) => {
+                          const todayStart = new Date();
+                          todayStart.setHours(0, 0, 0, 0);
+                          const dStart = new Date(d);
+                          dStart.setHours(0, 0, 0, 0);
+                          return (
+                            dStart > todayStart ||
+                            dStart < parseLocalDate(joinDate)
+                          );
+                        }}
+                        modifiers={{
+                          logged: loggedDates,
+                        }}
+                        modifiersStyles={{
+                          logged: {
+                            fontWeight: "bold",
+                            backgroundColor: "var(--energy)",
+                            color: "white",
+                            borderRadius: "100%",
+                          },
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={selectedDate >= today()}
+                    onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <FoodSearch
+                ref={searchRef}
+                userId={user.id}
+                date={selectedDate}
+                onLogged={load}
+                meals={userMeals}
+                dailyTarget={profile?.daily_calorie_target}
+                currentDayCalories={currentDayCalories}
+              />
 
-                    <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
-                      {items.map((l) => {
-                        const isFav = favoriteNames.has(l.food_name);
-                        return (
-                          <div
-                            key={l.id}
-                            className="p-3 hover:bg-muted/20 transition-colors group"
+              <div className="mt-5 space-y-5">
+                {meals.map((m) => {
+                  const items = todayLogs.filter((l) => l.meal_type === m);
+                  if (items.length === 0) return null;
+
+                  const sub = items.reduce(
+                    (a, x) => ({
+                      cal: a.cal + (x.calories ?? 0),
+                      p: a.p + (x.protein_g ?? 0),
+                      fib: a.fib + (x.fiber_g || 0),
+                    }),
+                    { cal: 0, p: 0, fib: 0 },
+                  );
+
+                  return (
+                    <div key={m} className="space-y-2.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/15">
+                            <Utensils className="h-3 w-3 text-accent" />
+                          </div>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            {m}
+                          </h3>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
+                            onClick={() => searchRef.current?.openForMeal(m)}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold truncate">
-                                  {l.food_name}
+                            <Plus className="h-3 w-3 mr-1" /> Add
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                            {Math.round(sub.cal)} kcal
+                          </span>
+                          <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            P{Math.round(sub.p)}g
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
+                        {items.map((l) => {
+                          const isFav = favoriteNames.has(l.food_name);
+                          return (
+                            <div
+                              key={l.id}
+                              className="p-3 hover:bg-muted/20 transition-colors group"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-semibold truncate">
+                                    {l.food_name}
+                                  </div>
+                                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                    <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
+                                      {formatQty(
+                                        l.quantity_g,
+                                        l.unit,
+                                        l.unit_quantity,
+                                      )}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                      {Math.round(l.calories ?? 0)} kcal
+                                    </span>
+                                    <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                      P{Math.round(l.protein_g ?? 0)}
+                                    </span>
+                                    <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                      C{Math.round(l.carbs_g ?? 0)}
+                                    </span>
+                                    <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                      F{Math.round(l.fat_g ?? 0)}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                  <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
-                                    {formatQty(
-                                      l.quantity_g,
-                                      l.unit,
-                                      l.unit_quantity,
-                                    )}
-                                  </span>
-                                  <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
-                                    {Math.round(l.calories ?? 0)} kcal
-                                  </span>
-                                  <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                                    P{Math.round(l.protein_g ?? 0)}
-                                  </span>
-                                  <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
-                                    C{Math.round(l.carbs_g ?? 0)}
-                                  </span>
-                                  <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                                    F{Math.round(l.fat_g ?? 0)}
-                                  </span>
+                                <div className="flex shrink-0 flex-wrap items-center justify-end gap-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-8 w-8 transition-all ${
+                                      isFav
+                                        ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                        : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                    }`}
+                                    title={
+                                      isFav
+                                        ? "Remove from Favorites"
+                                        : "Save to Favorites"
+                                    }
+                                    onClick={() => saveFoodAsFavorite(l)}
+                                  >
+                                    <Heart
+                                      className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
+                                    />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                    title="Log again"
+                                    onClick={() => relogFood(l)}
+                                  >
+                                    <RotateCcw className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                    title="Modify"
+                                    onClick={() =>
+                                      searchRef.current?.editLog(l)
+                                    }
+                                  >
+                                    <PenTool className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    title="Delete"
+                                    data-delete-allowed
+                                    onClick={() => deleteLog(l.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
                                 </div>
-                              </div>
-                              <div className="flex shrink-0 flex-wrap items-center justify-end gap-0">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={`h-8 w-8 transition-all ${
-                                    isFav
-                                      ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                                      : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                  }`}
-                                  title={
-                                    isFav
-                                      ? "Remove from Favorites"
-                                      : "Save to Favorites"
-                                  }
-                                  onClick={() => saveFoodAsFavorite(l)}
-                                >
-                                  <Heart
-                                    className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
-                                  />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
-                                  title="Log again"
-                                  onClick={() => relogFood(l)}
-                                >
-                                  <RotateCcw className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                  title="Modify"
-                                  onClick={() => searchRef.current?.editLog(l)}
-                                >
-                                  <PenTool className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  title="Delete"
-                                  onClick={() => deleteLog(l.id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {todayLogs.length === 0 && (
-              <div className="mt-8 py-10 text-center border-2 border-dashed border-border/50 rounded-2xl bg-muted/5">
-                <div className="mx-auto w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mb-3">
-                  <Utensils className="h-6 w-6 text-accent opacity-80" />
-                </div>
-                <h3 className="font-bold text-lg mb-1">No food logged yet</h3>
-                <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
-                  Use the search bar above to start tracking your meals.
-                </p>
+                  );
+                })}
               </div>
-            )}
 
-            {/* ── Create Custom Meal ── */}
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                className="w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
-                onClick={() => navigate({ to: "/meal-builder" })}
-              >
-                <ChefHat className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
-                <span className="font-bold text-sm">Create Custom Meal</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="mt-3 w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
-                onClick={() => setFastFoodOpen(true)}
-              >
-                <Pizza className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
-                <span className="font-bold text-sm">Fast Food Meal</span>
-              </Button>
-            </div>
-            <FastFoodDialog
-              open={fastFoodOpen}
-              onOpenChange={setFastFoodOpen}
-              restaurant={ffRestaurant}
-              onRestaurantChange={setFfRestaurant}
-              meal={ffMeal}
-              onMealChange={setFfMeal}
-              onPick={(item) => {
-                setFastFoodOpen(false);
-                // Cancel comes back here with the words kept; a log clears them.
-                searchRef.current?.openFood(item, (logged) => {
-                  if (logged) {
-                    setFfRestaurant("");
-                    setFfMeal("");
-                  } else {
-                    setFastFoodOpen(true);
-                  }
-                });
-              }}
-              userId={user.id}
-              onSaveFavorite={async (m) =>
-                (await searchRef.current?.saveFavorite(m)) ?? false
-              }
-            />
-          </CardContent>
-        </Card>
-      </main>
+              {todayLogs.length === 0 && (
+                <div className="mt-8 py-10 text-center border-2 border-dashed border-border/50 rounded-2xl bg-muted/5">
+                  <div className="mx-auto w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mb-3">
+                    <Utensils className="h-6 w-6 text-accent opacity-80" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-1">No food logged yet</h3>
+                  <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
+                    Use the search bar above to start tracking your meals.
+                  </p>
+                </div>
+              )}
+
+              {/* ── Create Custom Meal ── */}
+              <div className="mt-6">
+                <Button
+                  variant="outline"
+                  className="w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
+                  onClick={() => navigate({ to: "/meal-builder" })}
+                >
+                  <ChefHat className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
+                  <span className="font-bold text-sm">Create Custom Meal</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="mt-3 w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
+                  onClick={() => setFastFoodOpen(true)}
+                >
+                  <Pizza className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
+                  <span className="font-bold text-sm">Fast Food Meal</span>
+                </Button>
+              </div>
+              <FastFoodDialog
+                open={fastFoodOpen}
+                onOpenChange={setFastFoodOpen}
+                restaurant={ffRestaurant}
+                onRestaurantChange={setFfRestaurant}
+                meal={ffMeal}
+                onMealChange={setFfMeal}
+                onPick={(item) => {
+                  setFastFoodOpen(false);
+                  // Cancel comes back here with the words kept; a log clears them.
+                  searchRef.current?.openFood(item, (logged) => {
+                    if (logged) {
+                      setFfRestaurant("");
+                      setFfMeal("");
+                    } else {
+                      setFastFoodOpen(true);
+                    }
+                  });
+                }}
+                userId={user.id}
+                onSaveFavorite={async (m) =>
+                  (await searchRef.current?.saveFavorite(m)) ?? false
+                }
+              />
+            </CardContent>
+          </Card>
+        </main>
+      </InteractionShield>
 
       {/* ── Meal Setup Questionnaire Dialog ── */}
       {/* Dismissable: the diet question has no skip button, but closing the
