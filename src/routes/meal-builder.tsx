@@ -41,7 +41,10 @@ import {
   searchFoods,
 } from "@/lib/foodDb";
 import { strongFoods } from "@/lib/foodFuzzy";
-import { serverAiFoodSearch } from "@/lib/ai";
+import { serverAiFoodSearchInline } from "@/lib/ai";
+import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
+import { toastAiError } from "@/lib/aiErrors";
+import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { type Unit, defaultUnitFor, toGrams, unitsFor } from "@/lib/foodUnits";
 import {
   VoiceFoodDialog,
@@ -123,6 +126,13 @@ function MealBuilderPage() {
   const [query, setQuery] = useState("");
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
   const [aiSearching, setAiSearching] = useState(false);
+  // Short stages: this label sits inside the search field.
+  const aiWait = useWaitLabel(aiSearching, "Searching…", [
+    "Still looking…",
+    "Trying another model…",
+    "Still working…",
+    "Almost there…",
+  ]);
   const [saving, setSaving] = useState(false);
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [photoOpen, setPhotoOpen] = useState(false);
@@ -177,11 +187,14 @@ function MealBuilderPage() {
     if (query.trim().length < 2) return;
     setAiSearching(true);
     try {
-      const { items } = await serverAiFoodSearch({ data: query });
+      const { items } = await serverAiFoodSearchInline({
+        data: { query, attempt: searchAttempt() },
+      });
+      recordSearchOutcome(true);
       setAiSuggestions((items ?? []) as IFCTItem[]);
     } catch (e) {
-      console.error("AI fallback failed", e);
-      toast.error("AI search failed — try again");
+      recordSearchOutcome(false);
+      toastAiError(e, "meal-builder AI search");
     } finally {
       setAiSearching(false);
     }
@@ -408,7 +421,7 @@ function MealBuilderPage() {
             {aiSearching && (
               <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Searching…
+                <span aria-live="polite">{aiWait.label}</span>
               </div>
             )}
           </div>

@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Header } from "@/components/Header";
 import { FoodSearch, FoodSearchRef } from "@/components/FoodSearch";
+import { FastFoodDialog } from "@/components/FastFoodDialog";
+import { validateFoodLogCalories } from "@/lib/calorieLimits";
 import { PremiumGate } from "@/components/PremiumGate";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/foodUnits";
@@ -30,6 +32,7 @@ import {
   Plus,
   X,
   ChefHat,
+  Pizza,
   Settings2,
   CopyPlus,
 } from "lucide-react";
@@ -124,6 +127,9 @@ function FoodPage() {
   const [loggedDates, setLoggedDates] = useState<Date[]>([]);
   const [profile, setProfile] = useState<Tables<"user_profiles"> | null>(null);
   const searchRef = useRef<FoodSearchRef>(null);
+  const [fastFoodOpen, setFastFoodOpen] = useState(false);
+  const [ffRestaurant, setFfRestaurant] = useState("");
+  const [ffMeal, setFfMeal] = useState("");
   const [favoriteNames, setFavoriteNames] = useState<Set<string>>(new Set());
 
   // ── Meal Setup Questionnaire ──
@@ -236,6 +242,11 @@ function FoodPage() {
     load();
   };
 
+  const currentDayCalories = todayLogs.reduce(
+    (sum, l) => sum + (l.calories ?? 0),
+    0,
+  );
+
   /** Copy everything logged on the previous day onto the selected date. */
   const copyPreviousDay = async () => {
     if (!user) return;
@@ -255,6 +266,16 @@ function FoodPage() {
       toast.info(`Nothing was logged on ${formatDateDisplay(prevDate)}`);
       return;
     }
+    const copiedCalories = prev.reduce((sum, r) => sum + (r.calories ?? 0), 0);
+    const validation = validateFoodLogCalories(
+      copiedCalories,
+      currentDayCalories,
+      profile?.daily_calorie_target,
+    );
+    if (!validation.allowed) {
+      toast.error(validation.reason);
+      return;
+    }
     const rows = prev.map((r) => ({
       ...r,
       fiber_g: r.fiber_g || 0,
@@ -266,6 +287,9 @@ function FoodPage() {
       toast.error(error.message);
       return;
     }
+    if (validation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
+    }
     toast.success(
       `Copied ${rows.length} item${rows.length > 1 ? "s" : ""} from ${formatDateDisplay(prevDate)}`,
     );
@@ -274,6 +298,15 @@ function FoodPage() {
 
   const relogFood = async (l: Tables<"food_logs">) => {
     if (!user) return;
+    const validation = validateFoodLogCalories(
+      l.calories ?? 0,
+      currentDayCalories,
+      profile?.daily_calorie_target,
+    );
+    if (!validation.allowed) {
+      toast.error(validation.reason);
+      return;
+    }
     const { error } = await supabase.from("food_logs").insert({
       user_id: user.id,
       date: selectedDate,
@@ -291,6 +324,9 @@ function FoodPage() {
     if (error) {
       toast.error(error.message);
       return;
+    }
+    if (validation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
     }
     toast.success(`${l.food_name} logged again!`);
     load();
@@ -499,7 +535,8 @@ function FoodPage() {
               date={selectedDate}
               onLogged={load}
               meals={userMeals}
-              showGeminiPhoto
+              dailyTarget={profile?.daily_calorie_target}
+              currentDayCalories={currentDayCalories}
             />
 
             <div className="mt-5 space-y-5">
@@ -650,25 +687,6 @@ function FoodPage() {
               </div>
             )}
 
-            {/* The same search box again, at the end of the day's logs —
-                after a dozen entries the one at the top is a scroll away.
-                searchOnly, so the camera and mic tiles are not duplicated.
-
-                This copy runs Gemini while the one at the top stays on
-                gpt-oss-120b, which is what makes the pair a comparison: type
-                the same food into both and read the two answers. Do not tidy
-                this up by giving them the same engine. */}
-            <div className="mt-8 pt-6 border-t border-border/30">
-              <FoodSearch
-                userId={user.id}
-                date={selectedDate}
-                onLogged={load}
-                meals={userMeals}
-                aiEngine="gemini"
-                searchOnly
-              />
-            </div>
-
             {/* ── Create Custom Meal ── */}
             <div className="mt-6">
               <Button
@@ -679,7 +697,35 @@ function FoodPage() {
                 <ChefHat className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
                 <span className="font-bold text-sm">Create Custom Meal</span>
               </Button>
+              <Button
+                variant="outline"
+                className="mt-3 w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
+                onClick={() => setFastFoodOpen(true)}
+              >
+                <Pizza className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
+                <span className="font-bold text-sm">Fast Food Meal</span>
+              </Button>
             </div>
+            <FastFoodDialog
+              open={fastFoodOpen}
+              onOpenChange={setFastFoodOpen}
+              restaurant={ffRestaurant}
+              onRestaurantChange={setFfRestaurant}
+              meal={ffMeal}
+              onMealChange={setFfMeal}
+              onPick={(item) => {
+                setFastFoodOpen(false);
+                // Cancel comes back here with the words kept; a log clears them.
+                searchRef.current?.openFood(item, (logged) => {
+                  if (logged) {
+                    setFfRestaurant("");
+                    setFfMeal("");
+                  } else {
+                    setFastFoodOpen(true);
+                  }
+                });
+              }}
+            />
           </CardContent>
         </Card>
       </main>

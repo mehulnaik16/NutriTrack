@@ -1,15 +1,16 @@
 /**
- * Server-only Gemini client, for the food-photo A/B against Groq and for the
- * food page's text calls.
+ * Server-only Gemini client for the food search, photo and voice calls.
  *
  * Lives beside groq.ts and is blocked from client bundles by the same
  * importProtection rule in vite.config.ts.
  *
- * Deliberately not routed through ops-agent.ts. That file's credential chain
- * falls through to Groq when Gemini fails, which is correct for the ops agent
- * and useless here: a Gemini food photo silently answered by Groq would ruin
- * the comparison this exists to run. One provider, no fallback, real errors.
+ * One call, one model. Falling back between models is aiChain.ts's job (the
+ * orders are in aiRoutes.ts); this file only reports each failure as an
+ * AiHttpError so the chain can tell a 503 from a 429 from a dead key.
  */
+
+import { AiHttpError } from "./aiChain";
+import { sendAlert } from "./telegram";
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -33,9 +34,13 @@ const VISION_MODEL = "gemini-3.6-flash";
  */
 const LITE_MODEL = "gemini-3.5-flash-lite";
 
+/** Answers the "Search AI" food lookup on every screen. */
+const SEARCH_MODEL = "gemini-3.7-flash";
+
 /** What the model is called in the UI and in errors, so a comparison is labelled. */
 export const GEMINI_VISION_MODEL = VISION_MODEL;
 export const GEMINI_LITE_MODEL = LITE_MODEL;
+export const GEMINI_SEARCH_MODEL = SEARCH_MODEL;
 
 /**
  * Thinking budget per model, because the floor is not the same on both.
@@ -51,6 +56,7 @@ export const GEMINI_LITE_MODEL = LITE_MODEL;
 const THINKING_BUDGET: Record<string, number> = {
   [VISION_MODEL]: 0,
   [LITE_MODEL]: 128,
+  [SEARCH_MODEL]: 0,
 };
 
 async function generate(opts: {
@@ -59,9 +65,17 @@ async function generate(opts: {
   image?: { base64: string; mimeType: string };
   max_tokens?: number;
   temperature?: number;
+  signal?: AbortSignal;
 }): Promise<string> {
   const key = (process.env.GEMINI_API_KEY ?? "").trim();
-  if (!key) throw new Error("GEMINI_API_KEY is not configured.");
+  // A missing key is a dead key: the chain skips Gemini and moves to Groq.
+  if (!key)
+    throw new AiHttpError(
+      401,
+      "gemini",
+      null,
+      "GEMINI_API_KEY is not configured.",
+    );
 
   const parts: Record<string, unknown>[] = [{ text: opts.prompt }];
   if (opts.image)
@@ -74,6 +88,7 @@ async function generate(opts: {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: opts.signal,
       body: JSON.stringify({
         contents: [{ parts }],
         generationConfig: {
@@ -91,8 +106,25 @@ async function generate(opts: {
 
   if (!res.ok) {
     const err = await res.text().catch(() => "");
-    throw new Error(
+    if (res.status === 401 || res.status === 403 || /API_KEY_INVALID/.test(err))
+      await sendAlert({
+        severity: "critical",
+        title: "Gemini key rejected",
+        detail: { status: res.status, model: opts.model },
+        throttleKey: "gemini-key-rejected",
+      });
+    // Google names the broken quota in QuotaFailure.violations[].quotaId —
+    // "GenerateRequestsPerDayPerProjectPerModel-…" for the daily one — and
+    // how long to wait in RetryInfo.retryDelay ("37s").
+    const delay = /"retryDelay":\s*"(\d+(?:\.\d+)?)s"/.exec(err)?.[1];
+    const quota =
+      res.status !== 429 ? null : /PerDay/.test(err) ? "day" : "minute";
+    throw new AiHttpError(
+      res.status,
+      "gemini",
+      delay ? Math.ceil(Number(delay) * 1000) : null,
       `Gemini error ${res.status} (${opts.model}): ${err.slice(0, 400)}`,
+      quota,
     );
   }
 
@@ -126,20 +158,24 @@ export async function geminiVision(opts: {
   mimeType: string;
   max_tokens?: number;
   model?: string;
+  signal?: AbortSignal;
 }): Promise<string> {
   return generate({
     model: opts.model ?? VISION_MODEL,
     prompt: opts.prompt,
     image: { base64: opts.base64, mimeType: opts.mimeType },
     max_tokens: opts.max_tokens,
+    signal: opts.signal,
   });
 }
 
-/** Text-only, pinned to the cheap model — nothing here needs the big one. */
+/** Text-only. Defaults to the cheap model; the chains pass their own. */
 export async function geminiText(opts: {
   prompt: string;
   max_tokens?: number;
   temperature?: number;
+  model?: string;
+  signal?: AbortSignal;
 }): Promise<string> {
-  return generate({ model: LITE_MODEL, ...opts });
+  return generate({ ...opts, model: opts.model ?? LITE_MODEL });
 }

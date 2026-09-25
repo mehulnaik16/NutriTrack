@@ -1,0 +1,910 @@
+{
+ "brand": "Naturals",
+ "code": "ZN",
+ "source": "Naturals Ice Cream nutritional information PDF (supplied by the user, from Naturals' official nutrition chart)",
+ "basis": "Per 100 g, as Naturals publishes it. No scoop or cup weight is given.",
+ "density": 220,
+ "items": [
+  {
+   "name": "Sitaphal Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 194.0,
+   "protein": 4.0,
+   "carbs": 26.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Mango Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 186.0,
+   "protein": 5.0,
+   "carbs": 21.0,
+   "fat": 8.0
+  },
+  {
+   "name": "Tender Coconut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 209.0,
+   "protein": 6.0,
+   "carbs": 19.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Watermelon Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 203.0,
+   "protein": 5.0,
+   "carbs": 19.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Chickoo Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 209.0,
+   "protein": 6.0,
+   "carbs": 19.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Black Grapes Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 203.0,
+   "protein": 5.0,
+   "carbs": 23.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Lychee Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 224.0,
+   "protein": 6.0,
+   "carbs": 21.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Muskmelon Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 212.0,
+   "protein": 6.0,
+   "carbs": 19.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Jackfruit Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 216.0,
+   "protein": 6.0,
+   "carbs": 21.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Papaya Pineapple Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 202.0,
+   "protein": 5.0,
+   "carbs": 18.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Anjeer Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 229.0,
+   "protein": 6.0,
+   "carbs": 21.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Kala Jamun Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 194.0,
+   "protein": 5.0,
+   "carbs": 20.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Guava Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 200.0,
+   "protein": 4.0,
+   "carbs": 20.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Malai Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 275.0,
+   "protein": 7.0,
+   "carbs": 21.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Roasted Almond Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 239.0,
+   "protein": 8.0,
+   "carbs": 20.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Kesar Pista Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 271.0,
+   "protein": 5.0,
+   "carbs": 22.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Coffee Walnut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 247.0,
+   "protein": 8.0,
+   "carbs": 25.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Kaju Kismis Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 230.0,
+   "protein": 7.0,
+   "carbs": 22.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Dates Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 234.0,
+   "protein": 6.0,
+   "carbs": 27.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Choco Cream Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 218.0,
+   "protein": 6.0,
+   "carbs": 21.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Choco Bite Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 250.0,
+   "protein": 6.0,
+   "carbs": 22.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Choco Almond Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 220.0,
+   "protein": 7.0,
+   "carbs": 23.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Strawberry Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 196.0,
+   "protein": 5.0,
+   "carbs": 19.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Gooseberry Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 212.0,
+   "protein": 7.0,
+   "carbs": 20.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Raspberry Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 228.0,
+   "protein": 4.0,
+   "carbs": 28.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Black Currant Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 254.0,
+   "protein": 5.0,
+   "carbs": 40.0,
+   "fat": 7.0
+  },
+  {
+   "name": "Blueberry Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 207.0,
+   "protein": 5.0,
+   "carbs": 19.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Mulberry Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 198.0,
+   "protein": 5.0,
+   "carbs": 21.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Tender Anjeer Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 193.0,
+   "protein": 6.0,
+   "carbs": 19.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Shahi Anjeer Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 251.0,
+   "protein": 7.0,
+   "carbs": 24.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Berry Bite Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 235.0,
+   "protein": 5.0,
+   "carbs": 25.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Tilgul Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 284.0,
+   "protein": 9.0,
+   "carbs": 19.0,
+   "fat": 18.0
+  },
+  {
+   "name": "PSG Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 233.0,
+   "protein": 6.0,
+   "carbs": 21.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Kiwi Pineapple Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 194.0,
+   "protein": 5.0,
+   "carbs": 21.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Fig And Honey Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 191.0,
+   "protein": 5.0,
+   "carbs": 21.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Coffee Cinnamon Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 316.0,
+   "protein": 6.0,
+   "carbs": 42.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Amrakhand Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 217.0,
+   "protein": 9.0,
+   "carbs": 22.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Musk Mango Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 180.0,
+   "protein": 5.0,
+   "carbs": 19.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Saunf Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 226.0,
+   "protein": 7.0,
+   "carbs": 22.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Persian Delight Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 236.0,
+   "protein": 6.0,
+   "carbs": 27.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Pista Chikki Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 228.0,
+   "protein": 8.0,
+   "carbs": 24.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Filter Coffee Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 220.0,
+   "protein": 4.0,
+   "carbs": 22.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Honey Crunch Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 237.0,
+   "protein": 7.0,
+   "carbs": 24.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Ginger Candy Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 240.0,
+   "protein": 5.0,
+   "carbs": 21.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Royal Dry Fruit Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 237.0,
+   "protein": 6.0,
+   "carbs": 23.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Pineapple Mango Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 217.0,
+   "protein": 5.0,
+   "carbs": 24.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Hazelnut Crunch Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 270.0,
+   "protein": 7.0,
+   "carbs": 27.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Pinacolada Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 271.0,
+   "protein": 7.0,
+   "carbs": 20.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Peach Apricot Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 238.0,
+   "protein": 6.0,
+   "carbs": 24.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Orange Chocolate Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 279.0,
+   "protein": 2.0,
+   "carbs": 30.0,
+   "fat": 16.0
+  },
+  {
+   "name": "Dates & Walnut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 240.0,
+   "protein": 7.0,
+   "carbs": 25.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Orange Pistachio Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 209.0,
+   "protein": 5.0,
+   "carbs": 26.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Spicy Guava Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 193.0,
+   "protein": 5.0,
+   "carbs": 19.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Mango Passion Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 193.0,
+   "protein": 6.0,
+   "carbs": 19.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Coffee Hazelnut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 248.0,
+   "protein": 7.0,
+   "carbs": 19.0,
+   "fat": 15.0
+  },
+  {
+   "name": "Kaju Kesar Shrikhand Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 237.0,
+   "protein": 6.0,
+   "carbs": 30.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Mocha Almond Fudge Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 314.0,
+   "protein": 5.0,
+   "carbs": 30.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Pista Clove Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 218.0,
+   "protein": 6.0,
+   "carbs": 23.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Thandai Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 220.0,
+   "protein": 7.0,
+   "carbs": 14.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Roasted Kaju Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 279.0,
+   "protein": 9.0,
+   "carbs": 21.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Melonblast Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 271.0,
+   "protein": 7.0,
+   "carbs": 20.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Cherry Pineapple Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 190.0,
+   "protein": 5.0,
+   "carbs": 20.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Mocha Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 237.0,
+   "protein": 5.0,
+   "carbs": 23.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Coffeebite Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 211.0,
+   "protein": 5.0,
+   "carbs": 23.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Prasadam Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 213.0,
+   "protein": 6.0,
+   "carbs": 23.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Malai Khurma Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 236.0,
+   "protein": 7.0,
+   "carbs": 21.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Watermelon Ginger Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 182.0,
+   "protein": 5.0,
+   "carbs": 16.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Honey Ginger Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 219.0,
+   "protein": 6.0,
+   "carbs": 27.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Toffee Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 282.0,
+   "protein": 5.0,
+   "carbs": 23.0,
+   "fat": 18.0
+  },
+  {
+   "name": "Chunky Banana Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 237.0,
+   "protein": 7.0,
+   "carbs": 22.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Shrikhand Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 232.0,
+   "protein": 6.0,
+   "carbs": 25.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Cherry Berry Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 196.0,
+   "protein": 6.0,
+   "carbs": 17.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Choco Fruit And Nut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 240.0,
+   "protein": 7.0,
+   "carbs": 14.0,
+   "fat": 17.0
+  },
+  {
+   "name": "Anjeer Pista Chikki Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 239,
+   "protein": 7.0,
+   "carbs": 28.0,
+   "fat": 11.0,
+   "note": "Listed at 374 kcal, but its own macros (28 g carbs, 7 g protein, 11 g fat) give 239, in line with Pista Chikki at 228. Macros trusted."
+  },
+  {
+   "name": "Choco Hazelnut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 273.0,
+   "protein": 6.0,
+   "carbs": 25.0,
+   "fat": 15.0
+  },
+  {
+   "name": "Salted Caramel Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 303.0,
+   "protein": 5.0,
+   "carbs": 38.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Anjeer Kaju Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 249.0,
+   "protein": 8.0,
+   "carbs": 26.0,
+   "fat": 11.0
+  },
+  {
+   "name": "Nutty Bar Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 271.0,
+   "protein": 6.0,
+   "carbs": 33.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Tangy Imali Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 234.0,
+   "protein": 2.0,
+   "carbs": 22.0,
+   "fat": 14.0
+  },
+  {
+   "name": "Blueberry Nuts Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 217.0,
+   "protein": 3.0,
+   "carbs": 36.0,
+   "fat": 8.0
+  },
+  {
+   "name": "Raw Mango Coconut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 219.0,
+   "protein": 3.0,
+   "carbs": 23.0,
+   "fat": 12.0
+  },
+  {
+   "name": "Raspberry Chocolate Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 239.0,
+   "protein": 5.0,
+   "carbs": 31.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Mocha Hazelnut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 263.0,
+   "protein": 7.0,
+   "carbs": 22.0,
+   "fat": 15.0
+  },
+  {
+   "name": "Gajar Halwa Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 229.0,
+   "protein": 6.0,
+   "carbs": 19.0,
+   "fat": 13.0
+  },
+  {
+   "name": "Gulkand Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 229.0,
+   "protein": 6.0,
+   "carbs": 26.0,
+   "fat": 10.0
+  },
+  {
+   "name": "Rose Walnut Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 260.0,
+   "protein": 6.0,
+   "carbs": 39.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Rose Shrikhand Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 306.0,
+   "protein": 5.0,
+   "carbs": 50.0,
+   "fat": 9.0
+  },
+  {
+   "name": "Beetroot Banana Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 280.0,
+   "protein": 5.0,
+   "carbs": 20.0,
+   "fat": 19.0
+  },
+  {
+   "name": "Anjeer - No Added Sugar Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 216.0,
+   "protein": 5.0,
+   "carbs": 30.0,
+   "fat": 7.0
+  },
+  {
+   "name": "Mango - No Added Sugar Ice Cream",
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 179.0,
+   "protein": 4.0,
+   "carbs": 24.0,
+   "fat": 6.0
+  }
+ ]
+}

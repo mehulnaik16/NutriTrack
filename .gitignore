@@ -60,3 +60,6 @@ apitest.md
 
 # Locally-installed agent skills (npx skills add) — not project code
 .agents/
+
+# Supabase CLI temp files
+supabase/.temp/

@@ -39,11 +39,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
 import type { MealIngredient, SavedMeal } from "@/lib/meals";
-import {
-  serverAiFoodSearchInline,
-  serverFlagFood,
-  type FoodSearchEngine,
-} from "@/lib/ai";
+import { serverAiFoodSearchInline, serverFlagFood } from "@/lib/ai";
 import { isPersonalName } from "@/lib/foodCache";
 import { strongFoods, similarity } from "@/lib/foodFuzzy";
 import { toLocalISO } from "@/lib/dates";
@@ -63,14 +59,18 @@ import {
   validateQuantity,
 } from "@/lib/foodUnits";
 import {
+  validateFoodLogCalories,
+  MAX_SINGLE_FOOD_CALORIES,
+} from "@/lib/calorieLimits";
+import {
   VoiceFoodDialog,
   type VoiceFoodItem,
 } from "@/components/VoiceFoodDialog";
 import { isIsroTheme } from "@/lib/telemetry";
-import type {
-  PhotoFoodResult,
-  VisionProvider,
-} from "@/components/PhotoFoodDialog";
+import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
+import { toastAiError } from "@/lib/aiErrors";
+import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
+import { useWaitLabel } from "@/hooks/useWaitLabel";
 
 // Both carry a camera dependency — react-webcam here, @zxing/* via
 // BarcodeScanner — and neither renders until its button is tapped.
@@ -104,6 +104,11 @@ export interface FoodSearchRef {
   editLog: (log: EditableLog) => void;
   refreshFavorites: () => void;
   openForMeal: (meal: string) => void;
+  /**
+   * Open the log card on a food found elsewhere (Fast Food Meal). `onClose`
+   * hears whether it was logged, so the caller can come back on a cancel.
+   */
+  openFood: (item: IFCTItem, onClose?: (logged: boolean) => void) => void;
 }
 
 export const FoodSearch = forwardRef<
@@ -113,28 +118,8 @@ export const FoodSearch = forwardRef<
     date: string;
     onLogged: () => void;
     meals?: string[];
-    /**
-     * Show the second photo tile that runs Gemini instead of Qwen. Off by
-     * default: it is a model comparison, not a feature, so it belongs on the
-     * food page only and must not crowd the dashboard's action row.
-     */
-    showGeminiPhoto?: boolean;
-    /**
-     * Which model answers "Search AI" and the voice parse. Defaults to Groq,
-     * which is what every copy of this box runs but one: the food page's lower,
-     * search-only copy passes "gemini", so the same food typed at the top and
-     * at the bottom of that page is answered by the two models being compared.
-     */
-    aiEngine?: FoodSearchEngine;
-    /**
-     * Render the search box and its results only.
-     *
-     * The food page shows this a second time down by Create Custom Meal, so a
-     * long day of logs need not be scrolled past to add one more food. A second
-     * set of camera and mic tiles there would be clutter — and two mounted
-     * webcams — so the action row stays with the copy at the top.
-     */
-    searchOnly?: boolean;
+    dailyTarget?: number | null;
+    currentDayCalories?: number;
   }
 >((props, ref) => {
   const {
@@ -142,9 +127,8 @@ export const FoodSearch = forwardRef<
     date,
     onLogged,
     meals: mealsProp,
-    showGeminiPhoto,
-    aiEngine = "groq",
-    searchOnly,
+    dailyTarget,
+    currentDayCalories = 0,
   } = props;
   const mealCategories =
     mealsProp && mealsProp.length > 0
@@ -152,6 +136,14 @@ export const FoodSearch = forwardRef<
       : ["Breakfast", "Lunch", "Dinner", "Snack"];
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
+  // A busy model day can mean a switch to the next model; say so rather than
+  // leave a spinner that looks stuck.
+  const searchWait = useWaitLabel(searching, "", [
+    "Searching with AI…",
+    "Checking another AI model…",
+    "Still working on it…",
+    "Almost there…",
+  ]);
   const [aiSuggestions, setAiSuggestions] = useState<IFCTItem[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<IFCTItem | null>(null);
@@ -182,6 +174,16 @@ export const FoodSearch = forwardRef<
 
   const [isEditing, setIsEditing] = useState(false);
   const [editLogId, setEditLogId] = useState<string | null>(null);
+  const [editLogOldCalories, setEditLogOldCalories] = useState<number | null>(
+    null,
+  );
+  /** Whoever opened the log card through openFood, told once when it closes. */
+  const closeHook = useRef<((logged: boolean) => void) | null>(null);
+  const fireClose = (logged: boolean) => {
+    const hook = closeHook.current;
+    closeHook.current = null;
+    hook?.(logged);
+  };
 
   const loadSavedMeals = () => {
     supabase
@@ -247,6 +249,7 @@ export const FoodSearch = forwardRef<
     editLog: (log) => {
       setIsEditing(true);
       setEditLogId(log.id);
+      setEditLogOldCalories(log.calories ?? 0);
 
       const ratio = log.quantity_g / 100;
       const baseCal = ratio > 0 ? (log.calories ?? 0) / ratio : 0;
@@ -274,6 +277,10 @@ export const FoodSearch = forwardRef<
       setOpen(true);
     },
     refreshFavorites: loadSavedMeals,
+    openFood: (item, onClose) => {
+      closeHook.current = onClose ?? null;
+      pickFood(item);
+    },
   }));
 
   // Custom Food
@@ -297,18 +304,13 @@ export const FoodSearch = forwardRef<
   }, [userId]);
 
   // Quick add — each dialog owns the rest of its own state.
-  /**
-   * Which vision model the open photo dialog is using, or null when it is
-   * closed. One piece of state rather than a boolean per model: two booleans
-   * can both be true, which would mount two webcams over each other.
-   */
-  const [cameraProvider, setCameraProvider] = useState<VisionProvider | null>(
-    null,
-  );
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [barcodeMode, setBarcodeMode] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   /** Foods parsed from a typed sentence, handed to the voice review list. */
   const [voiceItems, setVoiceItems] = useState<VoiceFoodItem[] | undefined>();
+  /** What was typed when those items came from the search box. */
+  const [voiceQuery, setVoiceQuery] = useState("");
 
   // Recent foods (for quick re-logging)
   interface RecentFood {
@@ -374,6 +376,9 @@ export const FoodSearch = forwardRef<
     const ratio = grams / 100;
     return {
       food_name: it.name,
+      // The words typed for this food, so a row edit can change them in the
+      // sentence too. Present on AI items; catalog items have none.
+      heard: (it as IFCTItem & { heard?: string }).heard,
       quantity_g: grams,
       unit: it.piece_g ? "pcs" : "g",
       unit_quantity: it.piece_g ? +(grams / it.piece_g).toFixed(2) : grams,
@@ -386,8 +391,14 @@ export const FoodSearch = forwardRef<
     };
   };
 
-  const handleAiFallback = async () => {
-    if (q.trim().length < 2) return;
+  /**
+   * Search AI. `text` is the Food Search dialog's Research: the same search
+   * on the words edited there, which also become the search box's text.
+   */
+  const handleAiFallback = async (text?: string): Promise<boolean> => {
+    const typed = (text ?? q).trim();
+    if (typed.length < 2) return false;
+    if (text !== undefined) setQ(typed);
 
     // The user's own saved meals come first, for EVERY query, possessive or
     // not: a query matching one of them is that user's own meal whatever it
@@ -396,37 +407,47 @@ export const FoodSearch = forwardRef<
     // join the shared cache. Client-side because savedMeals is already loaded
     // under per-user RLS — no round trip. A miss goes on to the AI path, where
     // isPersonalName still keeps a possessive out of the shared tables.
-    const typed = q.trim();
     const own = savedMeals.find(
       (m) => similarity(m.name.toLowerCase(), typed.toLowerCase()) >= 0.8,
     );
     if (own) {
+      setVoiceOpen(false);
+      setVoiceItems(undefined);
       await logSavedMeal(own);
       setQ("");
-      return;
+      return true;
     }
 
     setSearching(true);
     try {
       const { kind, items } = await serverAiFoodSearchInline({
-        data: { query: q, engine: aiEngine },
+        data: { query: typed, attempt: searchAttempt() },
       });
+      recordSearchOutcome(true);
       if (kind === "meal" && items.length > 1) {
         // Several foods in one sentence. The pick-one list cannot express that,
         // but the voice review list already can — per-item quantities, edits
         // and a single bulk log.
         setVoiceItems(items.map(aiItemToVoice));
+        setVoiceQuery(typed);
         setVoiceOpen(true);
         setAiSuggestions([]);
-        return;
+        return true;
       }
+      // One food: the pick-one list, so a Research that now finds a single
+      // food leaves the Food Search dialog for it.
+      setVoiceOpen(false);
+      setVoiceItems(undefined);
       // Each suggestion remembers what was typed for it, so a personal name
       // can be saved under the user's words when it is logged (see logFood).
       setAiSuggestions(
         ((items || []) as IFCTItem[]).map((it) => ({ ...it, query: typed })),
       );
+      return true;
     } catch (e) {
-      console.error("AI fallback failed", e);
+      recordSearchOutcome(false);
+      toastAiError(e, "AI food search");
+      return false;
     } finally {
       setSearching(false);
     }
@@ -446,7 +467,6 @@ export const FoodSearch = forwardRef<
     /** What the user actually typed, when it was not grams. */
     entered?: { unit: string; qty: number },
   ) => {
-    setSaving(true);
     const ratio = grams / 100;
     const cal = overrides ? overrides.cal : +(kcalOf(item) * ratio).toFixed(1);
     const p = overrides
@@ -461,6 +481,19 @@ export const FoodSearch = forwardRef<
         ? overrides.fib
         : +((item.fibtg ?? 0) * ratio).toFixed(1);
 
+    const validation = validateFoodLogCalories(
+      cal,
+      currentDayCalories,
+      dailyTarget,
+      isEditing ? (editLogOldCalories ?? undefined) : undefined,
+    );
+
+    if (!validation.allowed) {
+      toast.error(validation.reason);
+      return false;
+    }
+
+    setSaving(true);
     let error;
     if (isEditing && editLogId) {
       const { error: updateErr } = await supabase
@@ -551,6 +584,9 @@ export const FoodSearch = forwardRef<
       toast.error(error.message);
       return false;
     }
+    if (validation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
+    }
     return true;
   };
 
@@ -598,7 +634,7 @@ export const FoodSearch = forwardRef<
     const ok = await logFood(item, grams, meal);
     if (ok) {
       toast.success(`${item.name} logged!`);
-      setCameraProvider(null);
+      setCameraOpen(false);
       onLogged();
     }
   };
@@ -606,6 +642,35 @@ export const FoodSearch = forwardRef<
   /** The parser returns several foods at once, so this inserts rows directly. */
   const logVoiceItems = async (items: VoiceFoodItem[]) => {
     if (items.length === 0) return;
+
+    for (const item of items) {
+      if (item.calories > MAX_SINGLE_FOOD_CALORIES) {
+        toast.error(
+          `"${item.food_name}" exceeds single item limit of 4,000 kcal`,
+        );
+        return;
+      }
+      if (item.calories < 0) {
+        toast.error(`"${item.food_name}" cannot have negative calories`);
+        return;
+      }
+    }
+
+    const batchCalories = items.reduce(
+      (sum, item) => sum + (item.calories || 0),
+      0,
+    );
+    const batchValidation = validateFoodLogCalories(
+      batchCalories,
+      currentDayCalories,
+      dailyTarget,
+    );
+
+    if (!batchValidation.allowed) {
+      toast.error(batchValidation.reason);
+      return;
+    }
+
     const { error } = await supabase.from("food_logs").insert(
       items.map((item) => ({
         user_id: userId,
@@ -628,6 +693,9 @@ export const FoodSearch = forwardRef<
     if (error) {
       toast.error(error.message);
       throw new Error(error.message);
+    }
+    if (batchValidation.isOverSoftTarget) {
+      toast.info("Logged! Note: you are over 125% of your daily goal");
     }
     toast.success(
       `${items.length} food item${items.length > 1 ? "s" : ""} logged!`,
@@ -734,7 +802,7 @@ export const FoodSearch = forwardRef<
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleAiFallback}
+            onClick={() => handleAiFallback()}
             className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-[10px] text-accent uppercase font-bold px-2 hover:bg-accent/10"
           >
             Search AI
@@ -744,6 +812,14 @@ export const FoodSearch = forwardRef<
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
         )}
       </div>
+      {searchWait.long && (
+        <p
+          className="-mt-1 text-center text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          {searchWait.label}
+        </p>
+      )}
 
       {/* Inline favourites section removed — now accessible via Favourites button */}
 
@@ -785,91 +861,59 @@ export const FoodSearch = forwardRef<
       )}
 
       {/* ── Action buttons: Camera → Mic → Barcode → Favourites ── */}
-      {!searchOnly && (
-        <div className="flex gap-3 justify-center flex-wrap">
-          <Button
-            variant="outline"
-            onClick={() => setCameraProvider("groq")}
-            title="Log food by photo (Qwen vision)"
-            className="flex flex-col items-center justify-center gap-1 p-0"
-            style={{ width: 64, height: 64, minWidth: 64 }}
-          >
-            <Camera style={{ width: 22, height: 22 }} />
-            <span className="text-[8px] font-medium text-muted-foreground">
-              Photo
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setVoiceOpen(true)}
-            title="Log food by voice"
-            className="flex flex-col items-center justify-center gap-1 p-0"
-            style={{ width: 64, height: 64, minWidth: 64 }}
-          >
-            <Mic style={{ width: 22, height: 22 }} />
-            <span className="text-[8px] font-medium text-muted-foreground">
-              Voice
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setBarcodeMode(true)}
-            title="Barcode lookup"
-            className="flex flex-col items-center justify-center gap-1 p-0"
-            style={{ width: 64, height: 64, minWidth: 64 }}
-          >
-            <Barcode style={{ width: 22, height: 22 }} />
-            <span className="text-[8px] font-medium text-muted-foreground">
-              Scan
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              loadSavedMeals();
-              setFavoritesDialogOpen(true);
-            }}
-            title="View Favourites"
-            className="flex flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
-            style={{ width: 64, height: 64, minWidth: 64 }}
-          >
-            <Heart style={{ width: 22, height: 22 }} className="text-red-500" />
-            <span className="text-[8px] font-medium text-red-500">
-              Favourites
-            </span>
-          </Button>
-          {/* Same dialog, same prompt, different model — here to be compared
-              against Photo, not to be a second feature. */}
-          {showGeminiPhoto && (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => setCameraProvider("gemini")}
-                title="Log food by photo (Gemini vision)"
-                className="flex flex-col items-center justify-center gap-1 p-0"
-                style={{ width: 64, height: 64, minWidth: 64 }}
-              >
-                <Camera style={{ width: 22, height: 22 }} />
-                <span className="text-[8px] font-medium text-muted-foreground">
-                  Gemini
-                </span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setCameraProvider("gemini-lite")}
-                title="Log food by photo (Gemini Flash Lite vision)"
-                className="flex flex-col items-center justify-center gap-1 p-0"
-                style={{ width: 64, height: 64, minWidth: 64 }}
-              >
-                <Camera style={{ width: 22, height: 22 }} />
-                <span className="text-[8px] font-medium text-muted-foreground">
-                  Lite
-                </span>
-              </Button>
-            </>
-          )}
-        </div>
-      )}
+      <div className="flex gap-3 justify-center flex-wrap">
+        <Button
+          variant="outline"
+          onClick={() => setCameraOpen(true)}
+          title="Log food by photo"
+          className="flex flex-col items-center justify-center gap-1 p-0"
+          style={{ width: 64, height: 64, minWidth: 64 }}
+        >
+          <Camera style={{ width: 22, height: 22 }} />
+          <span className="text-[8px] font-medium text-muted-foreground">
+            Photo
+          </span>
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setVoiceOpen(true)}
+          title="Log food by voice"
+          className="flex flex-col items-center justify-center gap-1 p-0"
+          style={{ width: 64, height: 64, minWidth: 64 }}
+        >
+          <Mic style={{ width: 22, height: 22 }} />
+          <span className="text-[8px] font-medium text-muted-foreground">
+            Voice
+          </span>
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setBarcodeMode(true)}
+          title="Barcode lookup"
+          className="flex flex-col items-center justify-center gap-1 p-0"
+          style={{ width: 64, height: 64, minWidth: 64 }}
+        >
+          <Barcode style={{ width: 22, height: 22 }} />
+          <span className="text-[8px] font-medium text-muted-foreground">
+            Scan
+          </span>
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            loadSavedMeals();
+            setFavoritesDialogOpen(true);
+          }}
+          title="View Favourites"
+          className="flex flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
+          style={{ width: 64, height: 64, minWidth: 64 }}
+        >
+          <Heart style={{ width: 22, height: 22 }} className="text-red-500" />
+          <span className="text-[8px] font-medium text-red-500">
+            Favourites
+          </span>
+        </Button>
+      </div>
 
       {/* ── Favourites Dialog ── */}
       <Dialog open={favoritesDialogOpen} onOpenChange={setFavoritesDialogOpen}>
@@ -1169,8 +1213,10 @@ export const FoodSearch = forwardRef<
           if (!o) {
             setOpen(false);
             setSelected(null);
+            fireClose(false);
             setIsEditing(false);
             setEditLogId(null);
+            setEditLogOldCalories(null);
             // Both reset, or a "2" left over from a pcs session reopens as 2 g.
             setUnit("g");
             setQty("100");
@@ -1375,9 +1421,11 @@ export const FoodSearch = forwardRef<
                     );
                     setOpen(false);
                     setSelected(null);
+                    fireClose(true);
                     setQ("");
                     setIsEditing(false);
                     setEditLogId(null);
+                    setEditLogOldCalories(null);
                     setUnit("g");
                     setQty("100");
                     onLogged();
@@ -1401,15 +1449,11 @@ export const FoodSearch = forwardRef<
       </Dialog>
 
       {/* Mounted only while open so react-webcam stays off the initial load. */}
-      {cameraProvider && (
+      {cameraOpen && (
         <Suspense fallback={null}>
           <PhotoFoodDialog
             open
-            // Remounts when the provider changes, so a result from one model
-            // can never linger on screen under the other one's name.
-            key={cameraProvider}
-            provider={cameraProvider}
-            onOpenChange={(o) => !o && setCameraProvider(null)}
+            onOpenChange={(o) => !o && setCameraOpen(false)}
             meal={mealPicker}
             onConfirm={logPhotoFood}
           />
@@ -1425,7 +1469,12 @@ export const FoodSearch = forwardRef<
         meal={mealPicker}
         onConfirm={logVoiceItems}
         initialItems={voiceItems}
-        engine={aiEngine}
+        typedQuery={voiceItems ? voiceQuery : undefined}
+        onResearch={handleAiFallback}
+        onTypedQueryChange={(text) => {
+          setVoiceQuery(text);
+          setQ(text);
+        }}
       />
 
       {/* Mounted only while open so @zxing/* stays off the initial page load. */}

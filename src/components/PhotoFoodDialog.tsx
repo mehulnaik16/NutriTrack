@@ -9,7 +9,7 @@
  */
 
 import { useRef, useState } from "react";
-import { Camera, Loader2, Plus, X } from "lucide-react";
+import { Camera, Loader2, Plus, Upload, X } from "lucide-react";
 import Webcam from "react-webcam";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -29,11 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  serverGeminiLiteVision,
-  serverGeminiVision,
-  serverGroqVision,
-} from "@/lib/ai";
+import { serverFoodVision } from "@/lib/ai";
+import { toastAiError } from "@/lib/aiErrors";
+import { photoAttempt, recordPhotoOutcome } from "@/lib/searchAttempt";
+import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { type IFCTItem, kcalOf } from "@/lib/foodDb";
 import { resolveFood } from "@/components/VoiceFoodDialog";
 
@@ -71,34 +70,50 @@ export interface MealPicker {
   onChange: (v: string) => void;
 }
 
+/** After 2 s a bare spinner reads as frozen; say what the AI is doing instead. */
+// A photo may take up to ~23 s at peak, so the copy never promises it is
+// nearly done: after the working stages it says plainly that it is busy.
+const PHOTO_STAGES = [
+  "Analyzing image details…",
+  "Identifying ingredients…",
+  "Calculating estimated nutrition…",
+  "Taking a little longer than usual…",
+  "Busy right now, still working on it…",
+];
+
 /**
- * Which vision model reads the photo.
- *
- * Both are wired to the same prompt, the same parsing and the same result
- * shape, so the only variable between them is the model — that is what makes
- * the two buttons in the log-food screen an actual comparison rather than two
- * different features that happen to both use a camera.
+ * A picked photo as a JPEG data URL no larger than 1280 px on its long side.
+ * Phone photos are often 4000 px and several MB; the server caps the image at
+ * ~8 MB and accepts only JPEG, PNG or WebP, so one re-encode covers both, and
+ * a HEIC the browser can display comes out as a JPEG too.
  */
-export type VisionProvider = "groq" | "gemini" | "gemini-lite";
-
-const VISION_FN = {
-  groq: serverGroqVision, // qwen/qwen3.8-27b
-  gemini: serverGeminiVision, // gemini-3.6-flash
-  "gemini-lite": serverGeminiLiteVision, // gemini-3.5-flash-lite
-} as const;
-
-/** Shown in the dialog title, so a three-way comparison is not guesswork. */
-const PROVIDER_LABEL: Record<VisionProvider, string> = {
-  groq: "Qwen",
-  gemini: "Gemini",
-  "gemini-lite": "Gemini Lite",
-};
+async function toJpegDataUrl(file: File): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const scale = Math.min(
+      1,
+      1280 / Math.max(img.naturalWidth, img.naturalHeight),
+    );
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.naturalWidth * scale);
+    canvas.height = Math.round(img.naturalHeight * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context unavailable");
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 // ── AI image recognition ────────────────────────────────────────────────────
 async function recognizeFoodFromImage(
   base64: string,
   mimeType: "image/jpeg" | "image/png" | "image/webp",
-  provider: VisionProvider,
+  attempt: 1 | 2,
 ): Promise<AIFoodResult> {
   const prompt = `You are a nutrition expert. Analyze this food photo and return ONLY valid JSON, no markdown:
 {
@@ -110,8 +125,10 @@ async function recognizeFoodFromImage(
 Name the food and estimate its weight only. Do NOT return calories or any macro value: those are looked up separately, from a verified database wherever one exists.
 A human palm is ~18cm — use it as a size reference if visible.`;
 
-  const { result: raw } = await VISION_FN[provider]({
-    data: { prompt, base64, mimeType },
+  // Which model reads it, and what happens when one is busy, is decided on
+  // the server (server/aiRoutes.ts visionChain).
+  const { result: raw } = await serverFoodVision({
+    data: { prompt, base64, mimeType, attempt },
   });
   // Safety: strip any <think> tags + markdown fences
   const clean = raw
@@ -144,7 +161,6 @@ export function PhotoFoodDialog({
   onConfirm,
   meal,
   confirmLabel = "Log this food",
-  provider = "groq",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -152,9 +168,12 @@ export function PhotoFoodDialog({
   onConfirm: (result: PhotoFoodResult) => void | Promise<void>;
   meal?: MealPicker;
   confirmLabel?: string;
-  provider?: VisionProvider;
 }) {
   const webcamRef = useRef<Webcam>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  /** How the photo on screen was taken, so the way back matches it. */
+  const [source, setSource] = useState<"camera" | "upload" | null>(null);
+  const [cameraFailed, setCameraFailed] = useState(false);
   const [aiResult, setAiResult] = useState<Recognised | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -162,41 +181,86 @@ export function PhotoFoodDialog({
   // Keep weight as a string so the field can be fully cleared (number state
   // collapses "" → 0, which then renders as "0" and can't be removed).
   const [weightInput, setWeightInput] = useState("");
+  const wait = useWaitLabel(analyzing, "Analysing food…", PHOTO_STAGES);
 
-  const capture = async () => {
+  // Capturing or uploading only shows the photo; nothing is sent until the
+  // person has looked at it and chosen Proceed.
+  const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (!imageSrc) return;
-
     setImagePreview(imageSrc);
+    setSource("camera");
+  };
+
+  const onFilePicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Cleared so picking the same file again still fires onChange.
+    e.target.value = "";
+    if (!file) return;
+    try {
+      setImagePreview(await toJpegDataUrl(file));
+      setSource("upload");
+      setAiResult(null);
+    } catch (err) {
+      console.error("Photo upload failed", err);
+      toast.error("Couldn't open that photo", {
+        description: "Try a JPG or PNG image.",
+      });
+    }
+  };
+
+  /**
+   * Bumped by Cancel: an analysis that finishes after it was cancelled is
+   * dropped. The server call itself cannot be recalled and simply completes.
+   */
+  const runId = useRef(0);
+
+  const proceed = async () => {
+    if (!imagePreview) return;
+    const run = ++runId.current;
     setAnalyzing(true);
     try {
-      const base64 = imageSrc.split(",")[1];
+      const base64 = imagePreview.split(",")[1];
+      // Each Proceed after a failure is the next attempt: the server rotates
+      // the model order on it, and the lookup below follows the same attempt.
+      const attempt = photoAttempt();
       const result = await recognizeFoodFromImage(
         base64,
         "image/jpeg",
-        provider,
+        attempt,
       );
+      if (run !== runId.current) return;
       // The resolver a spoken name goes through, so the item handed to
       // onConfirm is per 100 g with energy in kJ — exactly what a typed
-      // search hands over. The text engine follows the vision provider, so
-      // each photo button stays one model family end to end.
-      const item = await resolveFood(
-        result.food_name,
-        provider === "groq" ? "groq" : "gemini",
-      );
-      if (!item)
-        throw new Error(
-          `no nutrition data for "${result.food_name}" — add it via search.`,
-        );
+      // search hands over.
+      const item = await resolveFood(result.food_name, attempt);
+      if (run !== runId.current) return;
+      recordPhotoOutcome(true);
+      if (!item) {
+        // A real gap in the data, not a failure: say what was seen and where
+        // to go, rather than an error.
+        toast.warning(`We spotted "${result.food_name}"`, {
+          description:
+            "We couldn't find its nutrition yet — add it with the search bar.",
+        });
+        return;
+      }
       setAiResult({ ...result, item });
       setWeightInput(String(result.estimated_weight_g ?? ""));
     } catch (e) {
-      toast.error(
-        "Could not identify food: " + (e instanceof Error ? e.message : e),
-      );
+      if (run === runId.current) {
+        recordPhotoOutcome(false);
+        toastAiError(e, "food photo");
+      }
     } finally {
-      setAnalyzing(false);
+      if (run === runId.current) setAnalyzing(false);
     }
+  };
+
+  /** Back to the photo, with Retake and Proceed, as if Proceed was never tapped. */
+  const cancelAnalysis = () => {
+    runId.current++;
+    setAnalyzing(false);
   };
 
   const confirm = async () => {
@@ -214,11 +278,18 @@ export function PhotoFoodDialog({
     }
   };
 
+  /** Back to the camera, or straight to the file picker for an upload. */
   const retake = () => {
     setAiResult(null);
-    setImagePreview(null);
     setWeightInput("");
+    if (source === "upload") {
+      fileRef.current?.click();
+      return;
+    }
+    setImagePreview(null);
+    setSource(null);
   };
+  const retakeLabel = source === "upload" ? "Re-upload" : "Retake";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,47 +297,106 @@ export function PhotoFoodDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="h-4 w-4" /> AI Food Recognition
-            <span className="text-xs font-normal text-muted-foreground">
-              {PROVIDER_LABEL[provider]}
-            </span>
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Place your hand next to the food for better portion accuracy, then
-            snap a photo.
+            take or upload a photo.
           </p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFilePicked}
+          />
           {!imagePreview && (
-            <div className="relative overflow-hidden rounded-lg border-2 border-border bg-black min-h-[300px] flex items-center justify-center">
-              <Webcam
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                videoConstraints={{ facingMode: "environment" }}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-4 inset-x-0 flex justify-center">
-                <button
-                  onClick={capture}
-                  aria-label="Take photo"
-                  className="h-16 w-16 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg"
-                />
+            <div className="space-y-3">
+              <div className="relative overflow-hidden rounded-lg border-2 border-border bg-black min-h-[300px] flex items-center justify-center">
+                {cameraFailed ? (
+                  <p className="px-8 text-center text-sm text-white/80">
+                    The camera isn't available. Upload a photo of your food
+                    instead.
+                  </p>
+                ) : (
+                  <>
+                    <Webcam
+                      audio={false}
+                      ref={webcamRef}
+                      screenshotFormat="image/jpeg"
+                      videoConstraints={{ facingMode: "environment" }}
+                      onUserMediaError={() => setCameraFailed(true)}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-4 inset-x-0 flex justify-center">
+                      <button
+                        onClick={capture}
+                        aria-label="Take photo"
+                        className="h-16 w-16 bg-white rounded-full border-4 border-accent flex items-center justify-center shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
+              <Button
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                className="w-full gap-2"
+              >
+                <Upload className="h-4 w-4" /> Upload a photo
+              </Button>
             </div>
           )}
           {imagePreview && (
             <div className="relative">
               <img
                 src={imagePreview}
-                alt="food"
-                className="w-full max-h-48 rounded-lg object-cover"
+                alt="Your food photo"
+                className={`w-full rounded-lg object-cover ${
+                  aiResult ? "max-h-48" : "max-h-80"
+                }`}
               />
               {analyzing && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/60">
                   <Loader2 className="h-8 w-8 animate-spin text-white" />
-                  <p className="text-sm text-white">Analysing food…</p>
+                  <p className="text-sm text-white" aria-live="polite">
+                    {wait.label}
+                  </p>
+                  {wait.long && (
+                    <p className="px-6 text-center text-xs text-white/70">
+                      Photos can take a few seconds — hang tight!
+                    </p>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={cancelAnalysis}
+                    className="mt-2 border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                  >
+                    Cancel
+                  </Button>
                 </div>
               )}
+            </div>
+          )}
+          {/* Look before sending: nothing is analysed until Proceed. */}
+          {imagePreview && !aiResult && !analyzing && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={retake} className="gap-1">
+                {source === "upload" ? (
+                  <Upload className="h-4 w-4" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+                {retakeLabel}
+              </Button>
+              <Button
+                onClick={proceed}
+                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                Proceed
+              </Button>
             </div>
           )}
           {aiResult && !analyzing && (
@@ -362,7 +492,7 @@ export function PhotoFoodDialog({
                   onClick={retake}
                   className="gap-1"
                 >
-                  <X className="h-3 w-3" /> Retake
+                  <X className="h-3 w-3" /> {retakeLabel}
                 </Button>
                 <Button
                   onClick={confirm}

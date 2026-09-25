@@ -5,6 +5,10 @@
  * the IFCTItem shape the app's food database uses.
  *
  * Run:  node scripts/build-restaurant-foods.mjs <path-to-extracted-data-dir>
+ * Then: node scripts/apply-restaurant-official.mjs
+ *       The scraped Domino's, KFC and CCD files are wrong (Domino's per-slice
+ *       figures read as per 100 g, KFC weights guessed, CCD macros missing), so
+ *       the second script replaces those brands with the vendors' published data.
  *
  * ── Why this script is not a simple field rename ────────────────────────────
  *

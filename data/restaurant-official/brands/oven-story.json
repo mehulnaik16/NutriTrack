@@ -1,0 +1,484 @@
+{
+ "brand": "Oven Story Pizza",
+ "code": "ZO",
+ "source": "https://www.eatsure.com (EatSure, Rebel Foods' own ordering app: nutritional value published on each Oven Story Pizza product, brand_id 21; fetched 2026-09-24)",
+ "basis": "Per item as ordered, from the nutrition the brand publishes on its own ordering app. Weights are not published unless in the item name, so they are estimated and shown with ≈.",
+ "density": 250,
+ "items": [
+  {
+   "name": "BBQ Chicken Pizza Mania",
+   "serving": "order, as sold",
+   "kcal": 446,
+   "protein": 12,
+   "carbs": 59,
+   "fat": 16
+  },
+  {
+   "name": "Veggie Farmhouse Regular Pizza (Serves 1)",
+   "serving": "order, as sold",
+   "kcal": 486,
+   "protein": 19,
+   "carbs": 58,
+   "fat": 18
+  },
+  {
+   "name": "Dragonfire Veg Overloaded Medium Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1085,
+   "protein": 41,
+   "carbs": 134,
+   "fat": 41
+  },
+  {
+   "name": "Maharaja Paneer Medium Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1408,
+   "protein": 59,
+   "carbs": 128,
+   "fat": 72
+  },
+  {
+   "name": "Margherita Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 883,
+   "protein": 36,
+   "carbs": 116,
+   "fat": 29
+  },
+  {
+   "name": "Double Cheese Margherita Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1009,
+   "protein": 46,
+   "carbs": 116,
+   "fat": 39
+  },
+  {
+   "name": "Garden Fresh Veggie Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 934,
+   "protein": 38,
+   "carbs": 126,
+   "fat": 30
+  },
+  {
+   "name": "Veggie Farmhouse Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 934,
+   "protein": 39,
+   "carbs": 123,
+   "fat": 30
+  },
+  {
+   "name": "Magic Mushroom Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 926,
+   "protein": 40,
+   "carbs": 120,
+   "fat": 31
+  },
+  {
+   "name": "Paneer Golden Delight Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1152,
+   "protein": 48,
+   "carbs": 123,
+   "fat": 51
+  },
+  {
+   "name": "Tandoori Paneer Tikka Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1163,
+   "protein": 49,
+   "carbs": 125,
+   "fat": 51
+  },
+  {
+   "name": "Signature Korean Paneer Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1120,
+   "protein": 49,
+   "carbs": 143,
+   "fat": 38
+  },
+  {
+   "name": "Dragonfire Paneer Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1211,
+   "protein": 50,
+   "carbs": 138,
+   "fat": 50
+  },
+  {
+   "name": "Veg Overload Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 966,
+   "protein": 40,
+   "carbs": 127,
+   "fat": 32
+  },
+  {
+   "name": "Chick-a-boom Medium Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1310,
+   "protein": 64,
+   "carbs": 141,
+   "fat": 53
+  },
+  {
+   "name": "Smoked Chicken Sausage Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 994,
+   "protein": 43,
+   "carbs": 123,
+   "fat": 35
+  },
+  {
+   "name": "BBQ Chicken Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1049,
+   "protein": 42,
+   "carbs": 134,
+   "fat": 37
+  },
+  {
+   "name": "Tandoori Chicken Tikka Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1036,
+   "protein": 51,
+   "carbs": 124,
+   "fat": 36
+  },
+  {
+   "name": "Golden Chicken Delight Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1025,
+   "protein": 50,
+   "carbs": 123,
+   "fat": 36
+  },
+  {
+   "name": "Roasted Chicken Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1048,
+   "protein": 45,
+   "carbs": 124,
+   "fat": 40
+  },
+  {
+   "name": "Double Chicken Feast Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1112,
+   "protein": 58,
+   "carbs": 125,
+   "fat": 40
+  },
+  {
+   "name": "Dragonfire Chicken Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1274,
+   "protein": 47,
+   "carbs": 147,
+   "fat": 59
+  },
+  {
+   "name": "Signature Korean Chicken Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1183,
+   "protein": 46,
+   "carbs": 152,
+   "fat": 47
+  },
+  {
+   "name": "Chicken Maximus Thin Crust Pizza",
+   "serving": "order, as sold",
+   "kcal": 1360,
+   "protein": 62,
+   "carbs": 137,
+   "fat": 61
+  },
+  {
+   "name": "Makhani Paneer Tikka Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 535,
+   "protein": 14,
+   "carbs": 68,
+   "fat": 21
+  },
+  {
+   "name": "Makhani Chicken Tikka Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 489,
+   "protein": 15,
+   "carbs": 68,
+   "fat": 16
+  },
+  {
+   "name": "Plain Herbed Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 368,
+   "protein": 7,
+   "carbs": 49,
+   "fat": 14
+  },
+  {
+   "name": "Cheesy Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 400,
+   "protein": 8,
+   "carbs": 52,
+   "fat": 16
+  },
+  {
+   "name": "Korean Cheesy Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 438,
+   "protein": 9,
+   "carbs": 69,
+   "fat": 12
+  },
+  {
+   "name": "Chicken Kheema n Cheese Stuffed Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 473,
+   "protein": 11,
+   "carbs": 52,
+   "fat": 23
+  },
+  {
+   "name": "Paneer Tikka Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 504,
+   "protein": 13,
+   "carbs": 52,
+   "fat": 25
+  },
+  {
+   "name": "Chicken Tikka Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 358,
+   "protein": 13,
+   "carbs": 52,
+   "fat": 9
+  },
+  {
+   "name": "Dragonfire Paneer Tikka Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 575,
+   "protein": 14,
+   "carbs": 68,
+   "fat": 25
+  },
+  {
+   "name": "Korean Paneer Tikka Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 542,
+   "protein": 14,
+   "carbs": 70,
+   "fat": 21
+  },
+  {
+   "name": "Korean Chicken Tikka Garlic Bread",
+   "serving": "order, as sold",
+   "kcal": 488,
+   "protein": 15,
+   "carbs": 70,
+   "fat": 15
+  },
+  {
+   "name": "Cheesy Chicken Meatballs",
+   "serving": "order, as sold",
+   "kcal": 262,
+   "protein": 22,
+   "carbs": 9,
+   "fat": 14
+  },
+  {
+   "name": "Potato Chilli Shots with Mayo Dip",
+   "serving": "order, as sold",
+   "kcal": 336,
+   "protein": 2,
+   "carbs": 31,
+   "fat": 22
+  },
+  {
+   "name": "Grilled Chicken Nuggets with Mayo Dip",
+   "serving": "order, as sold",
+   "kcal": 589,
+   "protein": 48,
+   "carbs": 21,
+   "fat": 34
+  },
+  {
+   "name": "Chicken Tenders",
+   "serving": "order, as sold",
+   "kcal": 368,
+   "protein": 20,
+   "carbs": 16,
+   "fat": 24
+  },
+  {
+   "name": "Chicken Popcorn Starter With Chipotle Cheese (60gm)",
+   "serving": "order, as sold",
+   "kcal": 221,
+   "g": 60.0,
+   "protein": 12,
+   "carbs": 10,
+   "fat": 14
+  },
+  {
+   "name": "Pizza Puff (Pack of 2)",
+   "serving": "order, as sold",
+   "kcal": 223,
+   "protein": 4,
+   "carbs": 24,
+   "fat": 12
+  },
+  {
+   "name": "Potato Wedges (Medium)",
+   "serving": "order, as sold",
+   "kcal": 233,
+   "protein": 5,
+   "carbs": 28,
+   "fat": 11
+  },
+  {
+   "name": "French Fries (Medium)",
+   "serving": "order, as sold",
+   "kcal": 313,
+   "protein": 3,
+   "carbs": 41,
+   "fat": 14
+  },
+  {
+   "name": "Dragon Fire Dip",
+   "serving": "order, as sold",
+   "kcal": 53,
+   "protein": 0,
+   "carbs": 4,
+   "fat": 3
+  },
+  {
+   "name": "Cheesy Dip",
+   "serving": "order, as sold",
+   "kcal": 31,
+   "note": "The brand's macros contradict its calories, so only the calories are kept."
+  },
+  {
+   "name": "Cheese Infused Garlic Bread + Cheesy Chicken Meatballs",
+   "serving": "order, as sold",
+   "kcal": 662,
+   "protein": 30,
+   "carbs": 61,
+   "fat": 30
+  },
+  {
+   "name": "Plain Herbed Garlic Bread + Cheesy Dip + Gulab Jamun",
+   "serving": "order, as sold",
+   "kcal": 776,
+   "protein": 12,
+   "carbs": 121,
+   "fat": 22
+  },
+  {
+   "name": "Cheese Infused Garlic Bread + Cheesy Dip",
+   "serving": "order, as sold",
+   "kcal": 431,
+   "protein": 8,
+   "carbs": 54,
+   "fat": 17
+  },
+  {
+   "name": "Masala Lemonade (200 mL)",
+   "serving": "drink",
+   "kcal": 94,
+   "g": 200.0,
+   "protein": 0,
+   "carbs": 24,
+   "fat": 0
+  },
+  {
+   "name": "Coke Zero 330 ml Can",
+   "serving": "drink",
+   "kcal": 0,
+   "g": 330.0,
+   "protein": 0,
+   "carbs": 0,
+   "fat": 0
+  },
+  {
+   "name": "Thums Up Can (330 mL)",
+   "serving": "drink",
+   "kcal": 145,
+   "g": 330.0,
+   "protein": 0,
+   "carbs": 36,
+   "fat": 0
+  },
+  {
+   "name": "New York Cheesecake",
+   "serving": "order, as sold",
+   "kcal": 441,
+   "protein": 7,
+   "carbs": 35,
+   "fat": 29
+  },
+  {
+   "name": "Death by Chocolate Cake Jar",
+   "serving": "order, as sold",
+   "kcal": 394,
+   "protein": 2,
+   "carbs": 43,
+   "fat": 23
+  },
+  {
+   "name": "Blueberry Cheesecake",
+   "serving": "order, as sold",
+   "kcal": 374,
+   "protein": 3,
+   "carbs": 40,
+   "fat": 22
+  },
+  {
+   "name": "Walnut Brownie",
+   "serving": "order, as sold",
+   "kcal": 385,
+   "protein": 3,
+   "carbs": 38,
+   "fat": 23
+  },
+  {
+   "name": "Choco Chip Brownie",
+   "serving": "order, as sold",
+   "kcal": 370,
+   "protein": 3,
+   "carbs": 40,
+   "fat": 21
+  },
+  {
+   "name": "Red Velvet Cake (500 gm) (Eggless)",
+   "serving": "order, as sold",
+   "kcal": 1434,
+   "g": 500.0,
+   "protein": 23,
+   "carbs": 155,
+   "fat": 79
+  },
+  {
+   "name": "Choco Mud Jar",
+   "serving": "order, as sold",
+   "kcal": 418,
+   "protein": 3,
+   "carbs": 49,
+   "fat": 23
+  },
+  {
+   "name": "Tiramisu Cheesecake",
+   "serving": "order, as sold",
+   "kcal": 383,
+   "protein": 4,
+   "carbs": 30,
+   "fat": 27
+  }
+ ]
+}

@@ -1,0 +1,791 @@
+{
+ "brand": "Absolute Barbecues",
+ "code": "ZA",
+ "source": "https://www.absolutebarbecues.com/pdf/nutrition.pdf (Absolute Barbeque Pvt Ltd, food products with nutrition information)",
+ "basis": "Per 100 g, as the brand publishes it for its buffet dishes.",
+ "density": 200,
+ "items": [
+  {
+   "name": "Mint Chutney",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 38.4,
+   "carbs": 2.72,
+   "protein": 3.52,
+   "fat": 1.52
+  },
+  {
+   "name": "Harabara Kebab",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 213.6,
+   "carbs": 16.97,
+   "protein": 3.99,
+   "fat": 13.46
+  },
+  {
+   "name": "Paneer Tikka",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 233.16,
+   "note": "The brand's macros contradict its energy, so only the energy is kept."
+  },
+  {
+   "name": "Crispy Fried Corn",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 304.73,
+   "carbs": 21.0,
+   "protein": 2.76,
+   "fat": 24.31
+  },
+  {
+   "name": "Cheesy Potato",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 326.61,
+   "carbs": 13.74,
+   "protein": 1.25,
+   "fat": 29.75
+  },
+  {
+   "name": "Beetroot Kebab",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 185.0,
+   "carbs": 18.4,
+   "protein": 4.2,
+   "fat": 10.6
+  },
+  {
+   "name": "Khasta Kebab",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 472.0,
+   "carbs": 4.33,
+   "protein": 0.57,
+   "fat": 50.2
+  },
+  {
+   "name": "Yellow Dal",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 316.61,
+   "carbs": 42.16,
+   "protein": 19.2,
+   "fat": 6.71
+  },
+  {
+   "name": "Paneer Curry",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 332.5,
+   "carbs": 8.86,
+   "protein": 12.78,
+   "fat": 20.57
+  },
+  {
+   "name": "Dal Makhani",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 299.67,
+   "carbs": 24.44,
+   "protein": 10.16,
+   "fat": 22.02
+  },
+  {
+   "name": "Paratha",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 389.46,
+   "carbs": 54.63,
+   "protein": 7.93,
+   "fat": 15.02
+  },
+  {
+   "name": "Plain Rice",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 200.26,
+   "carbs": 22.31,
+   "protein": 2.4,
+   "fat": 10.62
+  },
+  {
+   "name": "Rasgula",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 172.19,
+   "carbs": 29.49,
+   "protein": 3.71,
+   "fat": 4.39
+  },
+  {
+   "name": "Gulab Jamun",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 316.0,
+   "carbs": 55.0,
+   "protein": 6.0,
+   "fat": 8.0
+  },
+  {
+   "name": "Raitha",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 51.38,
+   "carbs": 5.32,
+   "protein": 2.85,
+   "fat": 1.96
+  },
+  {
+   "name": "Green Salad",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 63.88,
+   "carbs": 11.04,
+   "protein": 3.48,
+   "fat": 0.42
+  },
+  {
+   "name": "Mushroom",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 189.04,
+   "note": "The brand's macros contradict its energy, so only the energy is kept."
+  },
+  {
+   "name": "Cottage Cheese",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 122.47,
+   "carbs": 7.04,
+   "protein": 4.09,
+   "fat": 8.68
+  },
+  {
+   "name": "Grilled Vegetables",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 115.87,
+   "carbs": 15.8,
+   "protein": 1.29,
+   "fat": 5.06
+  },
+  {
+   "name": "Churrasco Pineapple",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 75.38,
+   "carbs": 18.9,
+   "protein": 0.72,
+   "fat": 0.22
+  },
+  {
+   "name": "Crispy Corn",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 385.26,
+   "carbs": 23.16,
+   "protein": 2.11,
+   "fat": 33.68
+  },
+  {
+   "name": "Potato Wedges",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 389.47,
+   "carbs": 15.79,
+   "protein": 1.75,
+   "fat": 35.09
+  },
+  {
+   "name": "Steamed Peanut Chat",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 408.4,
+   "carbs": 15.27,
+   "protein": 19.08,
+   "fat": 30.53
+  },
+  {
+   "name": "Russian Salad",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 95.65,
+   "carbs": 8.7,
+   "protein": 4.35,
+   "fat": 4.35
+  },
+  {
+   "name": "Aloo Anari Salad",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 102.44,
+   "carbs": 12.2,
+   "protein": 2.44,
+   "fat": 4.88
+  },
+  {
+   "name": "Mixed Fruit Salad",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 78.95,
+   "carbs": 15.79,
+   "protein": 0.0,
+   "fat": 2.63
+  },
+  {
+   "name": "Dahi Bhalla",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 370.04,
+   "carbs": 31.41,
+   "protein": 11.74,
+   "fat": 21.45
+  },
+  {
+   "name": "Curd Rice",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 107.76,
+   "carbs": 19.4,
+   "protein": 2.87,
+   "fat": 1.44
+  },
+  {
+   "name": "Veg Biryani",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 64.19,
+   "carbs": 4.78,
+   "protein": 0.96,
+   "fat": 4.46
+  },
+  {
+   "name": "Phirni",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 110.57,
+   "carbs": 16.16,
+   "protein": 2.95,
+   "fat": 3.77
+  },
+  {
+   "name": "Moong Dal Halwa",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 377.89,
+   "carbs": 50.76,
+   "protein": 12.07,
+   "fat": 13.68
+  },
+  {
+   "name": "Hot Jalebi",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 475.5,
+   "carbs": 67.13,
+   "protein": 5.18,
+   "fat": 20.39
+  },
+  {
+   "name": "Mix Fruit Jelly",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 233.05,
+   "carbs": 55.1,
+   "protein": 4.3,
+   "fat": 0.02
+  },
+  {
+   "name": "Pasta",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 217.2,
+   "carbs": 21.18,
+   "protein": 4.13,
+   "fat": 13.0
+  },
+  {
+   "name": "Pineapple Pastry",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 279.9,
+   "carbs": 53.28,
+   "protein": 3.49,
+   "fat": 5.99
+  },
+  {
+   "name": "Mango Cheese Cake",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 293.69,
+   "carbs": 38.92,
+   "protein": 5.01,
+   "fat": 13.37
+  },
+  {
+   "name": "White Sauce",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 294.5,
+   "carbs": 19.76,
+   "protein": 6.24,
+   "fat": 21.08
+  },
+  {
+   "name": "Naan",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 321.28,
+   "carbs": 56.98,
+   "protein": 7.9,
+   "fat": 6.44
+  },
+  {
+   "name": "Roti",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 370.9,
+   "carbs": 65.43,
+   "protein": 10.54,
+   "fat": 7.35
+  },
+  {
+   "name": "Kofta Curry",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 255.5,
+   "carbs": 13.47,
+   "protein": 9.34,
+   "fat": 18.35
+  },
+  {
+   "name": "Mixed Veg",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 151.78,
+   "carbs": 5.71,
+   "protein": 2.38,
+   "fat": 13.09
+  },
+  {
+   "name": "Noodles",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 222.89,
+   "carbs": 36.23,
+   "protein": 5.84,
+   "fat": 5.67
+  },
+  {
+   "name": "Veg Manchurian",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 116.71,
+   "carbs": 14.8,
+   "protein": 2.41,
+   "fat": 5.38
+  },
+  {
+   "name": "Kofta Samsambera",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 140.69,
+   "carbs": 10.4,
+   "protein": 6.53,
+   "fat": 8.0
+  },
+  {
+   "name": "Grilled Mushroom",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 250.25,
+   "note": "The brand's macros contradict its energy, so only the energy is kept."
+  },
+  {
+   "name": "Guch-O-Bahar",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 85.02,
+   "carbs": 5.94,
+   "protein": 2.68,
+   "fat": 5.41
+  },
+  {
+   "name": "Diplomat Pudding",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 239.21,
+   "carbs": 28.57,
+   "protein": 2.68,
+   "fat": 12.76
+  },
+  {
+   "name": "Bread Pudding",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 243.9,
+   "carbs": 40.94,
+   "protein": 3.02,
+   "fat": 7.78
+  },
+  {
+   "name": "Chocolate Cronchi Munchi",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 513.85,
+   "carbs": 55.3,
+   "protein": 7.03,
+   "fat": 29.94
+  },
+  {
+   "name": "Tandoori Mushroom",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 161.85,
+   "carbs": 9.57,
+   "protein": 5.33,
+   "fat": 11.08
+  },
+  {
+   "name": "Chilli Paneer",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 452.28,
+   "carbs": 6.22,
+   "protein": 10.37,
+   "fat": 43.57
+  },
+  {
+   "name": "Chicken Wings",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 182.47,
+   "carbs": 3.91,
+   "protein": 12.65,
+   "fat": 12.86
+  },
+  {
+   "name": "Fish Fingers",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 316.36,
+   "carbs": 21.4,
+   "protein": 9.5,
+   "fat": 21.29
+  },
+  {
+   "name": "Grilled Fish",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 101.95,
+   "carbs": 3.27,
+   "protein": 10.5,
+   "fat": 5.14
+  },
+  {
+   "name": "Grilled Prawns Satey",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 76.56,
+   "carbs": 4.94,
+   "protein": 9.68,
+   "fat": 1.86
+  },
+  {
+   "name": "Egg Curry",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 212.25,
+   "carbs": 8.3,
+   "protein": 7.68,
+   "fat": 16.22
+  },
+  {
+   "name": "Brownie",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 362.41,
+   "carbs": 41.6,
+   "protein": 7.84,
+   "fat": 18.28
+  },
+  {
+   "name": "Chicken Birayni",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 145.04,
+   "carbs": 8.72,
+   "protein": 7.21,
+   "fat": 8.8
+  },
+  {
+   "name": "BBQ Chicken",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 132.94,
+   "carbs": 8.8,
+   "protein": 17.39,
+   "fat": 5.0
+  },
+  {
+   "name": "Mutton Curry",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 276.94,
+   "carbs": 3.73,
+   "protein": 11.91,
+   "fat": 23.45
+  },
+  {
+   "name": "BBQ Prawns",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 88.68,
+   "carbs": 6.34,
+   "protein": 10.62,
+   "fat": 2.09
+  },
+  {
+   "name": "Fish Tikka",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 91.58,
+   "carbs": 3.24,
+   "protein": 10.15,
+   "fat": 4.19
+  },
+  {
+   "name": "Chicken Seekh Kebab",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 143.33,
+   "carbs": 1.44,
+   "protein": 17.41,
+   "fat": 6.45
+  },
+  {
+   "name": "Drumstick",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 145.64,
+   "carbs": 20.28,
+   "protein": 6.87,
+   "fat": 4.19
+  },
+  {
+   "name": "Handi Gosht",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 229.81,
+   "carbs": 0.01,
+   "protein": 25.96,
+   "fat": 13.99
+  },
+  {
+   "name": "Chicken Korma",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 212.89,
+   "note": "The brand's macros contradict its energy, so only the energy is kept."
+  },
+  {
+   "name": "Srilankan Fish Curry",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 193.06,
+   "carbs": 3.98,
+   "protein": 5.41,
+   "fat": 17.21
+  },
+  {
+   "name": "Grilled Chicken",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 176.81,
+   "carbs": 6.54,
+   "protein": 14.54,
+   "fat": 9.57
+  },
+  {
+   "name": "Chicken Tangdi",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 177.21,
+   "carbs": 5.75,
+   "protein": 14.03,
+   "fat": 10.91
+  },
+  {
+   "name": "Grilled Prawns",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 76.56,
+   "note": "The brand's macros contradict its energy, so only the energy is kept."
+  },
+  {
+   "name": "Chicken Chilli With Bone",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 246.63,
+   "carbs": 11.79,
+   "protein": 11.58,
+   "fat": 16.95
+  },
+  {
+   "name": "Banana Cake",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 342.91,
+   "carbs": 43.03,
+   "protein": 5.44,
+   "fat": 16.74
+  },
+  {
+   "name": "Egyptian Lamb Kefta",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 280.98,
+   "carbs": 1.6,
+   "protein": 14.51,
+   "fat": 23.64
+  },
+  {
+   "name": "Blueberry Cheese Cake",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 277.55,
+   "carbs": 9.62,
+   "protein": 6.87,
+   "fat": 23.55
+  },
+  {
+   "name": "Pineapple Poke Cake",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 331.68,
+   "carbs": 52.89,
+   "protein": 2.18,
+   "fat": 12.37
+  },
+  {
+   "name": "Carrot Raisin Cake",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 339.33,
+   "carbs": 41.67,
+   "protein": 5.66,
+   "fat": 16.77
+  },
+  {
+   "name": "Garlic Butter Chicken With Lemon",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 170.81,
+   "carbs": 3.91,
+   "protein": 16.06,
+   "fat": 9.76
+  },
+  {
+   "name": "Biryani Kebab",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 180.15,
+   "carbs": 27.31,
+   "protein": 4.59,
+   "fat": 5.12
+  },
+  {
+   "name": "Cheese Cigarello",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 150.47,
+   "carbs": 18.61,
+   "protein": 4.76,
+   "fat": 6.31
+  },
+  {
+   "name": "Chicken Mishakaki",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 145.99,
+   "carbs": 4.33,
+   "protein": 16.25,
+   "fat": 6.58
+  },
+  {
+   "name": "Corn Dog",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 145.33,
+   "carbs": 24.74,
+   "protein": 4.69,
+   "fat": 4.16
+  },
+  {
+   "name": "Éclair Cheese Cake",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 298.9,
+   "carbs": 22.37,
+   "protein": 6.65,
+   "fat": 20.33
+  },
+  {
+   "name": "Fruit Cake",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 452.8,
+   "carbs": 53.75,
+   "protein": 3.81,
+   "fat": 24.46
+  },
+  {
+   "name": "Gola Kebab",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 235.35,
+   "carbs": 7.63,
+   "protein": 9.21,
+   "fat": 18.31
+  },
+  {
+   "name": "Missisipi Delta Prawns",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 218.18,
+   "carbs": 3.19,
+   "protein": 10.12,
+   "fat": 18.2
+  },
+  {
+   "name": "Mutton Yakhni Shorba",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 197.53,
+   "carbs": 2.52,
+   "protein": 9.71,
+   "fat": 16.14
+  },
+  {
+   "name": "Nadru Yakhni Shorba",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 142.07,
+   "carbs": 12.0,
+   "protein": 4.41,
+   "fat": 8.37
+  },
+  {
+   "name": "Steamed Fish Paturi",
+   "label": "100 g, as published",
+   "g": 100,
+   "kcal": 220.0,
+   "carbs": 6.1,
+   "protein": 8.7,
+   "fat": 17.74
+  }
+ ]
+}

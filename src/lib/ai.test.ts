@@ -17,6 +17,8 @@ import {
   maxTokensFor,
   ENERGY_TOL,
   ENERGY_FLOOR_KJ,
+  FAST_FOOD_SYSTEM,
+  fastFoodQuery,
 } from "./foodAiSchema.ts";
 import { isComposite } from "./foodFuzzy.ts";
 
@@ -444,6 +446,34 @@ const item = (over: Record<string, unknown> = {}) => ({
 
   console.log(
     "✓ A13 extractJsonObject: prose around a clean object, a decoy object (ambiguity reported), an unmatched {, a balanced-but-invalid decoy, and in-string braces/quotes",
+  );
+}
+
+// ── A14: Fast Food Meal prompt and query ──
+{
+  const q = fastFoodQuery("  Domino's ", "farm<house> `regular`");
+  assert.strictEqual(q.key, "Domino's farm house regular");
+  assert.strictEqual(
+    q.message,
+    "<restaurant>Domino's</restaurant><meal>farm house regular</meal>",
+  );
+  // The prompt's own example must pass the validator unchanged, so the model
+  // is never shown an answer the app would reject.
+  const example = FAST_FOOD_SYSTEM.slice(
+    FAST_FOOD_SYSTEM.lastIndexOf("\n") + 1,
+  );
+  const v = validateFoodResponse(JSON.parse(example), q.key);
+  assert.ok(v && v.items.length === 1);
+  assert.strictEqual(v.items[0].food_class, "fast food");
+  assert.strictEqual(v.items[0].enerc, 962.32);
+  // "Not sold there" is an empty answer, not an error.
+  assert.deepStrictEqual(
+    validateFoodResponse({ kind: "single", items: [] }, q.key)?.items,
+    [],
+  );
+  assert.ok(FAST_FOOD_SYSTEM.length < 2500, "fast-food prompt stays short");
+  console.log(
+    "✓ A14 fast-food query sanitised, prompt example validates, prompt short",
   );
 }
 
