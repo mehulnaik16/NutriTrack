@@ -1,0 +1,675 @@
+{
+ "brand": "SMOOR",
+ "code": "ZM",
+ "source": "SMOOR's own menu listing on Swiggy (Bangalore, The Nexus Mall BTM outlet, restaurant 1053): energy, protein, carbohydrates, fibre and fat in each item's description. Fetched 2026-09-25.",
+ "basis": "Per 100 g. The listing does not name its basis, but one set of figures is shared by a single pastry, its 500 g cake and its 1 kg cake, and the chocolate bars read 520-665 kcal, so the figures can only be per 100 g. Macarons are stated per 15 g (one macaron). Left out: beverages and hot chocolates (listed with 0 g carbohydrate for milkshakes, so incomplete, and no clear basis).",
+ "density": 400,
+ "items": [
+  {
+   "name": "Mango Coconut Pastry",
+   "g": 100,
+   "kcal": 381.4,
+   "protein": 3.48,
+   "carbs": 26.49,
+   "fat": 28.64,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Rocher Rhapsody Pastry",
+   "g": 100,
+   "kcal": 486,
+   "protein": 6.4,
+   "carbs": 46.7,
+   "fat": 30,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Pina Coco Craze Pastry",
+   "g": 100,
+   "kcal": 297.8,
+   "protein": 2.7,
+   "carbs": 33,
+   "fat": 16.8,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Choco Truffle Pastry",
+   "g": 100,
+   "kcal": 360,
+   "protein": 3.35,
+   "carbs": 28.57,
+   "fat": 25.06,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Belgium Chocolate Truffle Pastry",
+   "g": 100,
+   "kcal": 384,
+   "protein": 4,
+   "carbs": 43,
+   "fat": 21,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Just Butterscotch Cake",
+   "g": 100,
+   "kcal": 288,
+   "protein": 2,
+   "carbs": 44.5,
+   "fat": 11.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Good Ol Pineapple Cake",
+   "g": 100,
+   "kcal": 210,
+   "protein": 2.3,
+   "carbs": 36.9,
+   "fat": 5.9,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Belgium Chocolate Truffle Cake",
+   "g": 100,
+   "kcal": 384,
+   "protein": 4,
+   "carbs": 43,
+   "fat": 21,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Fresh Fruit Cake",
+   "g": 100,
+   "kcal": 254,
+   "protein": 3.28,
+   "carbs": 42.97,
+   "fat": 8.85,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Choco Truffle Cake",
+   "g": 100,
+   "kcal": 360,
+   "protein": 3.35,
+   "carbs": 28.57,
+   "fat": 25.06,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Macaron (Eggless)",
+   "g": 15,
+   "kcal": 40.5,
+   "protein": 0.5,
+   "carbs": 5.2,
+   "fat": 2,
+   "serving": "macaron"
+  },
+  {
+   "name": "London Chocolate Caramel Pastry",
+   "g": 100,
+   "kcal": 483.8,
+   "protein": 4.3,
+   "carbs": 36.4,
+   "fat": 35.4,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Mango Bento Cheesecake (Eggless)",
+   "g": 100,
+   "kcal": 281.2,
+   "protein": 3,
+   "carbs": 27.1,
+   "fat": 17.8,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Chocolate Bento Cheesecake (Eggless)",
+   "g": 100,
+   "kcal": 374.6,
+   "protein": 5,
+   "carbs": 26.7,
+   "fat": 27,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Intense 70% Chocolate Pastry",
+   "g": 100,
+   "kcal": 438,
+   "protein": 5.93,
+   "carbs": 39.64,
+   "fat": 33.09,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Lotus Biscoff Cheesecake Pastry",
+   "g": 100,
+   "kcal": 402,
+   "protein": 5,
+   "carbs": 28.82,
+   "fat": 28.12,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Blueberry Cheesecake Pastry",
+   "g": 100,
+   "kcal": 352,
+   "protein": 6.3,
+   "carbs": 33.67,
+   "fat": 20.24,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Hazelnut Harmony Bento Cake",
+   "g": 100,
+   "kcal": 373,
+   "protein": 4.1,
+   "carbs": 37.75,
+   "fat": 18.11,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Eggless Irish Mocha'late Bento Cake",
+   "g": 100,
+   "kcal": 342,
+   "protein": 4.9,
+   "carbs": 48.27,
+   "fat": 14.27,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Dessert Tubs: Biscoff Cheesecake",
+   "g": 100,
+   "kcal": 465,
+   "protein": 4.31,
+   "carbs": 37.09,
+   "fat": 33.18,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Dessert Tubs: Tiramisu",
+   "g": 100,
+   "kcal": 335,
+   "protein": 6.62,
+   "carbs": 39.43,
+   "fat": 14.89,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Macaron",
+   "g": 15,
+   "kcal": 46.3,
+   "protein": 0.6,
+   "carbs": 5.3,
+   "fat": 2.5,
+   "serving": "macaron"
+  },
+  {
+   "name": "Artisanal Baklava",
+   "g": 100,
+   "kcal": 440.8,
+   "protein": 6.8,
+   "carbs": 56.5,
+   "fat": 17.7,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Center Fill Coffee Cookies",
+   "g": 100,
+   "kcal": 461.6,
+   "protein": 4.6,
+   "carbs": 53.7,
+   "fat": 25.2,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Danish Butter Cookies",
+   "g": 100,
+   "kcal": 404.2,
+   "protein": 5.8,
+   "carbs": 49.1,
+   "fat": 20.2,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Assorted Butter Cookies",
+   "g": 100,
+   "kcal": 404.2,
+   "protein": 5.8,
+   "carbs": 49.1,
+   "fat": 20.2,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Pistachio & Kunafa 70% Dark Chocolate Bar",
+   "g": 100,
+   "kcal": 556.7,
+   "protein": 8.5,
+   "carbs": 47.5,
+   "fat": 35.5,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Signature Filled Bars Pistachio & Kunafa 35% Milk Chocolate",
+   "g": 100,
+   "kcal": 555,
+   "protein": 6.9,
+   "carbs": 53.2,
+   "fat": 34.6,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Pistachio & Kunafa Choco Bites",
+   "g": 100,
+   "kcal": 546.2,
+   "protein": 8.5,
+   "carbs": 51.4,
+   "fat": 33.6,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "United By Flavours - Assorted Thins Selection",
+   "g": 100,
+   "kcal": 581.96,
+   "protein": 7.23,
+   "carbs": 43.64,
+   "fat": 41.78,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Classic Podi Cashew Chocolate Nibbles",
+   "g": 100,
+   "kcal": 575.2,
+   "protein": 11.3,
+   "carbs": 40.6,
+   "fat": 40.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Salted Tropical Mango Chocolate Nibbles",
+   "g": 100,
+   "kcal": 478.1,
+   "protein": 5.2,
+   "carbs": 49.3,
+   "fat": 28.6,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Bright Berry Burst Chocolate Nibbles",
+   "g": 100,
+   "kcal": 500.5,
+   "protein": 6.3,
+   "carbs": 50.2,
+   "fat": 29.2,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "No Added Sugar Almond Chocolate Nibbles",
+   "g": 100,
+   "kcal": 654,
+   "protein": 12.1,
+   "carbs": 25.6,
+   "fat": 54.8,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "No Added Sugar Hazelnut Chocolate Nibbles",
+   "g": 100,
+   "kcal": 665.7,
+   "protein": 10.6,
+   "carbs": 24.4,
+   "fat": 57.4,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Orange Hops Dark 70% True Cocoa Bar",
+   "g": 100,
+   "kcal": 579.5,
+   "protein": 6.9,
+   "carbs": 43.3,
+   "fat": 42.1,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Intense Dark 80% True Cocoa Bar",
+   "g": 100,
+   "kcal": 592.4,
+   "protein": 8.3,
+   "carbs": 37.9,
+   "fat": 45.8,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Baileys X Smoor Chocolate Truffles",
+   "g": 100,
+   "kcal": 590.9,
+   "protein": 18,
+   "carbs": 48.6,
+   "fat": 35.9,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Baileys X Smoor: Classic Chocolate Shots",
+   "g": 100,
+   "kcal": 559.6,
+   "protein": 4.8,
+   "carbs": 58.9,
+   "fat": 33.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Baileys X Smoor: Sea Salt Caramel Chocolate Shots",
+   "g": 100,
+   "kcal": 545.1,
+   "protein": 4.8,
+   "carbs": 60.7,
+   "fat": 30.9,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Baileys X Smoor: Creamy Berries Chocolate Shots",
+   "g": 100,
+   "kcal": 540.6,
+   "protein": 4.7,
+   "carbs": 57.8,
+   "fat": 31.7,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Baileys X Smoor: Sea Salt Caramel Chocolate Bar",
+   "g": 100,
+   "kcal": 581.4,
+   "protein": 5.9,
+   "carbs": 53.6,
+   "fat": 37.5,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Baileys X Smoor: Classic Chocolate Bar",
+   "g": 100,
+   "kcal": 574.8,
+   "protein": 6.7,
+   "carbs": 54,
+   "fat": 36.9,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Baileys X Smoor: Creamy Berries Chocolate Bar",
+   "g": 100,
+   "kcal": 588,
+   "protein": 6.2,
+   "carbs": 53.3,
+   "fat": 38.2,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Malt Nougat Bar",
+   "g": 100,
+   "kcal": 374.4,
+   "protein": 5.2,
+   "carbs": 60.2,
+   "fat": 12.5,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Strawberry Nougat Bar",
+   "g": 100,
+   "kcal": 374.4,
+   "protein": 6.3,
+   "carbs": 60,
+   "fat": 12.1,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Almond Snaps",
+   "g": 100,
+   "kcal": 529,
+   "protein": 7,
+   "carbs": 45.7,
+   "fat": 34.7,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Smoor Roasted Almond Rocks",
+   "g": 100,
+   "kcal": 585.8,
+   "protein": 10.5,
+   "carbs": 42.6,
+   "fat": 40.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Assorted Chocolate Thins",
+   "g": 100,
+   "kcal": 588.6,
+   "protein": 5.6,
+   "carbs": 54,
+   "fat": 38.4,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Assorted Choco-truffles",
+   "g": 100,
+   "kcal": 554,
+   "protein": 5.4,
+   "carbs": 55.1,
+   "fat": 34.7,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Luxe Treat",
+   "g": 100,
+   "kcal": 534,
+   "protein": 5.4,
+   "carbs": 52.5,
+   "fat": 33.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Peanut Butter Choco Cups",
+   "g": 100,
+   "kcal": 519.3,
+   "protein": 8.6,
+   "carbs": 59.9,
+   "fat": 27.1,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Luxury Chocolates",
+   "g": 100,
+   "kcal": 525,
+   "serving": "100 g",
+   "label": "100 g, as published",
+   "note": "Listed macros (45.24 g carbs, 56.66 g fat) add up to 691 kcal against the listed 525; kcal kept."
+  },
+  {
+   "name": "True Classics Chocolate Bar",
+   "g": 100,
+   "kcal": 605.49,
+   "protein": 8.9,
+   "carbs": 48.23,
+   "fat": 39.53,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Signature Filled Bars Roasted Hazelnut Bars 55% Dark Chocolate",
+   "g": 100,
+   "kcal": 602,
+   "protein": 7.3,
+   "carbs": 48.3,
+   "fat": 41,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Signature Filled Bars Cinnamon Crumble 55% Dark Chocolate",
+   "g": 100,
+   "kcal": 526.5,
+   "protein": 8.2,
+   "carbs": 51.7,
+   "fat": 31.5,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Medley Chocolate Bars Sea Salt Malt",
+   "g": 100,
+   "kcal": 553,
+   "protein": 6.1,
+   "carbs": 54.4,
+   "fat": 34.4,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Medley Chocolate Bars Filter Coffee",
+   "g": 100,
+   "kcal": 575,
+   "protein": 5.4,
+   "carbs": 52.6,
+   "fat": 37.5,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Medley Chocolate Bars Summer Berries",
+   "g": 100,
+   "kcal": 555,
+   "protein": 4.4,
+   "carbs": 59.3,
+   "fat": 31.8,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "True Cocoa Bars Classic 35% Milk Couverture Chocolate",
+   "g": 100,
+   "kcal": 582,
+   "protein": 6,
+   "carbs": 54,
+   "fat": 38,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "True Cocoa Bars Date + 70% Dark Couverture Chocolate",
+   "g": 100,
+   "kcal": 592,
+   "protein": 9.6,
+   "carbs": 39.7,
+   "fat": 42.1,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "True Cocoa Bars Jaggery + 70% Dark Couverture Chocolate",
+   "g": 100,
+   "kcal": 605,
+   "protein": 8.6,
+   "carbs": 45.2,
+   "fat": 42,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Signature Hot Chocolate Stir It Up",
+   "g": 100,
+   "kcal": 543.7,
+   "protein": 6.9,
+   "carbs": 48.3,
+   "fat": 35.9,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Coated Butterscotch",
+   "g": 100,
+   "kcal": 513.5,
+   "protein": 4,
+   "carbs": 64.7,
+   "fat": 26.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Butterscotch Barks",
+   "g": 100,
+   "kcal": 535.6,
+   "protein": 5.4,
+   "carbs": 56.4,
+   "fat": 31.7,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Coated Nuts Almond",
+   "g": 100,
+   "kcal": 581,
+   "protein": 11.7,
+   "carbs": 46.5,
+   "fat": 38,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Coated Nuts Hazelnut",
+   "g": 100,
+   "kcal": 596,
+   "protein": 7,
+   "carbs": 45.4,
+   "fat": 44,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  }
+ ]
+}

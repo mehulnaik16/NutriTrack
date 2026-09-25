@@ -1,0 +1,675 @@
+{
+ "brand": "Baskin-Robbins",
+ "code": "ZR",
+ "source": "Baskin-Robbins India's own menu listings on Swiggy (Bangalore: 'Baskin Robbins - Ice Cream Desserts', restaurant 810943, and 'Baskin Robbins Happyness Shakes', restaurant 675309): serving size and 'Nutritional info per <serving>' (kcal, protein, fat) in each item's description. Not the US nutrition guide. Fetched 2026-09-25.",
+ "basis": "Per serving as listed: scoops and gelatos per 100 ml (weight estimated at 0.55 g per ml, shown with ≈), sundaes, shakes and desserts at their stated weight, ice cream cakes per 100 g as listed. Carbohydrate is not published. Left out: tub and family-pack repeats of a scoop flavour (same per-100 ml figures), the 650 g kulfi roll and whole roll cake (repeats of the slice), and Blueberry Ice Cream Cheesecake (500 g), which is listed per 100 ml.",
+ "density": 250,
+ "items": [
+  {
+   "name": "Classic Cheesecake",
+   "g": 80,
+   "kcal": 368,
+   "protein": 3.74,
+   "fat": 23.68,
+   "serving": "serving"
+  },
+  {
+   "name": "Tiramisu Cheesecake",
+   "g": 80,
+   "kcal": 340.9,
+   "protein": 3.9,
+   "fat": 24.1,
+   "serving": "serving"
+  },
+  {
+   "name": "Caramel Mousse Cake",
+   "g": 150,
+   "kcal": 521.2,
+   "protein": 5.4,
+   "fat": 27,
+   "serving": "serving"
+  },
+  {
+   "name": "Strawberry Mousse Cake",
+   "g": 150,
+   "kcal": 402.4,
+   "protein": 2.5,
+   "fat": 22.5,
+   "serving": "serving"
+  },
+  {
+   "name": "Choco Fudge Brownie",
+   "g": 75,
+   "kcal": 350.3,
+   "protein": 4.41,
+   "fat": 19.64,
+   "serving": "serving"
+  },
+  {
+   "name": "Choco Lava Cake",
+   "g": 80,
+   "kcal": 317.6,
+   "protein": 3.7,
+   "fat": 12.2,
+   "serving": "serving"
+  },
+  {
+   "name": "Dubai Chocolate Gelato",
+   "kcal": 137.5,
+   "protein": 2.6,
+   "fat": 6.3,
+   "serving": "scoop, 100 ml",
+   "density": 250
+  },
+  {
+   "name": "Strawberry Matcha Gelato",
+   "kcal": 109.1,
+   "protein": 2.2,
+   "fat": 4.1,
+   "serving": "scoop, 100 ml",
+   "density": 198.4
+  },
+  {
+   "name": "Hat-trick Ice Cream",
+   "kcal": 121.8,
+   "protein": 2.3,
+   "fat": 7,
+   "serving": "scoop, 100 ml",
+   "density": 221.5
+  },
+  {
+   "name": "Cookie Dough Choco Chip Ice Cream",
+   "kcal": 133.5,
+   "protein": 2.6,
+   "fat": 6.7,
+   "serving": "scoop, 100 ml",
+   "density": 242.7
+  },
+  {
+   "name": "Tiramisu Cheese Cake Sundae",
+   "g": 80,
+   "kcal": 340.9,
+   "protein": 3.9,
+   "fat": 24.1,
+   "serving": "serving"
+  },
+  {
+   "name": "Dubai Chocolate Gelato Sundae",
+   "g": 149,
+   "kcal": 394.1,
+   "protein": 6.7,
+   "fat": 18,
+   "serving": "serving"
+  },
+  {
+   "name": "Chocolate & Roasted Hazelnut Gelato",
+   "kcal": 171.5,
+   "protein": 3.6,
+   "fat": 8.6,
+   "serving": "scoop, 100 ml",
+   "density": 311.8
+  },
+  {
+   "name": "Mango & Cream Gelato",
+   "kcal": 143.8,
+   "protein": 2.8,
+   "fat": 5.6,
+   "serving": "scoop, 100 ml",
+   "density": 261.5
+  },
+  {
+   "name": "Blueberry Cheesecake Gelato",
+   "kcal": 155.6,
+   "protein": 3,
+   "fat": 5.4,
+   "serving": "scoop, 100 ml",
+   "density": 282.9
+  },
+  {
+   "name": "Cotton Candy Burst Gelato",
+   "kcal": 169.3,
+   "protein": 3.2,
+   "fat": 5.9,
+   "serving": "scoop, 100 ml",
+   "density": 307.8
+  },
+  {
+   "name": "Mississippi Mud Ice Cream",
+   "kcal": 130.9,
+   "protein": 2.3,
+   "fat": 6.9,
+   "serving": "scoop, 100 ml",
+   "density": 238
+  },
+  {
+   "name": "Bavarian Chocolate Ice Cream",
+   "kcal": 167.5,
+   "protein": 3.5,
+   "fat": 9,
+   "serving": "scoop, 100 ml",
+   "density": 304.5
+  },
+  {
+   "name": "Belgian Bliss Ice Cream",
+   "kcal": 145.6,
+   "protein": 2.6,
+   "fat": 6.7,
+   "serving": "scoop, 100 ml",
+   "density": 264.7
+  },
+  {
+   "name": "Mint Milk Chocolate Chips Ice Cream",
+   "kcal": 133.4,
+   "protein": 2.4,
+   "fat": 7.7,
+   "serving": "scoop, 100 ml",
+   "density": 242.5
+  },
+  {
+   "name": "Gold Medal Ribbon Ice Cream",
+   "kcal": 132.3,
+   "protein": 2.4,
+   "fat": 6.3,
+   "serving": "scoop, 100 ml",
+   "density": 240.5
+  },
+  {
+   "name": "Dutch Chocolate Ice Cream",
+   "kcal": 116.1,
+   "protein": 2.5,
+   "fat": 6.1,
+   "serving": "scoop, 100 ml",
+   "density": 211.1
+  },
+  {
+   "name": "Chocolate Almond Praline Ice Cream",
+   "kcal": 140.1,
+   "protein": 2.9,
+   "fat": 7.4,
+   "serving": "scoop, 100 ml",
+   "density": 254.7
+  },
+  {
+   "name": "Pineapple Ice Cream Cake",
+   "g": 100,
+   "kcal": 258.8,
+   "protein": 4.1,
+   "fat": 12.5,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Chocolate Truffle Ice Cream Cake",
+   "g": 100,
+   "kcal": 276.1,
+   "protein": 4,
+   "fat": 14.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Cotton Candy Ice Cream Cake",
+   "g": 100,
+   "kcal": 248.9,
+   "protein": 4.1,
+   "fat": 11.8,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Red Velvet Fantasy Ice Cream Cake",
+   "g": 100,
+   "kcal": 268,
+   "protein": 4.1,
+   "fat": 12.1,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Lotus Biscoff Ice Cream Cake",
+   "g": 100,
+   "kcal": 309.4,
+   "protein": 4.9,
+   "fat": 15.6,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Mango Ice Cream Cake",
+   "g": 100,
+   "kcal": 261.36,
+   "protein": 4.13,
+   "fat": 12.6,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Pistachio Caramel Cake",
+   "g": 100,
+   "kcal": 268.4,
+   "protein": 4.2,
+   "fat": 13.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Classic Fudge Roll Cake Slice",
+   "g": 100,
+   "kcal": 270.7,
+   "protein": 5.4,
+   "fat": 12.1,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Bavarian Knight Roll Cake Slice",
+   "g": 100,
+   "kcal": 282.7,
+   "protein": 5.3,
+   "fat": 12.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Red Velvet Roll Cake Slice",
+   "g": 100,
+   "kcal": 251.56,
+   "protein": 3.99,
+   "fat": 11.38,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Lotus Biscoff Roll Cake Slice",
+   "g": 100,
+   "kcal": 287.5,
+   "protein": 5.4,
+   "fat": 13.3,
+   "serving": "100 g",
+   "label": "100 g, as published"
+  },
+  {
+   "name": "Iranian Pista Kulfi Slice Ice Cream",
+   "g": 80,
+   "kcal": 204.6,
+   "protein": 4.7,
+   "fat": 12.9,
+   "serving": "slice"
+  },
+  {
+   "name": "Vanilla Ice Cream",
+   "kcal": 114.6,
+   "protein": 2.3,
+   "fat": 6.6,
+   "serving": "scoop, 100 ml",
+   "density": 208.4
+  },
+  {
+   "name": "Honey Nut Crunch Ice Cream",
+   "kcal": 133,
+   "protein": 2.7,
+   "fat": 6.9,
+   "serving": "scoop, 100 ml",
+   "density": 241.8
+  },
+  {
+   "name": "Cotton Candy Ice Cream",
+   "kcal": 113.4,
+   "protein": 2.3,
+   "fat": 5.7,
+   "serving": "scoop, 100 ml",
+   "density": 206.2
+  },
+  {
+   "name": "Roasted Californian Almond Ice Cream",
+   "kcal": 143.6,
+   "protein": 2.9,
+   "fat": 7.3,
+   "serving": "scoop, 100 ml",
+   "density": 261.1
+  },
+  {
+   "name": "Butterscotch Ribbon Ice Cream",
+   "kcal": 228,
+   "protein": 3.8,
+   "fat": 11.4,
+   "serving": "scoop, 100 ml",
+   "density": 414.5
+  },
+  {
+   "name": "Hop Scotch Butterscotch Ice Cream",
+   "kcal": 144.3,
+   "protein": 2.8,
+   "fat": 7.2,
+   "serving": "scoop, 100 ml",
+   "density": 262.4
+  },
+  {
+   "name": "Cookies 'N Cream Ice Cream",
+   "kcal": 144.2,
+   "protein": 2.6,
+   "fat": 7.8,
+   "serving": "scoop, 100 ml",
+   "density": 262.2
+  },
+  {
+   "name": "Lotus Biscoff Ice Cream",
+   "kcal": 149,
+   "protein": 2.6,
+   "fat": 7.7,
+   "serving": "scoop, 100 ml",
+   "density": 270.9
+  },
+  {
+   "name": "Very Berry Strawberry Ice Cream",
+   "kcal": 117.7,
+   "protein": 2.2,
+   "fat": 5.5,
+   "serving": "scoop, 100 ml",
+   "density": 214
+  },
+  {
+   "name": "Alphonso Mango Ice Cream",
+   "kcal": 115.2,
+   "protein": 2.3,
+   "fat": 5.8,
+   "serving": "scoop, 100 ml",
+   "density": 209.5
+  },
+  {
+   "name": "Banana 'N Strawberry Ice Cream",
+   "kcal": 119.4,
+   "protein": 2.1,
+   "fat": 5.2,
+   "serving": "scoop, 100 ml",
+   "density": 217.1
+  },
+  {
+   "name": "Black Currant Ice Cream",
+   "kcal": 213.5,
+   "protein": 3.9,
+   "fat": 11.1,
+   "serving": "scoop, 100 ml",
+   "density": 388.2
+  },
+  {
+   "name": "Shooting Star Ice Cream",
+   "kcal": 127,
+   "protein": 2.3,
+   "fat": 5.7,
+   "serving": "scoop, 100 ml",
+   "density": 230.9
+  },
+  {
+   "name": "Thunder Hot Fudge",
+   "g": 187,
+   "kcal": 525.7,
+   "protein": 6.3,
+   "fat": 25.9,
+   "serving": "serving"
+  },
+  {
+   "name": "Brownie A La Mode",
+   "g": 252,
+   "kcal": 769.8,
+   "protein": 9.2,
+   "fat": 40.4,
+   "serving": "serving"
+  },
+  {
+   "name": "Iranian Pista Kulfi Sundae",
+   "g": 100,
+   "kcal": 333.65,
+   "protein": 7.36,
+   "fat": 17.17,
+   "serving": "serving"
+  },
+  {
+   "name": "Strawberry Ice Cream With Strawberry Sauce Cheesecake Sundae",
+   "g": 167,
+   "kcal": 444.2,
+   "protein": 5.5,
+   "fat": 23.8,
+   "serving": "serving"
+  },
+  {
+   "name": "Lotus Biscoff Ice Cream With Butterscotch Sauce Cheesecake Sundae",
+   "g": 167,
+   "kcal": 511.4,
+   "protein": 6.3,
+   "fat": 27.5,
+   "serving": "serving"
+  },
+  {
+   "name": "Vanilla Ice Cream With Mango Sauce Cheesecake Sundae",
+   "g": 169,
+   "kcal": 462.7,
+   "protein": 6,
+   "fat": 25.4,
+   "serving": "serving"
+  },
+  {
+   "name": "Vanilla Ice Cream With Nutella Spread Cheesecake Sundae",
+   "g": 164,
+   "kcal": 486.4,
+   "protein": 6.7,
+   "fat": 28.4,
+   "serving": "serving"
+  },
+  {
+   "name": "Cheese Cake Gold Medal Ribbon Sundae",
+   "g": 154,
+   "kcal": 447.94,
+   "serving": "serving",
+   "note": "Listed with 48.05 g protein and 5.82 g fat, which look swapped; kcal kept, macros left out."
+  },
+  {
+   "name": "Vanilla Affair",
+   "g": 152,
+   "kcal": 474.1,
+   "protein": 5.4,
+   "fat": 5.9,
+   "serving": "serving"
+  },
+  {
+   "name": "Belgian Dream",
+   "g": 152,
+   "kcal": 497.4,
+   "protein": 5.3,
+   "fat": 25.5,
+   "serving": "serving"
+  },
+  {
+   "name": "Bavarian Blast",
+   "g": 152,
+   "kcal": 506.2,
+   "protein": 5.7,
+   "fat": 27,
+   "serving": "serving"
+  },
+  {
+   "name": "Choco Lava Cake Sundae (Vanilla)",
+   "g": 127,
+   "kcal": 400.4,
+   "protein": 5.5,
+   "fat": 21.9,
+   "serving": "serving"
+  },
+  {
+   "name": "Choco Lava Cake Sundae (Chocolate)",
+   "g": 130,
+   "kcal": 420,
+   "protein": 6,
+   "fat": 22.8,
+   "serving": "serving"
+  },
+  {
+   "name": "Almond Delight Sundae",
+   "g": 167,
+   "kcal": 743.7,
+   "protein": 9.5,
+   "fat": 39.2,
+   "serving": "serving"
+  },
+  {
+   "name": "Banana N Strawberry Fruit Cream Sundae",
+   "g": 100,
+   "kcal": 243.96,
+   "protein": 3.34,
+   "fat": 10.49,
+   "serving": "serving"
+  },
+  {
+   "name": "Alphonso Mango Fruit Cream Sundae",
+   "g": 100,
+   "kcal": 237.59,
+   "protein": 3.43,
+   "fat": 10.75,
+   "serving": "serving"
+  },
+  {
+   "name": "Vanilla Fruit Cream Sundae",
+   "g": 100,
+   "kcal": 244.61,
+   "protein": 3.78,
+   "fat": 12.16,
+   "serving": "serving"
+  },
+  {
+   "name": "Princess Sundae",
+   "g": 150,
+   "kcal": 241.81,
+   "protein": 3.97,
+   "fat": 12.27,
+   "serving": "serving"
+  },
+  {
+   "name": "Knight Sundae",
+   "g": 150,
+   "kcal": 278.36,
+   "protein": 4.59,
+   "fat": 12.91,
+   "serving": "serving"
+  },
+  {
+   "name": "Mango Super-duper Thick Shake",
+   "g": 244,
+   "kcal": 376.5,
+   "protein": 7,
+   "fat": 11.2,
+   "serving": "serving"
+  },
+  {
+   "name": "Lotus Biscoff Super-duper Thickshake",
+   "g": 283,
+   "kcal": 577,
+   "protein": 9.8,
+   "fat": 22.2,
+   "serving": "serving"
+  },
+  {
+   "name": "Cotton Candy And Marshmallows Super-duper Thickshake",
+   "g": 244,
+   "kcal": 419,
+   "protein": 7.2,
+   "fat": 11.6,
+   "serving": "serving"
+  },
+  {
+   "name": "Cookies 'N Cream Thickshake",
+   "g": 275,
+   "kcal": 709.4,
+   "protein": 13,
+   "fat": 18.3,
+   "serving": "serving"
+  },
+  {
+   "name": "Dutch Chocolate Milkshake",
+   "g": 288,
+   "kcal": 414.8,
+   "protein": 8.9,
+   "fat": 19.5,
+   "serving": "serving"
+  },
+  {
+   "name": "Bavarian Chocolate Milkshake",
+   "g": 288,
+   "kcal": 439.1,
+   "protein": 9.2,
+   "fat": 21.1,
+   "serving": "serving"
+  },
+  {
+   "name": "Vanilla Milkshake",
+   "g": 288,
+   "kcal": 390,
+   "protein": 8.7,
+   "fat": 19.3,
+   "serving": "serving"
+  },
+  {
+   "name": "Cotton Candy Milkshake",
+   "g": 288,
+   "kcal": 335.9,
+   "protein": 8.7,
+   "fat": 14.3,
+   "serving": "serving"
+  },
+  {
+   "name": "Roasted Californian Almond Milkshake",
+   "g": 288,
+   "kcal": 382.2,
+   "protein": 9.1,
+   "fat": 16.78,
+   "serving": "serving"
+  },
+  {
+   "name": "Hop Scotch Butterscotch Milkshake",
+   "g": 288,
+   "kcal": 335.9,
+   "protein": 9.25,
+   "fat": 14.3,
+   "serving": "serving"
+  },
+  {
+   "name": "Alphonso Mango Milkshake",
+   "g": 288,
+   "kcal": 338.72,
+   "protein": 8.22,
+   "fat": 14.49,
+   "serving": "serving"
+  },
+  {
+   "name": "Very Berry Strawberry Milkshake",
+   "g": 288,
+   "kcal": 342.5,
+   "protein": 8.1,
+   "fat": 14,
+   "serving": "serving"
+  },
+  {
+   "name": "Black Currant Milkshake",
+   "g": 288,
+   "kcal": 395.5,
+   "protein": 8.4,
+   "fat": 18.4,
+   "serving": "serving"
+  },
+  {
+   "name": "Banana 'N Strawberry Milkshake",
+   "g": 288,
+   "kcal": 345.15,
+   "protein": 7.92,
+   "fat": 13.57,
+   "serving": "serving"
+  },
+  {
+   "name": "Mississippi Mud Milkshake",
+   "g": 288,
+   "kcal": 424.6,
+   "protein": 8.8,
+   "fat": 20.4,
+   "serving": "serving"
+  }
+ ]
+}

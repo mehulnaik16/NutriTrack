@@ -24,6 +24,13 @@
   { "brand": "Taco Bell", "source_type": "third_party", "source": "scraped", "url": null, "sourced_at": "2026-08-26", "note": "From zenin-nutrition-scraper-main.zip; not yet re-checked against Taco Bell India." },
   { "brand": "The Belgian Waffle Co", "source_type": "official", "source": "brand_pdf", "url": "https://thebelgianwaffle.co/assets/images/nutritional-sheet.pdf", "sourced_at": "2026-09-24" },
   { "brand": "The Good Bowl", "source_type": "official", "source": "brand_app", "url": "https://www.eatsure.com/v1/api/get_all_products/brand_id/30/store_id/10439/source_id/13", "sourced_at": "2026-09-24", "note": "EatSure, Rebel Foods' own ordering app" },
+  { "brand": "Barista", "source_type": "restaurant_provided", "source": "swiggy", "url": "https://www.swiggy.com/city/bangalore/barista-coffee-yelahanka-rest717663", "sourced_at": "2026-09-25" },
+  { "brand": "Baskin-Robbins", "source_type": "restaurant_provided", "source": "swiggy", "url": "https://www.swiggy.com/city/bangalore/baskin-robbins-ice-cream-desserts-rest810943", "sourced_at": "2026-09-25", "note": "India listings (restaurants 810943 and 675309, the shakes brand). The US nutrition guide was not used." },
+  { "brand": "Chinese Wok", "source_type": "restaurant_provided", "source": "swiggy", "url": "https://www.swiggy.com/city/bangalore/chinese-wok-garudacharpalya-whitefield-rest393839", "sourced_at": "2026-09-25" },
+  { "brand": "NIC Ice Creams", "source_type": "restaurant_provided", "source": "swiggy", "url": "https://www.swiggy.com/city/bangalore/nic-ice-creams-marathahalli-chinnappanhalli-rest89710", "sourced_at": "2026-09-25" },
+  { "brand": "SMOOR", "source_type": "restaurant_provided", "source": "swiggy", "url": "https://www.swiggy.com/city/bangalore/smoor-the-nexus-mall-btm-rest1053", "sourced_at": "2026-09-25", "note": "Basis not stated in the listing; per 100 g inferred because a pastry, its 500 g cake and its 1 kg cake share one set of figures." },
+  { "brand": "Tim Hortons", "source_type": "restaurant_provided", "source": "swiggy", "url": "https://www.swiggy.com/city/bangalore/tim-hortons-8th-block-koramangala-rest751353", "sourced_at": "2026-09-25" },
+  { "brand": "Wow! Momo", "source_type": "restaurant_provided", "source": "swiggy", "url": "https://www.swiggy.com/city/bangalore/wow-momo-yelahanka-rest153966", "sourced_at": "2026-09-25", "note": "The brand's own nutrition page says 'coming soon'." },
   { "brand": "Wendy's", "source_type": "official", "source": "brand_app", "url": "https://www.eatsure.com/v1/api/get_all_products/brand_id/29/store_id/10439/source_id/13", "sourced_at": "2026-09-24", "note": "EatSure, Rebel Foods' own ordering app (India menu)" }
  ]
 }
