@@ -1,0 +1,878 @@
+{
+ "brand": "Corner House",
+ "code": "ZE",
+ "source": "Corner House Ice Creams menu on Zomato (Bangalore outlets, e.g. https://www.zomato.com/bangalore/corner-house-ice-creams-indiranagar-bangalore/order). Corner House publishes no nutrition on its own site; the user approved using its Zomato listing, where each item states serving size and nutrition.",
+ "basis": "Per serving as Corner House lists it: 80 g single scoop, 130 g double scoop, and each sundae or shake at its stated weight.",
+ "density": 230,
+ "items": [
+  {
+   "name": "Almond Fudge",
+   "kcal": 856,
+   "protein": 16.18,
+   "carbs": 84.1,
+   "fat": 52.5,
+   "g": 290,
+   "serving": "serving",
+   "label": "serving (290 g)"
+  },
+  {
+   "name": "Apple Crumble With Ice Cream And Cream",
+   "kcal": 604,
+   "protein": 9.53,
+   "carbs": 75,
+   "fat": 26.9,
+   "g": 240,
+   "serving": "serving",
+   "label": "serving (240 g)"
+  },
+  {
+   "name": "Apricot Milkshake",
+   "kcal": 479,
+   "protein": 7.3,
+   "carbs": 55.2,
+   "fat": 25.9,
+   "g": 300,
+   "serving": "serving",
+   "label": "serving (300 g)"
+  },
+  {
+   "name": "Apricot With Ice Cream And Cream",
+   "kcal": 429,
+   "protein": 5.95,
+   "carbs": 63.7,
+   "fat": 17.6,
+   "g": 240,
+   "serving": "serving",
+   "label": "serving (240 g)"
+  },
+  {
+   "name": "Banana Caramel Milkshake",
+   "kcal": 600,
+   "protein": 7.28,
+   "carbs": 72.2,
+   "fat": 30.3,
+   "g": 320,
+   "serving": "serving",
+   "label": "serving (320 g)"
+  },
+  {
+   "name": "Banana Milk Shake",
+   "kcal": 476,
+   "protein": 7.37,
+   "carbs": 55.3,
+   "fat": 25.7,
+   "g": 315,
+   "serving": "serving",
+   "label": "serving (315 g)"
+  },
+  {
+   "name": "Banana Split",
+   "kcal": 738,
+   "protein": 11.6,
+   "carbs": 88.7,
+   "fat": 39.1,
+   "g": 330,
+   "serving": "serving",
+   "label": "serving (330 g)"
+  },
+  {
+   "name": "Black Currant Double Scoop",
+   "kcal": 281,
+   "protein": 4.71,
+   "carbs": 33.6,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Black Currant Scoop",
+   "kcal": 173,
+   "protein": 2.9,
+   "carbs": 20.7,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Black Forest Cake With Ice Cream And Chocolate Sauce",
+   "kcal": 701,
+   "protein": 9.28,
+   "carbs": 108,
+   "fat": 25.8,
+   "g": 265,
+   "serving": "serving",
+   "label": "serving (265 g)"
+  },
+  {
+   "name": "Brown Bomb",
+   "kcal": 670,
+   "protein": 8.3,
+   "carbs": 89.3,
+   "fat": 30,
+   "g": 205,
+   "serving": "serving",
+   "label": "serving (205 g)"
+  },
+  {
+   "name": "Brownie Fudge Sundae",
+   "kcal": 850,
+   "protein": 12,
+   "carbs": 101,
+   "fat": 44,
+   "g": 270,
+   "serving": "serving",
+   "label": "serving (270 g)"
+  },
+  {
+   "name": "Cafe Caramel",
+   "kcal": 607,
+   "protein": 11.74,
+   "carbs": 74.1,
+   "fat": 30.8,
+   "g": 210,
+   "serving": "serving",
+   "label": "serving (210 g)"
+  },
+  {
+   "name": "Cake A Mocha",
+   "kcal": 619,
+   "protein": 11.01,
+   "carbs": 74.2,
+   "fat": 31.7,
+   "g": 215,
+   "serving": "serving",
+   "label": "serving (215 g)"
+  },
+  {
+   "name": "Cake Fudge",
+   "kcal": 601,
+   "protein": 10.7,
+   "carbs": 70.3,
+   "fat": 31.7,
+   "g": 215,
+   "serving": "serving",
+   "label": "serving (215 g)"
+  },
+  {
+   "name": "Caramel Nut Crunch Double Scoop",
+   "kcal": 307,
+   "protein": 4.71,
+   "carbs": 39.9,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Caramel Nut Crunch Scoop",
+   "kcal": 180,
+   "protein": 2.9,
+   "carbs": 24.6,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Cashew Fudge",
+   "kcal": 847,
+   "protein": 15.08,
+   "carbs": 87.1,
+   "fat": 50.4,
+   "g": 290,
+   "serving": "serving",
+   "label": "serving (290 g)"
+  },
+  {
+   "name": "Cherries Jubilee",
+   "kcal": 460,
+   "protein": 5.65,
+   "carbs": 72.5,
+   "fat": 25.2,
+   "g": 260,
+   "serving": "serving",
+   "label": "serving (260 g)"
+  },
+  {
+   "name": "Choc A Mocha",
+   "kcal": 696,
+   "protein": 10.8,
+   "carbs": 76.9,
+   "fat": 38.9,
+   "g": 260,
+   "serving": "serving",
+   "label": "serving (260 g)"
+  },
+  {
+   "name": "Chocolate Choco Chips Double Scoop",
+   "kcal": 286,
+   "protein": 4.71,
+   "carbs": 34.5,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Chocolate Choco Chips Scoop",
+   "kcal": 176,
+   "protein": 2.9,
+   "carbs": 20.7,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Chocolate Double Scoop",
+   "kcal": 275,
+   "protein": 4.71,
+   "carbs": 32.1,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Chocolate Malt Thick Shake",
+   "kcal": 865,
+   "protein": 11.25,
+   "carbs": 110,
+   "fat": 42.3,
+   "g": 320,
+   "serving": "serving",
+   "label": "serving (320 g)"
+  },
+  {
+   "name": "Chocolate Mousse",
+   "kcal": 370,
+   "protein": 5,
+   "carbs": 38,
+   "fat": 22,
+   "g": 110,
+   "serving": "serving",
+   "label": "serving (110 g)"
+  },
+  {
+   "name": "Chocolate Mousse With Ice Cream And Cream",
+   "kcal": 565,
+   "protein": 7.74,
+   "carbs": 66,
+   "fat": 29.6,
+   "g": 210,
+   "serving": "serving",
+   "label": "serving (210 g)"
+  },
+  {
+   "name": "Chocolate Nut Europa Double Scoop",
+   "kcal": 285,
+   "protein": 4.71,
+   "carbs": 34.5,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Chocolate Nut Europa Scoop",
+   "kcal": 175,
+   "protein": 2.9,
+   "carbs": 21.2,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Chocolate Nut Sundae",
+   "kcal": 632,
+   "protein": 10.6,
+   "carbs": 70.9,
+   "fat": 34.9,
+   "g": 240,
+   "serving": "serving",
+   "label": "serving (240 g)"
+  },
+  {
+   "name": "Chocolate Scoop",
+   "kcal": 169,
+   "protein": 2.9,
+   "carbs": 19.8,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Chocolate Thick Shake",
+   "kcal": 811,
+   "protein": 10.61,
+   "carbs": 95.4,
+   "fat": 43.4,
+   "g": 310,
+   "serving": "serving",
+   "label": "serving (310 g)"
+  },
+  {
+   "name": "Chocolate Truffle With Ice Cream And Chocolate Sauce",
+   "kcal": 838,
+   "protein": 12,
+   "carbs": 141,
+   "fat": 25,
+   "g": 265,
+   "serving": "serving",
+   "label": "serving (265 g)"
+  },
+  {
+   "name": "Creme De La Caramel",
+   "kcal": 680,
+   "protein": 11,
+   "carbs": 69,
+   "fat": 40,
+   "g": 220,
+   "serving": "serving",
+   "label": "serving (220 g)"
+  },
+  {
+   "name": "Crispy Chocolate Malt Double Scoop",
+   "kcal": 295,
+   "protein": 4.71,
+   "carbs": 39.9,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Crispy Chocolate Malt Scoop",
+   "kcal": 182,
+   "protein": 2.9,
+   "carbs": 22.9,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Death By Chocolate",
+   "kcal": 1300,
+   "protein": 22.69,
+   "carbs": 150,
+   "fat": 70,
+   "g": 420,
+   "serving": "serving",
+   "label": "serving (420 g)"
+  },
+  {
+   "name": "Dew Drop Sundae",
+   "kcal": 713,
+   "protein": 11.75,
+   "carbs": 68.9,
+   "fat": 34.8,
+   "g": 230,
+   "serving": "serving",
+   "label": "serving (230 g)"
+  },
+  {
+   "name": "Dry Fruit Double Scoop",
+   "kcal": 292,
+   "protein": 4.71,
+   "carbs": 36.1,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Dry Fruit Scoop",
+   "kcal": 179,
+   "protein": 2.9,
+   "carbs": 22.2,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Dry Fruit Sundae",
+   "kcal": 568,
+   "protein": 12.31,
+   "carbs": 52.9,
+   "fat": 34,
+   "g": 195,
+   "serving": "serving",
+   "label": "serving (195 g)"
+  },
+  {
+   "name": "Fig And Honey Double Scoop",
+   "kcal": 307,
+   "protein": 4.71,
+   "carbs": 40,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Fig And Honey Scoop",
+   "kcal": 189,
+   "protein": 2.9,
+   "carbs": 24.6,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Fruit Jackpot",
+   "kcal": 567,
+   "protein": 7.08,
+   "carbs": 101,
+   "fat": 17.9,
+   "g": 305,
+   "serving": "serving",
+   "label": "serving (305 g)"
+  },
+  {
+   "name": "Hot Caramelo Pudding",
+   "kcal": 660,
+   "protein": 9.23,
+   "carbs": 98.9,
+   "fat": 26.8,
+   "g": 215,
+   "serving": "serving",
+   "label": "serving (215 g)"
+  },
+  {
+   "name": "Hot Chocolate Fudge Junior",
+   "kcal": 492,
+   "protein": 8.43,
+   "carbs": 52.6,
+   "fat": 28.6,
+   "g": 180,
+   "serving": "serving",
+   "label": "serving (180 g)"
+  },
+  {
+   "name": "Hot Chocolate Fudge Magnum",
+   "kcal": 956,
+   "protein": 15.57,
+   "carbs": 104.5,
+   "fat": 54.1,
+   "g": 355,
+   "serving": "serving",
+   "label": "serving (355 g)"
+  },
+  {
+   "name": "Hot Chocolate Fudge Regular",
+   "kcal": 612,
+   "protein": 10.6,
+   "carbs": 65.9,
+   "fat": 34.9,
+   "g": 240,
+   "serving": "serving",
+   "label": "serving (240 g)"
+  },
+  {
+   "name": "Impeached",
+   "kcal": 420,
+   "protein": 5.63,
+   "carbs": 70.5,
+   "fat": 17.7,
+   "g": 300,
+   "serving": "serving",
+   "label": "serving (300 g)"
+  },
+  {
+   "name": "Jelly With Ice Cream And Cream",
+   "kcal": 500,
+   "protein": 4.12,
+   "carbs": 57.6,
+   "fat": 19,
+   "g": 280,
+   "serving": "serving",
+   "label": "serving (280 g)"
+  },
+  {
+   "name": "Kesar Malai Kulfi Double Scoop",
+   "kcal": 292,
+   "protein": 4.71,
+   "carbs": 36.1,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Kesar Malai Kulfi Flavour Scoop",
+   "kcal": 179,
+   "protein": 2.9,
+   "carbs": 22.2,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Lotus Biscoff Double Scoop",
+   "kcal": 250,
+   "protein": 3.7,
+   "carbs": 25.96,
+   "fat": 14.67,
+   "g": 100,
+   "serving": "100 g",
+   "label": "100 g, as published (double scoop weight not given)"
+  },
+  {
+   "name": "Lotus Biscoff Scoop",
+   "kcal": 200,
+   "protein": 2.96,
+   "carbs": 20.77,
+   "fat": 11.74,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)",
+   "note": "Corner House lists per 100 g and an 80 g scoop; scaled to the scoop."
+  },
+  {
+   "name": "Lychee Milkshake",
+   "kcal": 450,
+   "protein": 6.92,
+   "carbs": 49,
+   "fat": 26,
+   "g": 300,
+   "serving": "serving",
+   "label": "serving (300 g)"
+  },
+  {
+   "name": "Lychees With Ice Cream And Cream",
+   "kcal": 404,
+   "protein": 5.29,
+   "carbs": 53.8,
+   "fat": 19.6,
+   "g": 230,
+   "serving": "serving",
+   "label": "serving (230 g)"
+  },
+  {
+   "name": "Mango Double Scoop",
+   "kcal": 269,
+   "protein": 4.71,
+   "carbs": 30,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Mango Milk Shake",
+   "kcal": 473,
+   "protein": 6.2,
+   "carbs": 96.9,
+   "fat": 9,
+   "g": 300,
+   "serving": "serving",
+   "label": "serving (300 g)"
+  },
+  {
+   "name": "Mango Scoop",
+   "kcal": 164,
+   "protein": 2.9,
+   "carbs": 18.6,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Mini Hot Chocolate Fudge",
+   "kcal": 354,
+   "protein": 6.56,
+   "carbs": 36.4,
+   "fat": 20.2,
+   "g": 125,
+   "serving": "serving",
+   "label": "serving (125 g)"
+  },
+  {
+   "name": "Mocha Double Scoop",
+   "kcal": 279,
+   "protein": 4.71,
+   "carbs": 33,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Mocha Milkshake",
+   "kcal": 489,
+   "protein": 7,
+   "carbs": 57.7,
+   "fat": 25.7,
+   "g": 300,
+   "serving": "serving",
+   "label": "serving (300 g)"
+  },
+  {
+   "name": "Mocha Scoop",
+   "kcal": 171,
+   "protein": 2.9,
+   "carbs": 20.3,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Mocha Thick Shake",
+   "kcal": 496,
+   "protein": 8,
+   "carbs": 65,
+   "fat": 23.1,
+   "g": 300,
+   "serving": "serving",
+   "label": "serving (300 g)"
+  },
+  {
+   "name": "No Added Sugar Vanilla",
+   "kcal": 160,
+   "protein": 2.9,
+   "carbs": 17.7,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "serving",
+   "label": "serving (80 g)"
+  },
+  {
+   "name": "No Added Sugar Vanilla Double Scoop",
+   "kcal": 245,
+   "protein": 4.71,
+   "carbs": 24.6,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Nut Butterscotch Ice Cream Double Scoop",
+   "kcal": 294,
+   "protein": 4.71,
+   "carbs": 36.8,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Nut Butterscotch Ice Cream Scoop",
+   "kcal": 180,
+   "protein": 2.9,
+   "carbs": 22.7,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Peach Melba",
+   "kcal": 439,
+   "protein": 8.12,
+   "carbs": 62.2,
+   "fat": 22.6,
+   "g": 280,
+   "serving": "serving",
+   "label": "serving (280 g)"
+  },
+  {
+   "name": "Pista Double Scoop",
+   "kcal": 268,
+   "protein": 4.71,
+   "carbs": 30.3,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Pista Scoop",
+   "kcal": 180,
+   "protein": 2.9,
+   "carbs": 24.6,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Rich Chocolate Torte",
+   "kcal": 845,
+   "protein": 13.4,
+   "carbs": 77.2,
+   "fat": 53.65,
+   "g": 260,
+   "serving": "serving",
+   "label": "serving (260 g)"
+  },
+  {
+   "name": "Royal Butterscotch",
+   "kcal": 700,
+   "protein": 12.44,
+   "carbs": 68.8,
+   "fat": 48.4,
+   "g": 215,
+   "serving": "serving",
+   "label": "serving (215 g)"
+  },
+  {
+   "name": "Rum And Raisin Double Scoop",
+   "kcal": 281,
+   "protein": 4.71,
+   "carbs": 33,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Rum And Raisin Scoop",
+   "kcal": 173,
+   "protein": 2.9,
+   "carbs": 20.7,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Strawberry Double Scoop",
+   "kcal": 260,
+   "protein": 4.71,
+   "carbs": 28.8,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Strawberry Ice Cream Scoop",
+   "kcal": 160,
+   "protein": 2.9,
+   "carbs": 17.7,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Strawberry Milkshake",
+   "kcal": 499,
+   "protein": 6.6,
+   "carbs": 60.7,
+   "fat": 25.7,
+   "g": 300,
+   "serving": "serving",
+   "label": "serving (300 g)"
+  },
+  {
+   "name": "Super Scooper",
+   "kcal": 820,
+   "protein": 10.66,
+   "carbs": 110.5,
+   "fat": 26.7,
+   "g": 430,
+   "serving": "scoop",
+   "label": "scoop (430 g)"
+  },
+  {
+   "name": "Trilogy",
+   "kcal": 510,
+   "g": 340,
+   "serving": "serving",
+   "label": "serving (340 g)",
+   "note": "Corner House macros do not add up to its 510 kcal; the kcal is kept."
+  },
+  {
+   "name": "Vanilla Chocolate Chip Double Scoop",
+   "kcal": 279,
+   "protein": 4.71,
+   "carbs": 32.9,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Vanilla Chocolate Chip Scoop",
+   "kcal": 171,
+   "protein": 2.9,
+   "carbs": 20.2,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Vanilla Double Scoop",
+   "kcal": 260,
+   "protein": 4.71,
+   "carbs": 28.8,
+   "fat": 14.3,
+   "g": 130,
+   "serving": "double scoop",
+   "label": "double scoop (130 g)"
+  },
+  {
+   "name": "Vanilla Milkshake",
+   "kcal": 513,
+   "protein": 6.6,
+   "carbs": 64.2,
+   "fat": 25.7,
+   "g": 300,
+   "serving": "serving",
+   "label": "serving (300 g)"
+  },
+  {
+   "name": "Vanilla Scoop",
+   "kcal": 160,
+   "protein": 2.9,
+   "carbs": 17.7,
+   "fat": 8.8,
+   "g": 80,
+   "serving": "scoop",
+   "label": "scoop (80 g)"
+  },
+  {
+   "name": "Vanilla With Butterscotch Sauce",
+   "kcal": 529,
+   "protein": 7,
+   "carbs": 60,
+   "fat": 29,
+   "g": 185,
+   "serving": "serving",
+   "label": "serving (185 g)"
+  },
+  {
+   "name": "Vanilla With Coffee Sauce",
+   "kcal": 338,
+   "protein": 4,
+   "carbs": 51,
+   "fat": 13,
+   "g": 170,
+   "serving": "serving",
+   "label": "serving (170 g)"
+  },
+  {
+   "name": "Vanilla With Strawberry Sauce",
+   "kcal": 426,
+   "protein": 4.64,
+   "carbs": 63.8,
+   "fat": 17.2,
+   "g": 190,
+   "serving": "serving",
+   "label": "serving (190 g)"
+  }
+ ]
+}
