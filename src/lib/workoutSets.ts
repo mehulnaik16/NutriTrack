@@ -25,6 +25,12 @@ export type LoggedSet = {
   duration_seconds?: number;
   /** bodyweight and isometric only: 1..10 */
   rpe?: number;
+  /**
+   * isometric only: a user-typed name for a generic hold. "Isometric Holds" is
+   * one library entry covering any hold, so the title is what tells two logs
+   * apart in history. Absent on named holds and on every pre-existing log.
+   */
+  title?: string;
   unit?: "kg" | "lbs";
   /** Stamped at write time so readers never re-derive it. Absent on old logs. */
   kind?: ExerciseKind;
@@ -79,7 +85,7 @@ export const formatSet = (
   const w = round1(setWeightIn(s, unit));
   const rpe = s.rpe ? ` · RPE ${s.rpe}` : "";
   if (s.kind === "isometric" || (!s.reps && s.duration_seconds))
-    return `${formatDuration(s.duration_seconds ?? 0)}${s.weight ? ` +${w}${unit}` : ""}${rpe}`;
+    return `${s.title ? `${s.title} — ` : ""}${formatDuration(s.duration_seconds ?? 0)}${s.weight ? ` +${w}${unit}` : ""}${rpe}`;
   if (s.kind === "assisted") return `${num(s.reps)} reps · −${w}${unit} assist`;
   if (s.kind === "bodyweight")
     return `${num(s.reps)} reps${s.weight ? ` +${w}${unit}` : ""}${rpe}`;

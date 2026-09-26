@@ -1997,6 +1997,14 @@ function WorkoutPage() {
     const kind = exerciseKind(selectedExercise);
     const canAddWeight = kind === "bodyweight" || kind === "isometric";
 
+    /* "Isometric Holds" is the catch-all entry — one library name for any hold
+       the library does not list. The title names THIS log, not the exercise, so
+       it rides on the sets and workout_name stays "Isometric Holds": one
+       favorite, one history, one modal. The Dialog remounts per exercise, so
+       this resets itself. */
+    const needsTitle = selectedExercise === "Isometric Holds";
+    const [holdTitle, setHoldTitle] = useState("");
+
     /* Remembered per exercise, same convention as workout_favorites. The modal
        remounts per exercise (selectedExercise drives the Dialog's open), so the
        lazy initialiser re-reads on every open. */
@@ -2196,6 +2204,7 @@ function WorkoutPage() {
             }
           : {}),
         ...(showRpe && s.rpe ? { rpe: s.rpe } : {}),
+        ...(needsTitle && holdTitle.trim() ? { title: holdTitle.trim() } : {}),
         kind,
       }));
       const holdSec = payload.reduce(
@@ -2279,10 +2288,20 @@ function WorkoutPage() {
             </TabsList>
 
             <TabsContent value="log" className="space-y-6 pt-4">
+              {needsTitle && (
+                <Input
+                  value={holdTitle}
+                  onChange={(e) => setHoldTitle(e.target.value)}
+                  maxLength={40}
+                  placeholder="Name this hold (optional)"
+                  aria-label="Hold name"
+                  className="h-11 rounded-xl border-border bg-transparent text-center text-sm font-bold"
+                />
+              )}
               {/* Bodyweight and isometric work has no load by default. The
                   toggle opts into an ADDED weight — a vest, a belt, a dumbbell. */}
               {canAddWeight && (
-                <div className="-mb-1 flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-2">
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider ${
                       addWeight ? "text-accent" : "text-muted-foreground"

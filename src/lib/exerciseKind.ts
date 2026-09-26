@@ -36,6 +36,8 @@ export const ISOMETRIC_NAMES = [
   "Plank",
   "Side Plank",
   "Bear Plank",
+  "Bear Crawl Hold",
+  "Bottom Push Up Hold",
   "High Plank Arm Reach",
   "Plank Shoulder Taps",
   "Plank Surrender",
@@ -45,8 +47,14 @@ export const ISOMETRIC_NAMES = [
   "TRX Fallout",
   "TRX Ab Rollout",
   "V Sit",
+  "Hollow Body Hold",
+  "Iron Bridge",
+  // Catch-all for any hold the library does not name. The log carries a
+  // user-typed title so history still says which hold it was.
+  "Isometric Holds",
   // Lower body / back holds
   "Wall Sit",
+  "Horse Stance",
   "Superman",
   "Alternating Superman",
   // Grip holds — timed by definition, never counted in reps
