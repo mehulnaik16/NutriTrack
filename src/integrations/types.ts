@@ -469,7 +469,9 @@ export type Database = {
           partner_code?: string
           user_id?: string
         }
-        health_logs: {
+        Relationships: []
+      }
+      health_logs: {
         Row: {
           condition: "hypertension" | "diabetes"
           created_at: string

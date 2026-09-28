@@ -54,6 +54,7 @@ import {
   ChevronDown,
   PencilRuler,
   Info,
+  Calculator,
 } from "lucide-react";
 import {
   Popover,
@@ -2108,7 +2109,9 @@ function WorkoutPage() {
       if (!selectedExercise || !user) return;
       supabase
         .from("workout_logs")
-        .select("id, date, logged_at, exercises_done")
+        .select(
+          "id, date, logged_at, exercises_done, calories_burned, duration_min, calc_method, confidence",
+        )
         .eq("user_id", user.id)
         .eq("workout_name", selectedExercise)
         .order("date", { ascending: false })
@@ -2214,30 +2217,16 @@ function WorkoutPage() {
         (total, s) => total + (s.duration_seconds ?? 0),
         0,
       );
-      const strengthSets = sets.map((s) => ({
-        reps: s.reps ? parseInt(s.reps, 10) || undefined : undefined,
-        weight_kg: s.weight
-          ? weightToKg(parseFloat(s.weight) || 0, weightUnit)
-          : undefined,
-        hold_sec: s.duration_seconds,
-      }));
       const durationMin =
         kind === "isometric"
           ? Math.max(1, Math.round(holdSec / 60))
           : Math.max(1, sets.length * 3);
-      const calorieEstimate = calculateCalories(
-        selectedExercise || "",
-        { duration_min: durationMin, strength_sets: strengthSets },
-        { weight_kg: bodyWeight, age: userAge, gender: userGender },
-      );
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
         date: todayLocal(),
         workout_name: selectedExercise || "",
         duration_min: durationMin,
-        calories_burned: calorieEstimate.kcal,
-        calc_method: calorieEstimate.method,
-        confidence: calorieEstimate.confidence,
+        // Calories are only saved when calculated via the Calorie Calculator
         // LoggedSet is a closed interface, so it lacks the index signature the
         // generated Json type wants. The shape is checked above.
         exercises_done: payload,
@@ -2252,12 +2241,45 @@ function WorkoutPage() {
       }
     };
 
+    const handleOpenCalorieCalculator = () => {
+      if (!selectedExercise) return;
+      const prefillData = {
+        exercise: selectedExercise,
+        sets: sets.map((s) => ({
+          reps: s.reps != null ? String(s.reps) : "",
+          weight: s.weight != null ? String(s.weight) : "",
+          duration_seconds: s.duration_seconds ?? 0,
+        })),
+        source: "workout",
+      };
+      try {
+        sessionStorage.setItem(
+          "dombelz_calc_prefill",
+          JSON.stringify(prefillData),
+        );
+      } catch (e) {
+        console.warn("Could not save calc prefill to sessionStorage", e);
+      }
+      (
+        navigate as unknown as (opts: {
+          to: string;
+          search?: Record<string, string>;
+        }) => void
+      )({
+        to: "/calorie-calculator",
+        search: {
+          exercise: selectedExercise,
+          source: "workout",
+        },
+      });
+    };
+
     return (
       <Dialog
         open={!!selectedExercise}
         onOpenChange={() => setSelectedExercise(null)}
       >
-        <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-[10vh] sm:px-6 sm:pb-6 sm:pt-[8vh] overflow-y-auto overflow-x-hidden flex flex-col gap-0">
+        <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-12 sm:px-6 sm:pb-6 sm:pt-8 overflow-y-auto overflow-x-hidden flex flex-col gap-0">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent">
               {selectedExercise}
@@ -2575,7 +2597,7 @@ function WorkoutPage() {
                 })()}
               </div>
 
-              {/* ── Rest timer ── */}
+              {/* ── Rest timer (scrollable body) ── */}
               <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -2623,12 +2645,38 @@ function WorkoutPage() {
                 )}
               </div>
 
-              <Button
-                onClick={handleLog}
-                className="w-full font-bold h-14 text-sm rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-1"
-              >
-                <Plus className="mr-2 h-5 w-5" /> Log Workout
-              </Button>
+              {/* ── Calorie Calculator Card (below rest timer) ── */}
+              <div className="rounded-2xl border border-border/50 bg-muted/20 p-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500/15 text-orange-500">
+                    <Flame className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold truncate">Calorie Calculator</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      Calculate energy burn from these sets
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleOpenCalorieCalculator}
+                  className="shrink-0 h-9 px-3.5 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-400 hover:text-orange-300 border border-orange-500/30 text-xs font-bold transition-all active:scale-95"
+                >
+                  <Calculator className="mr-1.5 h-3.5 w-3.5" />
+                  Calculate
+                </Button>
+              </div>
+
+              {/* ── Sticky Bottom Footer: ONLY Log Workout ── */}
+              <div className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 border-t border-border/50 bg-background p-3.5 sm:p-4 pb-safe shadow-[0_-12px_30px_-5px_rgba(0,0,0,0.6)]">
+                <Button
+                  onClick={handleLog}
+                  className="w-full font-bold h-12 sm:h-13 text-sm rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5 active:scale-[0.99]"
+                >
+                  <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Log Workout
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4 pt-4">
@@ -2692,11 +2740,19 @@ function WorkoutPage() {
                                 year: "numeric",
                               })}
                             </span>
-                            {vol > 0 && (
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                                Vol: {vol} {logUnit}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {vol > 0 && (
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                  Vol: {vol} {logUnit}
+                                </span>
+                              )}
+                              {log.calories_burned != null && log.calories_burned > 0 && (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-orange-400 uppercase">
+                                  <Flame className="h-3 w-3 text-orange-500" />
+                                  {Math.round(log.calories_burned)} kcal
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {rm > 0 && (
