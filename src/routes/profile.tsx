@@ -53,6 +53,8 @@ import {
   Terminal,
   Zap,
   Rocket,
+  Heart,
+  Droplet,
 } from "lucide-react";
 import {
   Dialog,
@@ -111,6 +113,7 @@ import {
 import { invalidateAccess } from "@/hooks/useAccessGate";
 import { AchievementsPage } from "@/components/Achievements";
 import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
+import { HealthLogPage } from "@/components/HealthLog";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
 import { GymLinkPage } from "@/components/GymLink";
 import { SubHeader } from "@/components/SubHeader";
@@ -225,7 +228,8 @@ type Page =
   | "refer"
   | "gym"
   | "achievements"
-  | "measurements";
+  | "measurements"
+  | "health-log";
 
 /* ─── menu items ─── */
 const MENU_ITEMS: {
@@ -253,6 +257,16 @@ const MENU_ITEMS: {
     id: "measurements",
     icon: <Ruler className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
     label: "Body measurements",
+  },
+  {
+    id: "health-log",
+    icon: (
+      <span className="relative inline-flex items-center justify-center">
+        <Heart className="h-7 w-7 md:h-[26px] md:w-[26px]" />
+        <Droplet className="absolute -bottom-1 -right-1 h-3.5 w-3.5 fill-current text-accent" />
+      </span>
+    ),
+    label: "Health Log",
   },
   {
     id: "transactions",
@@ -638,6 +652,8 @@ function Profile() {
     return <AchievementsPage userId={user.id} onBack={goBack} />;
   if (page === "measurements")
     return <BodyMeasurementsPage userId={user.id} onBack={goBack} />;
+  if (page === "health-log")
+    return <HealthLogPage userId={user.id} onBack={goBack} />;
 
   /* ─── PRICING PAGE ─── */
   if (page === "pricing") {

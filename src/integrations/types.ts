@@ -469,6 +469,37 @@ export type Database = {
           partner_code?: string
           user_id?: string
         }
+        health_logs: {
+        Row: {
+          condition: "hypertension" | "diabetes"
+          created_at: string
+          diastolic: number | null
+          glucose: number | null
+          id: string
+          logged_at: string
+          systolic: number | null
+          user_id: string
+        }
+        Insert: {
+          condition: "hypertension" | "diabetes"
+          created_at?: string
+          diastolic?: number | null
+          glucose?: number | null
+          id?: string
+          logged_at?: string
+          systolic?: number | null
+          user_id: string
+        }
+        Update: {
+          condition?: "hypertension" | "diabetes"
+          created_at?: string
+          diastolic?: number | null
+          glucose?: number | null
+          id?: string
+          logged_at?: string
+          systolic?: number | null
+          user_id?: string
+        }
         Relationships: []
       }
       manual_grants: {
