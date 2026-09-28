@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 
 import { useReconcileOnForeground } from "@/lib/useReconcileOnForeground";
 import { useProgressToasts } from "@/lib/useProgressToasts";
+import { NotificationPrimerDialog } from "@/components/NotificationPrimerDialog";
 
 function NotFoundComponent() {
   return (
@@ -112,6 +113,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NotificationReconciler />
+        <NotificationPrimerDialog />
         <Outlet />
         <BottomNav />
         <Toaster

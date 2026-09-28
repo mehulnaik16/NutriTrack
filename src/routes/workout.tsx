@@ -67,6 +67,7 @@ import { ScrollableDayRow } from "@/components/CustomPlanDayPicker";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
+import { recordWorkoutLog } from "@/lib/notificationPrimer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -1434,6 +1435,7 @@ function WorkoutPage() {
         toast.error(`Failed to log: ${error.message}`, { id: t });
       } else {
         toast.success("Cardio logged!", { id: t });
+        recordWorkoutLog(user.id);
         // Save smart defaults to localStorage
         saveCardioDefaults(user.id, selectedCardio || "", {
           duration,
@@ -2231,6 +2233,7 @@ function WorkoutPage() {
         toast.error(`Failed to log: ${error.message}`, { id: t });
       } else {
         toast.success("Exercise logged!", { id: t });
+        recordWorkoutLog(user.id);
         loadUserData();
         setSelectedExercise(null);
       }

@@ -73,6 +73,7 @@ import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
 import { toastAiError } from "@/lib/aiErrors";
 import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
+import { recordFoodLog } from "@/lib/notificationPrimer";
 
 // Both carry a camera dependency — react-webcam here, @zxing/* via
 // BarcodeScanner — and neither renders until its button is tapped.
@@ -604,6 +605,7 @@ export const FoodSearch = forwardRef<
     if (validation.isOverSoftTarget) {
       toast.info("Logged! Note: you are over 125% of your daily goal");
     }
+    recordFoodLog(userId);
     return true;
   };
 
