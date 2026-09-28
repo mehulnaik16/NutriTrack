@@ -6,16 +6,15 @@ import {
   MAX_PREMIUM_DAYS,
   PREMIUM_DAYS_PER_SUBSCRIPTION,
   PREMIUM_HOLD_DAYS,
-  REFEREE_DISCOUNT_RUPEES,
+  REFEREE_GIFT_DAYS,
 } from "@/lib/referral";
-import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
+import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
 
 export const Route = createFileRoute("/refer-terms")({ component: ReferTerms });
 
-const LAST_UPDATED = "August 29, 2026";
+const LAST_UPDATED = "September 25, 2026";
 const SUPPORT_EMAIL = "support@dombelz.app";
-const yearly = findPlan(REFERRAL_DISCOUNT_PLAN_ID);
-const discounted = yearly ? yearly.price - REFEREE_DISCOUNT_RUPEES : null;
+const yearly = findPlan(GIFT_PLAN_ID);
 const capReferral = MAX_FREE_DAYS / DAYS_PER_REFERRAL;
 const capPremium = MAX_PREMIUM_DAYS / PREMIUM_DAYS_PER_SUBSCRIPTION;
 
@@ -80,8 +79,8 @@ function ReferTerms() {
           </p>
           <p>
             b. The "Referee" (friend receiving the code) must be a new, unique
-            user who has never registered with Dombelz before to qualify for the
-            ₹{REFEREE_DISCOUNT_RUPEES} discount.
+            user who has never registered with Dombelz before to qualify for the{" "}
+            {REFEREE_GIFT_DAYS}-day gift.
           </p>
         </Section>
 
@@ -98,9 +97,9 @@ function ReferTerms() {
 
         <Section n={3} title="Free Trial Rewards (Component 1)">
           <p>
-            a. For every successful referral (Referee signs up and completes OTP
-            verification), the Referrer receives +{DAYS_PER_REFERRAL} days added
-            to their free trial period.
+            a. For every successful referral (the Referee signs up with the
+            Referrer's code and starts their free trial), the Referrer receives
+            +{DAYS_PER_REFERRAL} days added to their free trial period.
           </p>
           <p>
             b. These days are added horizontally. There is no minimum threshold
@@ -141,20 +140,20 @@ function ReferTerms() {
             yet used is withdrawn. Days already consumed are never taken back.
           </p>
           <p>
-            e. The Referee receives an instant ₹{REFEREE_DISCOUNT_RUPEES}{" "}
-            discount on the Yearly plan
-            {yearly && discounted
-              ? `, making the final price ₹${discounted}`
-              : ""}
-            . This discount is applied at checkout, is valid on the Yearly plan
-            only, and has no cash value.
+            e. The Referee also receives {REFEREE_GIFT_DAYS} days of access,
+            added after their own paid period, when they purchase the Yearly
+            plan. It is credited {PREMIUM_HOLD_DAYS} days after the payment, is
+            granted once on their first Yearly purchase only, and is not
+            credited if that payment is refunded or a refund is requested within
+            that period. The Yearly plan is charged at its full price; the gift
+            has no cash value.
           </p>
         </Section>
 
         <Section n={5} title="Verification &amp; Fraud Prevention">
           <p>
-            a. OTP (One-Time Password) verification is mandatory for the Referee
-            to qualify as a successful referral.
+            a. A referral qualifies only when the Referee starts their free
+            trial. Each account can start one free trial, ever.
           </p>
           <p>
             b. Any attempt to game the system (e.g., using fake phone numbers,

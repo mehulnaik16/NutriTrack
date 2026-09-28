@@ -17,10 +17,9 @@
 import assert from "node:assert";
 import {
   PLANS,
-  REFEREE_DISCOUNT_RUPEES,
-  REFERRAL_DISCOUNT_PLAN_ID,
+  REFEREE_GIFT_DAYS,
+  GIFT_PLAN_ID,
   activeGift,
-  effectivePrice,
   findPlan,
   giftApplies,
   giftLabel,
@@ -29,14 +28,15 @@ import {
   planCta,
   showsTrialBanner,
 } from "./plans";
-import { PLAN_CATALOG, TIERS, YEARLY_DISCOUNTED } from "../server/razorpay";
+import * as razorpay from "../server/razorpay";
+const { PLAN_CATALOG, TIERS } = razorpay;
 
 // The prices the product actually sells, duration-based. Anything else on a
 // page, in a doc, or in a deployed bundle is stale.
 const SOLD = [
-  { id: "monthly", months: 1, price: 249 },
-  { id: "quarterly", months: 3, price: 499 },
-  { id: "yearly", months: 12, price: 999 },
+  { id: "monthly", months: 1, price: 299 },
+  { id: "quarterly", months: 3, price: 599 },
+  { id: "yearly", months: 12, price: 1199 },
 ];
 
 assert.equal(
@@ -76,37 +76,36 @@ for (const [tier, days] of Object.entries(PERIOD_DAYS)) {
     `${tier} period_days differs from handle_razorpay_event()`,
   );
 }
-assert.equal(YEARLY_DISCOUNTED.periodDays, PERIOD_DAYS.yearly);
+
+// Prices are inclusive of 18% GST, so the base sent to the partner project is
+// the price × 100/118 — ₹1,199 → ₹1,016.10. Charged amount is the list price.
+assert.equal(razorpay.GST_BPS, 1800);
+assert.equal(razorpay.basePaise(119900), 101610);
+assert.equal(razorpay.basePaise(29900), 25339);
+assert.equal(razorpay.basePaise(59900), 50763);
 
 // One tier per sold plan, no orphan tier that no page can reach.
 assert.deepEqual([...TIERS].sort(), SOLD.map((p) => p.id).sort());
 
-// The ₹150 referral gift is a yearly-only discount, never a fourth plan.
-assert.equal(REFERRAL_DISCOUNT_PLAN_ID, "yearly");
-assert.equal(YEARLY_DISCOUNTED.rupees, 999 - 150);
-assert.equal(YEARLY_DISCOUNTED.periodDays, PLAN_CATALOG.yearly.periodDays);
+// The referral gift is days, not money: yearly-only, 60 days (the number
+// public.gift_grants() grants), and no discounted fourth plan to charge it by.
+assert.equal(GIFT_PLAN_ID, "yearly");
+assert.equal(REFEREE_GIFT_DAYS, 60);
+assert.ok(
+  !("YEARLY_DISCOUNTED" in razorpay),
+  "the discounted Razorpay plan must stay gone",
+);
 
 // Labels and the "works out to" line, since both are read straight off price.
 assert.equal(periodLabel(1), "/month");
 assert.equal(periodLabel(3), "/3 months");
 assert.equal(periodLabel(12), "/year");
-const YEARLY = { id: "yearly", name: "Yearly", months: 12, price: 999 };
-const MONTHLY = { id: "monthly", name: "Monthly", months: 1, price: 249 };
-assert.equal(monthlyRate(YEARLY), 83);
-
-// ── The gift, as the cards render it ──────────────────────────────────────────
-//
-// The whole point of effectivePrice() is that the number on the card and the
-// number Razorpay charges are the same number. Pin them to each other: if
-// either side is edited alone, this fails rather than silently quoting a price
-// the checkout will not honour.
-assert.equal(effectivePrice(YEARLY, true), YEARLY_DISCOUNTED.rupees);
-assert.equal(effectivePrice(YEARLY, true), 999 - REFEREE_DISCOUNT_RUPEES);
-assert.equal(effectivePrice(YEARLY, false), 999);
-// The gift cannot leak to a tier that does not carry it, however it is called.
-assert.equal(effectivePrice(MONTHLY, true), 249);
-// The monthly sub-line recomputes from what is actually paid, not the list price.
-assert.equal(monthlyRate(YEARLY, effectivePrice(YEARLY, true)), 71);
+const YEARLY = { id: "yearly", name: "Yearly", months: 12, price: 1199 };
+assert.equal(monthlyRate(YEARLY), 100);
+assert.equal(
+  monthlyRate({ ...YEARLY, id: "quarterly", months: 3, price: 599 }),
+  200,
+);
 
 // Eligibility. A referred user holds the gift until their first yearly buy,
 // which is when handle_razorpay_event() flips the row to 'subscribed'.
@@ -126,8 +125,8 @@ assert.equal(giftApplies("trial", "quarterly"), false);
 
 // ── The gym gift, and the rule that decides who is paid ──────────────────────
 //
-// A gym code entered at signup earns the member the same ₹150 and earns the gym
-// 20% commission. The same code entered from the profile page earns nobody
+// A gym code entered at signup earns the member the same 60 days and earns the
+// gym commission. The same code entered from the profile page earns nobody
 // anything. `source` is the only thing that distinguishes them, and link_gym()
 // in SQL — never a client — is what sets it.
 // No partner_type on these three on purpose: that is what a gym_links row
@@ -176,13 +175,13 @@ assert.equal(
   "gym",
 );
 
-// Every kind is worth the same money, and each has its own words for it.
-assert.ok(giftLabel("doctor").includes("150"));
-assert.ok(giftLabel("ugc").includes("150"));
+// Every kind is worth the same days, and each has its own words for it.
+assert.ok(giftLabel("doctor").includes("60"));
+assert.ok(giftLabel("ugc").includes("60"));
 assert.notEqual(giftLabel("doctor"), giftLabel("gym"));
 assert.notEqual(giftLabel("ugc"), giftLabel("gym"));
 // The case stated most emphatically: a gym that did not bring us the customer
-// gets nothing, and the member gets no discount for walking in later.
+// gets nothing, and the member gets no gift for walking in later.
 assert.equal(
   activeGift({ gymLink: PROFILE_LINK, planId: "yearly" }),
   null,
@@ -195,7 +194,7 @@ assert.equal(
 );
 assert.equal(activeGift({ planId: "yearly" }), null, "no code at all, no gift");
 
-// Yearly only, for BOTH kinds. The ₹150 must never reach ₹249 or ₹499.
+// Yearly only, for BOTH kinds. The gift must never reach monthly or quarterly.
 for (const tier of ["monthly", "quarterly"]) {
   assert.equal(
     activeGift({ gymLink: SIGNUP_LINK, planId: tier }),
@@ -221,14 +220,13 @@ assert.equal(
   "friend",
 );
 
-// Both kinds are worth exactly the same money, and it is the money Razorpay
-// charges — the display price and the charged price are pinned to each other.
+// Both kinds resolve on Yearly. Neither changes what Razorpay charges — that is
+// PLAN_CATALOG's list price, pinned above.
 for (const kind of [
   activeGift({ referralStatus: "trial", planId: "yearly" }),
   activeGift({ gymLink: SIGNUP_LINK, planId: "yearly" }),
 ]) {
   assert.ok(kind, "both kinds must resolve");
-  assert.equal(effectivePrice(YEARLY, kind !== null), YEARLY_DISCOUNTED.rupees);
 }
 
 // Different wording, same amount. Being sent by a friend is not the same thing
@@ -236,8 +234,8 @@ for (const kind of [
 assert.notEqual(giftLabel("gym"), giftLabel("friend"));
 for (const kind of ["gym", "friend"] as const) {
   assert.ok(
-    giftLabel(kind).includes(String(REFEREE_DISCOUNT_RUPEES)),
-    `${kind} copy must name the amount`,
+    giftLabel(kind).includes(String(REFEREE_GIFT_DAYS)),
+    `${kind} copy must name the days`,
   );
 }
 

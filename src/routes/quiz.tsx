@@ -24,10 +24,10 @@ import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
 import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
-import { isValidCode, REFEREE_DISCOUNT_RUPEES } from "@/lib/referral";
+import { isValidCode, REFEREE_GIFT_DAYS } from "@/lib/referral";
 import { isPartnerCode, partnerKindOf, type PartnerKind } from "@/lib/gym";
 import { serverLinkGym, serverVerifyGymCode } from "@/lib/gym-link";
-import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
+import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
 import {
   activityMultipliers,
   bmiCategory,
@@ -496,9 +496,9 @@ function Quiz() {
                       : `🎁 ${referrerName} sent you a gift`}
                   </p>
                   <p className="mt-1.5 text-sm text-muted-foreground">
-                    Sign up and you'll get ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
-                    {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"}{" "}
-                    plan, plus a free trial to explore everything.
+                    Sign up for a free trial to explore everything, plus{" "}
+                    {REFEREE_GIFT_DAYS} extra days if you go{" "}
+                    {findPlan(GIFT_PLAN_ID)?.name ?? "Yearly"}.
                   </p>
                   <p className="mt-2 text-xs font-medium text-muted-foreground">
                     {appliedKind && appliedKind !== "friend"
@@ -624,10 +624,9 @@ function Quiz() {
               </h2>
               <p className="text-muted-foreground mb-8 text-sm">
                 From a friend, your gym, your doctor or a creator. Any of them
-                gets you ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
-                {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"} plan.
-                This is the only place a code counts, so enter it now if you
-                have one.
+                gets you {REFEREE_GIFT_DAYS} extra days on the{" "}
+                {findPlan(GIFT_PLAN_ID)?.name ?? "Yearly"} plan. This is the
+                only place a code counts, so enter it now if you have one.
               </p>
 
               <div className="space-y-2">
@@ -674,9 +673,8 @@ function Quiz() {
                     {appliedKind && appliedKind !== "friend"
                       ? `${appliedKind === "gym" ? "🏋️" : "🎁"} ${gymName ?? "Your partner"} verified — `
                       : `🎁 Gift from ${referrerName ?? "your friend"} applied — `}
-                    ₹{REFEREE_DISCOUNT_RUPEES} off the{" "}
-                    {findPlan(REFERRAL_DISCOUNT_PLAN_ID)?.name ?? "Yearly"}{" "}
-                    plan.
+                    +{REFEREE_GIFT_DAYS} days on the{" "}
+                    {findPlan(GIFT_PLAN_ID)?.name ?? "Yearly"} plan.
                   </p>
                 )}
                 {codeState === "invalid" && codeError && (

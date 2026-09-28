@@ -5,9 +5,8 @@
  *   Free — +5 trial days per qualified referral, accrual capped at 60 days.
  *   Paid — 60 premium days per friend who buys the Yearly plan.
  *
- * The paid track renders its real, empty state today: nothing sets a referral to
- * 'subscribed' until a payment flow exists. When one ships, a single UPDATE in
- * its webhook fills this in with no change here.
+ * A friend who buys Yearly earns both sides 60 days: the referrer through
+ * premium_grants(), the friend through gift_grants().
  *
  * Copy rule: this is a gift, not a promotion. No "discount", "offer", "promo",
  * "limited time" or "deal" — except in Terms, which must be unambiguous.
@@ -53,7 +52,7 @@ import {
 } from "@/components/ui/drawer";
 import { SubHeader } from "@/components/SubHeader";
 import { supabase } from "@/integrations/client";
-import { findPlan, REFERRAL_DISCOUNT_PLAN_ID } from "@/lib/plans";
+import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
 import {
   DAYS_PER_REFERRAL,
   MAX_FREE_DAYS,
@@ -61,7 +60,7 @@ import {
   MILESTONES,
   PREMIUM_DAYS_PER_SUBSCRIPTION,
   PREMIUM_HOLD_DAYS,
-  REFEREE_DISCOUNT_RUPEES,
+  REFEREE_GIFT_DAYS,
   freeDaysEarned,
   giftMessage,
   isPremiumProcessing,
@@ -77,7 +76,7 @@ const rpc = (fn: string, args?: Record<string, unknown>) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (supabase.rpc as any)(fn, args);
 
-const yearly = findPlan(REFERRAL_DISCOUNT_PLAN_ID);
+const yearly = findPlan(GIFT_PLAN_ID);
 
 type Platform = "whatsapp" | "sms" | "email" | "copy";
 
@@ -409,12 +408,10 @@ export function ReferAndEarnPage({
                 Your friend gets
               </p>
               <p className="mt-1 font-display text-lg font-bold text-accent">
-                ₹{REFEREE_DISCOUNT_RUPEES}
+                {REFEREE_GIFT_DAYS} days
               </p>
               <p className="text-[11px] text-muted-foreground">
-                {yearly
-                  ? `${yearly.name} plan · ₹${yearly.price} → ₹${yearly.price - REFEREE_DISCOUNT_RUPEES}`
-                  : "Yearly plan"}
+                Extra, on the {yearly?.name ?? "Yearly"} plan
               </p>
             </div>
           </div>
@@ -600,8 +597,10 @@ export function ReferAndEarnPage({
             </div>
 
             <p className="text-[11px] text-muted-foreground">
-              Your friend needs to finish signing up and start a trial before
-              the gift lands on both sides.
+              You get {DAYS_PER_REFERRAL} days as soon as your friend starts
+              their free trial. If they buy {yearly?.name ?? "Yearly"}, you both
+              get {PREMIUM_DAYS_PER_SUBSCRIPTION} more days, {PREMIUM_HOLD_DAYS}{" "}
+              days after they pay.
             </p>
           </div>
         </DrawerContent>

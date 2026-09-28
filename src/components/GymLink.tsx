@@ -18,7 +18,7 @@
  * the gym's list, and nothing on this card moves until they confirm it. Showing
  * the new values immediately would be a lie the gym might never make true.
  *
- * This page grants nothing. The ₹150 offer and the gym's commission are both
+ * This page grants nothing. The 60-day gift and the gym's commission are both
  * settled by link_gym() from facts a caller cannot replay, and a code entered
  * here rather than at signup is far too late for either. The copy says so before
  * anyone submits.
@@ -250,9 +250,8 @@ export function GymLinkPage({
     try {
       const { serverUnlinkGym } = await import("@/lib/gym-link");
       await serverUnlinkGym();
-      // The yearly card is priced from this cache, and it is memoised for the
-      // page's whole life. Without this eviction the pricing page keeps
-      // offering ₹849 against a checkout that will now charge ₹999.
+      // The yearly card's gift label comes from this cache, memoised for the
+      // page's whole life. Evicted so the label reflects what is true now.
       invalidateReferralGift(userId);
       setLink(null);
       setMembership(null);
@@ -378,7 +377,7 @@ export function GymLinkPage({
   // read from gym_memberships, so it is always a gym and always something the
   // member joined here themselves. Who referred them — a creator, a doctor,
   // another gym, a friend — is deliberately invisible: it earns them their
-  // ₹150 and earns the partner their commission, and neither is this page's
+  // 60-day gift and earns the partner their commission, and neither is this page's
   // business. It also survives leaving a gym, which is why nothing here can
   // take it away.
   return (
@@ -556,7 +555,7 @@ export function GymLinkPage({
             {membership !== null && (
               <p className="px-2 text-center text-xs text-muted-foreground">
                 {link.source === "signup"
-                  ? "You joined with this gym's code, so your ₹150 offer is on your Yearly plan."
+                  ? "You joined with this gym's code, so you get 60 extra days when you buy the Yearly plan."
                   : "You're on this gym's member list. Your Dombelz plan and price are unaffected."}
               </p>
             )}
@@ -644,9 +643,9 @@ export function GymLinkPage({
             {/* Said before submitting, not after. Someone who reads this and
                 decides not to bother has lost nothing. */}
             <p className="px-2 text-center text-xs text-muted-foreground">
-              The ₹150 gym offer applies only to a code entered when you first
+              The 60-day gym offer applies only to a code entered when you first
               created your account. Adding your gym here puts you on their
-              member list — it does not change your Dombelz price.
+              member list — it does not change your Dombelz plan.
             </p>
           </>
         )}

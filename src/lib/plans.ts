@@ -18,59 +18,54 @@ export interface Plan {
 }
 
 export const PLANS: readonly Plan[] = [
-  { id: "monthly", name: "Monthly", months: 1, price: 249 },
-  { id: "quarterly", name: "Quarterly", months: 3, price: 499 },
-  { id: "yearly", name: "Yearly", months: 12, price: 999, popular: true },
+  { id: "monthly", name: "Monthly", months: 1, price: 299 },
+  { id: "quarterly", name: "Quarterly", months: 3, price: 599 },
+  { id: "yearly", name: "Yearly", months: 12, price: 1199, popular: true },
 ];
 
-/** The referral gift (₹150 off) is valid on this plan only — never the others. */
-export const REFERRAL_DISCOUNT_PLAN_ID = "yearly";
-
 /**
- * The referral gift, in rupees. Defined here rather than in referral.ts because
- * pricing must not import the referral module — referral.ts already imports this
- * one, and it re-exports this constant so no call site had to change.
- *
- * Pinned against YEARLY_DISCOUNTED.rupees in src/server/razorpay.ts by
- * src/lib/plans.test.ts: what the card shows and what Razorpay charges are the
- * same number or the test fails.
+ * Shown beside every price. The prices carry 18% GST inside them (GST_BPS in
+ * src/server/razorpay.ts), so what is quoted is exactly what is charged.
  */
-export const REFEREE_DISCOUNT_RUPEES = 150;
+export const PRICE_TAX_NOTE = "Inclusive of all taxes";
+
+/** The referral gift (+60 days) comes with this plan only — never the others. */
+export const GIFT_PLAN_ID = "yearly";
 
 /**
- * Is the gift still available to a user, for this plan?
+ * The referral gift, in days of access. It used to be ₹150 off Yearly; a
+ * discount cost margin on every referred sale and needed a second Razorpay plan
+ * to charge it, so the referred buyer now pays full price and gets these days
+ * added on top instead.
+ *
+ * Defined here rather than in referral.ts because pricing must not import the
+ * referral module — referral.ts already imports this one and re-exports it.
+ *
+ * Mirrors the 60 in public.gift_grants()
+ * (20260925160000_gift_is_days.sql), which is the authority: the SQL grants the
+ * days, this only lets the cards say how many.
+ */
+export const REFEREE_GIFT_DAYS = 60;
+
+/**
+ * Is the friend gift still unspent, for this plan?
  *
  * `referralStatus` is the user's own row in `referrals` — null when they were
  * never referred. The gift is spent by their first Yearly purchase, which is
  * when handle_razorpay_event() flips that row to 'subscribed'.
- *
- * Shared deliberately: serverCreateSubscription() decides what to charge with
- * this, and the pricing cards decide what to show with it. A money rule written
- * twice is a money rule that will disagree with itself.
  */
 export function giftApplies(
   referralStatus: string | null | undefined,
   planId: string,
 ): boolean {
   return (
-    planId === REFERRAL_DISCOUNT_PLAN_ID &&
+    planId === GIFT_PLAN_ID &&
     !!referralStatus &&
     referralStatus !== "subscribed"
   );
 }
 
-/**
- * What the user actually pays. A no-op for every plan but the yearly one, so
- * callers can apply it unconditionally and the gift can never leak to a tier
- * that does not carry it.
- */
-export function effectivePrice(plan: Plan, gift: boolean): number {
-  return gift && plan.id === REFERRAL_DISCOUNT_PLAN_ID
-    ? plan.price - REFEREE_DISCOUNT_RUPEES
-    : plan.price;
-}
-
-/** Where a user's ₹150 came from. The amount is the same for all four; only
+/** Where a user's gift came from. The days are the same for all four; only
  *  the wording differs, because being sent by a friend is not the same thing as
  *  walking into a gym, and neither is being sent by a doctor. */
 export type GiftKind = "friend" | "gym" | "doctor" | "ugc";
@@ -94,9 +89,9 @@ export interface GymLinkGift {
  * claimed at signup also makes `link_gym()` refuse to attribute any gym added
  * later, which is what stops a gym being paid for a customer it did not bring.
  *
- * Shared by the pricing cards and by serverCreateSubscription(), for the same
- * reason giftApplies() is: a money rule written twice is a money rule that will
- * disagree with itself.
+ * Decides only what the pricing card says. Nobody's price depends on it any
+ * more: the days themselves are granted by public.gift_grants() from the same
+ * two facts, so a stale label here can never cost or gift anyone money.
  */
 export function activeGift(opts: {
   referralStatus?: string | null;
@@ -105,7 +100,7 @@ export function activeGift(opts: {
 }): GiftKind | null {
   // Yearly-only, checked first so neither branch below can leak the gift onto
   // the 1-month or 3-month plans.
-  if (opts.planId !== REFERRAL_DISCOUNT_PLAN_ID) return null;
+  if (opts.planId !== GIFT_PLAN_ID) return null;
   if (giftApplies(opts.referralStatus, opts.planId)) return "friend";
   const link = opts.gymLink;
   if (link && link.source === "signup" && !link.gift_spent_at) {
@@ -118,20 +113,15 @@ export function activeGift(opts: {
 }
 
 /**
- * The one place either gift's copy is written.
- *
- * Previously this string was duplicated verbatim in PricingPlans.tsx and
- * profile.tsx, which is how the second wording would have drifted from the
- * first the moment a gym gift existed.
+ * The one place the gift's copy is written, shared by PricingPlans.tsx and
+ * profile.tsx so the two cannot drift.
  */
 export function giftLabel(kind: GiftKind): string {
-  if (kind === "gym")
-    return `Gym offer applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
-  if (kind === "doctor")
-    return `Referral applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
-  if (kind === "ugc")
-    return `Creator offer applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
-  return `Gift applied · ₹${REFEREE_DISCOUNT_RUPEES} off`;
+  const days = `+${REFEREE_GIFT_DAYS} days free`;
+  if (kind === "gym") return `Gym offer · ${days}`;
+  if (kind === "doctor") return `Referral · ${days}`;
+  if (kind === "ugc") return `Creator offer · ${days}`;
+  return `Friend's gift · ${days}`;
 }
 
 /**
@@ -205,7 +195,7 @@ export function planCta(opts: {
  * Whether to show the "try any plan free for N days" banner.
  *
  * Same input as planCta, and deliberately the same condition: a page offering
- * "Buy · ₹249" must not also promise a free trial the account can no longer
+ * "Buy · ₹299" must not also promise a free trial the account can no longer
  * get.
  */
 export function showsTrialBanner(trialUsed: boolean): boolean {

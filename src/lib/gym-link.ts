@@ -7,7 +7,7 @@
  * with the Razorpay module.
  *
  * Neither of these decides who is paid. The source of a link — and therefore
- * both the member's ₹150 and the gym's 20% — is derived in SQL by link_gym(),
+ * both the member's 60-day gift and the gym's commission — is derived in SQL by link_gym(),
  * from facts about the account that a caller cannot replay.
  */
 import { createServerFn } from "@tanstack/react-start";
@@ -231,7 +231,7 @@ export const serverGetGymMembership = createServerFn({ method: "POST" })
     // the member joined, and nothing else: who they were referred by is not
     // its business, so a member credited to a creator or a doctor sees the
     // same empty "connect your gym" page as anybody else. Attribution and the
-    // ₹150 it earned live on untouched in gym_links, where the pricing reads
+    // 60-day gift it earned live on untouched in gym_links, where the pricing reads
     // them.
     const { data: joined } = await supabaseAdmin
       .from("gym_memberships")
@@ -360,7 +360,7 @@ export const serverSubmitGymDetails = createServerFn({ method: "POST" })
  * account with no gym here while the gym still carried them, still earning.
  *
  * Not reversible, and the caller must say so before calling: this spends the
- * one-time ₹150 gym offer whether or not it was ever used, and burns the gym's
+ * one-time 60-day gym offer whether or not it was ever used, and burns the gym's
  * commission on this customer for good.
  */
 export const serverUnlinkGym = createServerFn({ method: "POST" })
@@ -382,7 +382,7 @@ export const serverUnlinkGym = createServerFn({ method: "POST" })
     }
 
     // leave_gym, not unlink_gym: this drops the membership and deliberately
-    // leaves gym_links alone. The member keeps the ₹150 their signup code
+    // leaves gym_links alone. The member keeps the 60-day gift their signup code
     // earned — it is spent by buying, not by staying linked — and whoever was
     // credited for bringing them stays credited.
     const { error } = await supabaseAdmin.rpc("leave_gym", {

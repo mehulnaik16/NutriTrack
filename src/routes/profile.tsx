@@ -117,10 +117,10 @@ import { SubHeader } from "@/components/SubHeader";
 import { PricingPlans } from "@/components/PricingPlans";
 import {
   activeGift,
-  effectivePrice,
   findPlan,
   giftLabel,
   periodLabel,
+  PRICE_TAX_NOTE,
 } from "@/lib/plans";
 import { useGift } from "@/hooks/useReferralGift";
 import {
@@ -1607,14 +1607,13 @@ function TransactionsPage({
   onPricing: () => void;
 }) {
   const plan = findPlan(profile.selected_plan);
-  // A referred user pays the gift price, so this card must quote the same
-  // number the pricing grid and Razorpay do — not the list price.
+  // A referred user still pays the list price; their gift is extra days, shown
+  // as a label under it.
   const { status: referralStatus, gymLink, loading: giftLoading } = useGift();
   const giftKind =
     plan && !giftLoading
       ? activeGift({ referralStatus, gymLink, planId: plan.id })
       : null;
-  const planPrice = plan ? effectivePrice(plan, giftKind !== null) : 0;
   // Referral rewards extend the trial, so the length is no longer a constant —
   // see src/lib/trial.ts, which the Refer & Earn page shares.
   const bonusDays = profile.bonus_trial_days ?? 0;
@@ -1726,14 +1725,12 @@ function TransactionsPage({
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {giftKind && (
-                      <span className="mr-1.5 line-through opacity-70">
-                        ₹{plan.price}
-                      </span>
-                    )}
-                    ₹{planPrice}
+                    ₹{plan.price}
                     {periodLabel(plan.months)}
                     {trialActive ? " after trial" : ""}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {PRICE_TAX_NOTE}
                   </p>
                   {giftKind && (
                     <p className="mt-1 text-xs font-semibold text-accent">
@@ -1798,7 +1795,7 @@ function TransactionsPage({
               >
                 {/* Once access has lapsed the only useful move is paying, so
                     the button says that rather than "change plan". */}
-                {hasAccessNow ? "Change plan" : `Buy · ₹${planPrice}`}
+                {hasAccessNow ? "Change plan" : `Buy · ₹${plan.price}`}
               </Button>
             </div>
           ) : (
