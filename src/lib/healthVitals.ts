@@ -116,9 +116,9 @@ export function evaluateHypertension(
       meaning:
         "Low blood pressure. May cause dizziness or fainting. Stay hydrated; avoid sudden standing.",
       pulse: false,
-      bgClass: "bg-blue-50 dark:bg-blue-950/40",
-      borderClass: "border-blue-600",
-      textClass: "text-blue-700 dark:text-blue-300",
+      bgClass: "bg-card border-border",
+      borderClass: "border-sky-500",
+      textClass: "text-sky-400",
     };
   }
 
@@ -149,9 +149,9 @@ export function evaluateHypertension(
         meaning:
           "Grade 3 hypertension. Systolic ≥180 or diastolic ≥110. Seek immediate medical attention.",
         pulse: true,
-        bgClass: "bg-red-50 dark:bg-red-950/40",
-        borderClass: "border-red-600",
-        textClass: "text-red-700 dark:text-red-300",
+        bgClass: "bg-card border-border",
+        borderClass: "border-red-500",
+        textClass: "text-red-400",
       };
     case 5:
       return {
@@ -160,9 +160,9 @@ export function evaluateHypertension(
         meaning:
           "Grade 2 hypertension. Systolic 160–179 or diastolic 100–109. Medical review needed.",
         pulse: false,
-        bgClass: "bg-red-50 dark:bg-red-950/30",
-        borderClass: "border-red-600",
-        textClass: "text-red-700 dark:text-red-300",
+        bgClass: "bg-card border-border",
+        borderClass: "border-red-500",
+        textClass: "text-red-400",
       };
     case 4:
       return {
@@ -171,9 +171,9 @@ export function evaluateHypertension(
         meaning:
           "Systolic 130–139 or diastolic 90–99. Lifestyle changes and doctor consultation advised.",
         pulse: false,
-        bgClass: "bg-amber-50/80 dark:bg-amber-950/30",
-        borderClass: "border-amber-600",
-        textClass: "text-amber-800 dark:text-amber-200",
+        bgClass: "bg-card border-border",
+        borderClass: "border-orange-500",
+        textClass: "text-orange-400",
       };
     case 3:
       return {
@@ -181,9 +181,9 @@ export function evaluateHypertension(
         color: "#F9A825",
         meaning: "High-normal blood pressure. Lifestyle changes recommended.",
         pulse: false,
-        bgClass: "bg-yellow-50 dark:bg-yellow-950/30",
-        borderClass: "border-yellow-600",
-        textClass: "text-yellow-800 dark:text-yellow-200",
+        bgClass: "bg-card border-border",
+        borderClass: "border-amber-500",
+        textClass: "text-amber-400",
       };
     case 2:
       return {
@@ -191,9 +191,9 @@ export function evaluateHypertension(
         color: "#2E7D32",
         meaning: "Normal blood pressure.",
         pulse: false,
-        bgClass: "bg-emerald-50 dark:bg-emerald-950/30",
-        borderClass: "border-emerald-600",
-        textClass: "text-emerald-800 dark:text-emerald-200",
+        bgClass: "bg-card border-border",
+        borderClass: "border-emerald-500",
+        textClass: "text-emerald-400",
       };
     case 1:
     default:
@@ -202,9 +202,9 @@ export function evaluateHypertension(
         color: "#2E7D32",
         meaning: "Optimal blood pressure. Keep it up.",
         pulse: false,
-        bgClass: "bg-emerald-50 dark:bg-emerald-950/30",
-        borderClass: "border-emerald-600",
-        textClass: "text-emerald-800 dark:text-emerald-200",
+        bgClass: "bg-card border-border",
+        borderClass: "border-emerald-500",
+        textClass: "text-emerald-400",
       };
   }
 }
@@ -260,9 +260,9 @@ export function evaluateDiabetes(glucose: number): VitalsInference {
       color: "#C62828",
       meaning: "Maximum loggable value. Emergency care required.",
       pulse: true,
-      bgClass: "bg-red-50 dark:bg-red-950/40",
-      borderClass: "border-red-600",
-      textClass: "text-red-700 dark:text-red-300",
+      bgClass: "bg-card border-border",
+      borderClass: "border-red-500",
+      textClass: "text-red-400",
     };
   }
 
@@ -272,9 +272,9 @@ export function evaluateDiabetes(glucose: number): VitalsInference {
       color: "#C62828",
       meaning: "Severe hyperglycaemia. Seek medical attention immediately.",
       pulse: true,
-      bgClass: "bg-red-50 dark:bg-red-950/40",
-      borderClass: "border-red-600",
-      textClass: "text-red-700 dark:text-red-300",
+      bgClass: "bg-card border-border",
+      borderClass: "border-red-500",
+      textClass: "text-red-400",
     };
   }
 
@@ -284,9 +284,9 @@ export function evaluateDiabetes(glucose: number): VitalsInference {
       color: "#C62828",
       meaning: "High blood sugar. Monitor closely and follow your care plan.",
       pulse: false,
-      bgClass: "bg-red-50 dark:bg-red-950/30",
-      borderClass: "border-red-600",
-      textClass: "text-red-700 dark:text-red-300",
+      bgClass: "bg-card border-border",
+      borderClass: "border-red-500",
+      textClass: "text-red-400",
     };
   }
 
@@ -296,9 +296,9 @@ export function evaluateDiabetes(glucose: number): VitalsInference {
       color: "#EF6C00",
       meaning: "Diabetes range. Consult a doctor for management.",
       pulse: false,
-      bgClass: "bg-amber-50/80 dark:bg-amber-950/30",
-      borderClass: "border-amber-600",
-      textClass: "text-amber-800 dark:text-amber-200",
+      bgClass: "bg-card border-border",
+      borderClass: "border-orange-500",
+      textClass: "text-orange-400",
     };
   }
 
@@ -308,9 +308,9 @@ export function evaluateDiabetes(glucose: number): VitalsInference {
       color: "#F9A825",
       meaning: "Prediabetes range. Lifestyle changes can reverse this.",
       pulse: false,
-      bgClass: "bg-yellow-50 dark:bg-yellow-950/30",
-      borderClass: "border-yellow-600",
-      textClass: "text-yellow-800 dark:text-yellow-200",
+      bgClass: "bg-card border-border",
+      borderClass: "border-amber-500",
+      textClass: "text-amber-400",
     };
   }
 
@@ -320,9 +320,9 @@ export function evaluateDiabetes(glucose: number): VitalsInference {
       color: "#2E7D32",
       meaning: "Normal fasting glucose range.",
       pulse: false,
-      bgClass: "bg-emerald-50 dark:bg-emerald-950/30",
-      borderClass: "border-emerald-600",
-      textClass: "text-emerald-800 dark:text-emerald-200",
+      bgClass: "bg-card border-border",
+      borderClass: "border-emerald-500",
+      textClass: "text-emerald-400",
     };
   }
 
@@ -332,8 +332,8 @@ export function evaluateDiabetes(glucose: number): VitalsInference {
     color: "#1565C0",
     meaning: "Low blood sugar. Consume 15g fast-acting carbs immediately.",
     pulse: false,
-    bgClass: "bg-blue-50 dark:bg-blue-950/40",
-    borderClass: "border-blue-600",
-    textClass: "text-blue-700 dark:text-blue-300",
+    bgClass: "bg-card border-border",
+    borderClass: "border-sky-500",
+    textClass: "text-sky-400",
   };
 }

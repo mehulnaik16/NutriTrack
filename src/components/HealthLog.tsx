@@ -339,7 +339,7 @@ export function HealthLogPage({
         <div className="flex justify-center">
           <div
             role="tablist"
-            className="flex w-full max-w-xs items-center rounded-full border border-border bg-muted/40 p-1 backdrop-blur-sm"
+            className="flex w-full max-w-xs items-center rounded-full border border-border bg-card p-1"
           >
             <button
               type="button"
@@ -348,9 +348,9 @@ export function HealthLogPage({
               aria-pressed={condition === "hypertension"}
               onClick={() => handleConditionSwitch("hypertension")}
               className={cn(
-                "flex-1 min-h-[44px] rounded-full text-sm font-semibold transition-all duration-200",
+                "flex-1 min-h-[44px] rounded-full text-sm font-semibold transition-all duration-200 font-display",
                 condition === "hypertension"
-                  ? "bg-[#7A3E5C] text-white shadow-sm"
+                  ? "bg-accent text-accent-foreground shadow-sm glow-accent-sm font-bold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -363,9 +363,9 @@ export function HealthLogPage({
               aria-pressed={condition === "diabetes"}
               onClick={() => handleConditionSwitch("diabetes")}
               className={cn(
-                "flex-1 min-h-[44px] rounded-full text-sm font-semibold transition-all duration-200",
+                "flex-1 min-h-[44px] rounded-full text-sm font-semibold transition-all duration-200 font-display",
                 condition === "diabetes"
-                  ? "bg-[#7A3E5C] text-white shadow-sm"
+                  ? "bg-accent text-accent-foreground shadow-sm glow-accent-sm font-bold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -531,19 +531,13 @@ export function HealthLogPage({
             </div>
           )}
 
-          {/* Real-time Signal Banner (Image 1 reference) */}
+          {/* Real-time Signal Banner (Theme-adaptive) */}
           <div
             role="status"
             aria-live="polite"
             className={cn(
-              "relative overflow-hidden rounded-xl border p-4 transition-all duration-300",
-              debouncedInference
-                ? cn(
-                    debouncedInference.bgClass,
-                    "border-border/60",
-                    debouncedInference.pulse && "animate-pulse",
-                  )
-                : "bg-muted/40 border-border/40 text-muted-foreground",
+              "relative overflow-hidden rounded-xl border border-border bg-card p-4 transition-all duration-300",
+              debouncedInference?.pulse && "animate-pulse border-red-500/50",
             )}
           >
             {/* Left Edge 4px Color Bar */}
@@ -559,9 +553,9 @@ export function HealthLogPage({
             <div className="pl-2 space-y-1">
               <h4
                 className={cn(
-                  "text-base font-bold leading-tight",
+                  "text-base font-bold font-display leading-tight",
                   debouncedInference
-                    ? "text-foreground"
+                    ? debouncedInference.textClass
                     : "text-muted-foreground",
                 )}
               >
@@ -569,7 +563,7 @@ export function HealthLogPage({
                   ? debouncedInference.category
                   : "Enter a reading to see its meaning"}
               </h4>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed font-sans">
                 {debouncedInference
                   ? debouncedInference.meaning
                   : condition === "hypertension"
@@ -584,7 +578,7 @@ export function HealthLogPage({
             type="button"
             disabled={!canSave}
             onClick={handleSave}
-            className="h-12 w-full rounded-xl bg-[#7A3E5C] text-white font-semibold hover:bg-[#68334d] disabled:opacity-50 transition-all text-base"
+            className="h-12 w-full rounded-xl bg-accent text-accent-foreground font-bold hover:bg-accent/90 disabled:opacity-40 transition-all text-base glow-accent-sm font-display"
           >
             {editingId ? "Update Reading" : "Log Reading"}
           </Button>
@@ -594,7 +588,7 @@ export function HealthLogPage({
             <button
               type="button"
               onClick={() => setHistoryOpen(true)}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 py-1 transition-colors"
+              className="text-sm font-semibold text-accent hover:text-accent/80 inline-flex items-center gap-1.5 py-1 transition-colors font-display"
             >
               <HistoryIcon className="h-4 w-4" /> View History
             </button>
