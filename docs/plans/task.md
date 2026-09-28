@@ -25,3 +25,43 @@ Full plan: [docs/plans/2026-09-24-ai-resilience.md](2026-09-24-ai-resilience.md)
 | task-4 | **Photo and voice on their chains; clients stop choosing models** | done | Meal builder moved off Groq for photo and voice. |
 | task-5 | **Friendly errors and long-wait copy** | done | No raw provider errors reach users. Loading copy cycles after 2 s on photo, voice and both search boxes. |
 | task-6 | **Live verification** | done | Tested during a real Gemini overload: 3.7-flash 503s took 1.8–5.2 s and lite took ~15 s. Found and fixed three budget bugs live. Groq and lite answers were served but produced 0 cache rows. Voice: Groq answered in 6.2 s. Photo: Qwen answered in 5.8 s. |
+
+# Task Tracker - Health Log (Hypertension & Diabetes)
+
+Full plan: [docs/plans/2026-09-28-health-log-profile-card.md](2026-09-28-health-log-profile-card.md)
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Clinical Domain Logic & Validator** (`src/lib/healthVitals.ts`) | done | InSH 2023 classification, diabetes bands, input sanitization, 18 tests pass |
+| task-2 | **Supabase Schema & Migration** (`supabase/migrations/...`) | done | Migration `20260928170000_health_logs.sql` & Database types added with full user CRUD |
+| task-3 | **Health Log Sub-page UI** (`src/components/HealthLog.tsx`) | done | Segmented toggle, styled inputs, signal banner, history drawer with Edit/Delete |
+| task-4 | **Profile Menu Grid Integration** (`src/routes/profile.tsx`) | done | Card in 2-column grid, vitals glyph, routing |
+| task-5 | **Verification & Verification Suite** | done | 18 Node clinical tests pass, ESLint clean, Vite build & SSR build succeeded |
+
+# Task Tracker - Workout Calorie Accuracy Audit & Fix
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Audit Calorie Calculation Models** | done | Audited Cardio (Power, HR, Speed, METs) and Strength models across codebase |
+| task-2 | **Execute Calorie Engine Test Suites** | done | 30 acceptance tests, 166 compendium tests, 16 modal verification tests pass |
+| task-3 | **Fix Strength Sets Calorie Under/Overestimation** | done | Replaced `sets.length * 15` in `ExerciseLoggerModal` with `calculateCalories` (`STRENGTH_SETS`) |
+| task-4 | **Verification & Lint/Build Check** | done | 30 unit tests, 166 compendium tests, 16 modal tests pass, build exit 0 |
+
+# Task Tracker - Calorie Calculator Bottom Nav & Heart Rate Scroll Fix
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Hide BottomNav on /calorie-calculator** (`src/components/BottomNav.tsx`) | done | Added `/calorie-calculator` to `HIDDEN_ON` set |
+| task-2 | **Fix sticky drawer position & scroll clearance** (`src/routes/calorie-calculator.tsx`) | done | Snapped sticky card to `bottom-0`, expanded container padding to `pb-72 sm:pb-80`, auto-scroll HR |
+| task-3 | **Verification, Linter & Build Check** | done | ESLint clean (0 errors), all test suites pass, Vite + SSR build exit 0 |
+
+# Task Tracker - Strength Progress Analytics Chart Rendering Fix
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Unwrap Recharts Line Components & Update Domain** (`src/routes/workout.tsx`) | done | Removed React.Fragment, set `domain={[0, "auto"]}`, added unit to title |
+| task-2 | **Verification, Linter & Build Check** | done | 30 engine tests, 166 compendium tests, 16 modal tests pass, build exit 0 |
+
+
+
+

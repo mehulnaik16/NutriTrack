@@ -10,7 +10,7 @@
  * calorieEngine.ts alongside the cardio paths; this file only collects inputs.
  */
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { WorkoutGate } from "@/components/WorkoutGate";
 import { useAuth } from "@/lib/auth";
 import { useGatedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
@@ -48,10 +48,23 @@ import {
   strengthDurationMin,
   type StrengthSet,
 } from "@/lib/calorieEngine";
-import { weightToKg, type WeightUnit } from "@/lib/units";
+import { convWeight, round1, weightToKg, type WeightUnit } from "@/lib/units";
+import { toast } from "sonner";
+import { todayLocal } from "@/lib/dates";
+import { recordWorkoutLog } from "@/lib/notificationPrimer";
+import type { LoggedSet } from "@/lib/workoutSets";
+
+export interface CalorieCalcSearch {
+  exercise?: string;
+  source?: string;
+}
 
 export const Route = createFileRoute("/calorie-calculator")({
   component: GatedCalculator,
+  validateSearch: (s: Record<string, unknown>): CalorieCalcSearch => ({
+    exercise: typeof s.exercise === "string" ? s.exercise : undefined,
+    source: typeof s.source === "string" ? s.source : undefined,
+  }),
 });
 
 // Same nine tiles as the workout page grid, so the picker looks like the place
@@ -139,6 +152,9 @@ function GatedCalculator() {
 function CalorieCalculator() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const isFromWorkout = search?.source === "workout";
+
   // WorkoutGate has already loaded these; reading them here avoids a second fetch.
   const prefs = useGatedWorkoutPrefs();
 
@@ -151,6 +167,7 @@ function CalorieCalculator() {
   const [exercise, setExercise] = useState<string | null>(null);
   const [openMuscle, setOpenMuscle] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const hrSectionRef = useRef<HTMLElement>(null);
 
   const [rows, setRows] = useState<
     { reps: string; weight: string; hold: string }[]
@@ -166,6 +183,7 @@ function CalorieCalculator() {
 
   const [history, setHistory] = useState<SavedCalc[]>([]);
   const [justSaved, setJustSaved] = useState(false);
+  const [isLogging, setIsLogging] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -181,6 +199,45 @@ function CalorieCalculator() {
       if (data?.gender) setUserGender(data.gender);
     })();
   }, [user]);
+
+  // Hydrate prefilled exercise & sets when navigated from workout
+  useEffect(() => {
+    if (search?.source === "workout") {
+      try {
+        const raw = sessionStorage.getItem("dombelz_calc_prefill");
+        if (raw) {
+          const prefill = JSON.parse(raw);
+          if (prefill.exercise) {
+            setExercise(prefill.exercise);
+          }
+          if (Array.isArray(prefill.sets) && prefill.sets.length > 0) {
+            setRows(
+              prefill.sets.map(
+                (s: {
+                  reps?: string | number;
+                  weight?: string | number;
+                  duration_seconds?: number;
+                }) => ({
+                  reps:
+                    s.reps != null && s.reps !== ""
+                      ? String(s.reps)
+                      : s.duration_seconds
+                        ? ""
+                        : "10",
+                  weight: s.weight != null ? String(s.weight) : "",
+                  hold: s.duration_seconds ? String(s.duration_seconds) : "",
+                }),
+              ),
+            );
+          }
+        } else if (search.exercise) {
+          setExercise(search.exercise);
+        }
+      } catch (err) {
+        console.warn("Failed to load prefill from sessionStorage", err);
+      }
+    }
+  }, [search?.source, search?.exercise]);
 
   const kind = exercise ? exerciseKind(exercise) : "weighted";
   const isHold = kind === "isometric";
@@ -278,6 +335,73 @@ function CalorieCalculator() {
     if (user) writeHistory(user.id, next);
   };
 
+  const handleLogWorkout = async () => {
+    if (!user) {
+      toast.error("Please sign in to log workout");
+      return;
+    }
+    if (!exercise) {
+      toast.error("Please select an exercise");
+      return;
+    }
+    if (!result) {
+      toast.error("Could not calculate calories for this workout");
+      return;
+    }
+
+    setIsLogging(true);
+    const t = toast.loading("Logging workout...");
+    try {
+      const origUnit = prefs?.origWeightUnit ?? "kg";
+      const payload: LoggedSet[] = rows.map((r) => ({
+        ...(isHold
+          ? { duration_seconds: parseInt(r.hold) || 0 }
+          : { reps: r.reps || "0" }),
+        ...(showsWeight && r.weight
+          ? {
+              weight: String(
+                round1(convWeight(parseFloat(r.weight) || 0, unit, origUnit)),
+              ),
+              unit: origUnit,
+            }
+          : {}),
+        kind,
+      }));
+
+      const durationMinToLog = Math.max(1, Math.round(durationMin));
+
+      const { error } = await supabase.from("workout_logs").insert({
+        user_id: user.id,
+        date: todayLocal(),
+        workout_name: exercise,
+        duration_min: durationMinToLog,
+        calories_burned: result.kcal,
+        calc_method: result.method,
+        confidence: result.confidence,
+        exercises_done: payload,
+      });
+
+      if (error) {
+        toast.error(`Failed to log: ${error.message}`, { id: t });
+        setIsLogging(false);
+        return;
+      }
+
+      toast.success("Workout logged with calculated burn!", { id: t });
+      recordWorkoutLog(user.id);
+      try {
+        sessionStorage.removeItem("dombelz_calc_prefill");
+      } catch {
+        /* ignore */
+      }
+      navigate({ to: "/workout" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Error logging workout: ${msg}`, { id: t });
+      setIsLogging(false);
+    }
+  };
+
   const searchHits = query.trim()
     ? ALL_NAMES.filter((n) =>
         n.toLowerCase().includes(query.toLowerCase()),
@@ -285,7 +409,7 @@ function CalorieCalculator() {
     : [];
 
   return (
-    <div className="min-h-screen bg-background pb-40 selection:bg-accent/20">
+    <div className="min-h-screen bg-background pb-72 sm:pb-80 selection:bg-accent/20">
       <header className="sticky top-0 z-30 border-b border-border/50 bg-background/95 pt-safe backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center gap-2 px-4 py-3">
           <button
@@ -590,9 +714,20 @@ function CalorieCalculator() {
                 </section>
 
                 {/* 5. Heart rate */}
-                <section className="space-y-2">
+                <section ref={hrSectionRef} className="space-y-2">
                   <button
-                    onClick={() => setShowHr(!showHr)}
+                    onClick={() => {
+                      const next = !showHr;
+                      setShowHr(next);
+                      if (next) {
+                        setTimeout(() => {
+                          hrSectionRef.current?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "nearest",
+                          });
+                        }, 80);
+                      }
+                    }}
                     className="flex w-full items-center justify-between rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
                   >
                     <span className="flex items-center gap-2 text-sm font-semibold">
@@ -680,7 +815,7 @@ function CalorieCalculator() {
 
       {/* Result — sticky, live */}
       {range && result && (
-        <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl md:bottom-0">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl">
           <div className="mx-auto max-w-md space-y-3 px-4 py-3">
             <div aria-live="polite">
               <p className="font-display text-2xl font-bold tracking-tight">
@@ -710,19 +845,31 @@ function CalorieCalculator() {
               <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                 {chip}
               </span>
-              <Button
-                onClick={save}
-                variant="outline"
-                className="ml-auto h-10 rounded-xl text-xs font-bold"
-              >
-                {justSaved ? "Saved" : "Save to history"}
-              </Button>
-              <Button
-                onClick={() => navigate({ to: "/workout" })}
-                className="h-10 rounded-xl text-xs font-bold"
-              >
-                Done
-              </Button>
+              {isFromWorkout ? (
+                <Button
+                  onClick={handleLogWorkout}
+                  disabled={isLogging}
+                  className="ml-auto h-10 px-5 rounded-xl text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/90 shadow-md shadow-accent/20 transition-all active:scale-95"
+                >
+                  <Plus className="mr-1.5 h-4 w-4" /> Log Workout
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    onClick={save}
+                    variant="outline"
+                    className="ml-auto h-10 rounded-xl text-xs font-bold"
+                  >
+                    {justSaved ? "Saved" : "Save to history"}
+                  </Button>
+                  <Button
+                    onClick={() => navigate({ to: "/workout" })}
+                    className="h-10 rounded-xl text-xs font-bold"
+                  >
+                    Done
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

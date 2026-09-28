@@ -68,6 +68,22 @@ assert.equal(
   formatSet({ duration_seconds: 150, rpe: 8, kind: "isometric" }),
   "2:30 · RPE 8",
 );
+// "Isometric Holds" is one library entry for every unnamed hold, so the
+// per-log title is what tells two of them apart in history.
+assert.equal(
+  formatSet({
+    duration_seconds: 45,
+    rpe: 7,
+    kind: "isometric",
+    title: "Couch Hold",
+  }),
+  "Couch Hold — 0:45 · RPE 7",
+);
+// An empty title must not leave a dangling dash.
+assert.equal(
+  formatSet({ duration_seconds: 45, kind: "isometric", title: "" }),
+  "0:45",
+);
 assert.equal(
   formatSet({ reps: "8", weight: "20", unit: "kg", kind: "assisted" }),
   "8 reps · −20kg assist",

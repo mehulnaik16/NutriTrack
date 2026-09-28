@@ -471,6 +471,39 @@ export type Database = {
         }
         Relationships: []
       }
+      health_logs: {
+        Row: {
+          condition: "hypertension" | "diabetes"
+          created_at: string
+          diastolic: number | null
+          glucose: number | null
+          id: string
+          logged_at: string
+          systolic: number | null
+          user_id: string
+        }
+        Insert: {
+          condition: "hypertension" | "diabetes"
+          created_at?: string
+          diastolic?: number | null
+          glucose?: number | null
+          id?: string
+          logged_at?: string
+          systolic?: number | null
+          user_id: string
+        }
+        Update: {
+          condition?: "hypertension" | "diabetes"
+          created_at?: string
+          diastolic?: number | null
+          glucose?: number | null
+          id?: string
+          logged_at?: string
+          systolic?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       manual_grants: {
         Row: {
           clawback_at: string | null

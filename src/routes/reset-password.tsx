@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Activity, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,10 +54,8 @@ function ResetPassword() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted/40 px-4">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <Activity className="h-5 w-5" />
-          </div>
+        <div className="mb-6 flex items-center justify-center gap-2.5">
+          <BrandLogo className="h-10 w-10 text-accent shrink-0" />
           <span className="text-2xl font-bold">Dombelz</span>
         </div>
 

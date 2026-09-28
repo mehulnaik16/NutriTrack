@@ -1,21 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Utensils, Dumbbell, Award } from "lucide-react";
-import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
-import { toLocalISO } from "@/lib/dates";
-import { ACHIEVEMENT_BY_ID, computeTotalXP, levelFromXP } from "@/lib/xpConfig";
+import { loadProgress } from "@/lib/progress";
+import { levelFromXP } from "@/lib/xpConfig";
 
 /* ═══════════════════════════════════════════════════════════════════════
    RankPage — "Achievements" header: profile card (avatar, level, XP bar) and
    the food/workout streak badges. The leaderboard is rendered separately below
    (in hub.tsx).
 
-   Eligibility is NOT computed here. sync_achievements() recomputes it from the
-   user's own rows server-side and returns the earned set with each badge's XP;
-   this page renders what comes back. It used to decide eligibility in the
-   browser and then call award_achievement once per newly-met badge, which meant
-   any signed-in user could award themselves all 19.
+   Pure presentation. The queries and the XP maths live in src/lib/progress.ts
+   so useProgressToasts can run them too — this page used to own both, which is
+   why an unlocked badge could only be announced to someone already standing on
+   it. Announcing is now that hook's job; do not put a toast back in here.
 ═══════════════════════════════════════════════════════════════════════ */
 
 const initial = (n: string | null) => (n?.trim()?.[0] ?? "?").toUpperCase();
@@ -30,87 +27,12 @@ export function RankPage() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const uid = user.id;
-
-    // One RPC recomputes eligibility server-side and returns the earned set with
-    // xp. Water and saved-meal counts are no longer fetched here — they were
-    // only ever inputs to the client-side eligibility test.
-    const [prof, food, workouts, weights, synced] = await Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("full_name")
-        .eq("id", uid)
-        .maybeSingle(),
-      supabase.from("food_logs").select("date, logged_at").eq("user_id", uid),
-      supabase.from("workout_logs").select("date").eq("user_id", uid),
-      supabase.from("weight_entries").select("date").eq("user_id", uid),
-      supabase.rpc("sync_achievements"),
-    ]);
-
-    const foodRows = food.data ?? [];
-    const workoutRows = workouts.data ?? [];
-    const weightRows = weights.data ?? [];
-    const earned = (synced.data ?? []) as {
-      achievement_id: string;
-      xp: number;
-    }[];
-
-    // A "log" for XP = one food, workout, or weight entry. Water is excluded.
-    // Back-dated food logs (logged_at ≠ date) do not earn XP.
-    const todayLoggedFood = foodRows.filter(
-      (r) => r.logged_at && toLocalISO(new Date(r.logged_at)) === r.date,
-    );
-    const logCount =
-      todayLoggedFood.length + workoutRows.length + weightRows.length;
-
-    // Streak badge counters: total 7-day streaks' worth of distinct logged days.
-    setFoodBadges(Math.floor(new Set(foodRows.map((r) => r.date)).size / 7));
-    setWorkoutBadges(
-      Math.floor(new Set(workoutRows.map((r) => r.date)).size / 7),
-    );
-
-    // Popup only for unlocks that happen while using the app — the very first
-    // load seeds already-earned achievements silently (no flood). The previously
-    // seen ids are the only thing kept locally, purely to diff for the toast.
-    const seenKey = `ach_seen_${uid}`;
-    let seen: string[] | null = null;
-    try {
-      const raw = localStorage.getItem(seenKey);
-      seen = raw ? (JSON.parse(raw) as string[]) : null;
-    } catch {
-      seen = null;
-    }
-    if (seen) {
-      const before = new Set(seen);
-      earned
-        .filter((e) => !before.has(e.achievement_id))
-        .forEach((e) =>
-          toast(
-            `Achievement Unlocked! ${ACHIEVEMENT_BY_ID[e.achievement_id]?.title ?? "New badge"}`,
-            {
-              description: `+${e.xp} XP earned!`,
-              icon: "🏅",
-              duration: 4000,
-            },
-          ),
-        );
-    }
-    try {
-      localStorage.setItem(
-        seenKey,
-        JSON.stringify(earned.map((e) => e.achievement_id)),
-      );
-    } catch {
-      /* storage full / blocked — toasts are cosmetic, carry on */
-    }
-
-    setName(prof.data?.full_name ?? null);
-    setTotalXP(
-      computeTotalXP(
-        logCount,
-        earned.map((e) => e.xp),
-      ),
-    );
+    const snapshot = await loadProgress(user.id);
+    if (!snapshot) return;
+    setName(snapshot.name);
+    setTotalXP(snapshot.totalXP);
+    setFoodBadges(snapshot.foodBadges);
+    setWorkoutBadges(snapshot.workoutBadges);
     setLoading(false);
   }, [user]);
 

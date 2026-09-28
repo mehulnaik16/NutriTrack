@@ -123,6 +123,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Incline Cable Chest Press",
     "Cable Press-Around",
     "Chest Dip",
+    "Bottom Push Up Hold",
     "Close Grip Push Up",
     "Decline Push Up",
     "Diamond Push Up",
@@ -236,6 +237,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
   abs: [
     "Ab Wheel Rollout",
     "Alternating Heel Touch",
+    "Bear Crawl Hold",
     "Bear Plank",
     "Bicycle Crunch",
     "Cable Torso Rotation",
@@ -255,6 +257,9 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Hanging Leg Raise",
     "Hanging Oblique Knee Raise",
     "High Plank Arm Reach",
+    "Hollow Body Hold",
+    "Iron Bridge",
+    "Isometric Holds",
     "Kettlebell Sit Up and Press",
     "Knee Raise",
     "Leg Raise",
@@ -388,6 +393,7 @@ export const EXERCISES_DB: Record<string, string[]> = {
     "Burpee Broad Jump",
     "Cossack Squat",
     "Dumbbell Sumo Squat",
+    "Horse Stance",
     "Kettlebell Sumo Squat",
     "Lunge Jump",
     "Medicine Ball Lunge",
@@ -595,6 +601,13 @@ export const COMPOUND_EXERCISES: string[] = [
   "Dumbbell Row",
   "Cable Row",
   "Kettlebell Swing",
+  // Static holds — timed, no load. "Isometric Holds" is the catch-all:
+  // it carries a per-log title so a generic hold still reads in history.
+  "Horse Stance",
+  "Bottom Push Up Hold",
+  "Bear Crawl Hold",
+  "Iron Bridge",
+  "Isometric Holds",
 ];
 
 /**

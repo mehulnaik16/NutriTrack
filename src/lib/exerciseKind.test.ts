@@ -58,5 +58,8 @@ assert.equal(exerciseKind("Cable Torso Rotation"), "weighted");
 assert.equal(exerciseKind("Torso Rotation"), "bodyweight");
 // A static hold that lives in the abs group must beat the bodyweight default.
 assert.equal(exerciseKind("Side Plank"), "isometric");
+assert.equal(exerciseKind("Hollow Body Hold"), "isometric");
+// The catch-all entry must be timed too, or its title-carrying logs render wrong.
+assert.equal(exerciseKind("Isometric Holds"), "isometric");
 
 console.log("exerciseKind: all assertions passed");

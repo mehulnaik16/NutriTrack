@@ -13,6 +13,7 @@ const HIDDEN_ON = new Set([
   "/refer-intro",
   "/refer-how-it-works",
   "/refer-terms",
+  "/calorie-calculator",
 ]);
 
 function HubIcon({ className }: { className?: string }) {

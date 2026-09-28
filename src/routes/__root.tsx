@@ -13,6 +13,8 @@ import { BottomNav } from "@/components/BottomNav";
 import appCss from "../styles.css?url";
 
 import { useReconcileOnForeground } from "@/lib/useReconcileOnForeground";
+import { useProgressToasts } from "@/lib/useProgressToasts";
+import { NotificationPrimerDialog } from "@/components/NotificationPrimerDialog";
 
 function NotFoundComponent() {
   return (
@@ -111,9 +113,43 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NotificationReconciler />
+        <NotificationPrimerDialog />
         <Outlet />
         <BottomNav />
-        <Toaster position="top-right" richColors />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            // sonner's built-in icons are currentColor, so without richColors
+            // they would go monochrome. Scope the colour to the icon element
+            // only — the title stays --popover-foreground.
+            //
+            // Fixed colours rather than --primary on purpose: --primary is volt
+            // green in dark, near-black in light, pure white in theme-cyber and
+            // yellow in theme-cyberdeck. A tick that turns black stops meaning
+            // "success".
+            classNames: {
+              success: "[&_[data-icon]]:text-emerald-400",
+              error: "[&_[data-icon]]:text-red-400",
+              warning: "[&_[data-icon]]:text-amber-400",
+              info: "[&_[data-icon]]:text-sky-300",
+            },
+          }}
+          // What makes toasts follow all eight themes. sonner draws its surface
+          // from these three custom properties; pointing them at the app's own
+          // tokens means each theme class re-skins the toast for free.
+          //
+          // richColors is deliberately gone: it forces its own light-tinted
+          // cards and overrides --normal-bg, so the two cannot coexist.
+          // --popover rather than --background, to match the app's other
+          // floating panels.
+          style={
+            {
+              "--normal-bg": "var(--popover)",
+              "--normal-text": "var(--popover-foreground)",
+              "--normal-border": "var(--border)",
+            } as React.CSSProperties
+          }
+        />
         <SpeedInsights />
       </AuthProvider>
     </QueryClientProvider>
@@ -121,13 +157,18 @@ function RootComponent() {
 }
 
 /**
- * Renders nothing; exists to run the reconcile hook inside AuthProvider.
+ * Renders nothing; exists to run the notification hooks inside AuthProvider.
  *
- * It has to be a child rather than a call in RootComponent because the hook
- * needs the signed-in user, and useAuth only works below the provider.
+ * They have to be children rather than calls in RootComponent because both
+ * need the signed-in user, and useAuth only works below the provider.
+ *
+ * Two of them, doing opposite jobs: one rebuilds the OS alarms that fire when
+ * the app is closed, the other announces things that happened while the user
+ * was on another screen.
  */
 function NotificationReconciler() {
   const { user } = useAuth();
   useReconcileOnForeground(user?.id ?? null);
+  useProgressToasts(user?.id ?? null);
   return null;
 }
