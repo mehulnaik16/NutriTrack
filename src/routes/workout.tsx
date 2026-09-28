@@ -2822,7 +2822,7 @@ function WorkoutPage() {
                       kind === "isometric"
                         ? "Longest Hold"
                         : isLoad
-                          ? "Strength Progress"
+                          ? `Strength Progress (${unit})`
                           : "Best Set";
                     const volumeTitle =
                       kind === "isometric"
@@ -2891,7 +2891,7 @@ function WorkoutPage() {
                                   fontSize={10}
                                   tickLine={false}
                                   axisLine={false}
-                                  domain={["auto", "auto"]}
+                                  domain={[0, "auto"]}
                                   tickFormatter={fmtY}
                                 />
                                 <Tooltip
@@ -2913,27 +2913,28 @@ function WorkoutPage() {
                                         ]
                                   }
                                 />
-                                {isLoad ? (
-                                  <>
-                                    <Line
-                                      type="monotone"
-                                      dataKey="maxWeight"
-                                      name="Max Weight"
-                                      stroke="var(--accent)"
-                                      strokeWidth={2.5}
-                                      dot={{ r: 2.5 }}
-                                    />
-                                    <Line
-                                      type="monotone"
-                                      dataKey="e1rm"
-                                      name="Est. 1RM"
-                                      stroke="var(--muted-foreground)"
-                                      strokeDasharray="5 4"
-                                      strokeWidth={2}
-                                      dot={{ r: 2.5 }}
-                                    />
-                                  </>
-                                ) : (
+                                {isLoad && (
+                                  <Line
+                                    type="monotone"
+                                    dataKey="maxWeight"
+                                    name="Max Weight"
+                                    stroke="var(--accent)"
+                                    strokeWidth={2.5}
+                                    dot={{ r: 2.5 }}
+                                  />
+                                )}
+                                {isLoad && (
+                                  <Line
+                                    type="monotone"
+                                    dataKey="e1rm"
+                                    name="Est. 1RM"
+                                    stroke="var(--muted-foreground)"
+                                    strokeDasharray="5 4"
+                                    strokeWidth={2}
+                                    dot={{ r: 2.5 }}
+                                  />
+                                )}
+                                {!isLoad && (
                                   <Line
                                     type="monotone"
                                     dataKey="best"
@@ -2998,7 +2999,7 @@ function WorkoutPage() {
                                   fontSize={10}
                                   tickLine={false}
                                   axisLine={false}
-                                  domain={["auto", "auto"]}
+                                  domain={[0, "auto"]}
                                   tickFormatter={fmtY}
                                 />
                                 <Tooltip

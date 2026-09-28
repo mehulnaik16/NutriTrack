@@ -55,5 +55,13 @@ Full plan: [docs/plans/2026-09-28-health-log-profile-card.md](2026-09-28-health-
 | task-2 | **Fix sticky drawer position & scroll clearance** (`src/routes/calorie-calculator.tsx`) | done | Snapped sticky card to `bottom-0`, expanded container padding to `pb-72 sm:pb-80`, auto-scroll HR |
 | task-3 | **Verification, Linter & Build Check** | done | ESLint clean (0 errors), all test suites pass, Vite + SSR build exit 0 |
 
+# Task Tracker - Strength Progress Analytics Chart Rendering Fix
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Unwrap Recharts Line Components & Update Domain** (`src/routes/workout.tsx`) | done | Removed React.Fragment, set `domain={[0, "auto"]}`, added unit to title |
+| task-2 | **Verification, Linter & Build Check** | done | 30 engine tests, 166 compendium tests, 16 modal tests pass, build exit 0 |
+
+
 
 
