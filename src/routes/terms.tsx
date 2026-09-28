@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowLeft, ScrollText } from "lucide-react";
+import { ArrowLeft, ScrollText } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export const Route = createFileRoute("/terms")({ component: Terms });
@@ -35,9 +36,7 @@ function Terms() {
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-              <Activity className="h-4 w-4" />
-            </div>
+            <BrandLogo className="h-7 w-7 text-accent shrink-0" />
             <span className="font-display text-sm font-bold">Dombelz</span>
           </div>
         </div>

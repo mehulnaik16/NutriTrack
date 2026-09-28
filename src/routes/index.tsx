@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  Activity,
   ArrowRight,
   Barcode,
   Camera,
@@ -17,6 +16,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -133,10 +133,8 @@ function Landing() {
       {/* ── NAV ── */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-accent-foreground glow-accent-sm">
-              <Activity className="h-5 w-5" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <BrandLogo className="h-9 w-9 text-accent shrink-0 transition-transform hover:scale-105" />
             <span className="font-display text-lg font-bold tracking-tight">
               Dombelz
             </span>
@@ -563,10 +561,8 @@ function Landing() {
       {/* ── FOOTER ── */}
       <footer className="border-t border-border/60">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-              <Activity className="h-4 w-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <BrandLogo className="h-7 w-7 text-accent shrink-0" />
             <span className="font-display text-sm font-bold">Dombelz</span>
           </div>
           <p className="text-xs text-muted-foreground">

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/privacy")({ component: Privacy });
 
@@ -34,9 +35,7 @@ function Privacy() {
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-              <Activity className="h-4 w-4" />
-            </div>
+            <BrandLogo className="h-7 w-7 text-accent shrink-0" />
             <span className="font-display text-sm font-bold">Dombelz</span>
           </div>
         </div>
