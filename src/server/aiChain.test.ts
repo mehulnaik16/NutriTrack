@@ -11,6 +11,7 @@ import {
   AiHttpError,
   msUntilPacificMidnight,
   runChain,
+  runChainWithRetry,
   _resetCooldowns,
 } from "./aiChain.ts";
 import type { Step } from "./aiChain.ts";
@@ -306,5 +307,63 @@ await assert.rejects(
   }),
 );
 assert.equal(hangCalls, 2, "a later retry in the order still runs");
+
+// 16. runChainWithRetry: every model busy on pass 1, but budget has room —
+// pass 2 tries the same model again and it now succeeds.
+_resetCooldowns();
+let flakyCalls = 0;
+const flaky: Step = {
+  provider: "gemini",
+  model: "flaky",
+  retry: true,
+  run: async () => {
+    flakyCalls++;
+    if (flakyCalls === 1)
+      throw new AiHttpError(503, "gemini", null, "flaky 503");
+    return "ok";
+  },
+};
+r = await runChainWithRetry([flaky], {
+  budgetMs: 5000,
+  attemptMs: 1000,
+  label: "test",
+});
+assert.equal(r.text, "ok");
+assert.equal(flakyCalls, 2, "pass 2 retried the same model and it answered");
+
+// 17. a real error (not capacity) is not retried across passes — waiting
+// cannot fix a bad prompt or a dead key.
+_resetCooldowns();
+let badCalls = 0;
+const bad: Step = {
+  provider: "gemini",
+  model: "bad",
+  run: async () => {
+    badCalls++;
+    throw new AiHttpError(400, "gemini", null, "bad 400");
+  },
+};
+await assert.rejects(
+  runChainWithRetry([bad], { budgetMs: 5000, attemptMs: 1000, label: "test" }),
+  (e: Error) => !e.message.startsWith(AI_BUSY),
+);
+assert.equal(badCalls, 1, "a non-capacity error skips the retry passes");
+
+// 18. too little budget left for another pass plus its backoff: no retry.
+_resetCooldowns();
+let tightCalls = 0;
+const tight: Step = {
+  provider: "gemini",
+  model: "tight",
+  run: async () => {
+    tightCalls++;
+    throw new AiHttpError(503, "gemini", null, "tight 503");
+  },
+};
+await assert.rejects(
+  runChainWithRetry([tight], { budgetMs: 900, attemptMs: 500, label: "test" }),
+  (e: Error) => e.message.startsWith(AI_BUSY),
+);
+assert.equal(tightCalls, 1, "no retry pass when the backoff wouldn't fit");
 
 console.log("aiChain: all checks passed");

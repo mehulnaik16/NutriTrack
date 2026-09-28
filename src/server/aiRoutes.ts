@@ -12,8 +12,13 @@
  * prices it = 23 s (the user accepted a longer photo wait: people expect
  * images to take a while, and it gives a slow Gemini time before Groq);
  * voice 7 s to parse + 8 s lookups for its items.
+ *
+ * Every chain runs through runChainWithRetry, not runChain directly: if every
+ * model in the order comes back busy but the budget above still has room,
+ * it tries the same order again after a short beat rather than giving up the
+ * moment the first pass is exhausted (see aiChain.ts).
  */
-import { runChain, type Step } from "./aiChain";
+import { runChainWithRetry, type Step } from "./aiChain";
 import {
   geminiText,
   geminiVision,
@@ -93,7 +98,7 @@ export function searchChain(
     2: [g(FLASH_36), g(LITE), groq],
     3: [g(FLASH_37), g(FLASH_36), g(LITE), g(FLASH_36), groq],
   };
-  return runChain(orders[attempt], {
+  return runChainWithRetry(orders[attempt], {
     budgetMs,
     attemptMs: ATTEMPT_MS,
     label: `food-search#${attempt}`,
@@ -126,7 +131,7 @@ export function visionChain(
     1: [g(LITE), g(FLASH_36), g(FLASH_37)],
     2: [g(FLASH_36), qwen],
   };
-  return runChain(orders[attempt], {
+  return runChainWithRetry(orders[attempt], {
     budgetMs: VISION_BUDGET_MS,
     attemptMs: VISION_ATTEMPT_MS,
     label: `food-photo#${attempt}`,
@@ -134,7 +139,7 @@ export function visionChain(
 }
 
 export function voiceChain(prompt: string) {
-  return runChain(
+  return runChainWithRetry(
     [
       geminiTextStep(FLASH_37, prompt, 400, 0.1),
       geminiTextStep(FLASH_37, prompt, 400, 0.1, true),

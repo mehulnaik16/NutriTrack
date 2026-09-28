@@ -250,3 +250,48 @@ export async function runChain(
     );
   throw lastErr;
 }
+
+/**
+ * Extra full passes through the same chain when the first exhausted on
+ * capacity alone but the caller's budget still has room left. Google's own
+ * "overloaded" response tends to come back in well under a second, not by
+ * hanging — so three models can fail in ~1-2s out of a 15s budget, and
+ * giving up right there wastes the rest of it. A 503 that clears in a beat
+ * is common; this gives it a couple of beats before the user sees "busy".
+ */
+const MAX_RETRY_PASSES = 2;
+/** Short on purpose: matches how fast a real overload response returns. */
+const PASS_BACKOFF_MS = 700;
+
+const isAiBusyError = (e: unknown) =>
+  e instanceof Error && e.message.startsWith(AI_BUSY);
+
+/**
+ * runChain, retried up to MAX_RETRY_PASSES more times — same steps, same
+ * order — when every model came back busy/timed out and the deadline still
+ * leaves room for another pass plus its backoff. A real error (bad prompt, a
+ * dead key that took out every provider) rethrows immediately: waiting
+ * cannot fix it, only capacity can.
+ */
+export async function runChainWithRetry(
+  steps: Step[],
+  opts: Parameters<typeof runChain>[1],
+): Promise<ChainResult> {
+  const deadline = Date.now() + opts.budgetMs;
+  let lastErr: unknown;
+  for (let pass = 0; pass <= MAX_RETRY_PASSES; pass++) {
+    const remaining = deadline - Date.now();
+    if (remaining < MIN_START_MS) break;
+    try {
+      return await runChain(steps, { ...opts, budgetMs: remaining });
+    } catch (e) {
+      lastErr = e;
+      if (!isAiBusyError(e)) throw e;
+      const left = deadline - Date.now();
+      if (pass === MAX_RETRY_PASSES || left < PASS_BACKOFF_MS + MIN_START_MS)
+        break;
+      await new Promise((res) => setTimeout(res, PASS_BACKOFF_MS));
+    }
+  }
+  throw lastErr;
+}
