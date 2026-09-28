@@ -182,7 +182,7 @@ export function HealthLogPage({
         .select("*")
         .eq("user_id", userId)
         .order("logged_at", { ascending: false })
-        .limit(7);
+        .limit(40);
 
       if (!error && data) {
         setLogs(data as HealthLogRecord[]);
@@ -200,6 +200,12 @@ export function HealthLogPage({
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  // Filter history to the active condition (BP has its own, DM has its own)
+  const conditionLogs = useMemo(
+    () => logs.filter((l) => l.condition === condition).slice(0, 7),
+    [logs, condition],
+  );
 
   // ─── Save / Update Action ───
   const handleSave = async () => {
@@ -258,7 +264,7 @@ export function HealthLogPage({
         const updatedLogs = [
           savedRecord,
           ...logs.filter((l) => l.id !== tempId),
-        ].slice(0, 7);
+        ].slice(0, 40);
         setLogs(updatedLogs);
 
         if (typeof window !== "undefined") {
@@ -590,32 +596,41 @@ export function HealthLogPage({
               onClick={() => setHistoryOpen(true)}
               className="text-sm font-semibold text-accent hover:text-accent/80 inline-flex items-center gap-1.5 py-1 transition-colors font-display"
             >
-              <HistoryIcon className="h-4 w-4" /> View History
+              <HistoryIcon className="h-4 w-4" />{" "}
+              {condition === "hypertension"
+                ? "View BP History"
+                : "View Glucose History"}
             </button>
           </div>
         </div>
       </main>
 
-      {/* History Bottom Sheet (Drawer with Edit & Delete) */}
+      {/* History Bottom Sheet (Condition-Specific: BP on BP, DM on DM) */}
       <Drawer open={historyOpen} onOpenChange={setHistoryOpen}>
         <DrawerContent className="max-w-lg mx-auto p-5 pb-8">
           <DrawerHeader className="px-0 pt-0">
-            <DrawerTitle className="text-lg font-bold flex items-center gap-2">
+            <DrawerTitle className="text-lg font-bold flex items-center gap-2 font-display">
               <HistoryIcon className="h-5 w-5 text-accent" />
-              Reading History
+              {condition === "hypertension"
+                ? "Blood Pressure History"
+                : "Blood Glucose History"}
             </DrawerTitle>
             <DrawerDescription className="text-xs text-muted-foreground">
-              Last 7 recorded readings. Tap edit to modify or trash to delete.
+              {condition === "hypertension"
+                ? "Last 7 blood pressure readings. Tap edit to modify or trash to delete."
+                : "Last 7 blood glucose readings. Tap edit to modify or trash to delete."}
             </DrawerDescription>
           </DrawerHeader>
 
           <div className="mt-4 space-y-2.5">
-            {logs.length === 0 ? (
+            {conditionLogs.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                No readings logged yet.
+                {condition === "hypertension"
+                  ? "No blood pressure readings logged yet."
+                  : "No blood glucose readings logged yet."}
               </div>
             ) : (
-              logs.map((record) => {
+              conditionLogs.map((record) => {
                 const isBP = record.condition === "hypertension";
                 const inference = isBP
                   ? record.systolic && record.diastolic
