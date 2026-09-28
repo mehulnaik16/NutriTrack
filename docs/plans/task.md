@@ -38,3 +38,22 @@ Full plan: [docs/plans/2026-09-28-health-log-profile-card.md](2026-09-28-health-
 | task-4 | **Profile Menu Grid Integration** (`src/routes/profile.tsx`) | done | Card in 2-column grid, vitals glyph, routing |
 | task-5 | **Verification & Verification Suite** | done | 18 Node clinical tests pass, ESLint clean, Vite build & SSR build succeeded |
 
+# Task Tracker - Workout Calorie Accuracy Audit & Fix
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Audit Calorie Calculation Models** | done | Audited Cardio (Power, HR, Speed, METs) and Strength models across codebase |
+| task-2 | **Execute Calorie Engine Test Suites** | done | 30 acceptance tests, 166 compendium tests, 16 modal verification tests pass |
+| task-3 | **Fix Strength Sets Calorie Under/Overestimation** | done | Replaced `sets.length * 15` in `ExerciseLoggerModal` with `calculateCalories` (`STRENGTH_SETS`) |
+| task-4 | **Verification & Lint/Build Check** | done | 30 unit tests, 166 compendium tests, 16 modal tests pass, build exit 0 |
+
+# Task Tracker - Calorie Calculator Bottom Nav & Heart Rate Scroll Fix
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Hide BottomNav on /calorie-calculator** (`src/components/BottomNav.tsx`) | done | Added `/calorie-calculator` to `HIDDEN_ON` set |
+| task-2 | **Fix sticky drawer position & scroll clearance** (`src/routes/calorie-calculator.tsx`) | done | Snapped sticky card to `bottom-0`, expanded container padding to `pb-72 sm:pb-80`, auto-scroll HR |
+| task-3 | **Verification, Linter & Build Check** | done | ESLint clean (0 errors), all test suites pass, Vite + SSR build exit 0 |
+
+
+

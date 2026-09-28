@@ -10,7 +10,7 @@
  * calorieEngine.ts alongside the cardio paths; this file only collects inputs.
  */
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { WorkoutGate } from "@/components/WorkoutGate";
 import { useAuth } from "@/lib/auth";
 import { useGatedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
@@ -151,6 +151,7 @@ function CalorieCalculator() {
   const [exercise, setExercise] = useState<string | null>(null);
   const [openMuscle, setOpenMuscle] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const hrSectionRef = useRef<HTMLElement>(null);
 
   const [rows, setRows] = useState<
     { reps: string; weight: string; hold: string }[]
@@ -285,7 +286,7 @@ function CalorieCalculator() {
     : [];
 
   return (
-    <div className="min-h-screen bg-background pb-40 selection:bg-accent/20">
+    <div className="min-h-screen bg-background pb-72 sm:pb-80 selection:bg-accent/20">
       <header className="sticky top-0 z-30 border-b border-border/50 bg-background/95 pt-safe backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center gap-2 px-4 py-3">
           <button
@@ -590,9 +591,20 @@ function CalorieCalculator() {
                 </section>
 
                 {/* 5. Heart rate */}
-                <section className="space-y-2">
+                <section ref={hrSectionRef} className="space-y-2">
                   <button
-                    onClick={() => setShowHr(!showHr)}
+                    onClick={() => {
+                      const next = !showHr;
+                      setShowHr(next);
+                      if (next) {
+                        setTimeout(() => {
+                          hrSectionRef.current?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "nearest",
+                          });
+                        }, 80);
+                      }
+                    }}
                     className="flex w-full items-center justify-between rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
                   >
                     <span className="flex items-center gap-2 text-sm font-semibold">
@@ -680,7 +692,7 @@ function CalorieCalculator() {
 
       {/* Result — sticky, live */}
       {range && result && (
-        <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl md:bottom-0">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl">
           <div className="mx-auto max-w-md space-y-3 px-4 py-3">
             <div aria-live="polite">
               <p className="font-display text-2xl font-bold tracking-tight">

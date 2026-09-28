@@ -139,6 +139,7 @@ import {
 import {
   convWeight,
   kgToWeight,
+  weightToKg,
   convDist,
   distToKm,
   round1,
@@ -2213,18 +2214,30 @@ function WorkoutPage() {
         (total, s) => total + (s.duration_seconds ?? 0),
         0,
       );
+      const strengthSets = sets.map((s) => ({
+        reps: s.reps ? parseInt(s.reps, 10) || undefined : undefined,
+        weight_kg: s.weight
+          ? weightToKg(parseFloat(s.weight) || 0, weightUnit)
+          : undefined,
+        hold_sec: s.duration_seconds,
+      }));
+      const durationMin =
+        kind === "isometric"
+          ? Math.max(1, Math.round(holdSec / 60))
+          : Math.max(1, sets.length * 3);
+      const calorieEstimate = calculateCalories(
+        selectedExercise || "",
+        { duration_min: durationMin, strength_sets: strengthSets },
+        { weight_kg: bodyWeight, age: userAge, gender: userGender },
+      );
       const { error } = await supabase.from("workout_logs").insert({
         user_id: user.id,
         date: todayLocal(),
         workout_name: selectedExercise || "",
-        // Isometrics know their real duration; everything else stays a guess.
-        duration_min:
-          kind === "isometric"
-            ? Math.max(1, Math.round(holdSec / 60))
-            : sets.length * 3,
-        calories_burned: sets.length * 15,
-        calc_method: "GENERIC",
-        confidence: "estimated",
+        duration_min: durationMin,
+        calories_burned: calorieEstimate.kcal,
+        calc_method: calorieEstimate.method,
+        confidence: calorieEstimate.confidence,
         // LoggedSet is a closed interface, so it lacks the index signature the
         // generated Json type wants. The shape is checked above.
         exercises_done: payload,
