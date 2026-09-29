@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { loadWorkoutPrefs, saveWorkoutPrefs } from "@/lib/workoutPrefs";
 import { WORKOUT_LIBRARY, type LibraryPlan } from "@/lib/workoutLibrary";
+import { getExerciseThumbnail } from "@/lib/exerciseImages";
 
 export const Route = createFileRoute("/workout-library")({
   component: GatedWorkoutLibrary,
@@ -212,24 +213,36 @@ function PreviewView({ plan }: { plan: LibraryPlan }) {
           </div>
           {/* Read-only exercise list (logging happens on /workout after Select) */}
           <div className="divide-y divide-border/60">
-            {day.exercises.map((ex, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between px-4 py-3"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold text-muted-foreground">
-                    {i + 1}
-                  </span>
-                  <span className="truncate text-sm font-semibold">
-                    {ex.name}
+            {day.exercises.map((ex, i) => {
+              const thumb = getExerciseThumbnail(ex.name);
+              return (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-4 py-3"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt={ex.name}
+                        className="h-9 w-9 shrink-0 rounded-full border border-border/80 object-cover bg-white shadow-xs"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold text-muted-foreground">
+                        {i + 1}
+                      </span>
+                    )}
+                    <span className="truncate text-sm font-semibold">
+                      {ex.name}
+                    </span>
+                  </div>
+                  <span className="shrink-0 text-xs font-bold text-muted-foreground">
+                    {ex.sets} × {ex.reps}
                   </span>
                 </div>
-                <span className="shrink-0 text-xs font-bold text-muted-foreground">
-                  {ex.sets} × {ex.reps}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </main>

@@ -25,6 +25,7 @@ import type {
   CalorieResult,
   Confidence,
 } from "@/lib/calorieEngine";
+import { getExerciseThumbnail } from "@/lib/exerciseImages";
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -746,15 +747,31 @@ function WorkoutPage() {
                     className="group flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/20"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                          isLogged
-                            ? "bg-accent text-accent-foreground"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {isLogged ? "✓" : i + 1}
-                      </span>
+                      {getExerciseThumbnail(ex.name) ? (
+                        <div className="relative shrink-0">
+                          <img
+                            src={getExerciseThumbnail(ex.name)!}
+                            alt={ex.name}
+                            className="h-9 w-9 rounded-full border border-border/80 object-cover bg-white shadow-xs"
+                            loading="lazy"
+                          />
+                          {isLogged && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-accent-foreground shadow-xs">
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                            isLogged
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {isLogged ? "✓" : i + 1}
+                        </span>
+                      )}
                       <span className="truncate text-sm font-semibold transition-colors group-hover:text-accent">
                         {ex.name}
                       </span>
@@ -1012,17 +1029,30 @@ function WorkoutPage() {
         </div>
 
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50">
-          {routine.exercises.map((ex, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10"
-            >
-              <span className="font-semibold text-sm">{ex.name}</span>
-              <span className="text-xs font-bold bg-accent/10 text-accent px-2 py-1 rounded">
-                {ex.sets}
-              </span>
-            </div>
-          ))}
+          {routine.exercises.map((ex, i) => {
+            const thumb = getExerciseThumbnail(ex.name);
+            return (
+              <div
+                key={i}
+                className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {thumb && (
+                    <img
+                      src={thumb}
+                      alt={ex.name}
+                      className="h-9 w-9 shrink-0 rounded-full border border-border/80 object-cover bg-white shadow-xs"
+                      loading="lazy"
+                    />
+                  )}
+                  <span className="font-semibold text-sm truncate">{ex.name}</span>
+                </div>
+                <span className="text-xs font-bold bg-accent/10 text-accent px-2 py-1 rounded shrink-0">
+                  {ex.sets}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         <Button
@@ -2280,7 +2310,16 @@ function WorkoutPage() {
         onOpenChange={() => setSelectedExercise(null)}
       >
         <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-12 sm:px-6 sm:pb-6 sm:pt-8 overflow-y-auto overflow-x-hidden flex flex-col gap-0">
-          <DialogHeader>
+          <DialogHeader className="flex flex-col items-center">
+            {getExerciseThumbnail(selectedExercise ?? "") && (
+              <div className="mb-2">
+                <img
+                  src={getExerciseThumbnail(selectedExercise ?? "")!}
+                  alt={selectedExercise ?? ""}
+                  className="h-16 w-16 rounded-full border-2 border-border/80 object-cover bg-white shadow-sm"
+                />
+              </div>
+            )}
             <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent">
               {selectedExercise}
             </DialogTitle>
