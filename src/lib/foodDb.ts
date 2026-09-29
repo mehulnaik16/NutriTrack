@@ -18,6 +18,8 @@ export interface IFCTItem {
   fatce: number | null;
   choavldf: number | null;
   fibtg: number | null;
+  /** Pure ethanol in grams per 100 g / mL (adds 7 kcal/g to energy). */
+  alcohol?: number | null;
   /**
    * Weight of one serving, for items that come as a portion rather than an
    * ingredient — a burger, a sub, a cup of a drink. Per 100 g remains the
@@ -101,7 +103,10 @@ export const kcal = (kj: number | null) => (kj == null ? 0 : kj / KJ_PER_KCAL);
 export const kcalOf = (it: IFCTItem) =>
   it.enerc
     ? it.enerc / KJ_PER_KCAL
-    : 9 * (it.fatce ?? 0) + 4 * (it.protcnt ?? 0) + 4 * (it.choavldf ?? 0);
+    : 9 * (it.fatce ?? 0) +
+      4 * (it.protcnt ?? 0) +
+      4 * (it.choavldf ?? 0) +
+      7 * (it.alcohol ?? 0);
 
 /** Relevance rank for a search term — lower is better, 5 = no match. */
 export function rank(item: IFCTItem, q: string): number {
