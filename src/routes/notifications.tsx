@@ -1,13 +1,13 @@
 /**
- * Notification settings — the first user-facing half of the feature.
+ * Notification settings.
  *
  * Reads and writes user_notification_preferences, and reconciles the OS alarms
- * on every save so what the user just chose is what is actually scheduled. The
- * debug route stays for diagnostics; this is the screen people use.
+ * on every save so what the user just chose is what is actually scheduled.
  *
- * Works on the web, where it saves preferences but schedules nothing — the
- * plugin only exists in the app. Saying so plainly beats silently doing half
- * the job.
+ * Laid out as grouped lists, the same pattern as Profile > Theme: one status
+ * row that says whether notifications can reach the user at all, then a list
+ * per concern. Works on the web too, where it saves preferences but schedules
+ * nothing — the plugin only exists in the app, and the status row says so.
  */
 import {
   createFileRoute,
@@ -15,15 +15,24 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Bell, Clock, Loader2, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  AlarmClock,
+  BellOff,
+  BellRing,
+  Check,
+  Loader2,
+  Smartphone,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { SubHeader } from "@/components/SubHeader";
+import { LIST_CLASS, ReminderRows } from "@/components/ReminderRows";
 import {
   DEFAULT_PREFS,
   loadPrefs,
@@ -34,7 +43,6 @@ import {
   type NotificationPrefs,
   type Reminder,
 } from "@/lib/notification-settings";
-import { ReminderRows } from "@/components/ReminderRows";
 import {
   checkPermissionState,
   isNative,
@@ -62,6 +70,126 @@ interface Profile {
   motivation_seed: number;
 }
 
+/**
+ * Whether notifications can reach this user, as one state:
+ * web (settings only), prompt (never asked), blocked (the OS will not ask
+ * again), inexact (Android allows them but only as late-able alarms), ok.
+ */
+type Reach = "web" | "prompt" | "blocked" | "inexact" | "ok";
+
+type SaveState = "idle" | "saving" | "saved";
+
+// ── Layout pieces ────────────────────────────────────────────────────────────
+
+function Section({
+  label,
+  action,
+  children,
+}: {
+  label: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex min-h-6 items-center justify-between px-1">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Row({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-14 items-center justify-between gap-4 px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{label}</p>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+const TIME_INPUT = "h-9 w-28 text-center tabular-nums";
+
+function StatusRow({
+  reach,
+  onAsk,
+  onOpenSettings,
+}: {
+  reach: Reach;
+  onAsk: () => void;
+  onOpenSettings: () => void;
+}) {
+  const view = {
+    web: {
+      icon: <Smartphone className="h-5 w-5 text-muted-foreground" />,
+      title: "Settings sync to the phone app",
+      body: "Reminders are delivered by the Dombelz app, not the website.",
+      button: null,
+    },
+    prompt: {
+      icon: <BellOff className="h-5 w-5 text-muted-foreground" />,
+      title: "Notifications are off",
+      body: "Allow them so reminders and quotes can reach you.",
+      button: { label: "Turn on", onClick: onAsk },
+    },
+    blocked: {
+      icon: <BellOff className="h-5 w-5 text-destructive" />,
+      title: "Blocked in phone settings",
+      body: "Dombelz can't ask again. Turn them on in system settings.",
+      button: { label: "Open settings", onClick: onOpenSettings },
+    },
+    inexact: {
+      icon: <AlarmClock className="h-5 w-5 text-destructive" />,
+      title: "Reminders may arrive late",
+      body: "Allow “Alarms & reminders” so they fire on the minute.",
+      button: {
+        label: "Allow",
+        onClick: () => void openExactAlarmSettings(),
+      },
+    },
+    ok: {
+      icon: <BellRing className="h-5 w-5 text-accent" />,
+      title: "Notifications are on",
+      body: "Delivered on time, even with the app closed.",
+      button: null,
+    },
+  }[reach];
+
+  return (
+    <div className={LIST_CLASS}>
+      <div className="flex items-center gap-3 px-4 py-3.5">
+        {view.icon}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{view.title}</p>
+          <p className="text-xs text-muted-foreground">{view.body}</p>
+        </div>
+        {view.button && (
+          <Button size="sm" onClick={view.button.onClick} className="shrink-0">
+            {view.button.label}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
 function NotificationSettings() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -75,35 +203,38 @@ function NotificationSettings() {
     }
   };
 
+  const native = isNative();
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
+  // The latest prefs, for persist(). Reading `prefs` from the render that
+  // created a handler let two quick edits overwrite each other.
+  const prefsRef = useRef(prefs);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [busy, setBusy] = useState(true);
-  const [saving, setSaving] = useState(false);
-  // "denied" means the OS will not prompt again, which needs different words
-  // and a different button from "not asked yet".
-  const [blocked, setBlocked] = useState(false);
-  // Android: notifications allowed, but only as inexact alarms that can land
-  // late. Separate from `blocked` — a different switch on a different screen.
-  const [inexact, setInexact] = useState(false);
-  const native = isNative();
+  const [reach, setReach] = useState<Reach>(native ? "ok" : "web");
+  const [save, setSave] = useState<SaveState>("idle");
+  const inFlight = useRef(0);
 
-  // Re-read both switches whenever the screen comes back into view: the fix
-  // for either happens in system settings, and the banner should vanish the
-  // moment the user returns rather than on the next visit.
+  const checkReach = async () => {
+    if (!native) return;
+    const state = await checkPermissionState();
+    if (state === "denied") setReach("blocked");
+    else if (state !== "granted") setReach("prompt");
+    else setReach((await exactAlarmAllowed()) ? "ok" : "inexact");
+  };
+
+  // Re-read whenever the screen comes back into view: every fix happens in
+  // system settings, and the status should change the moment the user returns.
   useEffect(() => {
     if (!native) return;
-    const check = async () => {
-      const state = await checkPermissionState();
-      setBlocked(state === "denied");
-      setInexact(state === "granted" && !(await exactAlarmAllowed()));
-    };
-    void check();
+    void checkReach();
     const onVisible = () => {
-      if (document.visibilityState === "visible") void check();
+      if (document.visibilityState === "visible") void checkReach();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
+    // checkReach only reads `native`, which never changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [native]);
 
   useEffect(() => {
@@ -125,6 +256,7 @@ function NotificationSettings() {
           .maybeSingle(),
       ]);
       if (cancelled) return;
+      prefsRef.current = loaded;
       setPrefs(loaded);
       setReminders(rows);
       if (data) setProfile(data);
@@ -155,83 +287,60 @@ function NotificationSettings() {
         if (!cancelled) setUpcoming(day);
       })
       .catch(() => {
-        /* the card just hides its preview */
+        /* the preview row just stays hidden */
       });
     return () => {
       cancelled = true;
     };
   }, [user, profile, prefs.morning_time]);
 
-  const persist = async (next: NotificationPrefs) => {
+  const rescheduleNow = async () => {
+    if (!user || !profile || !native) return;
+    const result = await reconcile({
+      id: user.id,
+      createdAt: profile.created_at,
+      timezone: profile.timezone,
+      motivationSeed: profile.motivation_seed,
+    });
+    if (!result.ran && result.reason?.startsWith("permission")) {
+      toast.error("Saved, but notifications are switched off for the app.");
+    }
+  };
+
+  const persist = async (
+    update: (p: NotificationPrefs) => NotificationPrefs,
+  ) => {
     if (!user) return;
+    const next = update(prefsRef.current);
+    prefsRef.current = next;
     setPrefs(next);
-    setSaving(true);
+    inFlight.current++;
+    setSave("saving");
 
     const { error } = await savePrefs(user.id, next);
-    if (error) {
-      setSaving(false);
-      toast.error(`Could not save: ${error}`);
-      return;
-    }
-
+    if (error) toast.error(`Could not save: ${error}`);
     // Reschedule immediately. A settings screen that saves a preference but
     // leaves yesterday's alarms in place is worse than one that does nothing,
     // because the user has been told it took effect.
-    if (profile && native) {
-      const result = await reconcile({
-        id: user.id,
-        createdAt: profile.created_at,
-        timezone: profile.timezone,
-        motivationSeed: profile.motivation_seed,
-      });
-      if (!result.ran && result.reason?.startsWith("permission")) {
-        toast.error("Saved, but notifications are switched off for the app.");
+    else await rescheduleNow();
+
+    if (--inFlight.current === 0) {
+      setSave(error ? "idle" : "saved");
+      if (!error) {
+        setTimeout(() => setSave((s) => (s === "saved" ? "idle" : s)), 2000);
       }
     }
-    setSaving(false);
   };
 
   /**
-   * Re-read the reminders and reschedule.
-   *
-   * Reads back from the database rather than trusting local state: the
-   * 10-reminder cap is a database trigger, so what was actually written is the
-   * only thing worth rendering.
+   * Re-read the reminders and reschedule. Reads back from the database rather
+   * than trusting local state: the 10-reminder cap is a database trigger, so
+   * what was actually written is the only thing worth rendering.
    */
   const refreshReminders = async () => {
     if (!user) return;
     setReminders(await loadReminders(user.id));
-    if (profile && native) {
-      await reconcile({
-        id: user.id,
-        createdAt: profile.created_at,
-        timezone: profile.timezone,
-        motivationSeed: profile.motivation_seed,
-      });
-    }
-  };
-
-  /** Ask at the moment the user turns something on, not on app launch. */
-  const enableMorning = async (on: boolean) => {
-    if (on && native) {
-      const { granted, blocked: isBlocked } = await requestPermission();
-      setBlocked(isBlocked);
-      if (!granted) {
-        if (isBlocked) {
-          // Nothing the app can do from here — the OS has stopped asking. Take
-          // them straight to the screen that can change it rather than leaving
-          // a toggle that silently refuses to stay on.
-          toast.error("Notifications are switched off for Dombelz.", {
-            action: { label: "Open settings", onClick: () => openSettings() },
-            duration: 10000,
-          });
-        } else {
-          toast.error("Permission is needed to send reminders.");
-        }
-        return;
-      }
-    }
-    persist({ ...prefs, morning_enabled: on });
+    await rescheduleNow();
   };
 
   const openSettings = async () => {
@@ -244,6 +353,37 @@ function NotificationSettings() {
     }
   };
 
+  /**
+   * Ask at the moment the user turns something on, not on app launch. True
+   * when notifications can be delivered (or on the web, where there is
+   * nothing to ask).
+   */
+  const ensurePermission = async (): Promise<boolean> => {
+    if (!native) return true;
+    const { granted, blocked } = await requestPermission();
+    await checkReach();
+    if (granted) return true;
+    if (blocked) {
+      // The OS has stopped asking. Take them to the screen that can change it
+      // rather than leaving a switch that silently refuses to stay on.
+      toast.error("Notifications are switched off for Dombelz.", {
+        action: { label: "Open settings", onClick: () => openSettings() },
+        duration: 10000,
+      });
+    } else {
+      toast.error("Permission is needed to send reminders.");
+    }
+    return false;
+  };
+
+  const switchOn = async (
+    key: "morning_enabled" | "custom_enabled",
+    on: boolean,
+  ) => {
+    if (on && !(await ensurePermission())) return;
+    await persist((p) => ({ ...p, [key]: on }));
+  };
+
   if (loading || busy) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -252,257 +392,238 @@ function NotificationSettings() {
     );
   }
 
-  const progress = upcoming
-    ? Math.round((upcoming.dayNumber / CYCLE_LENGTH) * 100)
-    : 0;
-
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-5 p-4 pb-28">
-      <header className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={goBack}
-          aria-label="Back to profile"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-xl font-bold">Notifications</h1>
-        {saving && (
-          <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
-        )}
-      </header>
-
-      {native && blocked && (
-        <Card className="flex flex-col gap-3 border-destructive/50 bg-destructive/5 p-4">
-          <div>
-            <p className="text-sm font-semibold">
-              Notifications are switched off
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Your phone is blocking them for Dombelz, so nothing below can
-              reach you. The app can&rsquo;t ask again — it has to be turned
-              back on in system settings.
-            </p>
-          </div>
-          <Button size="sm" onClick={openSettings} className="self-start">
-            Open notification settings
-          </Button>
-        </Card>
-      )}
-
-      {native && inexact && (
-        <Card className="flex flex-col gap-3 border-amber-500/40 bg-amber-500/5 p-4">
-          <div>
-            <p className="text-sm font-semibold">Reminders may arrive late</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Your phone only lets Dombelz set approximate alarms. Allow
-              &ldquo;Alarms &amp; reminders&rdquo; so they fire on the minute.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => void openExactAlarmSettings()}
-            className="self-start"
-          >
-            Allow exact alarms
-          </Button>
-        </Card>
-      )}
-
-      {!native && (
-        <Card className="border-amber-500/40 bg-amber-500/5 p-4 text-sm">
-          <p className="font-semibold">You&rsquo;re on the website</p>
-          <p className="mt-1 text-muted-foreground">
-            Changes here are saved to your account, but reminders are scheduled
-            by the app. Open Dombelz on your phone for them to take effect.
-          </p>
-        </Card>
-      )}
-
-      {/* ── Morning motivation ── */}
-      <Card className="flex flex-col gap-4 p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-accent" />
-            <div>
-              <p className="font-semibold">Morning motivation</p>
-              <p className="text-xs text-muted-foreground">
-                One quote a day, at a time you pick.
-              </p>
-            </div>
-          </div>
-          <Switch
-            checked={prefs.morning_enabled}
-            onCheckedChange={enableMorning}
-            aria-label="Enable morning motivation"
-          />
-        </div>
-
-        {prefs.morning_enabled && (
-          <>
-            <label className="flex items-center justify-between gap-4 text-sm">
-              <span className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="h-4 w-4" /> Time
-              </span>
-              {/* A native time input, not a custom wheel: it opens the OS
-                  picker the user already knows, respects their 12/24-hour
-                  setting for free, and is reachable by a screen reader. */}
-              <Input
-                type="time"
-                value={prefs.morning_time}
-                onChange={(e) =>
-                  persist({ ...prefs, morning_time: e.target.value })
-                }
-                className="h-10 w-32 text-center"
-              />
-            </label>
-
-            {upcoming && (
-              <div className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3">
-                <div className="flex items-baseline justify-between text-sm">
-                  <span className="font-semibold">
-                    Next: Day {upcoming.dayNumber} / {CYCLE_LENGTH}
-                  </span>
-                  {upcoming.cycle > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      Round {upcoming.cycle + 1}
-                    </span>
-                  )}
-                </div>
-                <div className="h-0.5 w-full overflow-hidden rounded-full bg-border">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#4FACFE] to-[#00F2FE]"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                <p className="line-clamp-3 text-xs italic text-muted-foreground">
-                  &ldquo;{upcoming.quote.text}&rdquo;{" "}
-                  <span className="not-italic">
-                    &mdash; {upcoming.quote.author}
-                  </span>
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </Card>
-
-      {/* ── Custom reminders ── */}
-      <Card className="flex flex-col gap-3 p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-accent" />
-            <div>
-              <p className="font-semibold">Meal &amp; workout reminders</p>
-              <p className="text-xs text-muted-foreground">
-                Your own reminders, at your own times.
-              </p>
-            </div>
-          </div>
-          <Switch
-            checked={prefs.custom_enabled}
-            onCheckedChange={(on) => persist({ ...prefs, custom_enabled: on })}
-            aria-label="Enable custom reminders"
-          />
-        </div>
-
-        {user && (
-          <ReminderRows
-            userId={user.id}
-            reminders={reminders}
-            disabled={!prefs.custom_enabled}
-            onChanged={refreshReminders}
-          />
-        )}
-      </Card>
-
-      {/* ── Snooze ── */}
-      <Card className="flex flex-col gap-4 p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="font-semibold">Allow snooze</p>
-            <p className="text-xs text-muted-foreground">
-              Adds snooze buttons to reminders. Morning quotes never get them —
-              the time is the point.
-            </p>
-          </div>
-          <Switch
-            checked={prefs.allow_snooze}
-            onCheckedChange={(on) => persist({ ...prefs, allow_snooze: on })}
-            aria-label="Allow snooze"
-          />
-        </div>
-
-        {prefs.allow_snooze && (
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="text-muted-foreground">Buttons</span>
-            <div className="flex gap-2">
-              {SNOOZE_OPTIONS.map(({ seconds, label }) => {
-                const on = prefs.snooze_intervals.includes(seconds);
-                return (
-                  <Button
-                    key={seconds}
-                    type="button"
-                    size="sm"
-                    variant={on ? "default" : "outline"}
-                    aria-pressed={on}
-                    // At least one must stay on (DB check: 1 to 3 intervals).
-                    disabled={on && prefs.snooze_intervals.length === 1}
-                    onClick={() =>
-                      persist({
-                        ...prefs,
-                        snooze_intervals: on
-                          ? prefs.snooze_intervals.filter((s) => s !== seconds)
-                          : [...prefs.snooze_intervals, seconds].sort(
-                              (a, b) => a - b,
-                            ),
-                      })
-                    }
-                  >
-                    {label}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {prefs.allow_snooze && (
-          <label className="flex items-center justify-between gap-4 text-sm">
-            <span className="text-muted-foreground">Snoozes allowed</span>
-            <select
-              value={prefs.max_snooze_cycles}
-              onChange={(e) =>
-                persist({
-                  ...prefs,
-                  max_snooze_cycles: Number(e.target.value),
-                })
-              }
-              className="h-10 rounded-xl border border-border bg-background px-3"
+    <div className="min-h-screen bg-background pb-28">
+      <SubHeader
+        title="Notifications"
+        onBack={goBack}
+        action={
+          save === "idle" ? null : (
+            <span
+              className="flex items-center gap-1.5 text-xs text-muted-foreground"
+              aria-live="polite"
             >
-              {[1, 2, 3].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </Card>
+              {save === "saving" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5 text-accent" />
+              )}
+              {save === "saving" ? "Saving" : "Saved"}
+            </span>
+          )
+        }
+      />
 
-      {/* The diagnostics page, still the only way to prove an alarm actually
-          reaches the lock screen. Repointing the profile link at this screen
-          removed the only route to it — and the app has no address bar, so
-          there was no way back. Goes when the feature is verified. */}
-      {native && (
-        <Link
-          to="/debug/notifications"
-          className="self-center text-xs text-muted-foreground underline underline-offset-4"
+      <main className="mx-auto flex max-w-lg flex-col gap-7 px-4 py-6">
+        <StatusRow
+          reach={reach}
+          onAsk={() => void ensurePermission()}
+          onOpenSettings={() => void openSettings()}
+        />
+
+        <Section label="Morning quote">
+          <div className={LIST_CLASS}>
+            <Row label="Daily quote" hint="One line to start the day.">
+              <Switch
+                checked={prefs.morning_enabled}
+                onCheckedChange={(on) => void switchOn("morning_enabled", on)}
+                aria-label="Daily quote"
+              />
+            </Row>
+
+            {prefs.morning_enabled && (
+              <>
+                <Row label="Time">
+                  {/* A native time input: it opens the OS picker the user
+                      already knows, respects their 12/24-hour setting, and is
+                      reachable by a screen reader. */}
+                  <Input
+                    type="time"
+                    value={prefs.morning_time}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      if (t) void persist((p) => ({ ...p, morning_time: t }));
+                    }}
+                    className={TIME_INPUT}
+                    aria-label="Quote time"
+                  />
+                </Row>
+
+                {upcoming && (
+                  <figure className="px-4 py-4">
+                    <blockquote className="text-sm leading-relaxed">
+                      &ldquo;{upcoming.quote.text}&rdquo;
+                    </blockquote>
+                    <figcaption className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                      <span className="truncate">
+                        &mdash; {upcoming.quote.author}
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        Next &middot; Day {upcoming.dayNumber} of {CYCLE_LENGTH}
+                        {upcoming.cycle > 0 && ` · Round ${upcoming.cycle + 1}`}
+                      </span>
+                    </figcaption>
+                  </figure>
+                )}
+              </>
+            )}
+          </div>
+        </Section>
+
+        <Section
+          label="Reminders"
+          action={
+            <Switch
+              checked={prefs.custom_enabled}
+              onCheckedChange={(on) => void switchOn("custom_enabled", on)}
+              aria-label="All reminders"
+            />
+          }
         >
-          Diagnostics
-        </Link>
-      )}
+          {user && (
+            <ReminderRows
+              userId={user.id}
+              reminders={reminders}
+              disabled={!prefs.custom_enabled}
+              onChanged={refreshReminders}
+            />
+          )}
+        </Section>
+
+        <Section label="Quiet hours">
+          <div className={LIST_CLASS}>
+            <Row
+              label="Quiet hours"
+              hint="Reminders in this window wait until it ends. The morning quote is not affected."
+            >
+              <Switch
+                checked={prefs.quiet_hours_on}
+                onCheckedChange={(on) =>
+                  void persist((p) => ({ ...p, quiet_hours_on: on }))
+                }
+                aria-label="Quiet hours"
+              />
+            </Row>
+            {prefs.quiet_hours_on && (
+              <>
+                <Row label="From">
+                  <Input
+                    type="time"
+                    value={prefs.quiet_from}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      if (t) void persist((p) => ({ ...p, quiet_from: t }));
+                    }}
+                    className={TIME_INPUT}
+                    aria-label="Quiet hours start"
+                  />
+                </Row>
+                <Row label="Until">
+                  <Input
+                    type="time"
+                    value={prefs.quiet_to}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      if (t) void persist((p) => ({ ...p, quiet_to: t }));
+                    }}
+                    className={TIME_INPUT}
+                    aria-label="Quiet hours end"
+                  />
+                </Row>
+              </>
+            )}
+          </div>
+        </Section>
+
+        <Section label="Snooze">
+          <div className={LIST_CLASS}>
+            <Row
+              label="Allow snooze"
+              hint="Adds snooze buttons to reminders, never to the morning quote."
+            >
+              <Switch
+                checked={prefs.allow_snooze}
+                onCheckedChange={(on) =>
+                  void persist((p) => ({ ...p, allow_snooze: on }))
+                }
+                aria-label="Allow snooze"
+              />
+            </Row>
+            {prefs.allow_snooze && (
+              <>
+                <Row label="Buttons">
+                  <ToggleGroup
+                    type="multiple"
+                    variant="outline"
+                    size="sm"
+                    value={prefs.snooze_intervals.map(String)}
+                    onValueChange={(values) => {
+                      // At least one must stay on (DB check: 1 to 3 intervals).
+                      if (values.length === 0) return;
+                      void persist((p) => ({
+                        ...p,
+                        snooze_intervals: values
+                          .map(Number)
+                          .sort((a, b) => a - b),
+                      }));
+                    }}
+                    aria-label="Snooze buttons"
+                  >
+                    {SNOOZE_OPTIONS.map(({ seconds, label }) => (
+                      <ToggleGroupItem
+                        key={seconds}
+                        value={String(seconds)}
+                        className="px-2.5 text-xs"
+                      >
+                        {label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                </Row>
+                <Row label="Snoozes per reminder">
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    size="sm"
+                    value={String(prefs.max_snooze_cycles)}
+                    onValueChange={(v) => {
+                      if (v) {
+                        void persist((p) => ({
+                          ...p,
+                          max_snooze_cycles: Number(v),
+                        }));
+                      }
+                    }}
+                    aria-label="Snoozes per reminder"
+                  >
+                    {[1, 2, 3].map((n) => (
+                      <ToggleGroupItem
+                        key={n}
+                        value={String(n)}
+                        className="w-9 text-xs"
+                      >
+                        {n}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                </Row>
+              </>
+            )}
+          </div>
+        </Section>
+
+        {/* The diagnostics page, still the only way to prove an alarm actually
+            reaches the lock screen. The app has no address bar, so this link
+            is the only route to it. Goes when the feature is verified. */}
+        {native && (
+          <Link
+            to="/debug/notifications"
+            className="self-center text-xs text-muted-foreground underline underline-offset-4"
+          >
+            Diagnostics
+          </Link>
+        )}
+      </main>
     </div>
   );
 }
