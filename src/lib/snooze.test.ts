@@ -13,7 +13,7 @@
 
    Exits non-zero on the first failure. */
 import assert from "node:assert";
-import { applyQuietHours } from "./snooze";
+import { applyQuietHours } from "./quietHours";
 
 const at = (h: number, m = 0) => new Date(2026, 8, 19, h, m, 0, 0);
 const OFF = { on: false, from: "22:00", to: "06:00" };

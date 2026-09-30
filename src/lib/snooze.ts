@@ -18,71 +18,49 @@
 
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { supabase } from "@/integrations/client";
-import { FINAL_CATEGORY, SNOOZE_CATEGORY, isNative } from "@/lib/notifications";
+import {
+  FINAL_CATEGORY,
+  SNOOZE_CATEGORY,
+  SNOOZE_ID_BASE,
+  isNative,
+} from "@/lib/notifications";
+import { applyQuietHours } from "@/lib/quietHours";
 import { loadPrefs } from "@/lib/notification-settings";
 
-/** Action ids registered in registerActionTypes(). */
-const SNOOZE_ACTIONS: Record<string, number> = {
-  snooze_10m: 10 * 60,
-  snooze_1h: 60 * 60,
+/** Action ids are `snooze_<seconds>` (see registerActionTypes). */
+const snoozeSeconds = (actionId: string): number => {
+  const m = /^snooze_(\d+)$/.exec(actionId);
+  return m ? Number(m[1]) : 0;
 };
 
 /**
- * Snoozed notifications get their own id range.
+ * Snoozed notifications get their own id range, which reconcile leaves alone.
  *
- * Reusing the original id would collide with the reconciler, which owns
- * 100000+ and 200000+ and rebuilds them wholesale on every app open — a
- * snoozed reminder would simply vanish at the next foreground.
+ * Derived from the clock rather than an in-memory counter: the counter reset
+ * to zero on every launch, so a second snooze after a restart reused the first
+ * one's id and silently replaced it. Seconds mod 100000 only repeats after
+ * ~28 hours, far longer than any snooze waits.
  */
-const SNOOZE_ID_BASE = 300_000;
-let snoozeCounter = 0;
-
-const nextSnoozeId = (): number => SNOOZE_ID_BASE + (snoozeCounter++ % 10_000);
-
-interface QuietHours {
-  on: boolean;
-  from: string;
-  to: string;
-}
+const nextSnoozeId = (): number =>
+  SNOOZE_ID_BASE + (Math.floor(Date.now() / 1000) % 100_000);
 
 /**
- * Push a time out of quiet hours, if it landed inside them.
+ * When this occurrence was originally due, for the log.
  *
- * Spec §3.2: a snooze that would fire at 22:30 inside a 22:00–06:00 window
- * moves to 06:01. Returns the original when quiet hours are off or the time is
- * already outside, so the caller can tell whether an override happened.
- *
- * Only reminders reach this. Morning motivation is exempt by construction —
- * it carries no snooze actions at all, because the time it arrives is the
- * entire point of it.
+ * Quotes carry it; a daily reminder carries its clock time, so the occurrence
+ * is today at that time — or yesterday, if that is still ahead (a tap just
+ * after midnight on last night's reminder). Falls back to now.
  */
-export function applyQuietHours(
-  at: Date,
-  quiet: QuietHours,
-): { at: Date; overridden: boolean } {
-  if (!quiet.on) return { at, overridden: false };
-
-  const [fromH, fromM] = quiet.from.split(":").map(Number);
-  const [toH, toM] = quiet.to.split(":").map(Number);
-  const minutes = at.getHours() * 60 + at.getMinutes();
-  const fromMin = fromH * 60 + fromM;
-  const toMin = toH * 60 + toM;
-
-  // The window normally wraps midnight (22:00 → 06:00), so "inside" is two
-  // ranges rather than one. A non-wrapping window (09:00 → 17:00) is a single
-  // range, and someone will eventually configure one.
-  const wraps = fromMin > toMin;
-  const inside = wraps
-    ? minutes >= fromMin || minutes < toMin
-    : minutes >= fromMin && minutes < toMin;
-
-  if (!inside) return { at, overridden: false };
-
-  const out = new Date(at);
-  out.setHours(toH, toM + 1, 0, 0);
-  // Crossing midnight into the morning means the end of the window is tomorrow.
-  if (out.getTime() <= at.getTime()) out.setDate(out.getDate() + 1);
-  return { at: out, overridden: true };
+function originalAt(extra: Record<string, unknown>): string {
+  if (typeof extra.originalAt === "string") return extra.originalAt;
+  if (typeof extra.remindAt === "string") {
+    const [h, m] = extra.remindAt.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
+    return d.toISOString();
+  }
+  return new Date().toISOString();
 }
 
 /** Best-effort record of what happened. Never blocks the reschedule. */
@@ -115,14 +93,18 @@ export async function registerSnoozeHandlers(
   const actionListener = await LocalNotifications.addListener(
     "localNotificationActionPerformed",
     async (event) => {
-      const seconds = SNOOZE_ACTIONS[event.actionId];
+      const seconds = snoozeSeconds(event.actionId);
       const extra = (event.notification.extra ?? {}) as Record<string, unknown>;
+      // Pinned on the first snooze and carried forward, so the log keeps the
+      // time this was first due however many times it is snoozed.
+      const firstDue = originalAt(extra);
 
       // "dismiss", or the body tapped to open the app. Record and stop.
       if (!seconds) {
         await log(userId, {
           type: (extra.type as string) ?? "custom_reminder",
-          original_scheduled_at: new Date().toISOString(),
+          reminder_id: (extra.reminderId as string) ?? null,
+          original_scheduled_at: firstDue,
           current_scheduled_at: new Date().toISOString(),
           status: event.actionId === "dismiss" ? "dismissed" : "opened",
           last_action_at: new Date().toISOString(),
@@ -155,7 +137,7 @@ export async function registerSnoozeHandlers(
             body: event.notification.body ?? "",
             schedule: { at, allowWhileIdle: true },
             actionTypeId: atCap ? FINAL_CATEGORY : SNOOZE_CATEGORY,
-            extra: { ...extra, snoozeCount: count },
+            extra: { ...extra, snoozeCount: count, originalAt: firstDue },
           },
         ],
       });
@@ -163,7 +145,7 @@ export async function registerSnoozeHandlers(
       await log(userId, {
         type: (extra.type as string) ?? "custom_reminder",
         reminder_id: (extra.reminderId as string) ?? null,
-        original_scheduled_at: new Date().toISOString(),
+        original_scheduled_at: firstDue,
         current_scheduled_at: at.toISOString(),
         snooze_count: count,
         max_snooze_allowed: prefs.max_snooze_cycles,

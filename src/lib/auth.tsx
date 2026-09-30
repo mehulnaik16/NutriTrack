@@ -9,6 +9,7 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/client";
 import { syncTimezone } from "@/lib/timezone";
+import { cancelAll } from "@/lib/notifications";
 
 interface AuthCtx {
   user: User | null;
@@ -88,6 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         hasProfile,
         refreshProfile,
         signOut: async () => {
+          // Alarms live in the OS, not the session. Without this the next
+          // person on the phone keeps getting the last account's reminders.
+          await cancelAll().catch(() => {});
           await supabase.auth.signOut();
           setHasProfile(null);
         },

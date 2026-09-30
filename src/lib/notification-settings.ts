@@ -19,7 +19,14 @@ import {
   scheduleReminders,
   type ReminderInput,
 } from "@/lib/notifications";
-import type { MotivationUser } from "@/lib/motivation";
+import {
+  motivationAt,
+  planWindow,
+  resumePosition,
+  type MotivationDay,
+  type MotivationProgress,
+  type MotivationUser,
+} from "@/lib/motivation";
 
 /**
  * What the app assumes before the user has ever opened settings.
@@ -184,6 +191,66 @@ export async function deleteReminder(
   return { error: error?.message ?? null };
 }
 
+// ── Motivation progress ──────────────────────────────────────────────────────
+
+/**
+ * The last scheduled window. Kept out of NotificationPrefs on purpose: the
+ * settings screen upserts its whole prefs object, and a stale copy of these
+ * columns riding along would rewind the user's place in the cycle.
+ *
+ * Throws on a read error rather than returning "never recorded", which would
+ * fall back to the calendar position and then save it — jumping the user.
+ */
+async function loadProgress(userId: string): Promise<MotivationProgress> {
+  const { data, error } = await supabase
+    .from("user_notification_preferences")
+    .select("motivation_next_index, motivation_next_at, motivation_scheduled")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`load progress: ${error.message}`);
+  return {
+    nextIndex: data?.motivation_next_index ?? null,
+    nextAt: data?.motivation_next_at ?? null,
+    scheduled: data?.motivation_scheduled ?? 0,
+  };
+}
+
+/**
+ * Record the window just scheduled.
+ *
+ * Best effort: if this fails, the previous record still describes alarms that
+ * fired, so the next reconcile resumes from the same place anyway.
+ */
+async function saveProgress(
+  userId: string,
+  p: MotivationProgress,
+): Promise<void> {
+  const { error } = await supabase.from("user_notification_preferences").upsert(
+    {
+      user_id: userId,
+      motivation_next_index: p.nextIndex,
+      motivation_next_at: p.nextAt,
+      motivation_scheduled: p.scheduled,
+    },
+    { onConflict: "user_id" },
+  );
+  if (error)
+    console.warn("[reconcile] could not save progress:", error.message);
+}
+
+/** The quote the user will get next, for the settings screen. */
+export async function nextMotivation(
+  user: MotivationUser,
+  morningTime: string,
+): Promise<MotivationDay> {
+  const plan = planWindow(
+    user,
+    morningTime,
+    resumePosition(await loadProgress(user.id)),
+  );
+  return motivationAt(user, plan.start, plan.firstKey);
+}
+
 // ── Reconcile ────────────────────────────────────────────────────────────────
 
 export interface ReconcileResult {
@@ -227,20 +294,36 @@ export async function reconcile(
       return { ran: false, reason: `permission ${permission}`, ...empty };
     }
 
-    const [prefs, reminders] = await Promise.all([
+    const [prefs, reminders, progress] = await Promise.all([
       loadPrefs(user.id),
       loadReminders(user.id),
+      loadProgress(user.id),
     ]);
 
-    await registerActionTypes();
-    await cancelAll();
+    await registerActionTypes(prefs.snooze_intervals);
+    // Pending snoozes live only on the device, so they survive the rebuild —
+    // unless reminders were switched off, in which case they should stop too.
+    await cancelAll({ keepSnoozes: prefs.custom_enabled });
 
+    // Where the cycle stands: the first quote that has not fired yet. With
+    // morning quotes off the window is recorded as empty, so the position
+    // freezes until they are switched back on.
+    const plan = planWindow(user, prefs.morning_time, resumePosition(progress));
     const motivation = prefs.morning_enabled
-      ? (await scheduleMotivation(user, prefs.morning_time)).scheduled
+      ? await scheduleMotivation(user, plan)
       : 0;
+    await saveProgress(user.id, {
+      nextIndex: plan.start,
+      nextAt: motivation > 0 ? plan.firstAt.toISOString() : null,
+      scheduled: motivation,
+    });
 
     const scheduledReminders = prefs.custom_enabled
-      ? await scheduleReminders(reminders, prefs.allow_snooze)
+      ? await scheduleReminders(reminders, prefs.allow_snooze, {
+          on: prefs.quiet_hours_on,
+          from: prefs.quiet_from,
+          to: prefs.quiet_to,
+        })
       : 0;
 
     return { ran: true, motivation, reminders: scheduledReminders };

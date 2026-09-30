@@ -40,9 +40,9 @@ import {
   pending as pendingNotifications,
   registerActionTypes,
   requestPermission,
-  scheduleMotivation,
   scheduleTestNotification,
 } from "@/lib/notifications";
+import { reconcile } from "@/lib/notification-settings";
 
 export const Route = createFileRoute("/debug/notifications")({
   component: NotificationDebug,
@@ -240,18 +240,17 @@ function NotificationDebug() {
       if (!profile || !user) return "Profile not loaded.";
       const { granted } = await requestPermission();
       if (!granted) return "Permission not granted.";
-      await registerActionTypes();
-      await cancelAll();
-      const { scheduled, skippedPast } = await scheduleMotivation(
-        {
-          id: user.id,
-          createdAt: profile.created_at,
-          timezone: profile.timezone,
-          motivationSeed: profile.motivation_seed,
-        },
-        "07:00",
-      );
-      return `Scheduled ${scheduled}. Skipped ${skippedPast} already past today.`;
+      // The real reconcile, so this exercises the same path as an app open
+      // and records motivation progress like one.
+      const result = await reconcile({
+        id: user.id,
+        createdAt: profile.created_at,
+        timezone: profile.timezone,
+        motivationSeed: profile.motivation_seed,
+      });
+      return result.ran
+        ? `Scheduled ${result.motivation} quotes, ${result.reminders} reminders.`
+        : `Skipped: ${result.reason}`;
     });
 
   const nativeCancel = () =>

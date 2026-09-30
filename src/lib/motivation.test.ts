@@ -24,9 +24,12 @@ import {
   addDaysToKey,
   daysBetweenKeys,
   localDateKey,
+  motivationAt,
   motivationFor,
   motivationWindow,
+  planWindow,
   quoteOrder,
+  resumePosition,
   type MotivationUser,
 } from "./motivation";
 import { MOTIVATION_QUOTES } from "@/data/motivationQuotes";
@@ -203,6 +206,79 @@ assert.notEqual(
   spanning[3].quote.id,
   motivationFor(user, "2026-01-02").quote.id,
   "day 101 is not day 1's quote again",
+);
+
+// ── Pause and resume ─────────────────────────────────────────────────────────
+
+// Device-local times throughout, like the scheduler itself.
+const local = (y: number, mo: number, d: number, h = 7, mi = 0) =>
+  new Date(y, mo - 1, d, h, mi, 0, 0);
+
+// A 30-slot window starting 1 June 07:00 at position 50.
+const window30 = {
+  nextIndex: 50,
+  nextAt: local(2026, 6, 1).toISOString(),
+  scheduled: 30,
+};
+
+assert.equal(
+  resumePosition({ nextIndex: null, nextAt: null, scheduled: 0 }),
+  null,
+  "never recorded: caller falls back to the calendar",
+);
+assert.equal(
+  resumePosition(window30, local(2026, 6, 1, 6, 59)),
+  50,
+  "nothing fired before the first slot",
+);
+assert.equal(
+  resumePosition(window30, local(2026, 6, 1, 7, 0)),
+  51,
+  "the first slot counts once its time arrives",
+);
+assert.equal(
+  resumePosition(window30, local(2026, 6, 4, 12)),
+  54,
+  "four mornings in, four quotes delivered",
+);
+// The case this exists for: away for 40 days, only 30 were ever scheduled.
+assert.equal(
+  resumePosition(window30, local(2026, 7, 10, 12)),
+  80,
+  "a long absence stops at the end of the window — a pause, not a skip",
+);
+assert.equal(
+  resumePosition(
+    { nextIndex: 50, nextAt: null, scheduled: 0 },
+    local(2027, 1, 1),
+  ),
+  50,
+  "morning quotes off: the position is frozen",
+);
+
+// Resuming uses the recorded position, not the calendar.
+const late = planWindow(user, "07:00", 80, local(2026, 7, 10, 12));
+assert.equal(late.start, 80);
+assert.equal(
+  late.firstAt.getDate(),
+  11,
+  "07:00 already past at noon: tomorrow",
+);
+assert.equal(
+  planWindow(user, "07:00", 80, local(2026, 7, 10, 6)).firstAt.getDate(),
+  10,
+);
+
+// Never recorded: the calendar position of the first slot, as before.
+const fresh = planWindow(user, "07:00", null, local(2026, 1, 25, 12));
+assert.equal(fresh.start, 24, "26 January is day 25, position 24");
+
+// Positions carry across cycles and agree with the calendar rule on day 1.
+assert.equal(motivationAt(user, 100, "x").cycle, 1);
+assert.equal(motivationAt(user, 100, "x").dayNumber, 1);
+assert.equal(
+  motivationAt(user, 0, "2026-01-02").quote.id,
+  motivationFor(user, "2026-01-02").quote.id,
 );
 
 console.log("motivation: all assertions passed");

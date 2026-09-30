@@ -13,6 +13,8 @@ import {
   requestPermission,
   openNotificationSettings,
   isNative,
+  exactAlarmAllowed,
+  openExactAlarmSettings,
 } from "@/lib/notifications";
 import {
   PRIMER_EVENT_NAME,
@@ -20,13 +22,15 @@ import {
   markPrimerGranted,
   type PrimerEventDetail,
 } from "@/lib/notificationPrimer";
-import { reconcile, loadPrefs, loadReminders } from "@/lib/notification-settings";
+import { reconcile } from "@/lib/notification-settings";
 import { supabase } from "@/integrations/client";
 
 export function NotificationPrimerDialog() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [triggerType, setTriggerType] = useState<"engagement" | "day5">("engagement");
+  const [triggerType, setTriggerType] = useState<"engagement" | "day5">(
+    "engagement",
+  );
   const [submitting, setSubmitting] = useState(false);
 
   // Listen for the custom event dispatched when a trigger condition is met
@@ -42,7 +46,10 @@ export function NotificationPrimerDialog() {
     window.addEventListener(PRIMER_EVENT_NAME, handleOpen);
 
     // Support instant test preview via ?test_primer=1
-    if (typeof window !== "undefined" && window.location.search.includes("test_primer=1")) {
+    if (
+      typeof window !== "undefined" &&
+      window.location.search.includes("test_primer=1")
+    ) {
       setOpen(true);
     }
 
@@ -79,25 +86,37 @@ export function NotificationPrimerDialog() {
             .maybeSingle();
 
           if (profile) {
-            await reconcile(
-              {
-                id: user.id,
-                createdAt: profile.created_at,
-                timezone: profile.timezone,
-                motivationSeed: profile.motivation_seed,
-              },
-              await loadPrefs(user.id),
-              await loadReminders(user.id),
-            );
+            await reconcile({
+              id: user.id,
+              createdAt: profile.created_at,
+              timezone: profile.timezone,
+              motivationSeed: profile.motivation_seed,
+            });
           }
 
-          toast.success("Reminders enabled! You're all set.", {
-            description: "Morning motivation and daily habit alerts will now keep you on track.",
-          });
+          if (await exactAlarmAllowed()) {
+            toast.success("Reminders enabled! You're all set.", {
+              description:
+                "Morning motivation and daily habit alerts will now keep you on track.",
+            });
+          } else {
+            // Android 13+: allowed, but only as inexact alarms that can land
+            // late. One more switch makes them fire on the minute.
+            toast("One more step for on-time reminders", {
+              description:
+                'Allow "Alarms & reminders" for Dombelz so they arrive exactly on time.',
+              duration: 12000,
+              action: {
+                label: "Allow",
+                onClick: () => void openExactAlarmSettings(),
+              },
+            });
+          }
         } else if (blocked) {
           setOpen(false);
           toast("Turn on notifications in settings", {
-            description: "Your phone is currently blocking notifications for Dombelz.",
+            description:
+              "Your phone is currently blocking notifications for Dombelz.",
             action: {
               label: "Open settings",
               onClick: () => {
@@ -156,9 +175,12 @@ export function NotificationPrimerDialog() {
               ☀️
             </span>
             <div>
-              <p className="font-semibold text-foreground">Daily Morning Motivation</p>
+              <p className="font-semibold text-foreground">
+                Daily Morning Motivation
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                A fresh quote every morning at your preferred time to start your day focused.
+                A fresh quote every morning at your preferred time to start your
+                day focused.
               </p>
             </div>
           </div>
@@ -168,9 +190,12 @@ export function NotificationPrimerDialog() {
               ⏰
             </span>
             <div>
-              <p className="font-semibold text-foreground">Timely Habit & Meal Alerts</p>
+              <p className="font-semibold text-foreground">
+                Timely Habit & Meal Alerts
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                Gentle reminders for meals and hydration so you hit your targets effortlessly.
+                Gentle reminders for meals and hydration so you hit your targets
+                effortlessly.
               </p>
             </div>
           </div>
@@ -180,9 +205,12 @@ export function NotificationPrimerDialog() {
               🎛️
             </span>
             <div>
-              <p className="font-semibold text-foreground">Complete Control & Zero Spam</p>
+              <p className="font-semibold text-foreground">
+                Complete Control & Zero Spam
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                Full freedom to choose which reminders you want. Turn quotes or meal alerts on and off independently, anytime.
+                Full freedom to choose which reminders you want. Turn quotes or
+                meal alerts on and off independently, anytime.
               </p>
             </div>
           </div>

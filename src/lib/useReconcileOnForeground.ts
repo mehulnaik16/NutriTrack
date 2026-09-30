@@ -17,10 +17,9 @@ import { supabase } from "@/integrations/client";
 import { toast } from "sonner";
 import {
   checkPermissionState,
+  exactAlarmAllowed,
   isNative,
-  openNotificationSettings,
-  registerActionTypes,
-  requestPermission,
+  openExactAlarmSettings,
 } from "@/lib/notifications";
 import { registerSnoozeHandlers } from "@/lib/snooze";
 import { reconcile } from "@/lib/notification-settings";
@@ -30,71 +29,34 @@ import { checkDay5Eligible, triggerDay5Primer } from "@/lib/notificationPrimer";
 const MIN_INTERVAL_MS = 60_000;
 
 let lastRunAt = 0;
+/**
+ * Permission state at the last run. A change bypasses the throttle: coming
+ * back from system settings after allowing notifications or exact alarms is
+ * exactly when the alarms must be rebuilt, and it is usually within 60s.
+ */
+let lastPermissionKey = "";
+
+/** Set once the "turn on Alarms & reminders" nudge has been shown. */
+const EXACT_NUDGED_KEY = "dombelz.exactAlarmNudged";
 
 /**
- * Marks that the first-open permission ask has happened, so it happens once
- * per install rather than on every launch.
+ * Android only: once per install, if notifications are allowed but exact
+ * alarms are not, say so. Without it every reminder is an inexact alarm that
+ * Doze can hold back — the user sees "late notifications" and no reason.
+ * The settings screen keeps a banner for anyone who dismisses this.
  */
-const ASKED_KEY = "dombelz.notificationsAsked";
-
-/**
- * Ask for notification permission the first time the app is ever opened, and
- * send the user to system settings if the answer is already a permanent no.
- *
- * Deliberately once per install. The OS dialog can only be shown a fixed
- * number of times (once on iOS, twice on Android 13+), so an app that asks on
- * every launch burns those chances on someone who was busy rather than
- * unwilling, and afterwards the only route back is the Settings app. After
- * this has run, a refusal is reported by the settings screen's banner instead,
- * where the user went looking for it.
- *
- * The scheduling in reconcile() does not depend on this — it reads permission
- * itself and does nothing without it. This exists so a new user finds out
- * their reminders need permission on day one, not on the morning the first
- * quote fails to arrive.
- */
-async function primePermission(): Promise<void> {
-  if (!isNative()) return;
-
+function nudgeExactAlarm(): void {
   try {
-    if (localStorage.getItem(ASKED_KEY)) return;
+    if (localStorage.getItem(EXACT_NUDGED_KEY)) return;
+    localStorage.setItem(EXACT_NUDGED_KEY, new Date().toISOString());
   } catch {
-    // Private-mode or storage-blocked browsers throw on access. Asking once
-    // per launch beats never asking, and this path is the rare one.
+    return; // storage blocked: skip rather than nag on every launch
   }
-
-  const state = await checkPermissionState();
-  if (state === "granted") return;
-
-  const { granted, blocked } = await requestPermission();
-  try {
-    localStorage.setItem(ASKED_KEY, new Date().toISOString());
-  } catch {
-    /* see above */
-  }
-  if (granted) return;
-
-  // Either a refusal now, or a refusal from before this code existed. In both
-  // cases the app cannot raise the dialog again, so the only useful thing left
-  // is a way to the screen that can.
-  toast("Turn on notifications", {
-    description: blocked
-      ? "Your phone is blocking them for Dombelz. They have to be switched back on in system settings."
-      : "Reminders and morning motivation need notification permission.",
+  toast("Get reminders on time", {
+    description:
+      'Allow "Alarms & reminders" for Dombelz, or your phone may deliver them late.',
     duration: 12000,
-    action: {
-      label: "Open settings",
-      onClick: () => {
-        void openNotificationSettings().then((opened) => {
-          if (!opened) {
-            toast.info(
-              "Open Settings > Apps > Dombelz > Notifications and turn them on.",
-              { duration: 10000 },
-            );
-          }
-        });
-      },
-    },
+    action: { label: "Allow", onClick: () => void openExactAlarmSettings() },
   });
 }
 
@@ -106,10 +68,22 @@ export function useReconcileOnForeground(userId: string | null): void {
 
     const run = async () => {
       const now = Date.now();
+      const [permission, exact] = await Promise.all([
+        checkPermissionState(),
+        exactAlarmAllowed(),
+      ]);
+      const permissionKey = `${userId}|${permission}|${exact}`;
       // Android fires appStateChange on every task-switcher glance, and a full
       // teardown-and-rebuild of 40 alarms on each one is wasted work.
-      if (now - lastRunAt < MIN_INTERVAL_MS) return;
+      if (
+        now - lastRunAt < MIN_INTERVAL_MS &&
+        permissionKey === lastPermissionKey
+      ) {
+        return;
+      }
       lastRunAt = now;
+      lastPermissionKey = permissionKey;
+      if (permission === "granted" && !exact) nudgeExactAlarm();
 
       const { data } = await supabase
         .from("user_profiles")
@@ -148,20 +122,18 @@ export function useReconcileOnForeground(userId: string | null): void {
     // beside the reconciler rather than on a screen the user may never open.
     // A reminder snoozed from the lock screen must reschedule whether or not
     // anyone has visited notification settings.
+    // Action types (the buttons) are registered by reconcile, with the user's
+    // snooze intervals; the listener does not need them to exist yet.
     let teardownSnooze: (() => void) | undefined;
-    void registerActionTypes()
-      .then(() =>
-        registerSnoozeHandlers(userId, (title, body) =>
-          // Foreground delivery shows no system notification, so without this
-          // the reminder is silently swallowed for anyone using the app at the
-          // time it fires.
-          toast(title, { description: body, duration: 8000 }),
-        ),
-      )
-      .then((teardown) => {
-        if (cancelled) teardown();
-        else teardownSnooze = teardown;
-      });
+    void registerSnoozeHandlers(userId, (title, body) =>
+      // Foreground delivery shows no system notification, so without this
+      // the reminder is silently swallowed for anyone using the app at the
+      // time it fires.
+      toast(title, { description: body, duration: 8000 }),
+    ).then((teardown) => {
+      if (cancelled) teardown();
+      else teardownSnooze = teardown;
+    });
 
     const listener = App.addListener("appStateChange", ({ isActive }) => {
       if (isActive) void run();

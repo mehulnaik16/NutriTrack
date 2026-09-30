@@ -17,7 +17,8 @@
  *     refilled on every app foreground.
  *
  * A user who does not open the app for a month stops receiving quotes until
- * they do. Their reminders keep firing regardless, which is the thing most
+ * they do, then picks up at the first quote they missed (see
+ * MotivationProgress). Their reminders keep firing regardless, which is the thing most
  * likely to bring them back. That is the honest cost of not running a server.
  *
  * RECONCILIATION IS A FULL REBUILD. cancelAll() then reschedule, every time.
@@ -36,9 +37,12 @@ import { quoteBody } from "@/data/motivationQuotes";
 import {
   CYCLE_LENGTH,
   MOTIVATION_WINDOW_DAYS,
-  motivationWindow,
+  addDaysToKey,
+  motivationAt,
+  type MotivationPlan,
   type MotivationUser,
 } from "@/lib/motivation";
+import { applyQuietHours, type QuietHours } from "@/lib/quietHours";
 
 /** Web builds have no plugin. Everything here no-ops rather than throwing. */
 export const isNative = (): boolean => Capacitor.isNativePlatform();
@@ -52,6 +56,13 @@ export const isNative = (): boolean => Capacitor.isNativePlatform();
  */
 const MOTIVATION_ID_BASE = 100_000;
 const REMINDER_ID_BASE = 200_000;
+/**
+ * Snoozed reschedules. Outside the ranges reconcile rebuilds, so cancelAll
+ * can leave them alone — otherwise opening the app after a snooze would
+ * silently delete it.
+ */
+export const SNOOZE_ID_BASE = 300_000;
+const SNOOZE_ID_END = 400_000;
 
 /** Action type ids registered with the OS. Referenced by scheduled payloads. */
 export const SNOOZE_CATEGORY = "SNOOZE_CATEGORY";
@@ -63,14 +74,6 @@ export interface PermissionState {
   blocked: boolean;
 }
 
-/**
- * Ask for permission, or report what was already decided.
- *
- * iOS shows its system dialog exactly once per install, ever. After a refusal
- * the only route back is the Settings app, which is why `blocked` is reported
- * separately from a plain absence of permission — the UI has to say different
- * things in those two cases.
- */
 /**
  * The OS permission state, without asking for anything.
  *
@@ -87,6 +90,14 @@ export async function checkPermissionState(): Promise<string> {
   }
 }
 
+/**
+ * Ask for permission, or report what was already decided.
+ *
+ * iOS shows its system dialog exactly once per install, ever. After a refusal
+ * the only route back is the Settings app, which is why `blocked` is reported
+ * separately from a plain absence of permission — the UI has to say different
+ * things in those two cases.
+ */
 export async function requestPermission(): Promise<PermissionState> {
   if (!isNative()) return { granted: false, blocked: false };
 
@@ -155,7 +166,49 @@ export async function openNotificationSettings(): Promise<boolean> {
 }
 
 /**
- * Register the snooze buttons once per app start.
+ * Whether Android will fire our alarms at the exact minute.
+ *
+ * Android 12+ gates exact alarms behind "Alarms & reminders", and on 13+ it is
+ * off by default for new installs. Without it the plugin quietly falls back to
+ * an inexact alarm, which Doze can hold back by many minutes — the reminder
+ * still arrives, just late. iOS and web have no such switch, so they report
+ * true.
+ */
+export async function exactAlarmAllowed(): Promise<boolean> {
+  if (Capacitor.getPlatform() !== "android") return true;
+  try {
+    const { exact_alarm } =
+      await LocalNotifications.checkExactNotificationSetting();
+    return exact_alarm === "granted";
+  } catch {
+    // Older Android without the setting: exact alarms need no permission.
+    return true;
+  }
+}
+
+/** Open Android's "Alarms & reminders" screen for this app. */
+export async function openExactAlarmSettings(): Promise<void> {
+  if (Capacitor.getPlatform() !== "android") return;
+  try {
+    await LocalNotifications.changeExactNotificationSetting();
+  } catch (e) {
+    console.warn(
+      "[notifications] could not open exact alarm settings:",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+}
+
+const SNOOZE_LABELS: Record<number, string> = {
+  600: "🕒 +10m",
+  1800: "🕒 +30m",
+  3600: "⏰ +1hr",
+};
+
+/**
+ * Register the snooze buttons. Called by reconcile with the user's chosen
+ * intervals; action ids are `snooze_<seconds>` so the handler reads the
+ * duration straight from the id.
  *
  * Two categories rather than one: at the snooze cap the notification is
  * scheduled against FINAL_CATEGORY, which offers only Dismiss. The spec asked
@@ -163,7 +216,9 @@ export async function openNotificationSettings(): Promise<boolean> {
  * screen where the app is usually not running and cannot show anything — so a
  * button that could not work is simply not drawn.
  */
-export async function registerActionTypes(): Promise<void> {
+export async function registerActionTypes(
+  snoozeIntervals: number[] = [600, 3600],
+): Promise<void> {
   if (!isNative()) return;
 
   await LocalNotifications.registerActionTypes({
@@ -171,8 +226,12 @@ export async function registerActionTypes(): Promise<void> {
       {
         id: SNOOZE_CATEGORY,
         actions: [
-          { id: "snooze_10m", title: "🕒 +10m" },
-          { id: "snooze_1h", title: "⏰ +1hr" },
+          ...[...snoozeIntervals]
+            .sort((a, b) => a - b)
+            .map((s) => ({
+              id: `snooze_${s}`,
+              title: SNOOZE_LABELS[s] ?? `+${Math.round(s / 60)}m`,
+            })),
           { id: "dismiss", title: "✖️", destructive: true },
         ],
       },
@@ -184,46 +243,35 @@ export async function registerActionTypes(): Promise<void> {
   });
 }
 
-/** Local wall-clock Date for a "YYYY-MM-DD" key at a given hour and minute. */
-function atLocalTime(dateKey: string, hour: number, minute: number): Date {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  return new Date(y, m - 1, d, hour, minute, 0, 0);
-}
-
-export interface ScheduleResult {
-  scheduled: number;
-  skippedPast: number;
-}
-
 /**
- * Schedule the rolling motivation window.
+ * Schedule the rolling motivation window from a plan (see planWindow).
  *
- * `morningTime` is "HH:MM" in the user's own zone — and the Date objects built
- * here are in the *device's* zone, which is the same thing precisely because
- * timezone.ts keeps the stored zone in step with the device. A user who flies
- * somewhere gets correct local times on their next app open, when this runs
- * again.
+ * Slot i fires i days after plan.firstAt at the same wall-clock time, and
+ * carries the quote at position plan.start + i. The Date objects are in the
+ * *device's* zone, which equals the stored zone because timezone.ts keeps
+ * them in step. A user who flies somewhere gets correct local times on their
+ * next app open, when this runs again.
+ *
+ * Returns how many were scheduled, which the caller records as the window's
+ * size so the next reconcile knows how far the user got.
  */
 export async function scheduleMotivation(
   user: MotivationUser,
-  morningTime: string,
+  plan: MotivationPlan,
   days: number = MOTIVATION_WINDOW_DAYS,
-): Promise<ScheduleResult> {
-  if (!isNative()) return { scheduled: 0, skippedPast: 0 };
+): Promise<number> {
+  if (!isNative()) return 0;
 
-  const [hour, minute] = morningTime.split(":").map(Number);
-  const now = Date.now();
   const notifications: LocalNotificationSchema[] = [];
-  let skippedPast = 0;
 
-  motivationWindow(user, days).forEach((day, i) => {
-    const at = atLocalTime(day.date, hour, minute);
-    // Today's slot is usually already past by the time the app is opened.
-    // Scheduling it would fire immediately, which reads as a bug.
-    if (at.getTime() <= now) {
-      skippedPast++;
-      return;
-    }
+  for (let i = 0; i < days; i++) {
+    const at = new Date(plan.firstAt);
+    at.setDate(plan.firstAt.getDate() + i);
+    const day = motivationAt(
+      user,
+      plan.start + i,
+      addDaysToKey(plan.firstKey, i),
+    );
 
     notifications.push({
       id: MOTIVATION_ID_BASE + i,
@@ -246,12 +294,13 @@ export async function scheduleMotivation(
         type: "morning_motivation",
         day: day.dayNumber,
         quoteId: day.quote.id,
+        originalAt: at.toISOString(),
       },
     });
-  });
+  }
 
   await LocalNotifications.schedule({ notifications });
-  return { scheduled: notifications.length, skippedPast };
+  return notifications.length;
 }
 
 export interface ReminderInput {
@@ -268,16 +317,27 @@ export interface ReminderInput {
  *
  * One slot each regardless of how long they run, which is what leaves room for
  * the motivation window inside the 64.
+ *
+ * Quiet hours move a reminder that falls inside the window to the minute after
+ * it ends (a 23:00 reminder under 22:00–06:00 fires at 06:01), same rule as a
+ * snooze. The date is irrelevant for a daily repeat; only the clock time is
+ * kept.
  */
 export async function scheduleReminders(
   reminders: ReminderInput[],
   allowSnooze: boolean,
+  quiet: QuietHours,
 ): Promise<number> {
   if (!isNative()) return 0;
 
   const active = reminders.filter((r) => r.enabled);
   const notifications: LocalNotificationSchema[] = active.map((r, i) => {
-    const [hour, minute] = r.remindAt.split(":").map(Number);
+    const [h, m] = r.remindAt.split(":").map(Number);
+    const probe = new Date();
+    probe.setHours(h, m, 0, 0);
+    const { at } = applyQuietHours(probe, quiet);
+    const hour = at.getHours();
+    const minute = at.getMinutes();
     // Spec §9.3: a blank note becomes a sentence built from the label rather
     // than an empty body.
     const body =
@@ -289,7 +349,14 @@ export async function scheduleReminders(
       largeBody: body,
       schedule: { on: { hour, minute }, allowWhileIdle: true },
       actionTypeId: allowSnooze ? SNOOZE_CATEGORY : FINAL_CATEGORY,
-      extra: { type: "custom_reminder", reminderId: r.id, snoozeCount: 0 },
+      extra: {
+        type: "custom_reminder",
+        reminderId: r.id,
+        snoozeCount: 0,
+        // Clock time it fires at, so a snooze or tap can log the real
+        // original time of this occurrence rather than the moment of the tap.
+        remindAt: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+      },
     };
   });
 
@@ -304,12 +371,24 @@ export async function pending(): Promise<LocalNotificationSchema[]> {
   return notifications;
 }
 
-export async function cancelAll(): Promise<void> {
+/**
+ * Cancel everything pending. `keepSnoozes` spares the snooze range: reconcile
+ * rebuilds quotes and reminders from the database, but a snooze exists only
+ * on the device and would be lost for good. Sign-out cancels everything.
+ */
+export async function cancelAll({
+  keepSnoozes = false,
+}: { keepSnoozes?: boolean } = {}): Promise<void> {
   if (!isNative()) return;
   const { notifications } = await LocalNotifications.getPending();
-  if (notifications.length === 0) return;
+  const doomed = keepSnoozes
+    ? notifications.filter(
+        (n) => n.id < SNOOZE_ID_BASE || n.id >= SNOOZE_ID_END,
+      )
+    : notifications;
+  if (doomed.length === 0) return;
   await LocalNotifications.cancel({
-    notifications: notifications.map((n) => ({ id: n.id })),
+    notifications: doomed.map((n) => ({ id: n.id })),
   });
 }
 

@@ -856,6 +856,10 @@ export type Database = {
           morning_enabled: boolean
           /** Local wall-clock time, "HH:MM:SS". */
           morning_time: string
+          /** Last scheduled quote window; see 20260930120000_motivation_progress.sql. */
+          motivation_next_at: string | null
+          motivation_next_index: number | null
+          motivation_scheduled: number
           /** Never applies to morning motivation — see the migration. */
           quiet_from: string
           quiet_hours_on: boolean
@@ -871,6 +875,9 @@ export type Database = {
           max_snooze_cycles?: number
           morning_enabled?: boolean
           morning_time?: string
+          motivation_next_at?: string | null
+          motivation_next_index?: number | null
+          motivation_scheduled?: number
           quiet_from?: string
           quiet_hours_on?: boolean
           quiet_to?: string
@@ -884,6 +891,9 @@ export type Database = {
           max_snooze_cycles?: number
           morning_enabled?: boolean
           morning_time?: string
+          motivation_next_at?: string | null
+          motivation_next_index?: number | null
+          motivation_scheduled?: number
           quiet_from?: string
           quiet_hours_on?: boolean
           quiet_to?: string

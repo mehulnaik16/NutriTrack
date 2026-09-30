@@ -1,16 +1,15 @@
 /**
  * The 100-day morning motivation cycle.
  *
- * Which quote a user gets on a given day is computed, never stored. Two inputs
- * decide it: how many days have elapsed since their account was created, and a
- * per-user seed. That has three properties worth the arithmetic:
+ * A quote is identified by its position: 0-based, counting across cycles.
+ * Position plus a per-user seed decide which quote it is, so the quote itself
+ * is never stored. The position is: where the user's last scheduled window
+ * says they are (MotivationProgress, kept in the database, so a reinstall or a
+ * new phone carries on), or — before anything is recorded — days since signup.
  *
- *   - Reinstalling the app cannot reset or skew the cycle. There is no local
- *     state to lose and no counter to drift.
- *   - The device can schedule 30 days ahead without asking anything, which is
- *     what makes on-device scheduling viable at all.
- *   - A server can reproduce the same answer later, unchanged, if push is ever
- *     added.
+ * Tracking the position rather than reading it off the calendar is what makes
+ * an absence a pause: a user away for 40 days gets the 30 scheduled quotes,
+ * then nothing, and resumes at quote 31 when they return — not at quote 41.
  *
  * Day 101 restarts the cycle in a *different order* rather than replaying day 1
  * verbatim: the shuffle is seeded with the cycle number as well as the user, so
@@ -148,26 +147,20 @@ export function quoteOrder(
 
 // ── The lookup ───────────────────────────────────────────────────────────────
 
-/** The quote for one calendar date in the user's own zone. */
-export function motivationFor(
+/**
+ * The quote at an absolute position: 0-based, counting across cycles, so
+ * position 137 is day 38 of the second pass. `date` is only carried through.
+ */
+export function motivationAt(
   user: MotivationUser,
-  on: string | Date = new Date(),
+  position: number,
+  date: string,
 ): MotivationDay {
-  const startKey = localDateKey(user.createdAt, user.timezone);
-  const dateKey =
-    typeof on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(on)
-      ? on
-      : localDateKey(on, user.timezone);
-
-  // Clamped: a clock set backwards, or a profile row back-dated by a support
-  // fix, would otherwise index past the start of the array.
-  const elapsed = Math.max(0, daysBetweenKeys(startKey, dateKey));
-
-  const cycle = Math.floor(elapsed / CYCLE_LENGTH);
-  const index = elapsed % CYCLE_LENGTH;
+  const cycle = Math.floor(position / CYCLE_LENGTH);
+  const index = position % CYCLE_LENGTH;
 
   return {
-    date: dateKey,
+    date,
     dayNumber: index + 1,
     cycle,
     quote:
@@ -176,12 +169,127 @@ export function motivationFor(
 }
 
 /**
- * The next `days` days of quotes, starting today in the user's zone.
+ * Days since signup on a calendar date, as a position.
  *
- * This is what the reconciler hands to the OS on every app foreground. It
- * recomputes the whole window rather than topping up the tail: the OS is the
- * only thing that knows what actually survived a reboot or a force-quit, and it
- * does not reliably say. A full rebuild is cheap and has one code path.
+ * The original rule, and still the starting point for anyone with no recorded
+ * progress — see MotivationProgress for what replaced it.
+ */
+export function calendarPosition(
+  user: MotivationUser,
+  on: string | Date = new Date(),
+): number {
+  const startKey = localDateKey(user.createdAt, user.timezone);
+  const dateKey =
+    typeof on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(on)
+      ? on
+      : localDateKey(on, user.timezone);
+
+  // Clamped: a clock set backwards, or a profile row back-dated by a support
+  // fix, would otherwise index past the start of the array.
+  return Math.max(0, daysBetweenKeys(startKey, dateKey));
+}
+
+/** The quote for one calendar date in the user's own zone, by the calendar rule. */
+export function motivationFor(
+  user: MotivationUser,
+  on: string | Date = new Date(),
+): MotivationDay {
+  const dateKey =
+    typeof on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(on)
+      ? on
+      : localDateKey(on, user.timezone);
+  return motivationAt(user, calendarPosition(user, dateKey), dateKey);
+}
+
+// ── Pause and resume ─────────────────────────────────────────────────────────
+
+/**
+ * The window the device scheduled most recently, as stored in
+ * user_notification_preferences.
+ *
+ * The calendar rule alone skipped quotes: someone away for 40 days had 30
+ * scheduled, missed 10 days with nothing, and came back at day 41. Recording
+ * the window instead lets the next schedule start from the first quote that
+ * never fired, so an absence pauses the cycle rather than skipping through it.
+ */
+export interface MotivationProgress {
+  /** Position of the window's first slot. Null: never recorded. */
+  nextIndex: number | null;
+  /** When that first slot fires. Null: nothing scheduled. */
+  nextAt: string | null;
+  /** Consecutive daily slots from nextAt. 0 while morning quotes are off. */
+  scheduled: number;
+}
+
+/**
+ * Position of the first quote that has not fired yet, as of `now`.
+ *
+ * Counts the slots of the last window whose time has passed. Capped at the
+ * window's size, which is the whole point: once the window runs out nothing
+ * more fires, so nothing more is counted. Null when nothing was ever recorded.
+ *
+ * Assumes a slot whose time passed was delivered. A phone that was off or had
+ * notifications revoked at 07:00 still counts it — the OS does not report
+ * misses, and one lost quote is cheaper than a round trip per notification.
+ */
+export function resumePosition(
+  progress: MotivationProgress,
+  now: Date = new Date(),
+): number | null {
+  if (progress.nextIndex === null) return null;
+  if (!progress.nextAt || progress.scheduled <= 0) return progress.nextIndex;
+
+  const first = new Date(progress.nextAt);
+  let fired = 0;
+  while (fired < progress.scheduled) {
+    const slot = new Date(first);
+    slot.setDate(first.getDate() + fired);
+    if (slot.getTime() > now.getTime()) break;
+    fired++;
+  }
+  return progress.nextIndex + fired;
+}
+
+export interface MotivationPlan {
+  /** First slot to schedule: today at the chosen time, or tomorrow if past. */
+  firstAt: Date;
+  /** That slot's calendar date in the user's zone. */
+  firstKey: string;
+  /** Position of the quote for that slot. */
+  start: number;
+}
+
+/**
+ * Where the next window begins.
+ *
+ * `morningTime` is "HH:MM" in the device's zone, which timezone.ts keeps equal
+ * to the stored one. Today's slot is skipped once its time has passed —
+ * scheduling it would fire immediately, which reads as a bug.
+ */
+export function planWindow(
+  user: MotivationUser,
+  morningTime: string,
+  resume: number | null,
+  now: Date = new Date(),
+): MotivationPlan {
+  const [hour, minute] = morningTime.split(":").map(Number);
+  const firstAt = new Date(now);
+  firstAt.setHours(hour, minute, 0, 0);
+  if (firstAt.getTime() <= now.getTime())
+    firstAt.setDate(firstAt.getDate() + 1);
+
+  const firstKey = localDateKey(firstAt, user.timezone);
+  return {
+    firstAt,
+    firstKey,
+    start: resume ?? calendarPosition(user, firstKey),
+  };
+}
+
+/**
+ * The next `days` days of quotes by the calendar rule, starting today in the
+ * user's zone. Used by the debug preview; the scheduler goes through
+ * planWindow so it can resume instead.
  */
 export function motivationWindow(
   user: MotivationUser,

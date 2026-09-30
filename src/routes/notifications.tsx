@@ -9,8 +9,13 @@
  * plugin only exists in the app. Saying so plainly beats silently doing half
  * the job.
  */
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Bell, Clock, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -23,6 +28,7 @@ import {
   DEFAULT_PREFS,
   loadPrefs,
   loadReminders,
+  nextMotivation,
   reconcile,
   savePrefs,
   type NotificationPrefs,
@@ -32,14 +38,23 @@ import { ReminderRows } from "@/components/ReminderRows";
 import {
   checkPermissionState,
   isNative,
+  exactAlarmAllowed,
+  openExactAlarmSettings,
   openNotificationSettings,
   requestPermission,
 } from "@/lib/notifications";
-import { CYCLE_LENGTH, motivationFor } from "@/lib/motivation";
+import { CYCLE_LENGTH, type MotivationDay } from "@/lib/motivation";
 
 export const Route = createFileRoute("/notifications")({
   component: NotificationSettings,
 });
+
+/** The intervals the snooze_intervals_known constraint allows. */
+const SNOOZE_OPTIONS = [
+  { seconds: 600, label: "+10m" },
+  { seconds: 1800, label: "+30m" },
+  { seconds: 3600, label: "+1hr" },
+];
 
 interface Profile {
   created_at: string;
@@ -68,7 +83,28 @@ function NotificationSettings() {
   // "denied" means the OS will not prompt again, which needs different words
   // and a different button from "not asked yet".
   const [blocked, setBlocked] = useState(false);
+  // Android: notifications allowed, but only as inexact alarms that can land
+  // late. Separate from `blocked` — a different switch on a different screen.
+  const [inexact, setInexact] = useState(false);
   const native = isNative();
+
+  // Re-read both switches whenever the screen comes back into view: the fix
+  // for either happens in system settings, and the banner should vanish the
+  // moment the user returns rather than on the next visit.
+  useEffect(() => {
+    if (!native) return;
+    const check = async () => {
+      const state = await checkPermissionState();
+      setBlocked(state === "denied");
+      setInexact(state === "granted" && !(await exactAlarmAllowed()));
+    };
+    void check();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [native]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -92,7 +128,6 @@ function NotificationSettings() {
       setPrefs(loaded);
       setReminders(rows);
       if (data) setProfile(data);
-      if (isNative()) setBlocked((await checkPermissionState()) === "denied");
       setBusy(false);
     })();
 
@@ -101,23 +136,31 @@ function NotificationSettings() {
     };
   }, [user]);
 
-  // Today's position in the cycle, and what lands tomorrow. Computed rather
-  // than stored — see src/lib/motivation.ts.
-  const cycle = useMemo(() => {
-    if (!user || !profile) return null;
-    const u = {
-      id: user.id,
-      createdAt: profile.created_at,
-      timezone: profile.timezone,
-      motivationSeed: profile.motivation_seed,
+  // The next quote the user will get, from their recorded place in the cycle
+  // (which pauses while they are away) — see src/lib/motivation.ts.
+  const [upcoming, setUpcoming] = useState<MotivationDay | null>(null);
+  useEffect(() => {
+    if (!user || !profile) return;
+    let cancelled = false;
+    nextMotivation(
+      {
+        id: user.id,
+        createdAt: profile.created_at,
+        timezone: profile.timezone,
+        motivationSeed: profile.motivation_seed,
+      },
+      prefs.morning_time,
+    )
+      .then((day) => {
+        if (!cancelled) setUpcoming(day);
+      })
+      .catch(() => {
+        /* the card just hides its preview */
+      });
+    return () => {
+      cancelled = true;
     };
-    const today = motivationFor(u);
-    const tomorrow = motivationFor(
-      u,
-      new Date(Date.now() + 24 * 60 * 60 * 1000),
-    );
-    return { today, tomorrow };
-  }, [user, profile]);
+  }, [user, profile, prefs.morning_time]);
 
   const persist = async (next: NotificationPrefs) => {
     if (!user) return;
@@ -141,7 +184,7 @@ function NotificationSettings() {
         timezone: profile.timezone,
         motivationSeed: profile.motivation_seed,
       });
-      if (!result.ran && result.reason === "permission not granted") {
+      if (!result.ran && result.reason?.startsWith("permission")) {
         toast.error("Saved, but notifications are switched off for the app.");
       }
     }
@@ -209,8 +252,8 @@ function NotificationSettings() {
     );
   }
 
-  const progress = cycle
-    ? Math.round((cycle.today.dayNumber / CYCLE_LENGTH) * 100)
+  const progress = upcoming
+    ? Math.round((upcoming.dayNumber / CYCLE_LENGTH) * 100)
     : 0;
 
   return (
@@ -244,6 +287,25 @@ function NotificationSettings() {
           </div>
           <Button size="sm" onClick={openSettings} className="self-start">
             Open notification settings
+          </Button>
+        </Card>
+      )}
+
+      {native && inexact && (
+        <Card className="flex flex-col gap-3 border-amber-500/40 bg-amber-500/5 p-4">
+          <div>
+            <p className="text-sm font-semibold">Reminders may arrive late</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Your phone only lets Dombelz set approximate alarms. Allow
+              &ldquo;Alarms &amp; reminders&rdquo; so they fire on the minute.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => void openExactAlarmSettings()}
+            className="self-start"
+          >
+            Allow exact alarms
           </Button>
         </Card>
       )}
@@ -296,15 +358,15 @@ function NotificationSettings() {
               />
             </label>
 
-            {cycle && (
+            {upcoming && (
               <div className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3">
                 <div className="flex items-baseline justify-between text-sm">
                   <span className="font-semibold">
-                    Day {cycle.today.dayNumber} / {CYCLE_LENGTH}
+                    Next: Day {upcoming.dayNumber} / {CYCLE_LENGTH}
                   </span>
-                  {cycle.today.cycle > 0 && (
+                  {upcoming.cycle > 0 && (
                     <span className="text-xs text-muted-foreground">
-                      Round {cycle.today.cycle + 1}
+                      Round {upcoming.cycle + 1}
                     </span>
                   )}
                 </div>
@@ -315,9 +377,9 @@ function NotificationSettings() {
                   />
                 </div>
                 <p className="line-clamp-3 text-xs italic text-muted-foreground">
-                  Tomorrow: &ldquo;{cycle.tomorrow.quote.text}&rdquo;{" "}
+                  &ldquo;{upcoming.quote.text}&rdquo;{" "}
                   <span className="not-italic">
-                    &mdash; {cycle.tomorrow.quote.author}
+                    &mdash; {upcoming.quote.author}
                   </span>
                 </p>
               </div>
@@ -361,8 +423,8 @@ function NotificationSettings() {
           <div>
             <p className="font-semibold">Allow snooze</p>
             <p className="text-xs text-muted-foreground">
-              Adds &ldquo;+10m&rdquo; and &ldquo;+1hr&rdquo; buttons to
-              reminders. Morning quotes never get them — the time is the point.
+              Adds snooze buttons to reminders. Morning quotes never get them —
+              the time is the point.
             </p>
           </div>
           <Switch
@@ -371,6 +433,40 @@ function NotificationSettings() {
             aria-label="Allow snooze"
           />
         </div>
+
+        {prefs.allow_snooze && (
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <span className="text-muted-foreground">Buttons</span>
+            <div className="flex gap-2">
+              {SNOOZE_OPTIONS.map(({ seconds, label }) => {
+                const on = prefs.snooze_intervals.includes(seconds);
+                return (
+                  <Button
+                    key={seconds}
+                    type="button"
+                    size="sm"
+                    variant={on ? "default" : "outline"}
+                    aria-pressed={on}
+                    // At least one must stay on (DB check: 1 to 3 intervals).
+                    disabled={on && prefs.snooze_intervals.length === 1}
+                    onClick={() =>
+                      persist({
+                        ...prefs,
+                        snooze_intervals: on
+                          ? prefs.snooze_intervals.filter((s) => s !== seconds)
+                          : [...prefs.snooze_intervals, seconds].sort(
+                              (a, b) => a - b,
+                            ),
+                      })
+                    }
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {prefs.allow_snooze && (
           <label className="flex items-center justify-between gap-4 text-sm">
