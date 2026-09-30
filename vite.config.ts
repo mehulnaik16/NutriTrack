@@ -16,7 +16,12 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     define: envDefine,
-    server: { host: true, port: 8080, allowedHosts: true },
+    // PORT lets a second copy (the preview pane) run beside one on 8080.
+    server: {
+      host: true,
+      port: Number(process.env.PORT) || 8080,
+      allowedHosts: true,
+    },
     resolve: {
       alias: {
         "@": `${process.cwd()}/src`,
