@@ -125,19 +125,31 @@ function Welcome() {
       .select("has_seen_benefits_features_page")
       .eq("id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        // No row means onboarding was never finished — send them to the quiz.
-        if (!data) {
-          navigate({ to: "/quiz", replace: true });
-          return;
-        }
-        if (data.has_seen_benefits_features_page) {
-          navigate({ to: "/dashboard", replace: true });
-          return;
-        }
-        setChecking(false);
-      });
+      .then(
+        ({ data, error }) => {
+          if (cancelled) return;
+          // A failed read says nothing about onboarding, so it must not be read
+          // as "no row" — showing the intro once too often is the safe error.
+          if (error) {
+            setChecking(false);
+            return;
+          }
+          // No row means onboarding was never finished — send them to the quiz.
+          if (!data) {
+            navigate({ to: "/quiz", replace: true });
+            return;
+          }
+          if (data.has_seen_benefits_features_page) {
+            navigate({ to: "/dashboard", replace: true });
+            return;
+          }
+          setChecking(false);
+        },
+        () => {
+          // Without this the spinner below never stops.
+          if (!cancelled) setChecking(false);
+        },
+      );
     return () => {
       cancelled = true;
     };

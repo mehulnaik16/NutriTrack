@@ -21,30 +21,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { type IFCTItem, KJ_PER_KCAL } from "@/lib/foodDb";
-
-// ── Barcode lookup via Open Food Facts ───────────────────────────────────────
-async function lookupBarcode(barcode: string): Promise<IFCTItem | null> {
-  const res = await fetch(
-    `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (data.status !== 1) return null;
-  const n = data.product.nutriments;
-  return {
-    code: barcode,
-    name: data.product.product_name ?? "Unknown product",
-    scie: "",
-    lang: "",
-    grup: "Packaged",
-    enerc: (n["energy-kcal_100g"] ?? 0) * KJ_PER_KCAL,
-    protcnt: n.proteins_100g ?? 0,
-    fatce: n.fat_100g ?? 0,
-    choavldf: n.carbohydrates_100g ?? 0,
-    fibtg: n.fiber_100g ?? 0,
-  };
-}
+import { lookupBarcode, parseBarcodeProduct } from "@/lib/barcodeFood";
+import type { IFCTItem } from "@/lib/foodDb";
+export { parseBarcodeProduct };
 
 export function ScanFoodDialog({
   open,

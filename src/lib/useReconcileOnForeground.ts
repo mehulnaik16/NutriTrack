@@ -23,7 +23,6 @@ import {
 } from "@/lib/notifications";
 import { registerSnoozeHandlers } from "@/lib/snooze";
 import { reconcile } from "@/lib/notification-settings";
-import { checkDay5Eligible, triggerDay5Primer } from "@/lib/notificationPrimer";
 
 /** Minimum gap between reconciles, to survive rapid app switching. */
 const MIN_INTERVAL_MS = 60_000;
@@ -91,11 +90,6 @@ export function useReconcileOnForeground(userId: string | null): void {
         .eq("id", userId)
         .maybeSingle();
       if (cancelled || !data) return;
-
-      // Check Day 5+ primer eligibility on app foreground
-      if (checkDay5Eligible(userId, data.created_at)) {
-        triggerDay5Primer(userId);
-      }
 
       const result = await reconcile({
         id: userId,

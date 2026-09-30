@@ -62,21 +62,33 @@ function ReferIntro() {
       .select("referral_code, full_name, has_seen_refer_intro")
       .eq("id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        if (!data) {
-          navigate({ to: "/quiz", replace: true });
-          return;
-        }
-        // Already dismissed — never show again, even on a manual URL.
-        if (data.has_seen_refer_intro) {
-          navigate({ to: "/dashboard", replace: true });
-          return;
-        }
-        setCode(data.referral_code ?? null);
-        setFullName(data.full_name ?? null);
-        setChecking(false);
-      });
+      .then(
+        ({ data, error }) => {
+          if (cancelled) return;
+          // A failed read says nothing about onboarding, so it must not be read
+          // as "no row" — showing the intro once too often is the safe error.
+          if (error) {
+            setChecking(false);
+            return;
+          }
+          if (!data) {
+            navigate({ to: "/quiz", replace: true });
+            return;
+          }
+          // Already dismissed — never show again, even on a manual URL.
+          if (data.has_seen_refer_intro) {
+            navigate({ to: "/dashboard", replace: true });
+            return;
+          }
+          setCode(data.referral_code ?? null);
+          setFullName(data.full_name ?? null);
+          setChecking(false);
+        },
+        () => {
+          // Without this the spinner below never stops.
+          if (!cancelled) setChecking(false);
+        },
+      );
     return () => {
       cancelled = true;
     };

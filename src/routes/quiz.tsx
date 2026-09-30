@@ -3,7 +3,7 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,13 @@ import { useAuth } from "@/lib/auth";
 import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
 import { isValidCode, REFEREE_GIFT_DAYS } from "@/lib/referral";
 import { isPartnerCode, partnerKindOf, type PartnerKind } from "@/lib/gym";
+import {
+  clearQuizDraft,
+  DEFAULT_QUIZ_FORM,
+  loadQuizDraft,
+  saveQuizDraft,
+  type QuizFormData as FormData,
+} from "@/lib/quizDraft";
 import { serverLinkGym, serverVerifyGymCode } from "@/lib/gym-link";
 import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
 import {
@@ -104,24 +111,11 @@ function pendingReferralCode(fromSearch?: string): string | null {
   }
 }
 
-interface FormData {
-  fullName: string;
-  email: string;
-  password: string;
-  repeatPassword: string;
-  age: number;
-  gender: string;
-  heightCm: number;
-  weightKg: number;
-  activity: string;
-  goal: string;
-}
-
 function Quiz() {
   const navigate = useNavigate();
   const routeNavigate = Route.useNavigate();
   const router = useRouter();
-  const { user, refreshProfile } = useAuth();
+  const { user, loading, hasProfile, refreshProfile } = useAuth();
   const isOAuth = !!user;
   const { step: searchStep, ref: searchRef } = Route.useSearch();
   const step = searchStep ?? 1;
@@ -131,44 +125,43 @@ function Quiz() {
     routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
   const [submitting, setSubmitting] = useState(false);
   const [referrerName, setReferrerName] = useState<string | null>(null);
-  const [d, setD] = useState<FormData>({
-    fullName: "",
-    email: "",
+  const [draft] = useState(loadQuizDraft);
+  /** Set the moment the profile is written, so the guard below doesn't fight
+   *  the hand-off to /plans that submit() is already performing. */
+  const finishedRef = useRef(false);
+  const resumedRef = useRef(false);
+  const [d, setD] = useState<FormData>(() => ({
+    ...DEFAULT_QUIZ_FORM,
+    ...draft.d,
+    // Never restored, never stored — see saveQuizDraft().
     password: "",
     repeatPassword: "",
-    age: 0,
-    gender: "Male",
-    heightCm: 170,
-    weightKg: 70,
-    activity: "Sedentary",
-    goal: "maintain",
-  });
-  const [loseRate, setLoseRate] = useState("lose_0_25kg");
-  const [unit, setUnit] = useState<"kg" | "lb">("kg");
+  }));
+  const [loseRate, setLoseRate] = useState(draft.loseRate ?? "lose_0_25kg");
+  const [unit, setUnit] = useState<"kg" | "lb">(draft.unit ?? "kg");
 
   // ── The referral step ──────────────────────────────────────────────────────
   //
   // `applied` is the single answer submit() uses. It is seeded from the ?ref=
   // link so someone arriving from a share sees the step already filled in and
   // green, and a code typed by hand overwrites it — the URL must not win over
-  // what the user just entered.
-  const [codeInput, setCodeInput] = useState(
-    () => pendingReferralCode(searchRef) ?? "",
-  );
-  const [applied, setApplied] = useState<string | null>(() =>
-    pendingReferralCode(searchRef),
-  );
+  // what the user just entered. The saved draft is the last fallback, for a
+  // relaunch after sessionStorage is gone.
+  const initialCode = pendingReferralCode(searchRef) ?? draft.applied ?? null;
+  const [codeInput, setCodeInput] = useState(() => initialCode ?? "");
+  const [applied, setApplied] = useState<string | null>(() => initialCode);
   const [codeState, setCodeState] = useState<
     "idle" | "checking" | "valid" | "invalid"
-  >(() => (pendingReferralCode(searchRef) ? "valid" : "idle"));
+  >(() => (initialCode ? "valid" : "idle"));
   const [codeError, setCodeError] = useState<string | null>(null);
   /** Which kind of code `applied` holds. submit() dispatches on it, because a
    *  friend's code and a partner's code are claimed through different calls —
    *  and the three partner kinds are told apart only for the wording. */
   const [appliedKind, setAppliedKind] = useState<"friend" | PartnerKind | null>(
     () =>
-      partnerKindOf(pendingReferralCode(searchRef)) ??
-      (pendingReferralCode(searchRef) ? "friend" : null),
+      partnerKindOf(initialCode) ??
+      draft.appliedKind ??
+      (initialCode ? "friend" : null),
   );
   /** The partner behind a valid partner code, for the success message. */
   const [gymName, setGymName] = useState<string | null>(null);
@@ -329,6 +322,37 @@ function Quiz() {
     }));
   }, [user]);
 
+  // Mirror every answer as it changes. The step lives in the URL, which is lost
+  // the moment the wizard is left, so it is saved here too.
+  useEffect(() => {
+    if (finishedRef.current) return;
+    saveQuizDraft({ step, d, loseRate, unit, applied, appliedKind });
+  }, [step, d, loseRate, unit, applied, appliedKind]);
+
+  // Reopen on the step they left. Only for a user who already has a session:
+  // a fresh email signup needs the password, which is deliberately not saved,
+  // so it resumes on the account step with every other answer already filled.
+  useEffect(() => {
+    if (loading || resumedRef.current) return;
+    resumedRef.current = true;
+    if (searchStep !== undefined || !user) return;
+    const saved = draft.step ?? 1;
+    if (saved > 1) {
+      routeNavigate({
+        search: (prev) => ({ ...prev, step: saved }),
+        replace: true,
+      });
+    }
+  }, [loading, user, searchStep, draft.step, routeNavigate]);
+
+  // A finished account has no business in the wizard: pressing Create again
+  // overwrites the saved profile with whatever this form currently holds.
+  // /dashboard owns the decision about which onboarding screen is still due.
+  useEffect(() => {
+    if (hasProfile !== true || finishedRef.current) return;
+    navigate({ to: "/dashboard", replace: true });
+  }, [hasProfile, navigate]);
+
   const bmi = useMemo(
     () => calcBMI(d.weightKg, d.heightCm),
     [d.weightKg, d.heightCm],
@@ -439,10 +463,16 @@ function Quiz() {
         }
       }
 
+      // Set before refreshProfile so the already-onboarded guard doesn't race
+      // this hand-off and redirect to /dashboard instead of /plans.
+      finishedRef.current = true;
+      clearQuizDraft();
       // The nav stays hidden until the provider knows a profile exists.
       await refreshProfile();
       toast.success("Account created!");
-      navigate({ to: "/plans" });
+      // `replace`, so a back press can't re-enter the review step and submit a
+      // second time over a profile that is already written.
+      navigate({ to: "/plans", replace: true });
     } catch (e) {
       const raw = (e as Error | undefined)?.message;
       toast.error(authErrorMessage(raw));

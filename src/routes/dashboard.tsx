@@ -76,6 +76,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import type { TablesInsert } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
+import { markOnboarded } from "@/lib/notificationPrimer";
 import { loadMealNames } from "@/lib/meals";
 import { uploadWeightPhoto } from "@/services/storage";
 import {
@@ -125,6 +126,8 @@ interface Profile {
   bmr: number | null;
   tdee: number | null;
   created_at: string | null;
+  trial_start_date: string | null;
+  selected_plan: string | null;
 }
 
 interface FoodLog {
@@ -246,6 +249,7 @@ function Dashboard() {
   const searchRef = useRef<FoodSearchRef>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   // Date browsing stops at the day the account was created. The date picker
   // stays usable for lapsed users (data-premium-open) so they can view history.
@@ -324,7 +328,7 @@ function Dashboard() {
   const load = useCallback(async () => {
     if (!user) return;
     const [
-      { data: p },
+      { data: p, error: pErr },
       { data: t },
       { data: m },
       { data: w },
@@ -363,10 +367,27 @@ function Dashboard() {
       supabase.from("saved_meals").select("name").eq("user_id", user.id),
     ]);
 
+    // A failed read is not an answer. Treating it as "no profile" is what sent
+    // fully onboarded users back through the quiz on a dropped connection.
+    if (pErr) {
+      setLoadError(true);
+      return;
+    }
+    setLoadError(false);
+
     // An OAuth user who has not finished onboarding has no profile row. Without
     // this the render below spins forever, since it waits on `profile`.
     if (!p) {
       navigate({ to: "/quiz", replace: true });
+      return;
+    }
+
+    // Plan selection is part of onboarding, and the quiz is the only thing that
+    // ever navigated to it — so quitting on /plans used to skip it for good.
+    // Starting the free trial is always available while trial_start_date is
+    // null, so this gate always has a way out.
+    if (!p.trial_start_date && !p.selected_plan) {
+      navigate({ to: "/plans", replace: true });
       return;
     }
 
@@ -381,6 +402,11 @@ function Dashboard() {
       navigate({ to: "/refer-intro", replace: true });
       return;
     }
+
+    // Past every onboarding gate. The notification primer reads this so it can
+    // never interrupt a quiz or an intro screen, and this is the only place that
+    // already knows all three conditions hold.
+    markOnboarded(user.id);
 
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);
@@ -615,8 +641,17 @@ function Dashboard() {
 
   if (!user || !profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+        {loadError ? (
+          <>
+            <p className="text-muted-foreground">
+              Couldn't load your profile just now.
+            </p>
+            <Button onClick={() => load()}>Try again</Button>
+          </>
+        ) : (
+          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+        )}
       </div>
     );
   }

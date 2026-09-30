@@ -26,6 +26,9 @@ export interface ExtraFoodItem {
   fatce: number | null;
   choavldf: number | null;
   fibtg: number | null;
+  alcohol?: number | null;
+  serving_g?: number;
+  serving_label?: string;
 }
 
 const KJ = 4.184;
@@ -40,6 +43,9 @@ const f = (
   fat: number,
   c: number,
   fib: number,
+  alcohol?: number,
+  serving_g?: number,
+  serving_label?: string,
 ): ExtraFoodItem => ({
   // Prefixed because IFCT already uses bare E-codes for fruits — its E004 is an
   // apple, not an idli — and `ITEMS` merges both lists. A shared code makes the
@@ -55,6 +61,9 @@ const f = (
   fatce: fat,
   choavldf: c,
   fibtg: fib,
+  ...(alcohol != null ? { alcohol } : {}),
+  ...(serving_g != null ? { serving_g } : {}),
+  ...(serving_label ? { serving_label } : {}),
 });
 
 export const EXTRA_FOODS: ExtraFoodItem[] = [
@@ -379,4 +388,16 @@ export const EXTRA_FOODS: ExtraFoodItem[] = [
     19,
     4.0,
   ),
+
+  // ── Alcoholic Beverages (Verified with USDA FoodData Central & NIAAA) ──
+  f("E180", "Beer (Lager / Mild, 5% ABV)", "Alcoholic Beverages", 43, 0.46, 0, 3.55, 0, 3.95, 330, "1 bottle = 330 mL"),
+  f("E181", "Beer (Strong, 8% ABV)", "Alcoholic Beverages", 65, 0.3, 0, 4.0, 0, 6.3, 330, "1 bottle = 330 mL"),
+  f("E182", "Vodka (40% ABV)", "Alcoholic Beverages", 221, 0, 0, 0, 0, 31.6, 30, "1 peg = 30 mL"),
+  f("E183", "Whiskey / Whisky (40% ABV)", "Alcoholic Beverages", 221, 0, 0, 0, 0, 31.6, 30, "1 peg = 30 mL"),
+  f("E184", "Rum (40% ABV)", "Alcoholic Beverages", 221, 0, 0, 0, 0, 31.6, 30, "1 peg = 30 mL"),
+  f("E185", "Gin (40% ABV)", "Alcoholic Beverages", 221, 0, 0, 0, 0, 31.6, 30, "1 peg = 30 mL"),
+  f("E186", "Tequila (40% ABV)", "Alcoholic Beverages", 221, 0, 0, 0, 0, 31.6, 30, "1 peg / shot = 30 mL"),
+  f("E187", "Brandy (40% ABV)", "Alcoholic Beverages", 221, 0, 0, 0.1, 0, 31.6, 30, "1 peg = 30 mL"),
+  f("E188", "Red Wine (13% ABV)", "Alcoholic Beverages", 85, 0.1, 0, 2.6, 0, 10.3, 150, "1 glass = 150 mL"),
+  f("E189", "White Wine (12% ABV)", "Alcoholic Beverages", 82, 0.1, 0, 2.6, 0, 9.5, 150, "1 glass = 150 mL"),
 ];
