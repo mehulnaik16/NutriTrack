@@ -221,7 +221,7 @@ export function HealthLogPage({
       return;
     }
 
-    const payload: Partial<HealthLogRecord> = {
+    const payload: Omit<HealthLogRecord, "id" | "created_at"> = {
       user_id: userId,
       condition,
       systolic: isBP ? bpValidation.systolic! : null,
@@ -250,7 +250,7 @@ export function HealthLogPage({
         const tempId = "local_" + Date.now();
         const newRecord: HealthLogRecord = {
           id: tempId,
-          ...(payload as Omit<HealthLogRecord, "id">),
+          ...payload,
         };
 
         const { data, error } = await supabase
