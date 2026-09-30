@@ -27,11 +27,7 @@ import {
   triggerDay5Primer,
   type PrimerEventDetail,
 } from "@/lib/notificationPrimer";
-import {
-  DEFAULT_PREFS,
-  reconcile,
-  savePrefs,
-} from "@/lib/notification-settings";
+import { loadPrefs, reconcile, savePrefs } from "@/lib/notification-settings";
 import { supabase } from "@/integrations/client";
 
 export function NotificationPrimerDialog() {
@@ -105,6 +101,10 @@ export function NotificationPrimerDialog() {
    * Permission granted: switch the reminders on for real and put the user on the
    * screen where they can see and tune them. Relying on column defaults left a
    * user who had ever touched the settings screen with a row that said off.
+   *
+   * Starts from what the user already saved, not the defaults: only the two
+   * on-switches change, so a chosen morning time, quiet hours or snooze setup
+   * survives saying yes.
    */
   const enableAndShowSettings = useCallback(
     async (userId: string) => {
@@ -112,7 +112,7 @@ export function NotificationPrimerDialog() {
       setOpen(false);
 
       await savePrefs(userId, {
-        ...DEFAULT_PREFS,
+        ...(await loadPrefs(userId)),
         morning_enabled: true,
         custom_enabled: true,
       });
