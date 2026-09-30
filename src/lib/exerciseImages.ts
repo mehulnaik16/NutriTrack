@@ -45,6 +45,16 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "pendlay row": "/exercises/pendlay_row.jpg",
   "dumbbell row": "/exercises/dumbbell_row.jpg",
   "cable row": "/exercises/cable_row.jpg",
+  // Approved Batch 1 Decline & Back additions
+  "decline barbell bench press": "/exercises/decline_barbell_bench_press.jpg",
+  "decline dumbbell bench press": "/exercises/decline_dumbbell_bench_press.jpg",
+  "pull up": "/exercises/pull_up.jpg",
+  "lat pulldown": "/exercises/lat_pulldown.jpg",
+  "dumbbell pullover": "/exercises/dumbbell_pullover.jpg",
+  "inverted row": "/exercises/inverted_row.jpg",
+  // Approved Batch 2 Leg additions
+  "front squat": "/exercises/front_squat.jpg",
+  "leg press": "/exercises/leg_press.jpg",
 };
 
 /**
@@ -88,6 +98,26 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "seated cable row": "cable row",
   "seated row": "cable row",
   "v bar cable row": "cable row",
+  // Batch 1 Decline & Back aliases
+  "decline bench press": "decline barbell bench press",
+  "barbell decline bench press": "decline barbell bench press",
+  "decline chest press": "decline barbell bench press",
+  "dumbbell decline bench press": "decline dumbbell bench press",
+  "pullups": "pull up",
+  "pull ups": "pull up",
+  "wide grip pull up": "pull up",
+  "cable lat pulldown": "lat pulldown",
+  "lat pulldowns": "lat pulldown",
+  "wide grip lat pulldown": "lat pulldown",
+  "pullover": "dumbbell pullover",
+  "db pullover": "dumbbell pullover",
+  "australian pull up": "inverted row",
+  "bodyweight row": "inverted row",
+  // Batch 2 Leg aliases
+  "barbell front squat": "front squat",
+  "45 degree leg press": "leg press",
+  "incline leg press": "leg press",
+  "sled leg press": "leg press",
 };
 
 /**
