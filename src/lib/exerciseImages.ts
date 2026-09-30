@@ -55,6 +55,17 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   // Approved Batch 2 Leg additions
   "front squat": "/exercises/front_squat.jpg",
   "leg press": "/exercises/leg_press.jpg",
+  "hack squat": "/exercises/hack_squat.jpg",
+  "goblet squat": "/exercises/goblet_squat.jpg",
+  "romanian deadlift": "/exercises/romanian_deadlift.jpg",
+  "dumbbell romanian deadlift": "/exercises/dumbbell_romanian_deadlift.jpg",
+  "bulgarian split squat": "/exercises/bulgarian_split_squat.jpg",
+  "walking lunge": "/exercises/walking_lunge.jpg",
+  "leg extension": "/exercises/leg_extension.jpg",
+  "lying hamstring curl": "/exercises/lying_hamstring_curl.jpg",
+  "seated leg curl": "/exercises/seated_leg_curl.jpg",
+  "standing calf raise": "/exercises/standing_calf_raise.jpg",
+  "seated calf raise": "/exercises/seated_calf_raise.jpg",
 };
 
 /**
@@ -118,6 +129,18 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "45 degree leg press": "leg press",
   "incline leg press": "leg press",
   "sled leg press": "leg press",
+  "barbell romanian deadlift": "romanian deadlift",
+  "rdl": "romanian deadlift",
+  "dumbbell rdl": "dumbbell romanian deadlift",
+  "dumbbell walking lunge": "walking lunge",
+  "lunges": "walking lunge",
+  "lunge": "walking lunge",
+  "split squat": "bulgarian split squat",
+  "lying leg curl": "lying hamstring curl",
+  "hamstring curl": "lying hamstring curl",
+  "standing machine calf raise": "standing calf raise",
+  "calf raise": "standing calf raise",
+  "seated machine calf raise": "seated calf raise",
 };
 
 /**

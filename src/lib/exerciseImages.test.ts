@@ -35,6 +35,17 @@ assert.strictEqual(getExerciseThumbnail("Dumbbell Pullover"), "/exercises/dumbbe
 assert.strictEqual(getExerciseThumbnail("Inverted Row"), "/exercises/inverted_row.jpg");
 assert.strictEqual(getExerciseThumbnail("Front Squat"), "/exercises/front_squat.jpg");
 assert.strictEqual(getExerciseThumbnail("Leg Press"), "/exercises/leg_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Hack Squat"), "/exercises/hack_squat.jpg");
+assert.strictEqual(getExerciseThumbnail("Goblet Squat"), "/exercises/goblet_squat.jpg");
+assert.strictEqual(getExerciseThumbnail("Romanian Deadlift"), "/exercises/romanian_deadlift.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Romanian Deadlift"), "/exercises/dumbbell_romanian_deadlift.jpg");
+assert.strictEqual(getExerciseThumbnail("Bulgarian Split Squat"), "/exercises/bulgarian_split_squat.jpg");
+assert.strictEqual(getExerciseThumbnail("Walking Lunge"), "/exercises/walking_lunge.jpg");
+assert.strictEqual(getExerciseThumbnail("Leg Extension"), "/exercises/leg_extension.jpg");
+assert.strictEqual(getExerciseThumbnail("Lying Hamstring Curl"), "/exercises/lying_hamstring_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Seated Leg Curl"), "/exercises/seated_leg_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Standing Calf Raise"), "/exercises/standing_calf_raise.jpg");
+assert.strictEqual(getExerciseThumbnail("Seated Calf Raise"), "/exercises/seated_calf_raise.jpg");
 
 // Test 3: Common aliases resolve to correct approved asset
 assert.strictEqual(getExerciseThumbnail("Bench Press"), "/exercises/barbell_bench_press.jpg");
