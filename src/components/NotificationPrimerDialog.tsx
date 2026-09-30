@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, SlidersHorizontal } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Bell } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -16,17 +17,28 @@ import {
 } from "@/lib/notifications";
 import {
   PRIMER_EVENT_NAME,
+  checkDay5Eligible,
   dismissPrimer,
+  getPrimerState,
+  isOnboarded,
   markPrimerGranted,
+  triggerDay5Primer,
   type PrimerEventDetail,
 } from "@/lib/notificationPrimer";
-import { reconcile, loadPrefs, loadReminders } from "@/lib/notification-settings";
+import {
+  DEFAULT_PREFS,
+  reconcile,
+  savePrefs,
+} from "@/lib/notification-settings";
 import { supabase } from "@/integrations/client";
 
 export function NotificationPrimerDialog() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [triggerType, setTriggerType] = useState<"engagement" | "day5">("engagement");
+  const [triggerType, setTriggerType] = useState<"engagement" | "day5">(
+    "engagement",
+  );
   const [submitting, setSubmitting] = useState(false);
 
   // Listen for the custom event dispatched when a trigger condition is met
@@ -41,13 +53,44 @@ export function NotificationPrimerDialog() {
 
     window.addEventListener(PRIMER_EVENT_NAME, handleOpen);
 
-    // Support instant test preview via ?test_primer=1
-    if (typeof window !== "undefined" && window.location.search.includes("test_primer=1")) {
+    // Dev-only preview. In production this would hand anyone with the URL a
+    // prompt the trigger rules were written to ration.
+    if (
+      import.meta.env.DEV &&
+      typeof window !== "undefined" &&
+      window.location.search.includes("test_primer=1")
+    ) {
       setOpen(true);
     }
 
     return () => window.removeEventListener(PRIMER_EVENT_NAME, handleOpen);
   }, []);
+
+  // Trigger 2. Lives here rather than in useReconcileOnForeground, which bails
+  // on anything that is not the native app — a web user is owed the same single
+  // day-5 reminder. The state check runs first so the profile read only happens
+  // for the few users still eligible for it.
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId || !isOnboarded(userId)) return;
+    const state = getPrimerState(userId);
+    if (state.granted || state.trigger2Handled) return;
+
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("created_at")
+        .eq("id", userId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      if (checkDay5Eligible(userId, data.created_at)) triggerDay5Primer(userId);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const handleDismiss = useCallback(() => {
     if (user?.id) {
@@ -55,6 +98,46 @@ export function NotificationPrimerDialog() {
     }
     setOpen(false);
   }, [user]);
+
+  /**
+   * Permission granted: switch the reminders on for real and put the user on the
+   * screen where they can see and tune them. Relying on column defaults left a
+   * user who had ever touched the settings screen with a row that said off.
+   */
+  const enableAndShowSettings = useCallback(
+    async (userId: string) => {
+      markPrimerGranted(userId);
+      setOpen(false);
+
+      await savePrefs(userId, {
+        ...DEFAULT_PREFS,
+        morning_enabled: true,
+        custom_enabled: true,
+      });
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("created_at, timezone, motivation_seed")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (profile) {
+        await reconcile({
+          id: userId,
+          createdAt: profile.created_at,
+          timezone: profile.timezone,
+          motivationSeed: profile.motivation_seed,
+        });
+      }
+
+      toast.success("Reminders enabled! You're all set.", {
+        description:
+          "Morning motivation and daily habit alerts will now keep you on track.",
+      });
+      void navigate({ to: "/notifications" });
+    },
+    [navigate],
+  );
 
   const handleEnable = async () => {
     if (!user) {
@@ -68,36 +151,12 @@ export function NotificationPrimerDialog() {
         const { granted, blocked } = await requestPermission();
 
         if (granted) {
-          markPrimerGranted(user.id);
-          setOpen(false);
-
-          // Fetch profile to reconcile and immediately schedule notifications
-          const { data: profile } = await supabase
-            .from("user_profiles")
-            .select("created_at, timezone, motivation_seed")
-            .eq("id", user.id)
-            .maybeSingle();
-
-          if (profile) {
-            await reconcile(
-              {
-                id: user.id,
-                createdAt: profile.created_at,
-                timezone: profile.timezone,
-                motivationSeed: profile.motivation_seed,
-              },
-              await loadPrefs(user.id),
-              await loadReminders(user.id),
-            );
-          }
-
-          toast.success("Reminders enabled! You're all set.", {
-            description: "Morning motivation and daily habit alerts will now keep you on track.",
-          });
+          await enableAndShowSettings(user.id);
         } else if (blocked) {
           setOpen(false);
           toast("Turn on notifications in settings", {
-            description: "Your phone is currently blocking notifications for Dombelz.",
+            description:
+              "Your phone is currently blocking notifications for Dombelz.",
             action: {
               label: "Open settings",
               onClick: () => {
@@ -109,17 +168,12 @@ export function NotificationPrimerDialog() {
           // User tapped cancel/don't allow on the native dialog
           handleDismiss();
         }
+      } else if (
+        typeof Notification !== "undefined" &&
+        (await Notification.requestPermission()) === "granted"
+      ) {
+        await enableAndShowSettings(user.id);
       } else {
-        // Web fallback
-        if (typeof Notification !== "undefined") {
-          const res = await Notification.requestPermission();
-          if (res === "granted") {
-            markPrimerGranted(user.id);
-            setOpen(false);
-            toast.success("Notifications enabled for this browser!");
-            return;
-          }
-        }
         handleDismiss();
       }
     } catch (e) {
@@ -156,9 +210,12 @@ export function NotificationPrimerDialog() {
               ☀️
             </span>
             <div>
-              <p className="font-semibold text-foreground">Daily Morning Motivation</p>
+              <p className="font-semibold text-foreground">
+                Daily Morning Motivation
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                A fresh quote every morning at your preferred time to start your day focused.
+                A fresh quote every morning at your preferred time to start your
+                day focused.
               </p>
             </div>
           </div>
@@ -168,9 +225,12 @@ export function NotificationPrimerDialog() {
               ⏰
             </span>
             <div>
-              <p className="font-semibold text-foreground">Timely Habit & Meal Alerts</p>
+              <p className="font-semibold text-foreground">
+                Timely Habit & Meal Alerts
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                Gentle reminders for meals and hydration so you hit your targets effortlessly.
+                Gentle reminders for meals and hydration so you hit your targets
+                effortlessly.
               </p>
             </div>
           </div>
@@ -180,9 +240,12 @@ export function NotificationPrimerDialog() {
               🎛️
             </span>
             <div>
-              <p className="font-semibold text-foreground">Complete Control & Zero Spam</p>
+              <p className="font-semibold text-foreground">
+                Complete Control & Zero Spam
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                Full freedom to choose which reminders you want. Turn quotes or meal alerts on and off independently, anytime.
+                Full freedom to choose which reminders you want. Turn quotes or
+                meal alerts on and off independently, anytime.
               </p>
             </div>
           </div>

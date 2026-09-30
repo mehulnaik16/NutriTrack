@@ -15,88 +15,14 @@ import { useEffect } from "react";
 import { App } from "@capacitor/app";
 import { supabase } from "@/integrations/client";
 import { toast } from "sonner";
-import {
-  checkPermissionState,
-  isNative,
-  openNotificationSettings,
-  registerActionTypes,
-  requestPermission,
-} from "@/lib/notifications";
+import { isNative, registerActionTypes } from "@/lib/notifications";
 import { registerSnoozeHandlers } from "@/lib/snooze";
 import { reconcile } from "@/lib/notification-settings";
-import { checkDay5Eligible, triggerDay5Primer } from "@/lib/notificationPrimer";
 
 /** Minimum gap between reconciles, to survive rapid app switching. */
 const MIN_INTERVAL_MS = 60_000;
 
 let lastRunAt = 0;
-
-/**
- * Marks that the first-open permission ask has happened, so it happens once
- * per install rather than on every launch.
- */
-const ASKED_KEY = "dombelz.notificationsAsked";
-
-/**
- * Ask for notification permission the first time the app is ever opened, and
- * send the user to system settings if the answer is already a permanent no.
- *
- * Deliberately once per install. The OS dialog can only be shown a fixed
- * number of times (once on iOS, twice on Android 13+), so an app that asks on
- * every launch burns those chances on someone who was busy rather than
- * unwilling, and afterwards the only route back is the Settings app. After
- * this has run, a refusal is reported by the settings screen's banner instead,
- * where the user went looking for it.
- *
- * The scheduling in reconcile() does not depend on this — it reads permission
- * itself and does nothing without it. This exists so a new user finds out
- * their reminders need permission on day one, not on the morning the first
- * quote fails to arrive.
- */
-async function primePermission(): Promise<void> {
-  if (!isNative()) return;
-
-  try {
-    if (localStorage.getItem(ASKED_KEY)) return;
-  } catch {
-    // Private-mode or storage-blocked browsers throw on access. Asking once
-    // per launch beats never asking, and this path is the rare one.
-  }
-
-  const state = await checkPermissionState();
-  if (state === "granted") return;
-
-  const { granted, blocked } = await requestPermission();
-  try {
-    localStorage.setItem(ASKED_KEY, new Date().toISOString());
-  } catch {
-    /* see above */
-  }
-  if (granted) return;
-
-  // Either a refusal now, or a refusal from before this code existed. In both
-  // cases the app cannot raise the dialog again, so the only useful thing left
-  // is a way to the screen that can.
-  toast("Turn on notifications", {
-    description: blocked
-      ? "Your phone is blocking them for Dombelz. They have to be switched back on in system settings."
-      : "Reminders and morning motivation need notification permission.",
-    duration: 12000,
-    action: {
-      label: "Open settings",
-      onClick: () => {
-        void openNotificationSettings().then((opened) => {
-          if (!opened) {
-            toast.info(
-              "Open Settings > Apps > Dombelz > Notifications and turn them on.",
-              { duration: 10000 },
-            );
-          }
-        });
-      },
-    },
-  });
-}
 
 export function useReconcileOnForeground(userId: string | null): void {
   useEffect(() => {
@@ -117,11 +43,6 @@ export function useReconcileOnForeground(userId: string | null): void {
         .eq("id", userId)
         .maybeSingle();
       if (cancelled || !data) return;
-
-      // Check Day 5+ primer eligibility on app foreground
-      if (checkDay5Eligible(userId, data.created_at)) {
-        triggerDay5Primer(userId);
-      }
 
       const result = await reconcile({
         id: userId,
