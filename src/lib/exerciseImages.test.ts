@@ -15,6 +15,17 @@ assert.strictEqual(getExerciseThumbnail("Incline Dumbbell Bench Press"), "/exerc
 assert.strictEqual(getExerciseThumbnail("Machine Bench Press"), "/exercises/machine_bench_press.jpg");
 assert.strictEqual(getExerciseThumbnail("Cable Crossover Fly"), "/exercises/cable_crossover_fly.jpg");
 assert.strictEqual(getExerciseThumbnail("Back Squat"), "/exercises/back_squat.jpg");
+// Batch 1 additions
+assert.strictEqual(getExerciseThumbnail("Plate Loaded Chest Press"), "/exercises/plate_loaded_chest_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Fly"), "/exercises/dumbbell_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Chest Dip"), "/exercises/chest_dip.jpg");
+assert.strictEqual(getExerciseThumbnail("Push Up"), "/exercises/push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Plyometric Push-ups"), "/exercises/plyometric_push_ups.jpg");
+assert.strictEqual(getExerciseThumbnail("Deadlift"), "/exercises/deadlift.jpg");
+assert.strictEqual(getExerciseThumbnail("Barbell Row"), "/exercises/barbell_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Pendlay Row"), "/exercises/pendlay_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Row"), "/exercises/dumbbell_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Row"), "/exercises/cable_row.jpg");
 
 // Test 3: Common aliases resolve to correct approved asset
 assert.strictEqual(getExerciseThumbnail("Bench Press"), "/exercises/barbell_bench_press.jpg");
@@ -24,6 +35,10 @@ assert.strictEqual(getExerciseThumbnail("Dumbbell Incline Bench Press"), "/exerc
 assert.strictEqual(getExerciseThumbnail("Squat"), "/exercises/back_squat.jpg");
 assert.strictEqual(getExerciseThumbnail("Barbell Back Squat"), "/exercises/back_squat.jpg");
 assert.strictEqual(getExerciseThumbnail("Squats"), "/exercises/back_squat.jpg");
+assert.strictEqual(getExerciseThumbnail("Pushups"), "/exercises/push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Clapping Push Up"), "/exercises/plyometric_push_ups.jpg");
+assert.strictEqual(getExerciseThumbnail("Barbell Deadlift"), "/exercises/deadlift.jpg");
+assert.strictEqual(getExerciseThumbnail("Seated Cable Row"), "/exercises/cable_row.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);

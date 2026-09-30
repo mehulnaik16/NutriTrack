@@ -34,6 +34,17 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "machine bench press": "/exercises/machine_bench_press.jpg",
   "cable crossover fly": "/exercises/cable_crossover_fly.jpg",
   "back squat": "/exercises/back_squat.jpg",
+  // Approved Batch 1 additions
+  "plate loaded chest press": "/exercises/plate_loaded_chest_press.jpg",
+  "dumbbell fly": "/exercises/dumbbell_fly.jpg",
+  "chest dip": "/exercises/chest_dip.jpg",
+  "push up": "/exercises/push_up.jpg",
+  "plyometric push ups": "/exercises/plyometric_push_ups.jpg",
+  "deadlift": "/exercises/deadlift.jpg",
+  "barbell row": "/exercises/barbell_row.jpg",
+  "pendlay row": "/exercises/pendlay_row.jpg",
+  "dumbbell row": "/exercises/dumbbell_row.jpg",
+  "cable row": "/exercises/cable_row.jpg",
 };
 
 /**
@@ -55,6 +66,28 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "squats": "back squat",
   "barbell back squat": "back squat",
   "barbell squat": "back squat",
+  // Newly approved aliases
+  "hammer strength chest press": "plate loaded chest press",
+  "plate loaded incline chest press": "plate loaded chest press",
+  "flat dumbbell fly": "dumbbell fly",
+  "dumbbell chest fly": "dumbbell fly",
+  "dips": "chest dip",
+  "parallel bar dip": "chest dip",
+  "pushups": "push up",
+  "push ups": "push up",
+  "floor push up": "push up",
+  "clapping push up": "plyometric push ups",
+  "plyometric push up": "plyometric push ups",
+  "clapping pushups": "plyometric push ups",
+  "barbell deadlift": "deadlift",
+  "conventional deadlift": "deadlift",
+  "bent over barbell row": "barbell row",
+  "bent over row": "barbell row",
+  "single arm dumbbell row": "dumbbell row",
+  "one arm dumbbell row": "dumbbell row",
+  "seated cable row": "cable row",
+  "seated row": "cable row",
+  "v bar cable row": "cable row",
 };
 
 /**
