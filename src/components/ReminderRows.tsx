@@ -27,6 +27,7 @@ import {
   REMINDER_MAX,
   type Reminder,
 } from "@/lib/notification-settings";
+import { inQuietHours, type QuietHours } from "@/lib/quietHours";
 
 /** The grouped-list surface shared with the notifications page. */
 export const LIST_CLASS =
@@ -36,12 +37,15 @@ export function ReminderRows({
   userId,
   reminders,
   disabled,
+  quiet,
   onChanged,
 }: {
   userId: string;
   reminders: Reminder[];
   /** The master switch is off — rows stay visible but inert. */
   disabled: boolean;
+  /** Reminders set inside these hours are never scheduled; say so per row. */
+  quiet: QuietHours;
   onChanged: () => Promise<void>;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -112,10 +116,16 @@ export function ReminderRows({
                   <span className="block truncate text-sm font-medium">
                     {r.label}
                   </span>
-                  {r.note && (
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {r.note}
+                  {r.enabled && inQuietHours(r.remindAt, quiet) ? (
+                    <span className="block truncate text-xs text-destructive">
+                      Silenced by quiet hours
                     </span>
+                  ) : (
+                    r.note && (
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {r.note}
+                      </span>
+                    )
                   )}
                 </span>
                 <ChevronDown

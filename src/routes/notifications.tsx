@@ -485,6 +485,11 @@ function NotificationSettings() {
               userId={user.id}
               reminders={reminders}
               disabled={!prefs.custom_enabled}
+              quiet={{
+                on: prefs.quiet_hours_on,
+                from: prefs.quiet_from,
+                to: prefs.quiet_to,
+              }}
               onChanged={refreshReminders}
             />
           )}
@@ -494,7 +499,7 @@ function NotificationSettings() {
           <div className={LIST_CLASS}>
             <Row
               label="Quiet hours"
-              hint="Reminders in this window wait until it ends. The morning quote is not affected."
+              hint="Reminders set inside these hours are silenced. Snoozes wait until they end. The morning quote is not affected."
             >
               <Switch
                 checked={prefs.quiet_hours_on}
@@ -530,6 +535,11 @@ function NotificationSettings() {
                     aria-label="Quiet hours end"
                   />
                 </Row>
+                {prefs.quiet_from === prefs.quiet_to && (
+                  <p className="px-4 py-3 text-xs text-destructive">
+                    Start and end are the same, so quiet hours have no effect.
+                  </p>
+                )}
               </>
             )}
           </div>

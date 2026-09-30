@@ -24,7 +24,7 @@ import {
   SNOOZE_ID_BASE,
   isNative,
 } from "@/lib/notifications";
-import { applyQuietHours } from "@/lib/quietHours";
+import { applyQuietHours, type QuietHours } from "@/lib/quietHours";
 import { loadPrefs } from "@/lib/notification-settings";
 
 /** Action ids are `snooze_<seconds>` (see registerActionTypes). */
@@ -112,7 +112,17 @@ export async function registerSnoozeHandlers(
         return;
       }
 
-      const prefs = await loadPrefs(userId);
+      // Quiet hours and the cap ride in the notification itself, stamped at
+      // scheduling time: a lock-screen tap is often offline, and loadPrefs
+      // then falls back to defaults — quiet hours off, cap 3. Only a
+      // notification scheduled before this field existed needs the network.
+      let quiet = extra.quiet as QuietHours | undefined;
+      let maxSnooze = extra.maxSnooze as number | undefined;
+      if (!quiet || typeof maxSnooze !== "number") {
+        const p = await loadPrefs(userId);
+        quiet = { on: p.quiet_hours_on, from: p.quiet_from, to: p.quiet_to };
+        maxSnooze = p.max_snooze_cycles;
+      }
       const count = Number(extra.snoozeCount ?? 0) + 1;
 
       // At the cap the reschedule still happens — the user asked for it — but
@@ -120,14 +130,10 @@ export async function registerSnoozeHandlers(
       // The spec wanted a toast saying "max snoozes reached"; that cannot work
       // from a lock screen with the app closed, so a button that would not
       // function is simply not drawn.
-      const atCap = count >= prefs.max_snooze_cycles;
+      const atCap = count >= maxSnooze;
 
       const raw = new Date(Date.now() + seconds * 1000);
-      const { at, overridden } = applyQuietHours(raw, {
-        on: prefs.quiet_hours_on,
-        from: prefs.quiet_from,
-        to: prefs.quiet_to,
-      });
+      const { at, overridden } = applyQuietHours(raw, quiet);
 
       await LocalNotifications.schedule({
         notifications: [
@@ -148,7 +154,7 @@ export async function registerSnoozeHandlers(
         original_scheduled_at: firstDue,
         current_scheduled_at: at.toISOString(),
         snooze_count: count,
-        max_snooze_allowed: prefs.max_snooze_cycles,
+        max_snooze_allowed: maxSnooze,
         status: "snoozed",
         quiet_hours_override: overridden,
         last_action_at: new Date().toISOString(),

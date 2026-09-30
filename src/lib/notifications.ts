@@ -42,7 +42,7 @@ import {
   type MotivationPlan,
   type MotivationUser,
 } from "@/lib/motivation";
-import { applyQuietHours, type QuietHours } from "@/lib/quietHours";
+import { inQuietHours, type QuietHours } from "@/lib/quietHours";
 
 /** Web builds have no plugin. Everything here no-ops rather than throwing. */
 export const isNative = (): boolean => Capacitor.isNativePlatform();
@@ -318,26 +318,26 @@ export interface ReminderInput {
  * One slot each regardless of how long they run, which is what leaves room for
  * the motivation window inside the 64.
  *
- * Quiet hours move a reminder that falls inside the window to the minute after
- * it ends (a 23:00 reminder under 22:00–06:00 fires at 06:01), same rule as a
- * snooze. The date is irrelevant for a daily repeat; only the clock time is
- * kept.
+ * A reminder set inside quiet hours is skipped, not moved: moving piled
+ * every evening reminder onto the minute quiet hours end. The settings screen
+ * marks those rows "Silenced by quiet hours".
+ *
+ * Each carries the quiet hours and snooze cap it was scheduled under, so a
+ * lock-screen snooze can honour them without a network call.
  */
 export async function scheduleReminders(
   reminders: ReminderInput[],
   allowSnooze: boolean,
   quiet: QuietHours,
+  maxSnooze: number,
 ): Promise<number> {
   if (!isNative()) return 0;
 
-  const active = reminders.filter((r) => r.enabled);
+  const active = reminders.filter(
+    (r) => r.enabled && !inQuietHours(r.remindAt, quiet),
+  );
   const notifications: LocalNotificationSchema[] = active.map((r, i) => {
-    const [h, m] = r.remindAt.split(":").map(Number);
-    const probe = new Date();
-    probe.setHours(h, m, 0, 0);
-    const { at } = applyQuietHours(probe, quiet);
-    const hour = at.getHours();
-    const minute = at.getMinutes();
+    const [hour, minute] = r.remindAt.split(":").map(Number);
     // Spec §9.3: a blank note becomes a sentence built from the label rather
     // than an empty body.
     const body =
@@ -355,7 +355,9 @@ export async function scheduleReminders(
         snoozeCount: 0,
         // Clock time it fires at, so a snooze or tap can log the real
         // original time of this occurrence rather than the moment of the tap.
-        remindAt: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+        remindAt: r.remindAt.slice(0, 5),
+        quiet,
+        maxSnooze,
       },
     };
   });

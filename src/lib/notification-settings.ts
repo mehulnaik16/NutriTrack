@@ -319,11 +319,16 @@ export async function reconcile(
     });
 
     const scheduledReminders = prefs.custom_enabled
-      ? await scheduleReminders(reminders, prefs.allow_snooze, {
-          on: prefs.quiet_hours_on,
-          from: prefs.quiet_from,
-          to: prefs.quiet_to,
-        })
+      ? await scheduleReminders(
+          reminders,
+          prefs.allow_snooze,
+          {
+            on: prefs.quiet_hours_on,
+            from: prefs.quiet_from,
+            to: prefs.quiet_to,
+          },
+          prefs.max_snooze_cycles,
+        )
       : 0;
 
     return { ran: true, motivation, reminders: scheduledReminders };

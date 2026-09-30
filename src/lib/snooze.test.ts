@@ -13,7 +13,7 @@
 
    Exits non-zero on the first failure. */
 import assert from "node:assert";
-import { applyQuietHours } from "./quietHours";
+import { applyQuietHours, inQuietHours } from "./quietHours";
 
 const at = (h: number, m = 0) => new Date(2026, 8, 19, h, m, 0, 0);
 const OFF = { on: false, from: "22:00", to: "06:00" };
@@ -83,5 +83,36 @@ for (const h of [0, 3, 5, 22, 23]) {
     `${h}:30 must move forward, not back`,
   );
 }
+
+// ── Daily reminders inside quiet hours are skipped ───────────────────────────
+// The bug this pins: evening reminders used to be moved, so 22:30 Dinner,
+// 23:00 Workout and 23:30 Snack all fired together at 06:01.
+
+for (const t of ["22:00", "22:30", "23:00", "23:30", "00:15", "05:59"]) {
+  assert.equal(inQuietHours(t, NIGHT), true, `${t} is inside 22:00-06:00`);
+}
+for (const t of ["21:59", "06:00", "06:30", "13:00"]) {
+  assert.equal(inQuietHours(t, NIGHT), false, `${t} is outside 22:00-06:00`);
+}
+
+// Daytime window: lunch inside, the edges behave like the night window.
+assert.equal(inQuietHours("13:00", DAY), true);
+assert.equal(inQuietHours("09:00", DAY), true, "start minute is inside");
+assert.equal(inQuietHours("17:00", DAY), false, "end minute is outside");
+assert.equal(inQuietHours("08:59", DAY), false);
+
+// Off, or start equal to end, silences nothing.
+assert.equal(inQuietHours("23:00", OFF), false);
+const SAME = { on: true, from: "22:00", to: "22:00" };
+for (const t of ["22:00", "23:00", "03:00"]) {
+  assert.equal(
+    inQuietHours(t, SAME),
+    false,
+    "equal start and end is no window",
+  );
+}
+
+// "HH:MM:SS" from Postgres reads the same as "HH:MM".
+assert.equal(inQuietHours("23:00:00", NIGHT), true);
 
 console.log("snooze: all assertions passed");
