@@ -46,8 +46,20 @@ assert.strictEqual(getExerciseThumbnail("Lying Hamstring Curl"), "/exercises/lyi
 assert.strictEqual(getExerciseThumbnail("Seated Leg Curl"), "/exercises/seated_leg_curl.jpg");
 assert.strictEqual(getExerciseThumbnail("Standing Calf Raise"), "/exercises/standing_calf_raise.jpg");
 assert.strictEqual(getExerciseThumbnail("Seated Calf Raise"), "/exercises/seated_calf_raise.jpg");
+assert.strictEqual(getExerciseThumbnail("T-Bar Row"), "/exercises/t_bar_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Barbell Hip Thrust"), "/exercises/barbell_hip_thrust.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Hip Thrust"), "/exercises/dumbbell_hip_thrust.jpg");
+assert.strictEqual(getExerciseThumbnail("Box Jump"), "/exercises/box_jump.jpg");
+assert.strictEqual(getExerciseThumbnail("Sled Push"), "/exercises/sled_push.jpg");
+assert.strictEqual(getExerciseThumbnail("TRX Pistol Squat"), "/exercises/trx_pistol_squat.jpg");
 
 // Test 3: Common aliases resolve to correct approved asset
+assert.strictEqual(getExerciseThumbnail("T-Bar Row"), "/exercises/t_bar_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Landmine Row"), "/exercises/t_bar_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Hip Thrust"), "/exercises/barbell_hip_thrust.jpg");
+assert.strictEqual(getExerciseThumbnail("Box Jumps"), "/exercises/box_jump.jpg");
+assert.strictEqual(getExerciseThumbnail("Prowler Push"), "/exercises/sled_push.jpg");
+assert.strictEqual(getExerciseThumbnail("Pistol Squat"), "/exercises/trx_pistol_squat.jpg");
 assert.strictEqual(getExerciseThumbnail("Bench Press"), "/exercises/barbell_bench_press.jpg");
 assert.strictEqual(getExerciseThumbnail("Flat Bench Press"), "/exercises/barbell_bench_press.jpg");
 assert.strictEqual(getExerciseThumbnail("Barbell Incline Bench Press"), "/exercises/incline_barbell_bench_press.jpg");

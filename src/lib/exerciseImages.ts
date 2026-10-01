@@ -66,6 +66,12 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "seated leg curl": "/exercises/seated_leg_curl.jpg",
   "standing calf raise": "/exercises/standing_calf_raise.jpg",
   "seated calf raise": "/exercises/seated_calf_raise.jpg",
+  "t bar row": "/exercises/t_bar_row.jpg",
+  "barbell hip thrust": "/exercises/barbell_hip_thrust.jpg",
+  "dumbbell hip thrust": "/exercises/dumbbell_hip_thrust.jpg",
+  "box jump": "/exercises/box_jump.jpg",
+  "sled push": "/exercises/sled_push.jpg",
+  "trx pistol squat": "/exercises/trx_pistol_squat.jpg",
 };
 
 /**
@@ -124,6 +130,9 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "db pullover": "dumbbell pullover",
   "australian pull up": "inverted row",
   "bodyweight row": "inverted row",
+  "tbar row": "t bar row",
+  "landmine row": "t bar row",
+  "landmine t bar row": "t bar row",
   // Batch 2 Leg aliases
   "barbell front squat": "front squat",
   "45 degree leg press": "leg press",
@@ -141,6 +150,15 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "standing machine calf raise": "standing calf raise",
   "calf raise": "standing calf raise",
   "seated machine calf raise": "seated calf raise",
+  "hip thrust": "barbell hip thrust",
+  "hip thrusts": "barbell hip thrust",
+  "glute bridge": "barbell hip thrust",
+  "box jumps": "box jump",
+  "plyo box jump": "box jump",
+  "prowler push": "sled push",
+  "prowler sled push": "sled push",
+  "pistol squat": "trx pistol squat",
+  "single leg squat": "trx pistol squat",
 };
 
 /**
