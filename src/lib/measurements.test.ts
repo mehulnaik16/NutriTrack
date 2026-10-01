@@ -25,6 +25,8 @@ import {
   inRangeMetric,
   latestFor,
   step,
+  changeTone,
+  wantedDirection,
 } from "./measurements";
 
 // ── fieldKey: the one place storage keys are spelled ───────────────────────
@@ -168,5 +170,23 @@ assert.equal(
   ),
   "35 / —",
 );
+
+// ── wantedDirection / changeTone: colour means "toward goal", not "down" ───
+// Goal weight wins over the goal key: underweight user bulking to 75 kg.
+assert.equal(wantedDirection(72.6, 75, "lose_0_25kg"), 1);
+assert.equal(wantedDirection(80, 75, null), -1);
+// Within 0.1 kg counts as at goal.
+assert.equal(wantedDirection(75.05, 75, "gain_0_25kg"), 0);
+// No goal weight: fall back to the goal key; maintain or unknown = no opinion.
+assert.equal(wantedDirection(70, null, "lose_0_5kg"), -1);
+assert.equal(wantedDirection(70, null, "gain_muscle"), 1);
+assert.equal(wantedDirection(70, null, "maintain"), null);
+assert.equal(wantedDirection(70, null, null), null);
+assert.equal(changeTone(3.6, 1), "good");
+assert.equal(changeTone(-1.2, 1), "bad");
+assert.equal(changeTone(-1.2, -1), "good");
+assert.equal(changeTone(2, null), "neutral");
+assert.equal(changeTone(2, 0), "neutral");
+assert.equal(changeTone(0.04, 1), "neutral");
 
 console.log("measurements self-check passed");

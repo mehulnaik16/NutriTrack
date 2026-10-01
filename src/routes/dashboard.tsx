@@ -93,6 +93,7 @@ import {
   calcMacros,
 } from "@/lib/nutrition";
 import { getTelemetryLabel } from "@/lib/telemetry";
+import { changeTone, wantedDirection } from "@/lib/measurements";
 
 // Route-level lock. The page renders with the user's own data but does not
 // respond; any tap opens the upsell popup.
@@ -1199,7 +1200,7 @@ function Dashboard() {
                   </div>
                   {weightDiff !== null && (
                     <div
-                      className={`text-right ${weightDiff > 0 ? "text-destructive" : weightDiff < 0 ? "text-energy" : "text-muted-foreground"}`}
+                      className={`text-right ${{ good: "text-energy", bad: "text-destructive", neutral: "text-muted-foreground" }[changeTone(weightDiff, wantedDirection(prevWeight!, profile.goal_weight_kg, profile.goal))]}`}
                     >
                       <p className="text-[10px] uppercase font-bold">Trend</p>
                       <div className="flex items-center justify-end gap-0.5 font-bold">

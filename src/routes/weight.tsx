@@ -14,12 +14,15 @@ import {
   ChevronRight,
   CalendarIcon,
   Lock,
+  History as HistoryIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   GOAL_WEIGHT_KG,
   WEIGHT_KG,
+  changeTone,
   validateMeasurement,
+  wantedDirection,
 } from "@/lib/measurements";
 import { useCachedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
 import { type WeightUnit, kgToWeight, weightToKg, round1 } from "@/lib/units";
@@ -36,6 +39,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import {
   LineChart,
   Line,
@@ -65,6 +75,13 @@ import {
 } from "@/lib/dates";
 
 export const Route = createFileRoute("/weight")({ component: WeightPage });
+
+// Colour of a weight change: toward the goal is good, away is bad.
+const TONE_CLASS = {
+  good: "text-[var(--energy)]",
+  bad: "text-destructive",
+  neutral: "",
+};
 
 // Feature flag: set to true to re-enable AI motivation on the weight page
 const SHOW_AI_MOTIVATION = false;
@@ -135,6 +152,7 @@ function WeightPage() {
   const [motivation, setMotivation] = useState<string | null>(null);
   const [loadingMotivation, setLoadingMotivation] = useState(false);
   const [compareIdx, setCompareIdx] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -148,11 +166,21 @@ function WeightPage() {
         .select("weight_kg,goal,full_name,goal_weight_kg,height_cm")
         .eq("id", user.id)
         .maybeSingle(),
-      supabase
-        .from("weight_entries")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("date", { ascending: true }),
+      // PostgREST caps one response at 1000 rows, and ascending order would
+      // drop the newest entries first, so page until a short page comes back.
+      (async () => {
+        const all: WeightEntry[] = [];
+        for (let from = 0; ; from += 1000) {
+          const { data } = await supabase
+            .from("weight_entries")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("date", { ascending: true })
+            .range(from, from + 999);
+          all.push(...((data as WeightEntry[]) ?? []));
+          if (!data || data.length < 1000) return { data: all };
+        }
+      })(),
     ]);
     // No profile row means onboarding was never finished — the guard below
     // waits on `profile`, so without this the page spins forever.
@@ -400,10 +428,28 @@ function WeightPage() {
   const first = entries[0];
   const totalChange =
     latest && first ? +(latest.weight_kg - first.weight_kg).toFixed(1) : 0;
+  const goalKg = profile.goal_weight_kg;
+  const toGoalDir = wantedDirection(
+    latest?.weight_kg ?? profile.weight_kg,
+    goalKg,
+    null,
+  );
   const toGoal =
-    latest && profile.goal_weight_kg
-      ? +Math.abs(profile.goal_weight_kg - latest.weight_kg).toFixed(1)
+    goalKg !== null
+      ? round1(Math.abs(goalKg - (latest?.weight_kg ?? profile.weight_kg)))
       : null;
+  // Toward-goal is judged from where the change started, not where it ended.
+  const changeColor =
+    TONE_CLASS[
+      changeTone(
+        totalChange,
+        wantedDirection(
+          first?.weight_kg ?? profile.weight_kg,
+          goalKg,
+          profile.goal,
+        ),
+      )
+    ];
 
   // ── BMI insights ──
   const currentWeight = latest?.weight_kg ?? profile.weight_kg;
@@ -472,17 +518,15 @@ function WeightPage() {
             <CardContent className="p-5">
               <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 {totalChange < 0 ? (
-                  <TrendingDown className="h-4 w-4 text-[var(--energy)]" />
+                  <TrendingDown className={`h-4 w-4 ${changeColor}`} />
                 ) : totalChange > 0 ? (
-                  <TrendingUp className="h-4 w-4 text-destructive" />
+                  <TrendingUp className={`h-4 w-4 ${changeColor}`} />
                 ) : (
                   <TrendFlat className="h-4 w-4" />
                 )}
                 Total change
               </div>
-              <p
-                className={`font-display text-2xl font-bold ${totalChange < 0 ? "text-[var(--energy)]" : totalChange > 0 ? "text-destructive" : ""}`}
-              >
+              <p className={`font-display text-2xl font-bold ${changeColor}`}>
                 {totalChange > 0 ? "+" : ""}
                 {round1(kgToWeight(totalChange, wu))} {wu}
               </p>
@@ -494,9 +538,16 @@ function WeightPage() {
                 <Target className="h-4 w-4 text-accent" /> To goal
               </div>
               <p className="font-display text-2xl font-bold">
-                {toGoal !== null
-                  ? `${round1(kgToWeight(toGoal, wu))} ${wu}`
-                  : "—"}
+                {toGoal === null
+                  ? "—"
+                  : toGoalDir === 0
+                    ? "At goal"
+                    : `${toGoalDir === 1 ? "Gain" : "Lose"} ${disp(toGoal)} ${wu}`}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {goalKg === null
+                  ? "Set a goal below"
+                  : `${toGoalDir === 0 ? "" : "to reach "}${disp(goalKg)} ${wu}`}
               </p>
             </CardContent>
           </Card>
@@ -582,8 +633,19 @@ function WeightPage() {
 
         {/* ── Log weight ── */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle>Log today's weight</CardTitle>
+            {entries.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="-my-3 -mr-3 h-11 w-11 text-muted-foreground hover:text-foreground [&_svg]:size-6"
+                aria-label="Weight history"
+                onClick={() => setHistoryOpen(true)}
+              >
+                <HistoryIcon />
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -803,55 +865,52 @@ function WeightPage() {
           </Card>
         )}
 
-        {/* ── Entry history ── */}
-        {entries.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                {[...entries]
-                  .reverse()
-                  .slice(0, 20)
-                  .map((e, i) => {
-                    return (
-                      <div
-                        key={e.id}
-                        className="group grid grid-cols-2 sm:grid-cols-[90px_1fr_auto_60px] gap-2 sm:gap-4 items-center rounded-md border border-border px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
-                      >
-                        {/* 1. Date (Mobile: TL, Desktop: Col 1) */}
-                        <div className="text-muted-foreground">{e.date}</div>
-
-                        {/* 2. Note (Mobile: BL, Desktop: Col 2) */}
-                        <div className="truncate text-muted-foreground col-start-1 row-start-2 sm:col-start-2 sm:row-start-1">
-                          {e.note || "—"}
-                        </div>
-
-                        {/* 3. Weight (Mobile: TR, Desktop: Col 3) */}
-                        <div className="font-bold text-right col-start-2 row-start-1 sm:col-start-3 sm:row-start-1">
-                          {disp(e.weight_kg)} {wu}
-                        </div>
-
-                        {/* 4. View Button (Mobile: BR, Desktop: Col 4) */}
-                        <div className="flex justify-end col-start-2 row-start-2 sm:col-start-4 sm:row-start-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10"
-                            onClick={() => setSelectedEntry(e)}
-                            disabled={!e}
-                          >
-                            View
-                          </Button>
-                        </div>
+        {/* ── Entry history (bottom sheet) ── */}
+        <Drawer open={historyOpen} onOpenChange={setHistoryOpen}>
+          <DrawerContent className="mx-auto max-w-lg p-5 pb-8">
+            <DrawerHeader className="px-0 pt-0">
+              <DrawerTitle className="font-display text-lg font-bold">
+                Weight history
+              </DrawerTitle>
+              <DrawerDescription className="text-xs text-muted-foreground">
+                {entries.length} {entries.length === 1 ? "entry" : "entries"}.
+                Tap one to view or edit.
+              </DrawerDescription>
+            </DrawerHeader>
+            <ul className="mt-2 max-h-[60vh] divide-y divide-border overflow-y-auto">
+              {[...entries].reverse().map((e) => (
+                <li key={e.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHistoryOpen(false);
+                      setSelectedEntry(e);
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-md px-1 py-3 text-left transition-colors hover:bg-muted/40"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm">
+                        {new Date(e.date).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </div>
-                    );
-                  })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                      {e.note && (
+                        <div className="truncate text-xs text-muted-foreground">
+                          {e.note}
+                        </div>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold tabular-nums">
+                      {disp(e.weight_kg)} {wu}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </DrawerContent>
+        </Drawer>
 
         {/* ── View / Edit Entry Modal ── */}
         <WeightEntryModal

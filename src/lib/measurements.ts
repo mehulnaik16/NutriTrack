@@ -231,6 +231,35 @@ export function formatValues(
   return values.map((v) => (typeof v === "number" ? v : "—")).join(" / ");
 }
 
+// ── Goal direction ───────────────────────────────────────────────────────────
+
+/** Which way the user wants their weight to move: 1 gain, -1 lose, 0 at goal,
+ *  null no opinion. A goal weight wins; otherwise the stored goal key
+ *  ("lose_0_5kg", "gain_muscle", "maintain"), read the same way as calcMacros. */
+export function wantedDirection(
+  currentKg: number,
+  goalKg: number | null,
+  goalKey: string | null,
+): 1 | -1 | 0 | null {
+  if (goalKg) {
+    const diff = goalKg - currentKg;
+    return Math.abs(diff) < 0.1 ? 0 : diff > 0 ? 1 : -1;
+  }
+  if (goalKey?.startsWith("lose")) return -1;
+  if (goalKey?.startsWith("gain")) return 1;
+  return null;
+}
+
+/** Whether a weight change is good news. Up is not bad and down is not good.
+ *  Only the direction the user wants decides. */
+export function changeTone(
+  deltaKg: number,
+  wanted: 1 | -1 | 0 | null,
+): "good" | "bad" | "neutral" {
+  if (!wanted || Math.abs(deltaKg) < 0.05) return "neutral";
+  return Math.sign(deltaKg) === wanted ? "good" : "bad";
+}
+
 // ── Profile / weight validation ──────────────────────────────────────────────
 
 export interface Range {
