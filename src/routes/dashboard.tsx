@@ -77,6 +77,13 @@ import { supabase } from "@/integrations/client";
 import type { TablesInsert } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
 import { markOnboarded } from "@/lib/notificationPrimer";
+import {
+  Tour,
+  TourOffer,
+  getTour,
+  setTour,
+  type TourState,
+} from "@/components/Tour";
 import { loadMealNames } from "@/lib/meals";
 import { uploadWeightPhoto } from "@/services/storage";
 import {
@@ -251,6 +258,7 @@ function Dashboard() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [tour, setTourState] = useState<TourState | null>(null);
 
   // Date browsing stops at the day the account was created. The date picker
   // stays usable for lapsed users (data-premium-open) so they can view history.
@@ -408,6 +416,7 @@ function Dashboard() {
     // never interrupt a quiz or an intro screen, and this is the only place that
     // already knows all three conditions hold.
     markOnboarded(user.id);
+    setTourState(getTour(user.id));
 
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);
@@ -704,6 +713,15 @@ function Dashboard() {
   const prevWeight = weightEntries[weightEntries.length - 2]?.weight_kg;
   const weightDiff = lastWeight && prevWeight ? lastWeight - prevWeight : null;
 
+  // The tour offer is answered once, either way, after the welcome and Refer &
+  // Earn intros. Unanswered = no tour state on this device yet.
+  const answerTourOffer = (want: boolean) => {
+    if (!user) return;
+    const next: TourState = want ? "dashboard" : "done";
+    setTour(user.id, next);
+    setTourState(next);
+  };
+
   // Which plan day is today? (Mon-indexed, rotates across the split)
   const planDayIdx = workoutPlan?.days?.length
     ? ((new Date().getDay() + 6) % 7) % workoutPlan.days.length
@@ -713,6 +731,29 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
       <Header name={firstName} />
+      {tour === null && (
+        <TourOffer
+          onYes={() => answerTourOffer(true)}
+          onNo={() => answerTourOffer(false)}
+        />
+      )}
+      {tour === "dashboard" && (
+        <Tour
+          steps={[
+            {
+              target: "streak",
+              text: "Your streaks: Food 🔥 and Workout. Log every day to keep them alive. Tap to see them.",
+            },
+            { target: "nav-food", text: "Log your first meal here." },
+          ]}
+          onDone={(skipped) => {
+            const next: TourState = skipped ? "done" : "food";
+            setTour(user.id, next);
+            setTourState(next);
+            if (!skipped) navigate({ to: "/food" });
+          }}
+        />
+      )}
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
         {/* ── HERO: DAILY SUMMARY ── */}

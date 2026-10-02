@@ -23,6 +23,7 @@ import {
   Gift,
   Instagram,
   Linkedin,
+  Compass,
   Facebook,
   Twitter,
   HelpCircle,
@@ -108,6 +109,7 @@ import { BodyMeasurementsPage } from "@/components/BodyMeasurements";
 import { HealthLogPage } from "@/components/HealthLog";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
 import { GymLinkPage } from "@/components/GymLink";
+import { setTour } from "@/components/Tour";
 import { SubHeader } from "@/components/SubHeader";
 import { HelpCenter } from "@/components/HelpCenter";
 import { LEGAL } from "@/lib/legal";
@@ -2002,6 +2004,7 @@ function SettingsPage({
   onTheme: () => void;
   onSignOut: () => Promise<void>;
 }) {
+  const navigate = useNavigate();
   // Meal categories
   const [meals, setMeals] = useState<string[]>(() => {
     try {
@@ -2223,6 +2226,18 @@ function SettingsPage({
           >
             <span className="flex items-center gap-3 text-sm font-medium">
               <Palette className="h-5 w-5 text-accent" /> Theme
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+          </button>
+          <button
+            onClick={() => {
+              setTour(userId, "dashboard");
+              navigate({ to: "/dashboard" });
+            }}
+            className="mt-2 flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
+          >
+            <span className="flex items-center gap-3 text-sm font-medium">
+              <Compass className="h-5 w-5 text-accent" /> App tour
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
           </button>

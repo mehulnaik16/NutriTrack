@@ -796,7 +796,7 @@ export const FoodSearch = forwardRef<
   return (
     <div className="space-y-4">
       {/* ── Search bar ── */}
-      <div className="relative">
+      <div className="relative" data-tour="food-search">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           ref={inputRef}
@@ -885,6 +885,7 @@ export const FoodSearch = forwardRef<
           variant="outline"
           onClick={() => setCameraOpen(true)}
           title="Log food by photo"
+          data-tour="food-photo"
           className="flex flex-col items-center justify-center gap-1 p-0"
           style={{ width: 64, height: 64, minWidth: 64 }}
         >
@@ -897,6 +898,7 @@ export const FoodSearch = forwardRef<
           variant="outline"
           onClick={() => setVoiceOpen(true)}
           title="Log food by voice"
+          data-tour="food-voice"
           className="flex flex-col items-center justify-center gap-1 p-0"
           style={{ width: 64, height: 64, minWidth: 64 }}
         >
@@ -909,6 +911,7 @@ export const FoodSearch = forwardRef<
           variant="outline"
           onClick={() => setBarcodeMode(true)}
           title="Barcode lookup"
+          data-tour="food-scan"
           className="flex flex-col items-center justify-center gap-1 p-0"
           style={{ width: 64, height: 64, minWidth: 64 }}
         >
@@ -924,6 +927,7 @@ export const FoodSearch = forwardRef<
             setFavoritesDialogOpen(true);
           }}
           title="View Favourites"
+          data-tour="food-favourites"
           className="flex flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
           style={{ width: 64, height: 64, minWidth: 64 }}
         >

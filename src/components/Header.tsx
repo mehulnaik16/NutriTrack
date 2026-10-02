@@ -618,6 +618,7 @@ export function Header({
                 <Link
                   key={l.to}
                   to={l.to}
+                  data-tour={l.to === "/food" ? "nav-food" : undefined}
                   className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [&.active]:bg-accent [&.active]:font-semibold [&.active]:text-accent-foreground"
                 >
                   {l.icon && <l.icon className="h-3.5 w-3.5" />} {l.label}
@@ -652,6 +653,7 @@ export function Header({
                       <Button
                         variant="outline"
                         size="sm"
+                        data-tour="streak"
                         className={`h-9 gap-1.5 rounded-full px-3 font-bold transition-all ${chipStyle}`}
                       >
                         <Flame className="h-4 w-4" />

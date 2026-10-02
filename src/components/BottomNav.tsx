@@ -70,6 +70,7 @@ export function BottomNav() {
           <Link
             key={item.to}
             to={item.to}
+            data-tour={item.to === "/food" ? "nav-food" : undefined}
             className="group flex h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl text-muted-foreground transition-colors hover:text-foreground [&.active]:text-accent"
           >
             <span className="flex h-7 w-12 items-center justify-center rounded-full transition-all group-[.active]:bg-accent/15">

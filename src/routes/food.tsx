@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { getTelemetryLabel } from "@/lib/telemetry";
+import { Tour, getTour, setTour, type TourState } from "@/components/Tour";
 
 // Route-level lock. The page renders with the user's own data but does not
 // respond; any tap opens the upsell popup.
@@ -122,6 +123,25 @@ const formatDateDisplay = (dateStr: string) => {
   });
 };
 
+const FOOD_TOUR = [
+  {
+    target: "food-search",
+    text: "Search: type a food name here, like idli or dal.",
+  },
+  { target: "food-photo", text: "Photo: snap your plate." },
+  { target: "food-voice", text: 'Voice: say it, like "two rotis and dal".' },
+  { target: "food-scan", text: "Scan: barcode on packaged food." },
+  { target: "food-favourites", text: "Favourites: your saved foods, one tap." },
+  {
+    target: "food-custom-meal",
+    text: "Custom meal: build a meal from your own ingredients.",
+  },
+  {
+    target: "food-fastfood",
+    text: "Fast food: pick a restaurant chain and its menu item.",
+  },
+];
+
 function FoodPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -141,6 +161,10 @@ function FoodPage() {
 
   // ── Meal Setup Questionnaire ──
   const [showMealSetup, setShowMealSetup] = useState(false);
+  const [tour, setTourState] = useState<TourState | null>(null);
+  useEffect(() => {
+    if (user) setTourState(getTour(user.id));
+  }, [user]);
   const [mealCount, setMealCount] = useState(4);
   const [mealNames, setMealNames] = useState<string[]>([...DEFAULT_MEALS]);
   const [userMeals, setUserMeals] = useState<string[]>([...DEFAULT_MEALS]);
@@ -436,6 +460,19 @@ function FoodPage() {
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
       <Header name={firstName} />
+      {/* "dashboard" too: a user who taps Food mid-tour still gets this part.
+          Waits for the first-visit meal setup so it never sits over a modal. */}
+      {(tour === "dashboard" || tour === "food") &&
+        hasSavedMeals != null &&
+        !showMealSetup && (
+          <Tour
+            steps={FOOD_TOUR}
+            onDone={() => {
+              setTour(user.id, "done");
+              setTourState("done");
+            }}
+          />
+        )}
       {/* Days past the edit window are view-only; the date picker stays live. */}
       <InteractionShield
         active={!isEditableDate(selectedDate)}
@@ -729,6 +766,7 @@ function FoodPage() {
                   variant="outline"
                   className="w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
                   onClick={() => navigate({ to: "/meal-builder" })}
+                  data-tour="food-custom-meal"
                 >
                   <ChefHat className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
                   <span className="font-bold text-sm">Create Custom Meal</span>
@@ -737,6 +775,7 @@ function FoodPage() {
                   variant="outline"
                   className="mt-3 w-full h-14 rounded-2xl border-dashed border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50 transition-all group"
                   onClick={() => setFastFoodOpen(true)}
+                  data-tour="food-fastfood"
                 >
                   <Pizza className="h-5 w-5 mr-3 text-accent group-hover:scale-110 transition-transform" />
                   <span className="font-bold text-sm">Fast Food Meal</span>
