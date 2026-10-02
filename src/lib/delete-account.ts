@@ -21,6 +21,21 @@ export const serverDeleteAccount = createServerFn({ method: "POST" })
     // Dynamic import keeps service-role client out of client bundle
     const { supabaseAdmin } = await import("@/integrations/client.server");
 
+    // 0. Stop billing first. The Terms and Refund Policy promise that deleting
+    // an account cancels its website subscription; a deleted user with a live
+    // mandate would keep being charged with no account to cancel from. If it
+    // can't be stopped, delete nothing.
+    const { stopLiveSubscription } = await import("@/server/razorpay");
+    try {
+      await stopLiveSubscription(supabaseAdmin, userId);
+    } catch (e) {
+      // The user sees a generic message; this is the only record of why.
+      console.error("[delete-account] stopLiveSubscription failed:", e);
+      throw new Error(
+        "Could not cancel your subscription, so nothing was deleted. Please try again.",
+      );
+    }
+
     // 1. Remove storage objects (not cascade-deleted).
     //
     // Listed by the user's own prefix rather than derived from
