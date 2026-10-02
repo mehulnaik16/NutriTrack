@@ -16,6 +16,7 @@ import {
   isNative,
   exactAlarmAllowed,
   openExactAlarmSettings,
+  permissionUndecided,
 } from "@/lib/notifications";
 import {
   PRIMER_EVENT_NAME,
@@ -41,7 +42,10 @@ export function NotificationPrimerDialog() {
 
   // Listen for the custom event dispatched when a trigger condition is met
   useEffect(() => {
-    const handleOpen = (e: Event) => {
+    // Both triggers arrive through this event, so this one gate covers both:
+    // a device that already allowed or blocked notifications is never primed.
+    const handleOpen = async (e: Event) => {
+      if (!(await permissionUndecided())) return;
       const customEvent = e as CustomEvent<PrimerEventDetail>;
       if (customEvent.detail?.trigger) {
         setTriggerType(customEvent.detail.trigger);

@@ -91,6 +91,27 @@ export async function checkPermissionState(): Promise<string> {
 }
 
 /**
+ * True only while the OS or browser has never been asked — the one moment a
+ * primer helps. Once permission is granted or denied, a primer either repeats
+ * what is already on or offers a button that can no longer do anything.
+ */
+export async function permissionUndecided(): Promise<boolean> {
+  try {
+    if (isNative()) {
+      const { display } = await LocalNotifications.checkPermissions();
+      return display === "prompt" || display === "prompt-with-rationale";
+    }
+    return (
+      typeof Notification !== "undefined" &&
+      Notification.permission === "default"
+    );
+  } catch {
+    // Can't tell. Staying quiet costs one prompt; guessing wrong costs a nag.
+    return false;
+  }
+}
+
+/**
  * Ask for permission, or report what was already decided.
  *
  * iOS shows its system dialog exactly once per install, ever. After a refusal
