@@ -76,7 +76,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import type { TablesInsert } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
-import { markOnboarded } from "@/lib/notificationPrimer";
+import { markOnboarded, recordFoodLog } from "@/lib/notificationPrimer";
 import {
   Tour,
   TourOffer,
@@ -575,6 +575,7 @@ function Dashboard() {
       toast.info("Logged! Note: you are over 125% of your daily goal");
     }
     toast.success(`${l.food_name} logged again!`);
+    recordFoodLog(user.id);
     load();
   };
 

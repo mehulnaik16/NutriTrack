@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { getTelemetryLabel } from "@/lib/telemetry";
+import { recordFoodLog } from "@/lib/notificationPrimer";
 import { Tour, getTour, setTour, type TourState } from "@/components/Tour";
 
 // Route-level lock. The page renders with the user's own data but does not
@@ -330,6 +331,7 @@ function FoodPage() {
     toast.success(
       `Copied ${rows.length} item${rows.length > 1 ? "s" : ""} from ${formatDateDisplay(prevDate)}`,
     );
+    recordFoodLog(user.id);
     load();
   };
 
@@ -366,6 +368,7 @@ function FoodPage() {
       toast.info("Logged! Note: you are over 125% of your daily goal");
     }
     toast.success(`${l.food_name} logged again!`);
+    recordFoodLog(user.id);
     load();
   };
 

@@ -720,6 +720,7 @@ export const FoodSearch = forwardRef<
       `${items.length} food item${items.length > 1 ? "s" : ""} logged!`,
     );
     setVoiceOpen(false);
+    recordFoodLog(userId);
     onLogged();
   };
 
