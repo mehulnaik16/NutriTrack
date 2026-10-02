@@ -9,11 +9,12 @@ import {
   REFEREE_GIFT_DAYS,
 } from "@/lib/referral";
 import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
+import { LEGAL } from "@/lib/legal";
 
 export const Route = createFileRoute("/refer-terms")({ component: ReferTerms });
 
 const LAST_UPDATED = "September 25, 2026";
-const SUPPORT_EMAIL = "support@dombelz.app";
+const SUPPORT_EMAIL = LEGAL.supportEmail;
 const yearly = findPlan(GIFT_PLAN_ID);
 const capReferral = MAX_FREE_DAYS / DAYS_PER_REFERRAL;
 const capPremium = MAX_PREMIUM_DAYS / PREMIUM_DAYS_PER_SUBSCRIPTION;

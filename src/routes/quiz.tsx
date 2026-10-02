@@ -23,6 +23,7 @@ import { Slider } from "@/components/ui/slider";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
+import { AGE_YEARS } from "@/lib/measurements";
 import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
 import { isValidCode, REFEREE_GIFT_DAYS } from "@/lib/referral";
 import { isPartnerCode, partnerKindOf, type PartnerKind } from "@/lib/gym";
@@ -378,13 +379,13 @@ function Quiz() {
   const canNext = () => {
     if (stepKey === "account") {
       const identityOk = d.fullName.trim() !== "" && d.email.trim() !== "";
-      if (isOAuth) return identityOk && d.age >= 16;
+      if (isOAuth) return identityOk && d.age >= AGE_YEARS.min;
       return (
         identityOk &&
         d.password.length >= 8 &&
         d.password.length <= 72 &&
         d.password === d.repeatPassword &&
-        d.age >= 16
+        d.age >= AGE_YEARS.min
       );
     }
     // Optional, so an empty box passes. A code that is present but unverified
@@ -611,9 +612,12 @@ function Quiz() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">Age</Label>
+                  <Label className="text-foreground/80">
+                    Age (must be {AGE_YEARS.min}+)
+                  </Label>
                   <Input
                     type="number"
+                    min={AGE_YEARS.min}
                     value={d.age || ""}
                     onChange={(e) => set("age", +e.target.value)}
                     className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl"

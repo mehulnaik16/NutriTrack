@@ -32,8 +32,6 @@ import {
   GlassWater,
   Copy,
   Share2,
-  Mail,
-  Bug,
   Activity,
   Building2,
   Dumbbell,
@@ -92,12 +90,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { loadMealNames, saveMealNames } from "@/lib/meals";
@@ -117,6 +109,8 @@ import { HealthLogPage } from "@/components/HealthLog";
 import { ReferAndEarnPage } from "@/components/ReferAndEarn";
 import { GymLinkPage } from "@/components/GymLink";
 import { SubHeader } from "@/components/SubHeader";
+import { HelpCenter } from "@/components/HelpCenter";
+import { LEGAL } from "@/lib/legal";
 import { PricingPlans } from "@/components/PricingPlans";
 import {
   activeGift,
@@ -313,33 +307,6 @@ const MENU_ITEMS: {
     icon: <Bell className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
     label: "Notifications",
     to: "/notifications",
-  },
-];
-
-const FAQS = [
-  {
-    q: "How are my calorie and macro targets calculated?",
-    a: "We use the Mifflin-St Jeor equation for BMR, multiply by your activity level for TDEE, then apply your goal (e.g. −500 kcal/day for 0.5 kg/week loss). Protein and fat come from g-per-kg bodyweight recommendations, and carbs fill the remainder.",
-  },
-  {
-    q: "How do I log food with a photo or my voice?",
-    a: "On the Food page, tap the Photo or Voice button under the search bar. Photo mode analyzes your plate with vision AI; voice mode understands phrases like “2 rotis and a bowl of dal.” You can edit anything before saving.",
-  },
-  {
-    q: "Why is my streak not increasing?",
-    a: "A day counts toward your streak when you log at least one food or workout that day. Streaks are checked against your local date, so log before midnight!",
-  },
-  {
-    q: "How do I change my meal names (Breakfast, Lunch…)?",
-    a: "Go to Settings → Meal categories, or tap the gear icon next to “Log Food” on the Food page. You can have 2–6 meals with any names you like.",
-  },
-  {
-    q: "Can I change my goal later?",
-    a: "Yes — edit your goal any time in Profile details. Your calorie target and macros are recalculated instantly.",
-  },
-  {
-    q: "How do I get my data out?",
-    a: "Settings → Data export lets you download all your logs as JSON or your food diary as CSV. Your data is yours.",
   },
 ];
 
@@ -2081,7 +2048,7 @@ function SettingsPage({
     } catch (e) {
       toast.error(
         (e as Error).message ??
-          "Deletion failed — please email support@dombelz.app",
+          `Deletion failed — please email ${LEGAL.supportEmail}`,
       );
       setDeleting(false);
       return;
@@ -2481,7 +2448,9 @@ function SettingsPage({
               <p className="text-sm text-muted-foreground">
                 This permanently deletes all your Dombelz data — profile, logs,
                 photos, plans, and favorites. Consider exporting your data
-                first. Type{" "}
+                first. It also cancels a subscription bought on our website —
+                request any refund before deleting. App Store or Google Play
+                subscriptions are not cancelled; cancel them in the store. Type{" "}
                 <span className="font-mono font-bold text-destructive">
                   DELETE
                 </span>{" "}
@@ -2537,81 +2506,8 @@ function HelpPage({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen bg-background pb-24">
       <SubHeader title="Help & support" onBack={onBack} />
-      <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
-        <section>
-          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Frequently asked questions
-          </p>
-          <div className="rounded-2xl border border-border bg-card px-4">
-            <Accordion type="single" collapsible className="w-full">
-              {FAQS.map((f, i) => (
-                <AccordionItem
-                  key={i}
-                  value={`faq-${i}`}
-                  className={i === FAQS.length - 1 ? "border-b-0" : ""}
-                >
-                  <AccordionTrigger className="text-left text-sm font-semibold">
-                    {f.q}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
-                    {f.a}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </section>
-
-        <section>
-          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Still stuck?
-          </p>
-          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-            <a
-              href="mailto:support@dombelz.app?subject=Dombelz%20support%20request"
-              className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40"
-            >
-              <span className="flex items-center gap-3 text-sm font-medium">
-                <Mail className="h-5 w-5 text-accent" /> Email support
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </a>
-            <a
-              href="mailto:support@dombelz.app?subject=Dombelz%20bug%20report&body=What%20happened%3A%0A%0ASteps%20to%20reproduce%3A%0A%0ADevice%20%2F%20browser%3A"
-              className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40"
-            >
-              <span className="flex items-center gap-3 text-sm font-medium">
-                <Bug className="h-5 w-5 text-accent" /> Report a bug
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </a>
-          </div>
-          <p className="mt-2 px-1 text-xs text-muted-foreground">
-            We usually reply within 1–2 business days.
-          </p>
-        </section>
-
-        <section>
-          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Legal
-          </p>
-          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-            <a
-              href="/privacy"
-              className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40"
-            >
-              <span className="text-sm font-medium">Privacy Policy</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </a>
-            <a
-              href="/terms"
-              className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40"
-            >
-              <span className="text-sm font-medium">Terms of Service</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </a>
-          </div>
-        </section>
+      <main className="mx-auto max-w-lg px-4 py-6">
+        <HelpCenter />
       </main>
     </div>
   );

@@ -16,6 +16,7 @@ import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as WeightRouteImport } from './routes/weight'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RefundRouteImport } from './routes/refund'
 import { Route as ReferTermsRouteImport } from './routes/refer-terms'
 import { Route as ReferIntroRouteImport } from './routes/refer-intro'
 import { Route as ReferHowItWorksRouteImport } from './routes/refer-how-it-works'
@@ -27,6 +28,7 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MealBuilderRouteImport } from './routes/meal-builder'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HubRouteImport } from './routes/hub'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as FoodRouteImport } from './routes/food'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CustomPlanEditRouteImport } from './routes/custom-plan-edit'
@@ -70,6 +72,11 @@ const TermsRoute = TermsRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundRoute = RefundRouteImport.update({
+  id: '/refund',
+  path: '/refund',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReferTermsRoute = ReferTermsRouteImport.update({
@@ -127,6 +134,11 @@ const HubRoute = HubRouteImport.update({
   path: '/hub',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FoodRoute = FoodRouteImport.update({
   id: '/food',
   path: '/food',
@@ -181,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
+  '/help': typeof HelpRoute
   '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
@@ -192,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/refer-how-it-works': typeof ReferHowItWorksRoute
   '/refer-intro': typeof ReferIntroRoute
   '/refer-terms': typeof ReferTermsRoute
+  '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
@@ -210,6 +224,7 @@ export interface FileRoutesByTo {
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
+  '/help': typeof HelpRoute
   '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
@@ -221,6 +236,7 @@ export interface FileRoutesByTo {
   '/refer-how-it-works': typeof ReferHowItWorksRoute
   '/refer-intro': typeof ReferIntroRoute
   '/refer-terms': typeof ReferTermsRoute
+  '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
@@ -240,6 +256,7 @@ export interface FileRoutesById {
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
   '/food': typeof FoodRoute
+  '/help': typeof HelpRoute
   '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/meal-builder': typeof MealBuilderRoute
@@ -251,6 +268,7 @@ export interface FileRoutesById {
   '/refer-how-it-works': typeof ReferHowItWorksRoute
   '/refer-intro': typeof ReferIntroRoute
   '/refer-terms': typeof ReferTermsRoute
+  '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
@@ -271,6 +289,7 @@ export interface FileRouteTypes {
     | '/custom-plan-edit'
     | '/dashboard'
     | '/food'
+    | '/help'
     | '/hub'
     | '/login'
     | '/meal-builder'
@@ -282,6 +301,7 @@ export interface FileRouteTypes {
     | '/refer-how-it-works'
     | '/refer-intro'
     | '/refer-terms'
+    | '/refund'
     | '/reset-password'
     | '/terms'
     | '/weight'
@@ -300,6 +320,7 @@ export interface FileRouteTypes {
     | '/custom-plan-edit'
     | '/dashboard'
     | '/food'
+    | '/help'
     | '/hub'
     | '/login'
     | '/meal-builder'
@@ -311,6 +332,7 @@ export interface FileRouteTypes {
     | '/refer-how-it-works'
     | '/refer-intro'
     | '/refer-terms'
+    | '/refund'
     | '/reset-password'
     | '/terms'
     | '/weight'
@@ -329,6 +351,7 @@ export interface FileRouteTypes {
     | '/custom-plan-edit'
     | '/dashboard'
     | '/food'
+    | '/help'
     | '/hub'
     | '/login'
     | '/meal-builder'
@@ -340,6 +363,7 @@ export interface FileRouteTypes {
     | '/refer-how-it-works'
     | '/refer-intro'
     | '/refer-terms'
+    | '/refund'
     | '/reset-password'
     | '/terms'
     | '/weight'
@@ -359,6 +383,7 @@ export interface RootRouteChildren {
   CustomPlanEditRoute: typeof CustomPlanEditRoute
   DashboardRoute: typeof DashboardRoute
   FoodRoute: typeof FoodRoute
+  HelpRoute: typeof HelpRoute
   HubRoute: typeof HubRoute
   LoginRoute: typeof LoginRoute
   MealBuilderRoute: typeof MealBuilderRoute
@@ -370,6 +395,7 @@ export interface RootRouteChildren {
   ReferHowItWorksRoute: typeof ReferHowItWorksRoute
   ReferIntroRoute: typeof ReferIntroRoute
   ReferTermsRoute: typeof ReferTermsRoute
+  RefundRoute: typeof RefundRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
   WeightRoute: typeof WeightRoute
@@ -430,6 +456,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund': {
+      id: '/refund'
+      path: '/refund'
+      fullPath: '/refund'
+      preLoaderRoute: typeof RefundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/refer-terms': {
@@ -509,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HubRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/food': {
       id: '/food'
       path: '/food'
@@ -583,6 +623,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomPlanEditRoute: CustomPlanEditRoute,
   DashboardRoute: DashboardRoute,
   FoodRoute: FoodRoute,
+  HelpRoute: HelpRoute,
   HubRoute: HubRoute,
   LoginRoute: LoginRoute,
   MealBuilderRoute: MealBuilderRoute,
@@ -594,6 +635,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReferHowItWorksRoute: ReferHowItWorksRoute,
   ReferIntroRoute: ReferIntroRoute,
   ReferTermsRoute: ReferTermsRoute,
+  RefundRoute: RefundRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
   WeightRoute: WeightRoute,

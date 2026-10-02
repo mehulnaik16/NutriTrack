@@ -19,7 +19,7 @@
  * all of them.
  *
  * The quiz already constrains these — its weight slider is 30–200 kg, its
- * height slider 100–250 cm, and it refuses to continue under age 16 — but the
+ * height slider 100–250 cm, and it refuses to continue under age 18 — but the
  * quiz is the only place that did. The Weight page and the Profile page take
  * the same numbers through bare `<Input type="number">` fields with no `min`,
  * no `max` and no check before the write, so a goal weight of 1 kg saved
@@ -288,8 +288,8 @@ export const HEIGHT_CM: Range = {
   label: "Height",
 };
 
-/** The quiz refuses to continue below 16; the upper bound is a typo guard. */
-export const AGE_YEARS: Range = { min: 16, max: 100, unit: "", label: "Age" };
+/** The quiz refuses to continue below 18 (Terms §2); the upper bound is a typo guard. */
+export const AGE_YEARS: Range = { min: 18, max: 100, unit: "", label: "Age" };
 
 export type Validated =
   | { ok: true; value: number }

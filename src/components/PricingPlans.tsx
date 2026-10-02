@@ -32,6 +32,7 @@ import {
 } from "@/lib/plans";
 import { invalidateReferralGift, useGift } from "@/hooks/useReferralGift";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
+import { REFUND_WINDOW_DAYS } from "@/lib/legal";
 
 export function PricingPlans({
   trialUsed,
@@ -165,26 +166,33 @@ export function PricingPlans({
               )}
               <CardContent className="p-6">
                 <h3 className="font-display text-xl font-bold">{p.name}</h3>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="font-display text-4xl font-bold">
-                    ₹{price}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {periodLabel(p.months)}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {PRICE_TAX_NOTE}
-                </p>
-                {kind && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">
-                    <Gift className="h-3.5 w-3.5" /> {giftLabel(kind)}
-                  </p>
-                )}
-                {p.months > 1 && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Works out to ₹{monthlyRate(p, price)}/month
-                  </p>
+                {/* No prices in the native shell: it cannot sell yet, and quoting the
+                    website price there is steering (App Store 3.1.1, Play
+                    Payments policy). Store billing will bring its own prices. */}
+                {!native && (
+                  <>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="font-display text-4xl font-bold">
+                        ₹{price}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {periodLabel(p.months)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {PRICE_TAX_NOTE}
+                    </p>
+                    {kind && (
+                      <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">
+                        <Gift className="h-3.5 w-3.5" /> {giftLabel(kind)}
+                      </p>
+                    )}
+                    {p.months > 1 && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Works out to ₹{monthlyRate(p, price)}/month
+                      </p>
+                    )}
+                  </>
                 )}
                 {/* Mobile dropdown toggle */}
                 <button
@@ -213,10 +221,11 @@ export function PricingPlans({
                   ))}
                 </ul>
                 {cta === "native" ? (
-                  // No third-party checkout in the native shell. Entitlement
-                  // bought on the website applies here the moment it lands.
+                  // No checkout in the native shell until Google Play / App
+                  // Store billing ships. Entitlement bought elsewhere still
+                  // applies here — but saying where would be steering.
                   <p className="mt-4 md:mt-6 rounded-full border border-border px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">
-                    Manage your plan on the Dombelz website
+                    In-app purchase coming soon
                   </p>
                 ) : (
                   <Button
@@ -241,6 +250,20 @@ export function PricingPlans({
           );
         })}
       </div>
+      {!native && (
+        <p className="mt-6 text-center text-xs leading-relaxed text-muted-foreground">
+          Paid plans renew automatically at the end of each period until you
+          cancel. Cancel any time in Plan &amp; billing. Full refund within{" "}
+          {REFUND_WINDOW_DAYS} days of any payment —{" "}
+          <a
+            href="/refund"
+            className="text-accent underline-offset-2 hover:underline"
+          >
+            Refund policy
+          </a>
+          .
+        </p>
+      )}
     </>
   );
 }

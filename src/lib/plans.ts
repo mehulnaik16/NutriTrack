@@ -14,13 +14,22 @@ export interface Plan {
   months: number;
   /** Total charged up front, in rupees, for the whole period. */
   price: number;
+  /** Days of access one payment buys. Mirrors periodDays in src/server/razorpay.ts (plans.test.ts checks). */
+  days: number;
   popular?: boolean;
 }
 
 export const PLANS: readonly Plan[] = [
-  { id: "monthly", name: "Monthly", months: 1, price: 299 },
-  { id: "quarterly", name: "Quarterly", months: 3, price: 599 },
-  { id: "yearly", name: "Yearly", months: 12, price: 1199, popular: true },
+  { id: "monthly", name: "Monthly", months: 1, price: 299, days: 30 },
+  { id: "quarterly", name: "Quarterly", months: 3, price: 599, days: 91 },
+  {
+    id: "yearly",
+    name: "Yearly",
+    months: 12,
+    price: 1199,
+    days: 365,
+    popular: true,
+  },
 ];
 
 /**

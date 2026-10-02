@@ -442,6 +442,8 @@ function Landing() {
                 links: [
                   <Link to="/privacy">Privacy</Link>,
                   <Link to="/terms">Terms</Link>,
+                  <a href="/refund">Refunds</a>,
+                  <a href="/help">Contact</a>,
                 ],
               },
               {

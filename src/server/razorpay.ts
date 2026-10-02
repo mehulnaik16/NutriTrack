@@ -363,3 +363,52 @@ export async function fetchSubscription(
   });
   return { status: typeof json.status === "string" ? json.status : "" };
 }
+
+/**
+ * Stop the user's live Razorpay subscription, if any, and mark our row
+ * cancelled. Shared by plan switching and account deletion.
+ *
+ * Not at cycle end: both callers need it to stop being live now. Cancelling
+ * costs no days — access_until is folded from subscription_charges, which this
+ * does not touch.
+ *
+ * Razorpay refuses to cancel something already finished, and our row can say
+ * "live" for a subscription that ended without us hearing about it. So on a
+ * failed cancel, ask what it really is: already over is fine. Anything else
+ * throws, and the caller must not go ahead — a second subscription, or a
+ * deleted account, with the first still recurring is worse than a retry.
+ */
+export async function stopLiveSubscription(
+  admin: typeof import("@/integrations/client.server").supabaseAdmin,
+  userId: string,
+): Promise<void> {
+  const { data: live } = await admin
+    .from("subscriptions")
+    .select("id, provider_subscription_id")
+    .eq("user_id", userId)
+    .eq("provider", "razorpay")
+    .in("status", ["authenticated", "active", "pending", "halted"])
+    .maybeSingle();
+  if (!live) return;
+
+  try {
+    await cancelSubscription(live.provider_subscription_id, false);
+  } catch (e) {
+    let settled = false;
+    try {
+      const { status } = await fetchSubscription(live.provider_subscription_id);
+      settled = ["cancelled", "completed", "expired"].includes(status);
+    } catch {
+      /* couldn't ask — treat as still live */
+    }
+    if (!settled) throw e instanceof Error ? e : new Error(String(e));
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types.ts omits this service-role-only table
+  await (admin.from("subscriptions") as any)
+    .update({
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", live.id);
+}

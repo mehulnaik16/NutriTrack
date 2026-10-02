@@ -76,6 +76,10 @@ for (const [tier, days] of Object.entries(PERIOD_DAYS)) {
     `${tier} period_days differs from handle_razorpay_event()`,
   );
 }
+// The legal pages quote these days from PLANS.
+for (const p of PLANS) {
+  assert.equal(p.days, PERIOD_DAYS[p.id], `${p.id} days differs from billing`);
+}
 
 // Prices are inclusive of 18% GST, so the base sent to the partner project is
 // the price × 100/118 — ₹1,199 → ₹1,016.10. Charged amount is the list price.
@@ -100,7 +104,13 @@ assert.ok(
 assert.equal(periodLabel(1), "/month");
 assert.equal(periodLabel(3), "/3 months");
 assert.equal(periodLabel(12), "/year");
-const YEARLY = { id: "yearly", name: "Yearly", months: 12, price: 1199 };
+const YEARLY = {
+  id: "yearly",
+  name: "Yearly",
+  months: 12,
+  price: 1199,
+  days: 365,
+};
 assert.equal(monthlyRate(YEARLY), 100);
 assert.equal(
   monthlyRate({ ...YEARLY, id: "quarterly", months: 3, price: 599 }),
