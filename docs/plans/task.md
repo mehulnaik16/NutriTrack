@@ -47,7 +47,32 @@ Full plan: [docs/plans/2026-09-28-health-log-profile-card.md](2026-09-28-health-
 | task-3 | **Fix Strength Sets Calorie Under/Overestimation** | done | Replaced `sets.length * 15` in `ExerciseLoggerModal` with `calculateCalories` (`STRENGTH_SETS`) |
 | task-4 | **Verification & Lint/Build Check** | done | 30 unit tests, 166 compendium tests, 16 modal tests pass, build exit 0 |
 
-# Task Tracker - Calorie Calculator Bottom Nav & Heart Rate Scroll Fix
+# Task Tracker - Barcode Alcohol Calorie Accounting
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Add alcohol field & 7 kcal/g to foodDb.ts** | done | Added `alcohol?: number | null`, Atwater fallback `+ 7 * alcohol` |
+| task-2 | **Extract alcohol & reconcile energy in ScanFoodDialog.tsx** | done | Parse ABV %, convert with 0.789 g/mL, apply 7 kcal/g floor |
+| task-3 | **Add curated alcoholic drinks to extraFoods.ts** | done | Added Beer (mild/strong), Vodka, Whiskey, Rum, Gin, Tequila, Brandy, Wine |
+| task-4 | **Run unit tests & verify build** | done | Verified alcoholCalories tests; `npm run build` exited with code 0 |
+
+# Task Tracker - Alcohol Serving Sizes & USDA Cross-Verification
+
+# Task Tracker - Exercise Thumbnail Icons Generation & Integration (475 Exercises)
+
+Full plan: [docs/plans/2026-09-29-exercise-thumbnail-icons.md](2026-09-29-exercise-thumbnail-icons.md)
+
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Prototype sample icons with black weights & create plan** | done | Generated Bench Press & Squat with solid black iron plates; 475-exercise plan created |
+| task-2 | **User approval of corrected black plate style & full plan** | done | Approved by user; solid black iron weights with neon orange #FF6A00 active highlights |
+| task-3 | **Generate Phase 1 Batch 1 (Chest & Upper Back)** | in_progress | 23/24 deployed (T-Bar Row deployed; Chin-Up pending 2nd account handoff) |
+| task-4 | **Generate Phase 1 Batch 2 (Legs & Lower Body)** | done | All 20 approved, compressed (6-9 KB), registered, and committed (100% complete) |
+| task-5 | **Generate Phase 1 Batch 3 (Shoulders & Arms)** | pending | 25 exercises - handed off to 2nd AGY account due to image quota limit |
+| task-6 | **Generate Phase 1 Batch 4 (Core & Athletic)** | pending | 19 exercises - handed off to 2nd AGY account |
+| task-7 | **Integrate approved thumbnails into workout screens** | done | 42 images deployed in `public/exercises/`, registered in `exerciseImages.ts`, 100% test pass |
+| task-8 | **Phase 2: Full Catalog Expansion (Batches 5–12)** | pending | Remaining 387 exercises across 8 batches |
+| task-9 | **Verify build, responsive rendering & small-pixel compression** | done | HighQualityBicubic 200x200 px <10 KB, zero UI layout shift, `npm run build` clean (code 0) |
 
 | id | task | status | notes |
 | :--- | :--- | :--- | :--- |
