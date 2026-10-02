@@ -732,12 +732,15 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-muted/10 pb-24">
       <Header name={firstName} />
-      {tour === null && (
-        <TourOffer
-          onYes={() => answerTourOffer(true)}
-          onNo={() => answerTourOffer(false)}
-        />
-      )}
+      {tour === null &&
+        profile.created_at &&
+        Date.now() - new Date(profile.created_at).getTime() <
+          7 * 86_400_000 && (
+          <TourOffer
+            onYes={() => answerTourOffer(true)}
+            onNo={() => answerTourOffer(false)}
+          />
+        )}
       {tour === "dashboard" && (
         <Tour
           steps={[
