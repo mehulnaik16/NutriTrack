@@ -69,9 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setLoading(false);
     });
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
       setLoading(false);
+      if (!data.session) return;
+      // getSession trusts storage. An account deleted elsewhere keeps a token
+      // that still passes RLS until it expires, so the quiz would skip signUp
+      // and write a profile for a user that no longer exists. Only a definite
+      // "no such user" signs out — offline or a flaky network keeps the session.
+      const { error } = await supabase.auth.getUser();
+      if (error?.code === "user_not_found") {
+        await supabase.auth.signOut({ scope: "local" });
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
