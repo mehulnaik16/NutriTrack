@@ -763,7 +763,10 @@ function WeightPage() {
             <CardContent>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
+                  >
                     <CartesianGrid
                       strokeDasharray="3 3"
                       stroke="var(--border)"
@@ -776,6 +779,7 @@ function WeightPage() {
                     <YAxis
                       stroke="var(--muted-foreground)"
                       fontSize={11}
+                      width={36}
                       domain={["auto", "auto"]}
                     />
                     <Tooltip
@@ -801,6 +805,7 @@ function WeightPage() {
                         strokeDasharray="5 5"
                         label={{
                           value: `Goal (${origWeightUnit})`,
+                          position: "insideTopRight",
                           fill: "var(--energy)",
                           fontSize: 11,
                         }}
