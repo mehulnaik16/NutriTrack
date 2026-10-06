@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import "./lib/pwaInstall"; // catch beforeinstallprompt before any route renders
 
 // A route's code chunk failed to load: a deploy replaced its hashed filename
 // under an open tab, or the Vite dev server re-optimised deps. Without this the

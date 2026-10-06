@@ -1,7 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowRight, Check, CheckCircle2, ChevronDown } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Download,
+} from "lucide-react";
+import { toast } from "sonner";
 import { syncFavicon } from "@/lib/theme";
+import { isNativeApp } from "@/lib/platform";
+import {
+  canPromptInstall,
+  isInstalled,
+  isIOS,
+  onInstallChange,
+  promptInstall,
+} from "@/lib/pwaInstall";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 import {
@@ -495,7 +510,46 @@ function StoreBadges({ className = "" }: { className?: string }) {
           className="-m-[9px] h-[58px]"
         />
       </div>
+      <InstallAppButton />
     </div>
+  );
+}
+
+// Installs the website itself as an app (PWA), like screener.in's Install.
+function InstallAppButton() {
+  // Decided after mount: SSR cannot know the browser or whether it's installed.
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    setShow(!isNativeApp() && !isInstalled());
+    return onInstallChange(() => setShow(!isInstalled()));
+  }, []);
+  if (!show) return null;
+
+  const install = async () => {
+    if (canPromptInstall()) {
+      if (await promptInstall()) toast.success("Dombelz is installed");
+      return;
+    }
+    toast.info(
+      isIOS()
+        ? "Tap the Share button in Safari, then “Add to Home Screen”."
+        : "Open your browser menu and choose “Install app” or “Add to Home screen”.",
+      { duration: 8000 },
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={install}
+      className="flex h-10 items-center gap-2 rounded-[7px] border border-[#a6a6a6] bg-black px-3 text-white transition-opacity hover:opacity-85"
+    >
+      <Download className="h-5 w-5" />
+      <span className="flex flex-col items-start leading-none">
+        <span className="text-[9px]">Use it now as a</span>
+        <span className="text-[15px] font-semibold">Web App</span>
+      </span>
+    </button>
   );
 }
 
