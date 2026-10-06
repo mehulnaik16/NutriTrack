@@ -12,9 +12,11 @@ import { syncFavicon } from "@/lib/theme";
 import { isNativeApp } from "@/lib/platform";
 import {
   canPromptInstall,
+  isInAppBrowser,
   isInstalled,
   isIOS,
   onInstallChange,
+  openInChrome,
   promptInstall,
 } from "@/lib/pwaInstall";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -531,6 +533,17 @@ function InstallAppButton() {
   if (!show) return null;
 
   const install = async () => {
+    // Instagram/Facebook etc. browsers cannot install; send the user to a
+    // real browser first.
+    if (isInAppBrowser()) {
+      if (isIOS())
+        toast.info(
+          "Tap ••• (or the share icon) and choose “Open in Safari”, then tap Web App again.",
+          { duration: 10000 },
+        );
+      else openInChrome();
+      return;
+    }
     if (canPromptInstall()) {
       if (await promptInstall()) toast.success("Dombelz is installed");
       return;
