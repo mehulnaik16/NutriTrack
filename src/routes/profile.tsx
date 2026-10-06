@@ -22,10 +22,11 @@ import {
   Info,
   Gift,
   Instagram,
-  Linkedin,
+  Youtube,
   Compass,
+  Scale,
   Facebook,
-  Twitter,
+  Mail,
   HelpCircle,
   LogOut,
   Download,
@@ -33,7 +34,6 @@ import {
   GlassWater,
   Copy,
   Share2,
-  Activity,
   Building2,
   Dumbbell,
   Camera,
@@ -111,8 +111,9 @@ import { ReferAndEarnPage } from "@/components/ReferAndEarn";
 import { GymLinkPage } from "@/components/GymLink";
 import { setTour } from "@/components/Tour";
 import { SubHeader } from "@/components/SubHeader";
+import { BrandLogo } from "@/components/BrandLogo";
 import { HelpCenter } from "@/components/HelpCenter";
-import { LEGAL } from "@/lib/legal";
+import { emailLink, LEGAL } from "@/lib/legal";
 import { PricingPlans } from "@/components/PricingPlans";
 import {
   activeGift,
@@ -203,6 +204,7 @@ const PAGE_VALUES: readonly Page[] = [
   "gym",
   "achievements",
   "measurements",
+  "tours",
 ];
 
 export const Route = createFileRoute("/profile")({
@@ -225,7 +227,8 @@ type Page =
   | "gym"
   | "achievements"
   | "measurements"
-  | "health-log";
+  | "health-log"
+  | "tours";
 
 /* ─── menu items ─── */
 const MENU_ITEMS: {
@@ -273,11 +276,6 @@ const MENU_ITEMS: {
     id: "theme",
     icon: <Palette className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
     label: "Theme",
-  },
-  {
-    id: "pricing",
-    icon: <Tag className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
-    label: "Pricing",
   },
   {
     id: "settings",
@@ -605,7 +603,7 @@ function Profile() {
       <SettingsPage
         userId={user.id}
         onBack={goBack}
-        onTheme={() => setPage("theme")}
+        onTours={() => setPage("tours")}
         onSignOut={async () => {
           await signOut();
           navigate({ to: "/login", replace: true });
@@ -614,6 +612,7 @@ function Profile() {
     );
   if (page === "help") return <HelpPage onBack={goBack} />;
   if (page === "about") return <AboutPage onBack={goBack} />;
+  if (page === "tours") return <ToursPage userId={user.id} onBack={goBack} />;
   if (page === "refer")
     return <ReferAndEarnPage userId={user.id} onBack={goBack} />;
   if (page === "gym") return <GymLinkPage userId={user.id} onBack={goBack} />;
@@ -1560,18 +1559,40 @@ function Profile() {
         {/* Social icons */}
         <div className="mt-8 flex items-center justify-center gap-6">
           {[
-            { icon: <Instagram className="h-5 w-5" />, label: "Instagram" },
-            { icon: <Linkedin className="h-5 w-5" />, label: "LinkedIn" },
-            { icon: <Facebook className="h-5 w-5" />, label: "Facebook" },
-            { icon: <Twitter className="h-5 w-5" />, label: "Twitter" },
+            {
+              icon: <Instagram className="h-5 w-5" />,
+              label: "Instagram",
+              href: "https://instagram.com/usedombelz",
+            },
+            {
+              icon: <Facebook className="h-5 w-5" />,
+              label: "Facebook",
+              href: "https://facebook.com/Usedombelz",
+            },
+            {
+              icon: <Youtube className="h-5 w-5" />,
+              label: "YouTube",
+              href: "https://youtube.com/@usedombelz",
+            },
+            // TODO: switch to LEGAL.supportEmail once that inbox is live.
+            {
+              icon: <Mail className="h-5 w-5" />,
+              label: "Email",
+              href: emailLink("usedombelz@gmail.com").href,
+            },
           ].map((s) => (
-            <button
+            <a
               key={s.label}
+              href={s.href}
               aria-label={s.label}
+              {...(s.href.startsWith("http") && {
+                target: "_blank",
+                rel: "noopener noreferrer",
+              })}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-accent hover:text-accent transition-all"
             >
               {s.icon}
-            </button>
+            </a>
           ))}
         </div>
       </main>
@@ -1779,8 +1800,8 @@ function TransactionsPage({
                 onClick={onPricing}
               >
                 {/* Once access has lapsed the only useful move is paying, so
-                    the button says that rather than "change plan". */}
-                {hasAccessNow ? "Change plan" : `Buy · ₹${plan.price}`}
+                    the button says that rather than "View plans". */}
+                {hasAccessNow ? "View plans" : `Buy · ₹${plan.price}`}
               </Button>
             </div>
           ) : (
@@ -1996,12 +2017,12 @@ function formatBillingDate(iso: string | null): string {
 function SettingsPage({
   userId,
   onBack,
-  onTheme,
+  onTours,
   onSignOut,
 }: {
   userId: string;
   onBack: () => void;
-  onTheme: () => void;
+  onTours: () => void;
   onSignOut: () => Promise<void>;
 }) {
   const navigate = useNavigate();
@@ -2215,26 +2236,14 @@ function SettingsPage({
     <div className="min-h-screen bg-background pb-24">
       <SubHeader title="Settings" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
-        {/* Appearance */}
+        {/* General — Theme lives on its own Profile card */}
         <section>
           <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Appearance
+            General
           </p>
           <button
-            onClick={onTheme}
+            onClick={onTours}
             className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
-          >
-            <span className="flex items-center gap-3 text-sm font-medium">
-              <Palette className="h-5 w-5 text-accent" /> Theme
-            </span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-          </button>
-          <button
-            onClick={() => {
-              setTour(userId, "dashboard");
-              navigate({ to: "/dashboard" });
-            }}
-            className="mt-2 flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
           >
             <span className="flex items-center gap-3 text-sm font-medium">
               <Compass className="h-5 w-5 text-accent" /> App tour
@@ -2531,6 +2540,48 @@ function HelpPage({ onBack }: { onBack: () => void }) {
 /* ═══════════════════════════════════════════════════
    About
 ══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════
+   App tours — opened from Settings. Each button starts its tour directly;
+   only the home & food tour is ever offered at onboarding.
+══════════════════════════════════════════════════════ */
+function ToursPage({ userId, onBack }: { userId: string; onBack: () => void }) {
+  const navigate = useNavigate();
+  const tours = [
+    {
+      icon: Compass,
+      label: "Home & food tour",
+      start: () => {
+        setTour(userId, "dashboard");
+        navigate({ to: "/dashboard" });
+      },
+    },
+    {
+      icon: Scale,
+      label: "Weight logging tour",
+      start: () => navigate({ to: "/weight", search: { tour: 1 } }),
+    },
+  ];
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      <SubHeader title="App tours" onBack={onBack} />
+      <main className="mx-auto max-w-lg space-y-2 px-4 py-6">
+        {tours.map(({ icon: Icon, label, start }) => (
+          <button
+            key={label}
+            onClick={start}
+            className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
+          >
+            <span className="flex items-center gap-3 text-sm font-medium">
+              <Icon className="h-5 w-5 text-accent" /> {label}
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+          </button>
+        ))}
+      </main>
+    </div>
+  );
+}
+
 function AboutPage({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -2540,7 +2591,7 @@ function AboutPage({ onBack }: { onBack: () => void }) {
           <div className="pointer-events-none absolute -top-16 left-1/2 h-40 w-72 -translate-x-1/2 rounded-full bg-accent/10 blur-3xl" />
           <div className="relative">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
-              <Activity className="h-8 w-8" />
+              <BrandLogo className="h-9 w-9" />
             </div>
             <h2 className="font-display text-2xl font-bold">Dombelz</h2>
             <p className="mt-1 text-xs font-bold uppercase tracking-widest text-accent">

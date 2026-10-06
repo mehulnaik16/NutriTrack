@@ -9,7 +9,7 @@ import {
   REFEREE_GIFT_DAYS,
 } from "@/lib/referral";
 import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
-import { LEGAL } from "@/lib/legal";
+import { emailLink, LEGAL } from "@/lib/legal";
 
 export const Route = createFileRoute("/refer-terms")({ component: ReferTerms });
 
@@ -209,7 +209,7 @@ function ReferTerms() {
 
         <p className="text-sm text-muted-foreground">
           For any questions, contact us at{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-accent underline">
+          <a {...emailLink(SUPPORT_EMAIL)} className="text-accent underline">
             {SUPPORT_EMAIL}
           </a>
           .

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ReceiptIndianRupee } from "lucide-react";
 import { LegalPage, type LegalSection } from "@/components/LegalPage";
-import { LEGAL, REFUND_WINDOW_DAYS } from "@/lib/legal";
+import { emailLink, LEGAL, REFUND_WINDOW_DAYS } from "@/lib/legal";
 import { PLANS, REFEREE_GIFT_DAYS, periodLabel } from "@/lib/plans";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
 import { PREMIUM_HOLD_DAYS } from "@/lib/referral";
@@ -136,7 +136,7 @@ const SECTIONS: LegalSection[] = [
           </li>
           <li>
             Or email{" "}
-            <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a>{" "}
+            <a {...emailLink(LEGAL.supportEmail)}>{LEGAL.supportEmail}</a>{" "}
             from your account email with the payment date, amount and Razorpay
             payment ID (in your payment receipt email).
           </li>

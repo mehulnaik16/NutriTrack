@@ -6,7 +6,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, type LucideIcon } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { LEGAL, LEGAL_LINKS, LEGAL_UPDATED } from "@/lib/legal";
+import { emailLink, LEGAL, LEGAL_LINKS, LEGAL_UPDATED } from "@/lib/legal";
 
 export interface LegalSection {
   id: string;
@@ -26,7 +26,7 @@ export function GrievanceCard() {
         <strong>{LEGAL.grievanceOfficer}</strong> — Grievance Officer
       </p>
       <p>
-        <a href={`mailto:${LEGAL.grievanceEmail}`}>{LEGAL.grievanceEmail}</a>
+        <a {...emailLink(LEGAL.grievanceEmail)}>{LEGAL.grievanceEmail}</a>
       </p>
       <p>
         {LEGAL.legalName}, {LEGAL.address}
@@ -130,7 +130,7 @@ export function LegalPage({
           <p>
             Questions? Email{" "}
             <a
-              href={`mailto:${LEGAL.supportEmail}`}
+              {...emailLink(LEGAL.supportEmail)}
               className="text-accent underline-offset-2 hover:underline"
             >
               {LEGAL.supportEmail}
