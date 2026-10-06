@@ -112,7 +112,7 @@ import { setTour } from "@/components/Tour";
 import { SubHeader } from "@/components/SubHeader";
 import { BrandLogo } from "@/components/BrandLogo";
 import { HelpCenter } from "@/components/HelpCenter";
-import { LEGAL } from "@/lib/legal";
+import { emailLink, LEGAL } from "@/lib/legal";
 import { PricingPlans } from "@/components/PricingPlans";
 import {
   activeGift,
@@ -1558,9 +1558,8 @@ function Profile() {
             { icon: <Instagram className="h-5 w-5" />, label: "Instagram", href: "https://instagram.com/usedombelz" },
             { icon: <Facebook className="h-5 w-5" />, label: "Facebook", href: "https://facebook.com/Usedombelz" },
             { icon: <Youtube className="h-5 w-5" />, label: "YouTube", href: "https://youtube.com/@usedombelz" },
-            // Gmail compose, not mailto: — desktop Chrome drops mailto: when no mail
-            // handler is set. TODO: switch to LEGAL.supportEmail once that inbox is live.
-            { icon: <Mail className="h-5 w-5" />, label: "Email", href: "https://mail.google.com/mail/?view=cm&fs=1&to=usedombelz@gmail.com" },
+            // TODO: switch to LEGAL.supportEmail once that inbox is live.
+            { icon: <Mail className="h-5 w-5" />, label: "Email", href: emailLink("usedombelz@gmail.com").href },
           ].map((s) => (
             <a
               key={s.label}

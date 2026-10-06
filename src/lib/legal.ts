@@ -16,6 +16,22 @@ export const LEGAL = {
   jurisdiction: "Bengaluru, Karnataka",
 } as const;
 
+/**
+ * Props for an email link: opens Gmail compose in a new tab with the address
+ * filled in. Not mailto: — desktop Chrome drops it when no mail app is set.
+ * Usage: <a {...emailLink(LEGAL.supportEmail, "Subject")}>…</a>
+ */
+export const emailLink = (to: string, subject?: string, body?: string) => {
+  const params = new URLSearchParams({ view: "cm", fs: "1", to });
+  if (subject) params.set("su", subject);
+  if (body) params.set("body", body);
+  return {
+    href: `https://mail.google.com/mail/?${params}`,
+    target: "_blank",
+    rel: "noopener noreferrer",
+  };
+};
+
 export const LEGAL_UPDATED = "October 2, 2026";
 
 /** Must equal the interval '2 day' in public.request_refund(). */

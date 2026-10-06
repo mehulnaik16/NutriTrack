@@ -5,7 +5,7 @@ import {
   LegalPage,
   type LegalSection,
 } from "@/components/LegalPage";
-import { LEGAL } from "@/lib/legal";
+import { emailLink, LEGAL } from "@/lib/legal";
 
 export const Route = createFileRoute("/privacy")({ component: Privacy });
 
@@ -317,7 +317,7 @@ const SECTIONS: LegalSection[] = [
             <strong>Erase</strong> — delete entries, or delete your account and
             all its data from Profile → Settings → Danger zone. Without the app,
             email{" "}
-            <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a>{" "}
+            <a {...emailLink(LEGAL.supportEmail)}>{LEGAL.supportEmail}</a>{" "}
             from your account email asking us to delete your account.
           </li>
           <li>
@@ -371,7 +371,7 @@ const SECTIONS: LegalSection[] = [
         <p>
           Complaints are acknowledged within 24 hours and resolved within 15
           days. For everyday questions, email{" "}
-          <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a> or
+          <a {...emailLink(LEGAL.supportEmail)}>{LEGAL.supportEmail}</a> or
           visit <a href="/help">Help &amp; Support</a>.
         </p>
       </>

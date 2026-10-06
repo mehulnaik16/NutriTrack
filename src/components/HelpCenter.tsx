@@ -6,7 +6,9 @@
 import { useState } from "react";
 import {
   Bug,
+  ChevronDown,
   ChevronRight,
+  CircleHelp,
   CreditCard,
   Mail,
   ReceiptIndianRupee,
@@ -19,7 +21,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
-import { LEGAL, LEGAL_LINKS, REFUND_WINDOW_DAYS } from "@/lib/legal";
+import { emailLink, LEGAL, LEGAL_LINKS, REFUND_WINDOW_DAYS } from "@/lib/legal";
 import { PLANS, REFEREE_GIFT_DAYS } from "@/lib/plans";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
 import {
@@ -250,30 +252,30 @@ const BUG_BODY = [
   "Account email:",
 ].join("\n\n");
 
-const mailto = (subject: string, body?: string) =>
-  `mailto:${LEGAL.supportEmail}?subject=${encodeURIComponent(subject)}${body ? `&body=${encodeURIComponent(body)}` : ""}`;
+const supportEmail = (subject: string, body?: string) =>
+  emailLink(LEGAL.supportEmail, subject, body);
 
 const QUICK = [
   {
-    href: mailto("Dombelz support request"),
+    link: supportEmail("Dombelz support request"),
     icon: Mail,
     title: "Email support",
     sub: LEGAL.supportEmail,
   },
   {
-    href: mailto("Dombelz bug report", BUG_BODY),
+    link: supportEmail("Dombelz bug report", BUG_BODY),
     icon: Bug,
     title: "Report a bug",
     sub: "Opens a ready-made email",
   },
   {
-    href: "/profile?page=transactions",
+    link: { href: "/profile?page=transactions" },
     icon: CreditCard,
     title: "Plan & billing",
     sub: "Cancel, refunds, payment history",
   },
   {
-    href: "/refund",
+    link: { href: "/refund" },
     icon: ReceiptIndianRupee,
     title: "Refund policy",
     sub: `Full refund within ${W} days`,
@@ -286,6 +288,7 @@ const LABEL =
 
 export function HelpCenter() {
   const [query, setQuery] = useState("");
+  const [faqOpen, setFaqOpen] = useState(false);
   const q = query.trim().toLowerCase();
   const native = isNativeApp();
 
@@ -316,10 +319,10 @@ export function HelpCenter() {
         <section>
           <p className={LABEL}>Quick help</p>
           <div className="grid grid-cols-2 gap-3">
-            {QUICK.map(({ href, icon: Icon, title, sub }) => (
+            {QUICK.map(({ link, icon: Icon, title, sub }) => (
               <a
                 key={title}
-                href={href}
+                {...link}
                 className={`${CARD} flex flex-col gap-1.5 p-4 transition-colors hover:bg-muted/40`}
               >
                 <Icon className="h-5 w-5 text-accent" />
@@ -336,87 +339,127 @@ export function HelpCenter() {
       {groups.length === 0 ? (
         <p className={`${CARD} p-5 text-sm text-muted-foreground`}>
           No answers match “{query.trim()}”. Email us at{" "}
-          <a href={mailto("Dombelz support request")} className="text-accent">
+          <a
+            {...supportEmail("Dombelz support request")}
+            className="text-accent"
+          >
             {LEGAL.supportEmail}
           </a>{" "}
           and we'll help.
         </p>
       ) : (
-        groups.map((g) => (
-          <section key={g.title}>
-            <p className={LABEL}>{g.title}</p>
-            <div className={`${CARD} px-4`}>
+        <section className={CARD}>
+          {/* Collapsed by default so the questions don't fill the page; a
+              search opens it so matches are visible straight away. */}
+          <button
+            type="button"
+            onClick={() => setFaqOpen((o) => !o)}
+            aria-expanded={faqOpen || !!q}
+            className="flex w-full items-center gap-3 p-4 text-left"
+          >
+            <CircleHelp className="h-5 w-5 shrink-0 text-accent" />
+            <span className="flex-1">
+              <span className="block text-sm font-semibold">
+                Frequently asked questions
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {groups.reduce((n, g) => n + g.items.length, 0)}{" "}
+                {q ? "matching answers" : "answers"}
+              </span>
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${faqOpen || q ? "rotate-180" : ""}`}
+            />
+          </button>
+          {(faqOpen || !!q) && (
+            <div className="border-t border-border px-4">
               <Accordion type="single" collapsible className="w-full">
-                {g.items.map((f, i) => (
-                  <AccordionItem
-                    key={f.q}
-                    value={f.q}
-                    className={i === g.items.length - 1 ? "border-b-0" : ""}
-                  >
-                    <AccordionTrigger className="text-left text-sm font-semibold">
-                      {f.q}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
-                      {f.a}
-                    </AccordionContent>
-                  </AccordionItem>
+                {groups.map((g, gi) => (
+                  <div key={g.title}>
+                    <p className="pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-accent">
+                      {g.title}
+                    </p>
+                    {g.items.map((f, i) => (
+                      <AccordionItem
+                        key={f.q}
+                        value={f.q}
+                        className={
+                          gi === groups.length - 1 && i === g.items.length - 1
+                            ? "border-b-0"
+                            : ""
+                        }
+                      >
+                        <AccordionTrigger className="text-left text-sm font-semibold">
+                          {f.q}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
+                          {f.a}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </div>
                 ))}
               </Accordion>
             </div>
-          </section>
-        ))
-      )}
-
-      <section>
-        <p className={LABEL}>Contact us</p>
-        <div className={`${CARD} divide-y divide-border text-sm`}>
-          <div className="p-4">
-            <a
-              href={mailto("Dombelz support request")}
-              className="font-semibold text-accent"
-            >
-              {LEGAL.supportEmail}
-            </a>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Replies within 1–2 business days. Billing issues within 1 business
-              day. Write from your account email.
-            </p>
-          </div>
-          {LEGAL.supportPhone && (
-            <div className="p-4">
-              <a
-                href={`tel:${LEGAL.supportPhone.replace(/\s/g, "")}`}
-                className="font-semibold text-accent"
-              >
-                {LEGAL.supportPhone}
-              </a>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {LEGAL.supportHours}
-              </p>
-            </div>
           )}
-          <div className="p-4">
-            <p className="font-semibold">
-              Grievance Officer: {LEGAL.grievanceOfficer}
-            </p>
-            <a href={`mailto:${LEGAL.grievanceEmail}`} className="text-accent">
-              {LEGAL.grievanceEmail}
-            </a>
-            <p className="mt-1 text-xs text-muted-foreground">
-              For complaints not resolved by support, and privacy or data
-              requests. Acknowledged within 24 hours, resolved within 15 days.
-            </p>
-          </div>
-          <p className="p-4 text-xs text-muted-foreground">
-            {LEGAL.legalName} · {LEGAL.address}
-            {LEGAL.gstin && ` · GSTIN ${LEGAL.gstin}`}
-          </p>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section>
         <p className={LABEL}>Legal</p>
         <div className={`${CARD} divide-y divide-border overflow-hidden`}>
+          {/* <details>, not conditional render: the contact details stay in the
+              page for Razorpay's Contact-us check while folded away. */}
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
+              <span className="text-sm font-medium">Contact us</span>
+              <ChevronDown className="h-4 w-4 text-muted-foreground/60 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="divide-y divide-border border-t border-border text-sm">
+              <div className="p-4">
+                <a
+                  {...supportEmail("Dombelz support request")}
+                  className="font-semibold text-accent"
+                >
+                  {LEGAL.supportEmail}
+                </a>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Replies within 1–2 business days. Billing issues within 1
+                  business day. Write from your account email.
+                </p>
+              </div>
+              {LEGAL.supportPhone && (
+                <div className="p-4">
+                  <a
+                    href={`tel:${LEGAL.supportPhone.replace(/\s/g, "")}`}
+                    className="font-semibold text-accent"
+                  >
+                    {LEGAL.supportPhone}
+                  </a>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {LEGAL.supportHours}
+                  </p>
+                </div>
+              )}
+              <div className="p-4">
+                <p className="font-semibold">
+                  Grievance Officer: {LEGAL.grievanceOfficer}
+                </p>
+                <a {...emailLink(LEGAL.grievanceEmail)} className="text-accent">
+                  {LEGAL.grievanceEmail}
+                </a>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  For complaints not resolved by support, and privacy or data
+                  requests. Acknowledged within 24 hours, resolved within 15
+                  days.
+                </p>
+              </div>
+              <p className="p-4 text-xs text-muted-foreground">
+                {LEGAL.legalName} · {LEGAL.address}
+                {LEGAL.gstin && ` · GSTIN ${LEGAL.gstin}`}
+              </p>
+            </div>
+          </details>
           {LEGAL_LINKS.map((l) => (
             <a
               key={l.href}
