@@ -92,6 +92,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
+import { applyTheme, getLocalTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/client";
 import { loadMealNames, saveMealNames } from "@/lib/meals";
 import { loadWaterPrefs, saveWaterPrefs } from "@/lib/water";
@@ -378,24 +379,21 @@ function Profile() {
   );
 
   useEffect(() => {
-    setTheme(localStorage.getItem("theme") || "dark");
+    setTheme(getLocalTheme());
   }, []);
 
   const changeTheme = (newTheme: string) => {
     setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.remove(
-      "dark",
-      "theme-ocean",
-      "theme-sunset",
-      "theme-forest",
-      "theme-cyber",
-      "theme-cyberdeck",
-      "theme-isro",
-    );
-    if (newTheme !== "light") {
-      document.documentElement.classList.add(newTheme);
-    }
+    applyTheme(newTheme);
+    // The account's copy, so every other device switches on its next load.
+    if (user)
+      supabase
+        .from("user_profiles")
+        .update({ theme: newTheme })
+        .eq("id", user.id)
+        .then(({ error }) => {
+          if (error) console.error("Saving theme failed", error);
+        });
   };
 
   useEffect(() => {
