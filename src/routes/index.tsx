@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight, Check, CheckCircle2, ChevronDown } from "lucide-react";
+import { syncFavicon } from "@/lib/theme";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 import {
@@ -143,6 +144,7 @@ function Landing() {
   useLayoutEffect(() => {
     const c = document.documentElement.classList;
     c.remove(...THEME_CLASSES);
+    syncFavicon("dark"); // green brand icon on the landing page
     return () => {
       let t = "dark";
       try {
@@ -151,6 +153,7 @@ function Landing() {
         // Storage blocked: fall back to the default dark theme.
       }
       if (t !== "light") c.add(THEME_CLASSES.includes(t) ? t : "dark");
+      syncFavicon(t);
     };
   }, []);
 
