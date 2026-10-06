@@ -22,10 +22,10 @@ import {
   Info,
   Gift,
   Instagram,
-  Linkedin,
+  Youtube,
   Compass,
   Facebook,
-  Twitter,
+  Mail,
   HelpCircle,
   LogOut,
   Download,
@@ -1560,18 +1560,22 @@ function Profile() {
         {/* Social icons */}
         <div className="mt-8 flex items-center justify-center gap-6">
           {[
-            { icon: <Instagram className="h-5 w-5" />, label: "Instagram" },
-            { icon: <Linkedin className="h-5 w-5" />, label: "LinkedIn" },
-            { icon: <Facebook className="h-5 w-5" />, label: "Facebook" },
-            { icon: <Twitter className="h-5 w-5" />, label: "Twitter" },
+            { icon: <Instagram className="h-5 w-5" />, label: "Instagram", href: "https://instagram.com/usedombelz" },
+            { icon: <Facebook className="h-5 w-5" />, label: "Facebook", href: "https://facebook.com/Usedombelz" },
+            { icon: <Youtube className="h-5 w-5" />, label: "YouTube", href: "https://youtube.com/@usedombelz" },
+            // Gmail compose, not mailto: — desktop Chrome drops mailto: when no mail
+            // handler is set. TODO: switch to LEGAL.supportEmail once that inbox is live.
+            { icon: <Mail className="h-5 w-5" />, label: "Email", href: "https://mail.google.com/mail/?view=cm&fs=1&to=usedombelz@gmail.com" },
           ].map((s) => (
-            <button
+            <a
               key={s.label}
+              href={s.href}
               aria-label={s.label}
+              {...(s.href.startsWith("http") && { target: "_blank", rel: "noopener noreferrer" })}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-accent hover:text-accent transition-all"
             >
               {s.icon}
-            </button>
+            </a>
           ))}
         </div>
       </main>
