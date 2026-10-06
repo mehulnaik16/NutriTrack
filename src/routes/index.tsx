@@ -501,13 +501,18 @@ function StoreBadges({ className = "" }: { className?: string }) {
       <div aria-label="Coming soon on the App Store" role="img">
         <img src="/badges/app-store.svg" alt="" className="h-10" />
       </div>
-      <div aria-label="Coming soon on Google Play" role="img">
-        {/* Google's PNG has built-in padding; the negative margin trims it so
-            the visible badge matches Apple's 40px height. */}
+      {/* Google's PNG has ~9.5px transparent padding at this size. The box is
+          the visible badge (131x40) and the image overflows it evenly, so the
+          gaps either side match the other badges. */}
+      <div
+        aria-label="Coming soon on Google Play"
+        role="img"
+        className="flex h-10 w-[131px] items-center justify-center"
+      >
         <img
           src="/badges/google-play.png"
           alt=""
-          className="-m-[9px] h-[58px]"
+          className="h-[58px] max-w-none"
         />
       </div>
       <InstallAppButton />
