@@ -8,7 +8,9 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
+import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { getLocalTheme, syncFavicon } from "@/lib/theme";
 import { BottomNav } from "@/components/BottomNav";
 import appCss from "../styles.css?url";
 
@@ -113,6 +115,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // The landing page keeps the green brand icon; routes/index.tsx swaps it on
+  // the way in and out.
+  useEffect(
+    () => syncFavicon(location.pathname === "/" ? "dark" : getLocalTheme()),
+    [],
+  );
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
