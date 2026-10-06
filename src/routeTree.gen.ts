@@ -9,159 +9,39 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorkoutSetupRouteImport } from './routes/workout-setup'
-import { Route as WorkoutLibraryRouteImport } from './routes/workout-library'
-import { Route as WorkoutRouteImport } from './routes/workout'
-import { Route as WelcomeRouteImport } from './routes/welcome'
-import { Route as WeightRouteImport } from './routes/weight'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RefundRouteImport } from './routes/refund'
-import { Route as ReferTermsRouteImport } from './routes/refer-terms'
-import { Route as ReferIntroRouteImport } from './routes/refer-intro'
-import { Route as ReferHowItWorksRouteImport } from './routes/refer-how-it-works'
-import { Route as QuizRouteImport } from './routes/quiz'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PlansRouteImport } from './routes/plans'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as MealBuilderRouteImport } from './routes/meal-builder'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as HubRouteImport } from './routes/hub'
-import { Route as HelpRouteImport } from './routes/help'
-import { Route as FoodRouteImport } from './routes/food'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as CustomPlanEditRouteImport } from './routes/custom-plan-edit'
-import { Route as CustomPlanRouteImport } from './routes/custom-plan'
-import { Route as ChoosePlanRouteImport } from './routes/choose-plan'
-import { Route as CalorieCalculatorRouteImport } from './routes/calorie-calculator'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DebugNotificationsRouteImport } from './routes/debug.notifications'
+import { Route as CalorieCalculatorRouteImport } from './routes/calorie-calculator'
+import { Route as ChoosePlanRouteImport } from './routes/choose-plan'
+import { Route as CustomPlanRouteImport } from './routes/custom-plan'
+import { Route as CustomPlanEditRouteImport } from './routes/custom-plan-edit'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as FoodRouteImport } from './routes/food'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as HubRouteImport } from './routes/hub'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MealBuilderRouteImport } from './routes/meal-builder'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as PlansRouteImport } from './routes/plans'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as QuizRouteImport } from './routes/quiz'
+import { Route as ReferHowItWorksRouteImport } from './routes/refer-how-it-works'
+import { Route as ReferIntroRouteImport } from './routes/refer-intro'
+import { Route as ReferTermsRouteImport } from './routes/refer-terms'
+import { Route as RefundRouteImport } from './routes/refund'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WeightRouteImport } from './routes/weight'
+import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as WorkoutRouteImport } from './routes/workout'
+import { Route as WorkoutLibraryRouteImport } from './routes/workout-library'
+import { Route as WorkoutSetupRouteImport } from './routes/workout-setup'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as DebugNotificationsRouteImport } from './routes/debug.notifications'
 
-const WorkoutSetupRoute = WorkoutSetupRouteImport.update({
-  id: '/workout-setup',
-  path: '/workout-setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WorkoutLibraryRoute = WorkoutLibraryRouteImport.update({
-  id: '/workout-library',
-  path: '/workout-library',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WorkoutRoute = WorkoutRouteImport.update({
-  id: '/workout',
-  path: '/workout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WelcomeRoute = WelcomeRouteImport.update({
-  id: '/welcome',
-  path: '/welcome',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WeightRoute = WeightRouteImport.update({
-  id: '/weight',
-  path: '/weight',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundRoute = RefundRouteImport.update({
-  id: '/refund',
-  path: '/refund',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReferTermsRoute = ReferTermsRouteImport.update({
-  id: '/refer-terms',
-  path: '/refer-terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReferIntroRoute = ReferIntroRouteImport.update({
-  id: '/refer-intro',
-  path: '/refer-intro',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReferHowItWorksRoute = ReferHowItWorksRouteImport.update({
-  id: '/refer-how-it-works',
-  path: '/refer-how-it-works',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuizRoute = QuizRouteImport.update({
-  id: '/quiz',
-  path: '/quiz',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlansRoute = PlansRouteImport.update({
-  id: '/plans',
-  path: '/plans',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MealBuilderRoute = MealBuilderRouteImport.update({
-  id: '/meal-builder',
-  path: '/meal-builder',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HubRoute = HubRouteImport.update({
-  id: '/hub',
-  path: '/hub',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HelpRoute = HelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FoodRoute = FoodRouteImport.update({
-  id: '/food',
-  path: '/food',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomPlanEditRoute = CustomPlanEditRouteImport.update({
-  id: '/custom-plan-edit',
-  path: '/custom-plan-edit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomPlanRoute = CustomPlanRouteImport.update({
-  id: '/custom-plan',
-  path: '/custom-plan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChoosePlanRoute = ChoosePlanRouteImport.update({
-  id: '/choose-plan',
-  path: '/choose-plan',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CalorieCalculatorRoute = CalorieCalculatorRouteImport.update({
@@ -169,19 +49,139 @@ const CalorieCalculatorRoute = CalorieCalculatorRouteImport.update({
   path: '/calorie-calculator',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ChoosePlanRoute = ChoosePlanRouteImport.update({
+  id: '/choose-plan',
+  path: '/choose-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DebugNotificationsRoute = DebugNotificationsRouteImport.update({
-  id: '/debug/notifications',
-  path: '/debug/notifications',
+const CustomPlanRoute = CustomPlanRouteImport.update({
+  id: '/custom-plan',
+  path: '/custom-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomPlanEditRoute = CustomPlanEditRouteImport.update({
+  id: '/custom-plan-edit',
+  path: '/custom-plan-edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FoodRoute = FoodRouteImport.update({
+  id: '/food',
+  path: '/food',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HubRoute = HubRouteImport.update({
+  id: '/hub',
+  path: '/hub',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MealBuilderRoute = MealBuilderRouteImport.update({
+  id: '/meal-builder',
+  path: '/meal-builder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlansRoute = PlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuizRoute = QuizRouteImport.update({
+  id: '/quiz',
+  path: '/quiz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferHowItWorksRoute = ReferHowItWorksRouteImport.update({
+  id: '/refer-how-it-works',
+  path: '/refer-how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferIntroRoute = ReferIntroRouteImport.update({
+  id: '/refer-intro',
+  path: '/refer-intro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferTermsRoute = ReferTermsRouteImport.update({
+  id: '/refer-terms',
+  path: '/refer-terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundRoute = RefundRouteImport.update({
+  id: '/refund',
+  path: '/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WeightRoute = WeightRouteImport.update({
+  id: '/weight',
+  path: '/weight',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutRoute = WorkoutRouteImport.update({
+  id: '/workout',
+  path: '/workout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutLibraryRoute = WorkoutLibraryRouteImport.update({
+  id: '/workout-library',
+  path: '/workout-library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkoutSetupRoute = WorkoutSetupRouteImport.update({
+  id: '/workout-setup',
+  path: '/workout-setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DebugNotificationsRoute = DebugNotificationsRouteImport.update({
+  id: '/debug/notifications',
+  path: '/debug/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -409,179 +409,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/workout-setup': {
-      id: '/workout-setup'
-      path: '/workout-setup'
-      fullPath: '/workout-setup'
-      preLoaderRoute: typeof WorkoutSetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/workout-library': {
-      id: '/workout-library'
-      path: '/workout-library'
-      fullPath: '/workout-library'
-      preLoaderRoute: typeof WorkoutLibraryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/workout': {
-      id: '/workout'
-      path: '/workout'
-      fullPath: '/workout'
-      preLoaderRoute: typeof WorkoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/welcome': {
-      id: '/welcome'
-      path: '/welcome'
-      fullPath: '/welcome'
-      preLoaderRoute: typeof WelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/weight': {
-      id: '/weight'
-      path: '/weight'
-      fullPath: '/weight'
-      preLoaderRoute: typeof WeightRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refund': {
-      id: '/refund'
-      path: '/refund'
-      fullPath: '/refund'
-      preLoaderRoute: typeof RefundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refer-terms': {
-      id: '/refer-terms'
-      path: '/refer-terms'
-      fullPath: '/refer-terms'
-      preLoaderRoute: typeof ReferTermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refer-intro': {
-      id: '/refer-intro'
-      path: '/refer-intro'
-      fullPath: '/refer-intro'
-      preLoaderRoute: typeof ReferIntroRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refer-how-it-works': {
-      id: '/refer-how-it-works'
-      path: '/refer-how-it-works'
-      fullPath: '/refer-how-it-works'
-      preLoaderRoute: typeof ReferHowItWorksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quiz': {
-      id: '/quiz'
-      path: '/quiz'
-      fullPath: '/quiz'
-      preLoaderRoute: typeof QuizRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/plans': {
-      id: '/plans'
-      path: '/plans'
-      fullPath: '/plans'
-      preLoaderRoute: typeof PlansRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/meal-builder': {
-      id: '/meal-builder'
-      path: '/meal-builder'
-      fullPath: '/meal-builder'
-      preLoaderRoute: typeof MealBuilderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hub': {
-      id: '/hub'
-      path: '/hub'
-      fullPath: '/hub'
-      preLoaderRoute: typeof HubRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/help': {
-      id: '/help'
-      path: '/help'
-      fullPath: '/help'
-      preLoaderRoute: typeof HelpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/food': {
-      id: '/food'
-      path: '/food'
-      fullPath: '/food'
-      preLoaderRoute: typeof FoodRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/custom-plan-edit': {
-      id: '/custom-plan-edit'
-      path: '/custom-plan-edit'
-      fullPath: '/custom-plan-edit'
-      preLoaderRoute: typeof CustomPlanEditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/custom-plan': {
-      id: '/custom-plan'
-      path: '/custom-plan'
-      fullPath: '/custom-plan'
-      preLoaderRoute: typeof CustomPlanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/choose-plan': {
-      id: '/choose-plan'
-      path: '/choose-plan'
-      fullPath: '/choose-plan'
-      preLoaderRoute: typeof ChoosePlanRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/calorie-calculator': {
@@ -591,18 +423,179 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalorieCalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/choose-plan': {
+      id: '/choose-plan'
+      path: '/choose-plan'
+      fullPath: '/choose-plan'
+      preLoaderRoute: typeof ChoosePlanRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/debug/notifications': {
-      id: '/debug/notifications'
-      path: '/debug/notifications'
-      fullPath: '/debug/notifications'
-      preLoaderRoute: typeof DebugNotificationsRouteImport
+    '/custom-plan': {
+      id: '/custom-plan'
+      path: '/custom-plan'
+      fullPath: '/custom-plan'
+      preLoaderRoute: typeof CustomPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/custom-plan-edit': {
+      id: '/custom-plan-edit'
+      path: '/custom-plan-edit'
+      fullPath: '/custom-plan-edit'
+      preLoaderRoute: typeof CustomPlanEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/food': {
+      id: '/food'
+      path: '/food'
+      fullPath: '/food'
+      preLoaderRoute: typeof FoodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hub': {
+      id: '/hub'
+      path: '/hub'
+      fullPath: '/hub'
+      preLoaderRoute: typeof HubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meal-builder': {
+      id: '/meal-builder'
+      path: '/meal-builder'
+      fullPath: '/meal-builder'
+      preLoaderRoute: typeof MealBuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plans': {
+      id: '/plans'
+      path: '/plans'
+      fullPath: '/plans'
+      preLoaderRoute: typeof PlansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quiz': {
+      id: '/quiz'
+      path: '/quiz'
+      fullPath: '/quiz'
+      preLoaderRoute: typeof QuizRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refer-how-it-works': {
+      id: '/refer-how-it-works'
+      path: '/refer-how-it-works'
+      fullPath: '/refer-how-it-works'
+      preLoaderRoute: typeof ReferHowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refer-intro': {
+      id: '/refer-intro'
+      path: '/refer-intro'
+      fullPath: '/refer-intro'
+      preLoaderRoute: typeof ReferIntroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refer-terms': {
+      id: '/refer-terms'
+      path: '/refer-terms'
+      fullPath: '/refer-terms'
+      preLoaderRoute: typeof ReferTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund': {
+      id: '/refund'
+      path: '/refund'
+      fullPath: '/refund'
+      preLoaderRoute: typeof RefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/weight': {
+      id: '/weight'
+      path: '/weight'
+      fullPath: '/weight'
+      preLoaderRoute: typeof WeightRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workout': {
+      id: '/workout'
+      path: '/workout'
+      fullPath: '/workout'
+      preLoaderRoute: typeof WorkoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workout-library': {
+      id: '/workout-library'
+      path: '/workout-library'
+      fullPath: '/workout-library'
+      preLoaderRoute: typeof WorkoutLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workout-setup': {
+      id: '/workout-setup'
+      path: '/workout-setup'
+      fullPath: '/workout-setup'
+      preLoaderRoute: typeof WorkoutSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -610,6 +603,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/callback'
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/debug/notifications': {
+      id: '/debug/notifications'
+      path: '/debug/notifications'
+      fullPath: '/debug/notifications'
+      preLoaderRoute: typeof DebugNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
