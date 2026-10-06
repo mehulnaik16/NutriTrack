@@ -600,7 +600,6 @@ function Profile() {
       <SettingsPage
         userId={user.id}
         onBack={goBack}
-        onTheme={() => setPage("theme")}
         onSignOut={async () => {
           await signOut();
           navigate({ to: "/login", replace: true });
@@ -1994,12 +1993,10 @@ function formatBillingDate(iso: string | null): string {
 function SettingsPage({
   userId,
   onBack,
-  onTheme,
   onSignOut,
 }: {
   userId: string;
   onBack: () => void;
-  onTheme: () => void;
   onSignOut: () => Promise<void>;
 }) {
   const navigate = useNavigate();
@@ -2213,26 +2210,17 @@ function SettingsPage({
     <div className="min-h-screen bg-background pb-24">
       <SubHeader title="Settings" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
-        {/* Appearance */}
+        {/* General — Theme lives on its own Profile card */}
         <section>
           <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Appearance
+            General
           </p>
-          <button
-            onClick={onTheme}
-            className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
-          >
-            <span className="flex items-center gap-3 text-sm font-medium">
-              <Palette className="h-5 w-5 text-accent" /> Theme
-            </span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-          </button>
           <button
             onClick={() => {
               setTour(userId, "dashboard");
               navigate({ to: "/dashboard" });
             }}
-            className="mt-2 flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
+            className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
           >
             <span className="flex items-center gap-3 text-sm font-medium">
               <Compass className="h-5 w-5 text-accent" /> App tour
