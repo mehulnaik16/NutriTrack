@@ -1,12 +1,11 @@
 import { supabase } from "@/integrations/client";
-import { serverGroqChat } from "@/lib/ai";
+import { serverWorkoutPlan } from "@/lib/ai";
 import {
   FITNESS_GOALS,
-  SPLIT_GUIDE,
+  FITNESS_LEVELS,
   type WorkoutPrefs,
 } from "@/lib/workoutPrefs";
 import { EXERCISES_DB } from "@/lib/exercises";
-import { AI_CATALOG_GROUPS } from "@/lib/aiExerciseCatalog";
 import { decomposeGoalKey } from "@/lib/nutrition";
 
 /** Human phrase for the user's nutrition goal, for the workout prompt. */
@@ -24,22 +23,11 @@ for (const names of Object.values(EXERCISES_DB)) {
   for (const n of names) CANONICAL_BY_LOWER.set(n.toLowerCase(), n);
 }
 
-/** The curated "best ~12 per muscle & subcategory" catalog, rendered for the
- *  "choose only from this list" constraint. Each name is filtered against
- *  EXERCISES_DB so a stray typo can never reach the prompt as a non-canonical
- *  name; validation keeps every group full in practice. */
-const EXERCISE_CATALOG = AI_CATALOG_GROUPS.map(
-  (g) =>
-    `${g.group}: ${g.exercises
-      .filter((n) => CANONICAL_BY_LOWER.has(n.toLowerCase()))
-      .join(", ")}`,
-).join("\n");
-
 /**
  * Generate an AI workout plan from the user's saved workout preferences and
  * persist it as the user's single workout_plans row (replacing any prior
- * plan). Shared by /workout-setup and /choose-plan so both build the exact
- * same prompt from the same profile inputs.
+ * plan). Shared by /workout-setup and /choose-plan so both send the exact
+ * same athlete answers; the coach prompt itself lives in lib/workoutPrompt.ts.
  */
 export async function generateAiPlan(
   userId: string,
@@ -48,81 +36,56 @@ export async function generateAiPlan(
   const goalLabel =
     FITNESS_GOALS.find((g) => g.value === prefs.fitnessGoal)?.label ??
     prefs.fitnessGoal;
+  const levelDetail = FITNESS_LEVELS.find(
+    (l) => l.value === prefs.fitnessLevel,
+  )?.detail;
   const lifts: string[] = [];
   const { benchPress, squat: sq, deadlift: dl } = prefs.strongestLifts;
   if (benchPress.weight)
     lifts.push(
-      `Bench Press ${benchPress.weight}kg × ${benchPress.reps ?? "?"} reps`,
+      `Bench Press ${benchPress.weight}kg x ${benchPress.reps ?? "?"} reps`,
     );
   if (sq.weight)
-    lifts.push(`Back Squat ${sq.weight}kg × ${sq.reps ?? "?"} reps`);
-  if (dl.weight) lifts.push(`Deadlift ${dl.weight}kg × ${dl.reps ?? "?"} reps`);
+    lifts.push(`Back Squat ${sq.weight}kg x ${sq.reps ?? "?"} reps`);
+  if (dl.weight) lifts.push(`Deadlift ${dl.weight}kg x ${dl.reps ?? "?"} reps`);
 
-  // Fix 1: give the AI the physical/goal context that actually changes
-  // programming — age, sex, bodyweight, and the nutrition goal. Only these
-  // four; height/activity add little the training frequency doesn't already say.
+  // Age, sex, bodyweight and nutrition goal change programming; height and
+  // activity add little the training frequency doesn't already say.
   const { data: up } = await supabase
     .from("user_profiles")
     .select("age, gender, weight_kg, goal")
     .eq("id", userId)
     .maybeSingle();
   const physical: string[] = [];
-  if (up?.age) physical.push(`- Age: ${up.age} years`);
-  if (up?.gender) physical.push(`- Sex: ${up.gender}`);
-  if (up?.weight_kg) physical.push(`- Bodyweight: ${up.weight_kg} kg`);
+  if (up?.age) physical.push(`Age ${up.age}`);
+  if (up?.gender) physical.push(String(up.gender));
+  if (up?.weight_kg) physical.push(`${up.weight_kg} kg`);
   const goalPrimary = up?.goal ? decomposeGoalKey(up.goal).primary : null;
   if (goalPrimary && GOAL_PHRASE[goalPrimary])
-    physical.push(`- Nutrition goal: ${GOAL_PHRASE[goalPrimary]}`);
+    physical.push(`Nutrition goal: ${GOAL_PHRASE[goalPrimary]}`);
 
-  // Fix 3: the weekly split (by training days) is the single authority for
-  // structure. Muscle-focus is a soft preference that defers to it, so the two
-  // no longer contradict.
-  const muscleNote =
-    prefs.musclesPerWorkout === "not_sure"
-      ? "no strong preference — follow the split below"
-      : `leans toward ${prefs.musclesPerWorkout} muscle group(s) per session, but the weekly split below takes precedence`;
+  const muscles = String(prefs.musclesPerWorkout) as
+    | "1"
+    | "2"
+    | "3"
+    | "not_sure";
+  const athlete = [
+    "ATHLETE",
+    `- Experience: ${prefs.fitnessLevel}${levelDetail ? ` (${levelDetail})` : ""}`,
+    `- Training goal: ${goalLabel}`,
+    `- Days per week: ${prefs.trainingDaysPerWeek}`,
+    `- Session length: ${prefs.preferredWorkoutTime} min`,
+    `- Muscles per session: ${muscles === "not_sure" ? "not sure" : muscles}`,
+    `- Cardio: ${prefs.cardioActivities.length ? prefs.cardioActivities.join(", ") : "none"}`,
+    ...(physical.length ? [`- ${physical.join(" | ")}`] : []),
+    ...(lifts.length ? [`- Lifts: ${lifts.join("; ")}`] : []),
+  ].join("\n");
 
-  const prompt = `You are an expert strength & conditioning coach. Create a ${prefs.trainingDaysPerWeek}-day-per-week gym workout plan.
-User profile:
-- Experience: ${prefs.fitnessLevel}
-- Training goal: ${goalLabel}
-- Session length: about ${prefs.preferredWorkoutTime} minutes
-- Muscle-focus preference: ${muscleNote}
-- Enjoys cardio: ${prefs.cardioActivities.length ? prefs.cardioActivities.join(", ") : "none specified"}
-${physical.join("\n")}
-${lifts.length ? `- Current strength: ${lifts.join("; ")}` : ""}
-Return ONLY valid JSON, no markdown. FORMAT EXAMPLE ONLY (shows the shape — do NOT
-copy its exercises, day name, or focus; build the real plan from the user profile
-above):
-{
-  "goal": "${goalLabel}",
-  "days_per_week": ${prefs.trainingDaysPerWeek},
-  "days": [
-    {
-      "day": "Day 1",
-      "name": "Push Day",
-      "focus": "Chest, Shoulders & Triceps",
-      "exercises": [{ "name": "Barbell Bench Press", "sets": 4, "reps": "8-10" }]
-    }
-  ]
-}
-Hard requirements (this plan MUST reflect the user profile above):
-- Exactly ${prefs.trainingDaysPerWeek} entries in "days", labelled "Day 1" … "Day ${prefs.trainingDaysPerWeek}" — not more, not fewer.
-- Use this split for a ${prefs.trainingDaysPerWeek}-day week: ${SPLIT_GUIDE[prefs.trainingDaysPerWeek] ?? "a sensible split"}. This split is the authority for the weekly structure.
-- Tailor exercise selection, volume and intensity to a ${prefs.fitnessLevel} lifter${physical.length ? " with the physical profile and nutrition goal above" : ""} whose training goal is "${goalLabel}".
-- ${prefs.preferredWorkoutTime <= 40 ? "4-5" : prefs.preferredWorkoutTime <= 70 ? "5-7" : "6-8"} exercises per day, matched to the ${prefs.preferredWorkoutTime}-minute session length.
-- ${prefs.cardioActivities.length ? `The user enjoys ${prefs.cardioActivities.join(", ")} — finish appropriate days with one of these as an exercise (e.g. { "name": "Running", "sets": 1, "reps": "15 min" }).` : "No cardio preference given — keep it strength-focused."}
-- Choose every exercise ONLY from this catalog, copying the name EXACTLY (case included). Do not invent names or use any that are not listed. Pick the ones best matching each day's focus:
-${EXERCISE_CATALOG}
-- "reps" is a string like "8-12", "5", or "30 sec".`;
-
-  const { result: raw } = await serverGroqChat({
+  const { result: raw } = await serverWorkoutPlan({
     data: {
-      prompt,
-      model: "openai/gpt-oss-120b",
-      max_tokens: 2500,
-      temperature: 0.4,
-      response_format_json: true,
+      athlete,
+      fitnessGoal: prefs.fitnessGoal,
+      musclesPerWorkout: muscles,
     },
   });
   const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());

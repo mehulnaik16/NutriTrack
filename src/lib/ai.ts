@@ -443,7 +443,7 @@ export const serverFlagFood = createServerFn({ method: "POST" })
     await recordCorrection(ctx.context.userId, ctx.data);
   });
 
-// ── AI Chat (generic — used by WeeklyReport, weight motivation, workout plan, voice parse) ──
+// ── AI Chat (generic — used by WeeklyReport and weight motivation) ──
 
 // Without a runtime schema this endpoint is a general-purpose LLM API billed to
 // our Groq account: a TypeScript interface erases at compile time and enforces
@@ -451,9 +451,8 @@ export const serverFlagFood = createServerFn({ method: "POST" })
 const ALLOWED_CHAT_MODELS = ["openai/gpt-oss-120b"] as const;
 
 const ChatInput = z.object({
-  // Sized to the app's real callers — the largest is the workout-plan prompt
-  // (~6k chars: a trimmed exercise catalog + profile). Bounded to keep the
-  // generic endpoint from being used as an open LLM proxy.
+  // Sized to the app's real callers. Bounded to keep the generic endpoint
+  // from being used as an open LLM proxy.
   prompt: z.string().min(1).max(12_000),
   model: z.enum(ALLOWED_CHAT_MODELS).optional(),
   max_tokens: z.number().int().min(1).max(3000).optional(),
@@ -480,6 +479,52 @@ export const serverGroqChat = createServerFn({ method: "POST" })
         : {}),
     });
 
+    return { result: raw };
+  });
+
+// ── Workout plan ─────────────────────────────────────────────────────────────
+// The coach prompt and catalog live server-side (lib/workoutPrompt.ts) and go
+// out as a fixed system message, so Groq's prefix cache can reuse them; the
+// client sends only the athlete's answers.
+const WorkoutPlanInput = z.object({
+  athlete: z.string().min(1).max(2000),
+  fitnessGoal: z.enum([
+    "build_muscle",
+    "general_fitness",
+    "conditioning",
+    "strength",
+  ]),
+  musclesPerWorkout: z.enum(["1", "2", "3", "not_sure"]),
+});
+
+export const serverWorkoutPlan = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(WorkoutPlanInput)
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    const [{ groqChat }, { WORKOUT_COACH_SYSTEM, buildWorkoutUserMessage }] =
+      await Promise.all([
+        import("@/server/groq"),
+        import("@/lib/workoutPrompt"),
+      ]);
+    const { athlete, fitnessGoal, musclesPerWorkout } = ctx.data;
+    const raw = await groqChat({
+      model: "openai/gpt-oss-120b",
+      messages: [
+        { role: "system", content: WORKOUT_COACH_SYSTEM },
+        {
+          role: "user",
+          content: buildWorkoutUserMessage(
+            athlete,
+            fitnessGoal,
+            musclesPerWorkout,
+          ),
+        },
+      ],
+      max_tokens: 3000,
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+    });
     return { result: raw };
   });
 
