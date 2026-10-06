@@ -63,7 +63,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       ],
       links: [
         { rel: "stylesheet", href: appCss },
+        // Transparent symbol for the browser tab. Last wins in Chrome; the PNG
+        // (white square, kept for the app icon) is the fallback for Safari.
         { rel: "icon", type: "image/png", href: "/icon-192.png" },
+        { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
         { rel: "manifest", href: "/manifest.webmanifest" },
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
