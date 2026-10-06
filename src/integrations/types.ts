@@ -925,6 +925,7 @@ export type Database = {
           goal: string | null
           goal_weight_kg: number | null
           gym_attribution_ended_at: string | null
+          has_answered_tour_offer: boolean
           has_seen_benefits_features_page: boolean
           has_seen_refer_intro: boolean
           height_cm: number | null
@@ -967,6 +968,7 @@ export type Database = {
           goal?: string | null
           goal_weight_kg?: number | null
           gym_attribution_ended_at?: string | null
+          has_answered_tour_offer?: boolean
           has_seen_benefits_features_page?: boolean
           has_seen_refer_intro?: boolean
           height_cm?: number | null
@@ -1002,6 +1004,7 @@ export type Database = {
           goal?: string | null
           goal_weight_kg?: number | null
           gym_attribution_ended_at?: string | null
+          has_answered_tour_offer?: boolean
           has_seen_benefits_features_page?: boolean
           has_seen_refer_intro?: boolean
           height_cm?: number | null

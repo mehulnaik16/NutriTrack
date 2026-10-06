@@ -136,6 +136,7 @@ interface Profile {
   created_at: string | null;
   trial_start_date: string | null;
   selected_plan: string | null;
+  has_answered_tour_offer?: boolean;
 }
 
 interface FoodLog {
@@ -416,7 +417,18 @@ function Dashboard() {
     // never interrupt a quiz or an intro screen, and this is the only place that
     // already knows all three conditions hold.
     markOnboarded(user.id);
-    setTourState(getTour(user.id));
+    const localTour = getTour(user.id);
+    setTourState(localTour);
+    // Answered on this device before the flag existed: record it on the
+    // account so other devices stop asking too.
+    if (localTour && !p.has_answered_tour_offer) {
+      p.has_answered_tour_offer = true;
+      supabase
+        .from("user_profiles")
+        .update({ has_answered_tour_offer: true })
+        .eq("id", user.id)
+        .then();
+    }
 
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);
@@ -714,13 +726,22 @@ function Dashboard() {
   const prevWeight = weightEntries[weightEntries.length - 2]?.weight_kg;
   const weightDiff = lastWeight && prevWeight ? lastWeight - prevWeight : null;
 
-  // The tour offer is answered once, either way, after the welcome and Refer &
-  // Earn intros. Unanswered = no tour state on this device yet.
+  // The tour offer is answered once per account, either way, after the welcome
+  // and Refer & Earn intros. The answer lives on the profile so no other device
+  // asks again; afterwards the tour is only reachable from Settings.
   const answerTourOffer = (want: boolean) => {
     if (!user) return;
     const next: TourState = want ? "dashboard" : "done";
     setTour(user.id, next);
     setTourState(next);
+    setProfile((p) => (p ? { ...p, has_answered_tour_offer: true } : p));
+    supabase
+      .from("user_profiles")
+      .update({ has_answered_tour_offer: true })
+      .eq("id", user.id)
+      .then(({ error }) => {
+        if (error) console.error("Saving tour answer failed", error);
+      });
   };
 
   // Which plan day is today? (Mon-indexed, rotates across the split)
@@ -733,6 +754,7 @@ function Dashboard() {
     <div className="min-h-screen bg-muted/10 pb-24">
       <Header name={firstName} />
       {tour === null &&
+        !profile.has_answered_tour_offer &&
         profile.created_at &&
         Date.now() - new Date(profile.created_at).getTime() <
           7 * 86_400_000 && (
