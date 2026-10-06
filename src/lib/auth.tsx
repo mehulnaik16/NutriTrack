@@ -10,6 +10,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/client";
 import { syncTimezone } from "@/lib/timezone";
 import { cancelAll } from "@/lib/notifications";
+import { applyTheme, getLocalTheme } from "@/lib/theme";
 
 interface AuthCtx {
   user: User | null;
@@ -49,12 +50,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const { data, error } = await supabase
       .from("user_profiles")
-      .select("id, timezone")
+      .select("id, timezone, theme")
       .eq("id", userId)
       .maybeSingle();
     // On error leave it undetermined rather than asserting "no profile" — a
     // transient failure must not bounce a fully onboarded user into the quiz.
     setHasProfile(error ? null : !!data);
+
+    // The theme follows the account. Same read, no extra round trip: adopt the
+    // account's theme, or seed it from this device if none was ever saved.
+    if (data) {
+      const local = getLocalTheme();
+      if (data.theme && data.theme !== local) applyTheme(data.theme);
+      else if (!data.theme)
+        supabase
+          .from("user_profiles")
+          .update({ theme: local })
+          .eq("id", userId)
+          .then();
+    }
 
     // Piggy-backs on the read above so a device that has moved zones costs one
     // write and no extra round trip. Deliberately not awaited: notification
