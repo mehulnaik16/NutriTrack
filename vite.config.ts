@@ -63,6 +63,16 @@ export default defineConfig(({ command, mode }) => {
         ? [
             nitro({
               preset: "vercel",
+              // Browsers keep /images for a year without asking Vercel again.
+              // immutable: to change an image, give it a NEW filename, or
+              // returning users keep the old one.
+              routeRules: {
+                "/images/**": {
+                  headers: {
+                    "cache-control": "public, max-age=31536000, immutable",
+                  },
+                },
+              },
               output: {
                 dir: "dist",
                 serverDir: "dist/server",

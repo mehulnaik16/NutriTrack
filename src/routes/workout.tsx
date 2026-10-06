@@ -207,15 +207,15 @@ function todaysPlanIndex(daysCount: number): number {
 }
 
 const MUSCLES = [
-  { id: "chest", name: "Chest", img: "/images/chestfinal.png" },
-  { id: "back", name: "Back", img: "/images/backfinal.png" },
-  { id: "shoulders", name: "Shoulders", img: "/images/shouldersfinal.png" },
-  { id: "biceps", name: "Biceps", img: "/images/biceps%20final.png" },
-  { id: "triceps", name: "Triceps", img: "/images/tricepsfinal.png" },
-  { id: "abs", name: "Core & Abs", img: "/images/corefinal.png" },
-  { id: "legs", name: "Legs", img: "/images/legs.png" },
-  { id: "compound", name: "Compound", img: "/images/compoundfinal.png" },
-  { id: "forearms", name: "Forearms", img: "/images/forearms.png" },
+  { id: "chest", name: "Chest", img: "/images/chest.webp" },
+  { id: "back", name: "Back", img: "/images/back.webp" },
+  { id: "shoulders", name: "Shoulders", img: "/images/shoulders.webp" },
+  { id: "biceps", name: "Biceps", img: "/images/biceps.webp" },
+  { id: "triceps", name: "Triceps", img: "/images/triceps.webp" },
+  { id: "abs", name: "Core & Abs", img: "/images/core.webp" },
+  { id: "legs", name: "Legs", img: "/images/legs.webp" },
+  { id: "compound", name: "Compound", img: "/images/compound.webp" },
+  { id: "forearms", name: "Forearms", img: "/images/forearms.webp" },
 ];
 
 /** RPE 1-10 → colour band. Purely cosmetic; an unset RPE keeps the default. */

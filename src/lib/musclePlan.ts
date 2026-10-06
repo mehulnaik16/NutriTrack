@@ -43,14 +43,14 @@ export const MUSCLE_EMOJI: Record<StandardMuscle, string> = {
  * Rest Day has no image and falls back to its emoji.
  */
 export const MUSCLE_IMG: Partial<Record<StandardMuscle, string>> = {
-  Biceps: "/images/biceps%20final.png",
-  Triceps: "/images/tricepsfinal.png",
-  Back: "/images/backfinal.png",
-  Legs: "/images/legs.png",
-  "Compound Exercise": "/images/compoundfinal.png",
-  Chest: "/images/chestfinal.png",
-  Core: "/images/corefinal.png",
-  Shoulder: "/images/shouldersfinal.png",
+  Biceps: "/images/biceps.webp",
+  Triceps: "/images/triceps.webp",
+  Back: "/images/back.webp",
+  Legs: "/images/legs.webp",
+  "Compound Exercise": "/images/compound.webp",
+  Chest: "/images/chest.webp",
+  Core: "/images/core.webp",
+  Shoulder: "/images/shoulders.webp",
 };
 
 /**
