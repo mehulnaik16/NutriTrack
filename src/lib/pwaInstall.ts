@@ -54,6 +54,27 @@ export function isInstalled(): boolean {
   );
 }
 
+/**
+ * Inside another app's built-in browser (Instagram, Facebook, LinkedIn,
+ * Snapchat, any Android WebView). None of them can install a web app.
+ * Our own native shell is also a WebView; callers rule it out first.
+ */
+export function isInAppBrowser(): boolean {
+  const ua = navigator.userAgent;
+  if (/Instagram|FBAN|FBAV|FB_IAB|LinkedInApp|Snapchat|Line\//i.test(ua))
+    return true;
+  if (/Android/.test(ua) && /; wv\)/.test(ua)) return true; // Android WebView
+  // iOS WKWebViews leave "Safari/" out of the UA; real Safari, Chrome (CriOS),
+  // Firefox (FxiOS) and Edge (EdgiOS) on iOS keep it or their own token.
+  return isIOS() && !/Safari\/|CriOS|FxiOS|EdgiOS/.test(ua);
+}
+
+/** Android: reopen this page in Chrome, where install works. */
+export function openInChrome() {
+  const { host, pathname, search } = location;
+  location.href = `intent://${host}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;end`;
+}
+
 export const isIOS = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
