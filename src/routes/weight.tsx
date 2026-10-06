@@ -27,6 +27,7 @@ import {
 import { useCachedWorkoutPrefs } from "@/hooks/useWorkoutPrefsGate";
 import { type WeightUnit, kgToWeight, weightToKg, round1 } from "@/lib/units";
 import { Header } from "@/components/Header";
+import { Tour, type TourStep } from "@/components/Tour";
 import { ChandrayaanDescentWidget } from "@/components/ChandrayaanDescentWidget";
 import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,7 +75,37 @@ import {
   VIEW_ONLY_MESSAGE,
 } from "@/lib/dates";
 
-export const Route = createFileRoute("/weight")({ component: WeightPage });
+export const Route = createFileRoute("/weight")({
+  component: WeightPage,
+  // ?tour=1 comes only from Profile → Settings → App tours; it is never offered.
+  validateSearch: (s: Record<string, unknown>): { tour?: 1 } =>
+    s.tour === 1 || s.tour === "1" ? { tour: 1 } : {},
+});
+
+const WEIGHT_TOUR: TourStep[] = [
+  { target: "weight-input", text: "Enter today's weight here." },
+  {
+    target: "weight-goal",
+    text: "Set your target once; it shows as a line on your chart.",
+  },
+  {
+    target: "weight-note",
+    text: "Optional: add context like 'after workout'.",
+  },
+  {
+    target: "weight-photo",
+    text: "Optional: add a photo to compare over time.",
+  },
+  {
+    target: "weight-log",
+    text: "Tap to save. Log at the same time each day for a clean trend.",
+  },
+  // Only rendered once a weight exists; Tour skips a missing target.
+  {
+    target: "weight-history",
+    text: "Your past entries; edit or delete them here.",
+  },
+];
 
 // Colour of a weight change: toward the goal is good, away is bad.
 const TONE_CLASS = {
@@ -130,6 +161,7 @@ function WeightPage() {
   const { state: accessState } = useAccessGate();
   const photoLocked = accessState !== "entitled";
   const navigate = useNavigate();
+  const { tour } = Route.useSearch();
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Body weight is stored canonically in kg (BMI/calorie math needs it). The page
@@ -488,6 +520,12 @@ function WeightPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <Header name={profile.full_name?.split(" ")[0]} />
+      {tour && (
+        <Tour
+          steps={WEIGHT_TOUR}
+          onDone={() => navigate({ to: "/weight", search: {}, replace: true })}
+        />
+      )}
       <main className="mx-auto max-w-4xl space-y-6 px-3 py-5 sm:px-6 sm:py-6">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
           {getTelemetryLabel("Weight Tracker")}
@@ -641,6 +679,7 @@ function WeightPage() {
                 size="icon"
                 className="-my-3 -mr-3 h-11 w-11 text-muted-foreground hover:text-foreground [&_svg]:size-6"
                 aria-label="Weight history"
+                data-tour="weight-history"
                 onClick={() => setHistoryOpen(true)}
               >
                 <HistoryIcon />
@@ -649,7 +688,7 @@ function WeightPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-y-2" data-tour="weight-input">
                 <Label>Weight ({wu})</Label>
                 <Input
                   type="number"
@@ -661,7 +700,7 @@ function WeightPage() {
                   placeholder="e.g. 82.5"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2" data-tour="weight-goal">
                 <Label>Goal weight ({wu})</Label>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
@@ -680,7 +719,7 @@ function WeightPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2" data-tour="weight-note">
               <Label>Note (optional)</Label>
               <Input
                 value={note}
@@ -692,7 +731,7 @@ function WeightPage() {
             {/* Photo upload — the one locked control on this page. Logging a
                 weight stays free; the progress-photo pipeline is premium, so
                 free-tier users get a small in-block lock and no file input. */}
-            <div className="space-y-2">
+            <div className="space-y-2" data-tour="weight-photo">
               <Label>Progress photo (optional)</Label>
               {photoLocked ? (
                 <Link
@@ -740,6 +779,7 @@ function WeightPage() {
             </div>
 
             <Button
+              data-tour="weight-log"
               onClick={logWeight}
               disabled={saving || !weight}
               className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"

@@ -24,6 +24,7 @@ import {
   Instagram,
   Youtube,
   Compass,
+  Scale,
   Facebook,
   Mail,
   HelpCircle,
@@ -203,6 +204,7 @@ const PAGE_VALUES: readonly Page[] = [
   "gym",
   "achievements",
   "measurements",
+  "tours",
 ];
 
 export const Route = createFileRoute("/profile")({
@@ -225,7 +227,8 @@ type Page =
   | "gym"
   | "achievements"
   | "measurements"
-  | "health-log";
+  | "health-log"
+  | "tours";
 
 /* ─── menu items ─── */
 const MENU_ITEMS: {
@@ -600,6 +603,7 @@ function Profile() {
       <SettingsPage
         userId={user.id}
         onBack={goBack}
+        onTours={() => setPage("tours")}
         onSignOut={async () => {
           await signOut();
           navigate({ to: "/login", replace: true });
@@ -608,6 +612,7 @@ function Profile() {
     );
   if (page === "help") return <HelpPage onBack={goBack} />;
   if (page === "about") return <AboutPage onBack={goBack} />;
+  if (page === "tours") return <ToursPage userId={user.id} onBack={goBack} />;
   if (page === "refer")
     return <ReferAndEarnPage userId={user.id} onBack={goBack} />;
   if (page === "gym") return <GymLinkPage userId={user.id} onBack={goBack} />;
@@ -1554,17 +1559,36 @@ function Profile() {
         {/* Social icons */}
         <div className="mt-8 flex items-center justify-center gap-6">
           {[
-            { icon: <Instagram className="h-5 w-5" />, label: "Instagram", href: "https://instagram.com/usedombelz" },
-            { icon: <Facebook className="h-5 w-5" />, label: "Facebook", href: "https://facebook.com/Usedombelz" },
-            { icon: <Youtube className="h-5 w-5" />, label: "YouTube", href: "https://youtube.com/@usedombelz" },
+            {
+              icon: <Instagram className="h-5 w-5" />,
+              label: "Instagram",
+              href: "https://instagram.com/usedombelz",
+            },
+            {
+              icon: <Facebook className="h-5 w-5" />,
+              label: "Facebook",
+              href: "https://facebook.com/Usedombelz",
+            },
+            {
+              icon: <Youtube className="h-5 w-5" />,
+              label: "YouTube",
+              href: "https://youtube.com/@usedombelz",
+            },
             // TODO: switch to LEGAL.supportEmail once that inbox is live.
-            { icon: <Mail className="h-5 w-5" />, label: "Email", href: emailLink("usedombelz@gmail.com").href },
+            {
+              icon: <Mail className="h-5 w-5" />,
+              label: "Email",
+              href: emailLink("usedombelz@gmail.com").href,
+            },
           ].map((s) => (
             <a
               key={s.label}
               href={s.href}
               aria-label={s.label}
-              {...(s.href.startsWith("http") && { target: "_blank", rel: "noopener noreferrer" })}
+              {...(s.href.startsWith("http") && {
+                target: "_blank",
+                rel: "noopener noreferrer",
+              })}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-accent hover:text-accent transition-all"
             >
               {s.icon}
@@ -1993,10 +2017,12 @@ function formatBillingDate(iso: string | null): string {
 function SettingsPage({
   userId,
   onBack,
+  onTours,
   onSignOut,
 }: {
   userId: string;
   onBack: () => void;
+  onTours: () => void;
   onSignOut: () => Promise<void>;
 }) {
   const navigate = useNavigate();
@@ -2216,10 +2242,7 @@ function SettingsPage({
             General
           </p>
           <button
-            onClick={() => {
-              setTour(userId, "dashboard");
-              navigate({ to: "/dashboard" });
-            }}
+            onClick={onTours}
             className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
           >
             <span className="flex items-center gap-3 text-sm font-medium">
@@ -2517,6 +2540,48 @@ function HelpPage({ onBack }: { onBack: () => void }) {
 /* ═══════════════════════════════════════════════════
    About
 ══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════
+   App tours — opened from Settings. Each button starts its tour directly;
+   only the home & food tour is ever offered at onboarding.
+══════════════════════════════════════════════════════ */
+function ToursPage({ userId, onBack }: { userId: string; onBack: () => void }) {
+  const navigate = useNavigate();
+  const tours = [
+    {
+      icon: Compass,
+      label: "Home & food tour",
+      start: () => {
+        setTour(userId, "dashboard");
+        navigate({ to: "/dashboard" });
+      },
+    },
+    {
+      icon: Scale,
+      label: "Weight logging tour",
+      start: () => navigate({ to: "/weight", search: { tour: 1 } }),
+    },
+  ];
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      <SubHeader title="App tours" onBack={onBack} />
+      <main className="mx-auto max-w-lg space-y-2 px-4 py-6">
+        {tours.map(({ icon: Icon, label, start }) => (
+          <button
+            key={label}
+            onClick={start}
+            className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
+          >
+            <span className="flex items-center gap-3 text-sm font-medium">
+              <Icon className="h-5 w-5 text-accent" /> {label}
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+          </button>
+        ))}
+      </main>
+    </div>
+  );
+}
+
 function AboutPage({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen bg-background pb-24">
