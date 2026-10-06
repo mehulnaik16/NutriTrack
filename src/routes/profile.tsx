@@ -33,7 +33,6 @@ import {
   GlassWater,
   Copy,
   Share2,
-  Activity,
   Building2,
   Dumbbell,
   Camera,
@@ -111,6 +110,7 @@ import { ReferAndEarnPage } from "@/components/ReferAndEarn";
 import { GymLinkPage } from "@/components/GymLink";
 import { setTour } from "@/components/Tour";
 import { SubHeader } from "@/components/SubHeader";
+import { BrandLogo } from "@/components/BrandLogo";
 import { HelpCenter } from "@/components/HelpCenter";
 import { LEGAL } from "@/lib/legal";
 import { PricingPlans } from "@/components/PricingPlans";
@@ -273,11 +273,6 @@ const MENU_ITEMS: {
     id: "theme",
     icon: <Palette className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
     label: "Theme",
-  },
-  {
-    id: "pricing",
-    icon: <Tag className="h-7 w-7 md:h-[26px] md:w-[26px]" />,
-    label: "Pricing",
   },
   {
     id: "settings",
@@ -1783,8 +1778,8 @@ function TransactionsPage({
                 onClick={onPricing}
               >
                 {/* Once access has lapsed the only useful move is paying, so
-                    the button says that rather than "change plan". */}
-                {hasAccessNow ? "Change plan" : `Buy · ₹${plan.price}`}
+                    the button says that rather than "View plans". */}
+                {hasAccessNow ? "View plans" : `Buy · ₹${plan.price}`}
               </Button>
             </div>
           ) : (
@@ -2544,7 +2539,7 @@ function AboutPage({ onBack }: { onBack: () => void }) {
           <div className="pointer-events-none absolute -top-16 left-1/2 h-40 w-72 -translate-x-1/2 rounded-full bg-accent/10 blur-3xl" />
           <div className="relative">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-accent-foreground glow-accent-sm">
-              <Activity className="h-8 w-8" />
+              <BrandLogo className="h-9 w-9" />
             </div>
             <h2 className="font-display text-2xl font-bold">Dombelz</h2>
             <p className="mt-1 text-xs font-bold uppercase tracking-widest text-accent">
