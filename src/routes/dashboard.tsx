@@ -86,6 +86,7 @@ import {
 } from "@/components/Tour";
 import { loadMealNames } from "@/lib/meals";
 import { uploadWeightPhoto } from "@/services/storage";
+import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import {
   isEditableDate,
   todayLocal,
@@ -254,7 +255,6 @@ async function computeStreak(userId: string): Promise<number> {
 function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const fileRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<FoodSearchRef>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -513,12 +513,9 @@ function Dashboard() {
     }
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
-    }
+  const handlePhotoChange = (file: File) => {
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const totals = useMemo(
@@ -1297,22 +1294,15 @@ function Dashboard() {
                       kg
                     </span>
                   </div>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className={`shrink-0 ${photoFile ? "border-energy text-energy bg-energy/5" : ""}`}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handlePhotoChange}
-                  />
+                  <PhotoSourcePicker onPick={handlePhotoChange}>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className={`shrink-0 ${photoFile ? "border-energy text-energy bg-energy/5" : ""}`}
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </PhotoSourcePicker>
                   <Button
                     onClick={saveWeight}
                     disabled={savingWeight || !newWeight}
