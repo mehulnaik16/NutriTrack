@@ -101,7 +101,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
             // instead would render the header under the status bar for a frame
             // and then jump, which is more noticeable than the overlap itself.
             // The landing page ("/") is always light; see routes/index.tsx.
-            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t)}catch(e){}try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}`,
+            // On "/", a stored Supabase session adds .has-session so a
+            // returning user sees the redirect spinner, not the landing page.
+            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}`,
           }}
         />
       </head>
