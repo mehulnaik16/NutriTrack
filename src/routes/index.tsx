@@ -7,7 +7,6 @@ import {
   ChevronDown,
   Download,
 } from "lucide-react";
-import { toast } from "sonner";
 import { syncFavicon } from "@/lib/theme";
 import appStoreBadge from "@/assets/badges/app-store.svg";
 import googlePlayBadge from "@/assets/badges/google-play.png";
@@ -566,6 +565,8 @@ function InstallAppButton() {
   if (!show) return null;
 
   const install = async () => {
+    // Loaded on tap, so the landing page's first paint doesn't wait on it.
+    const { toast } = await import("sonner");
     // Instagram/Facebook etc. browsers cannot install; send the user to a
     // real browser first.
     if (isInAppBrowser()) {

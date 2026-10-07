@@ -9,7 +9,6 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/client";
 import { syncTimezone } from "@/lib/timezone";
-import { cancelAll } from "@/lib/notifications";
 import { applyTheme, getLocalTheme } from "@/lib/theme";
 import { clearHistoryCache } from "@/lib/historyCache";
 
@@ -118,7 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut: async () => {
           // Alarms live in the OS, not the session. Without this the next
           // person on the phone keeps getting the last account's reminders.
-          await cancelAll().catch(() => {});
+          // Loaded on demand: the notifications module pulls in Capacitor and
+          // the quote bank, which the landing page's first paint doesn't need.
+          await import("@/lib/notifications")
+            .then((m) => m.cancelAll())
+            .catch(() => {});
           // Cached old logs stay on the device otherwise.
           if (userId) await clearHistoryCache(userId);
           await supabase.auth.signOut();
