@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { serverGroqChat } from "@/lib/ai";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Scale,
   TrendingDown,
@@ -66,6 +66,7 @@ import {
   replaceWeightPhoto,
 } from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
+import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import { useAccessGate } from "@/hooks/useAccessGate";
 import {
   daysAgoLocal,
@@ -162,8 +163,6 @@ function WeightPage() {
   const photoLocked = accessState !== "entitled";
   const navigate = useNavigate();
   const { tour } = Route.useSearch();
-  const fileRef = useRef<HTMLInputElement>(null);
-
   // Body weight is stored canonically in kg (BMI/calorie math needs it). The page
   // DISPLAYS the current unit; its chart plots the original unit. Helpers below.
   const unitPrefs = useCachedWorkoutPrefs(user?.id);
@@ -255,9 +254,7 @@ function WeightPage() {
     setLoadingMotivation(false);
   };
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handlePhoto = (file: File) => {
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
@@ -746,11 +743,8 @@ function WeightPage() {
                   </p>
                 </Link>
               ) : (
-                <>
-                  <div
-                    onClick={() => fileRef.current?.click()}
-                    className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 hover:border-accent transition-colors"
-                  >
+                <PhotoSourcePicker onPick={handlePhoto}>
+                  <div className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 hover:border-accent transition-colors">
                     {photoPreview ? (
                       <img
                         src={photoPreview}
@@ -766,15 +760,7 @@ function WeightPage() {
                       </>
                     )}
                   </div>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handlePhoto}
-                  />
-                </>
+                </PhotoSourcePicker>
               )}
             </div>
 
@@ -993,7 +979,10 @@ function WeightEntryModal({
   const [editNote, setEditNote] = useState("");
   const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const pickEditPhoto = (file: File) => {
+    setEditPhotoFile(file);
+    setEditPhotoPreview(URL.createObjectURL(file));
+  };
 
   useEffect(() => {
     if (entry) {
@@ -1095,13 +1084,11 @@ function WeightEntryModal({
                     {isEditing && (
                       <div className="absolute inset-0 bg-black/50 opacity-100 md:bg-black/60 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                         {!photoLocked && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => fileRef.current?.click()}
-                          >
-                            Change Photo
-                          </Button>
+                          <PhotoSourcePicker onPick={pickEditPhoto}>
+                            <Button variant="secondary" size="sm">
+                              Change Photo
+                            </Button>
+                          </PhotoSourcePicker>
                         )}
                         <Button
                           variant="destructive"
@@ -1128,30 +1115,16 @@ function WeightEntryModal({
                       </p>
                     </Link>
                   ) : (
-                    <div
-                      onClick={() => fileRef.current?.click()}
-                      className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 hover:border-accent transition-colors w-full"
-                    >
-                      <Camera className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Tap to add a progress photo
-                      </p>
-                    </div>
+                    <PhotoSourcePicker onPick={pickEditPhoto}>
+                      <div className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 hover:border-accent transition-colors w-full">
+                        <Camera className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Tap to add a progress photo
+                        </p>
+                      </div>
+                    </PhotoSourcePicker>
                   ))
                 )}
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setEditPhotoFile(file);
-                      setEditPhotoPreview(URL.createObjectURL(file));
-                    }
-                  }}
-                />
               </div>
             )}
 
