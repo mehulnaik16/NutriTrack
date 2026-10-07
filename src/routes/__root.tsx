@@ -77,10 +77,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           href: "https://fonts.gstatic.com",
           crossOrigin: "anonymous",
         },
-        {
-          rel: "stylesheet",
-          href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=VT323&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap",
-        },
+        // The Google Fonts stylesheet itself is added by the head script in
+        // RootShell, not here: a script-inserted stylesheet doesn't block the
+        // first paint (~0.75 s on mobile). display=swap shows fallback text
+        // until the fonts land.
       ],
     }),
     shellComponent: RootShell,
@@ -88,6 +88,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     notFoundComponent: NotFoundComponent,
   },
 );
+
+const FONTS_CSS =
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=VT323&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap";
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
@@ -103,7 +106,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
             // The landing page ("/") is always light; see routes/index.tsx.
             // On "/", a stored Supabase session adds .has-session so a
             // returning user sees the redirect spinner, not the landing page.
-            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}var f=document.createElement('link');f.rel='stylesheet';f.href='${FONTS_CSS}';document.head.appendChild(f);try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}`,
           }}
         />
       </head>
