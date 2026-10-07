@@ -8,7 +8,8 @@ import {
 
 /**
  * Tapping `children` opens a small Camera / Gallery popup. Camera opens the
- * rear camera directly; Gallery picks one image from the device.
+ * rear camera directly; Gallery picks one image from the device. On a PC the
+ * tap opens the file picker straight away.
  */
 export function PhotoSourcePicker({
   children,
@@ -36,7 +37,18 @@ export function PhotoSourcePicker({
 
   return (
     <>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          // PC browsers ignore `capture`, so Camera would just open the file
+          // picker too. No touchscreen as main input → skip the popup.
+          if (next && !matchMedia("(pointer: coarse)").matches) {
+            galleryRef.current?.click();
+            return;
+          }
+          setOpen(next);
+        }}
+      >
         <PopoverTrigger asChild>{children}</PopoverTrigger>
         <PopoverContent className="flex w-48 gap-1 p-1.5">
           <button type="button" className={option} onClick={() => choose(cameraRef)}>
