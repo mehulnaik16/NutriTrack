@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/client";
+import { getHistory } from "@/lib/historyCache";
 import type { MealIngredient, SavedMeal } from "@/lib/meals";
 import { serverAiFoodSearchInline, serverFlagFood } from "@/lib/ai";
 import { isPersonalName } from "@/lib/foodCache";
@@ -349,16 +350,15 @@ export const FoodSearch = forwardRef<
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const dateStr = toLocalISO(sevenDaysAgo);
 
-    supabase
-      .from("food_logs")
-      .select(
-        "food_name, quantity_g, calories, protein_g, carbs_g, fat_g, fiber_g, meal_type",
+    getHistory(userId, "food_logs")
+      .then((rows) =>
+        rows
+          .filter((r) => r.date && r.date >= dateStr)
+          .sort((a, b) => (b.logged_at ?? "").localeCompare(a.logged_at ?? ""))
+          .slice(0, 50),
       )
-      .eq("user_id", userId)
-      .gte("date", dateStr)
-      .order("logged_at", { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
+      .catch(() => null)
+      .then((data) => {
         if (!data) return;
         // Deduplicate by food_name, keep most recent entry for each
         const seen = new Map<string, RecentFood>();

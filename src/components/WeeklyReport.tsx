@@ -3,7 +3,7 @@ import { serverGroqChat } from "@/lib/ai";
 import { Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/client";
+import { getHistory } from "@/lib/historyCache";
 import { toLocalISO } from "@/lib/dates";
 
 interface Props {
@@ -36,28 +36,14 @@ async function buildWeekStats(
   const from = toLocalISO(weekAgo);
   const to = toLocalISO(today);
 
-  const [{ data: foodLogs }, { data: workoutLogs }, { data: weightEntries }] =
-    await Promise.all([
-      supabase
-        .from("food_logs")
-        .select("date,calories")
-        .eq("user_id", userId)
-        .gte("date", from)
-        .lte("date", to),
-      supabase
-        .from("workout_logs")
-        .select("date")
-        .eq("user_id", userId)
-        .gte("date", from)
-        .lte("date", to),
-      supabase
-        .from("weight_entries")
-        .select("date,weight_kg")
-        .eq("user_id", userId)
-        .gte("date", from)
-        .lte("date", to)
-        .order("date"),
-    ]);
+  const inWeek = <R extends { date: string | null }>(rows: R[]) =>
+    rows.filter((r) => r.date && r.date >= from && r.date <= to);
+  const [foodLogs, workoutLogs, weightEntries] = await Promise.all([
+    getHistory(userId, "food_logs").then(inWeek).catch(() => []),
+    getHistory(userId, "workout_logs").then(inWeek).catch(() => []),
+    // Oldest first, as getHistory returns.
+    getHistory(userId, "weight_entries").then(inWeek).catch(() => []),
+  ]);
 
   // Aggregate calories by day
   const dayMap: Record<string, number> = {};

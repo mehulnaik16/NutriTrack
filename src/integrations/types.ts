@@ -933,6 +933,8 @@ export type Database = {
           /** Bumped by DB triggers when old (frozen) log rows change. Read-only. */
           history_version: number
           id: string
+          /** Bumped by DB triggers on any change to a cached log table. Read-only. */
+          log_version: number
           longest_streak: number | null
           meal_frequency: number | null
           meal_names: string[]

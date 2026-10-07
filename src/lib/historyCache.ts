@@ -1,13 +1,24 @@
 /**
- * Browser cache for a user's old log rows (web only).
+ * Browser cache for a user's log rows (web only).
  *
- * Rows dated more than 7 days back are frozen: enforce_log_edit_window blocks
- * every insert and update to them, so they only ever change by being deleted
- * (or by service-role SQL). Those rows live in IndexedDB indefinitely; each
- * read fetches only the recent tail plus user_profiles.history_version, which
- * DB triggers bump whenever an old row changes (migration
- * 20261007130000_history_version). A version mismatch drops the cache and
- * refetches everything once — that is how a delete on another device shows up.
+ * Every row of the four cached tables lives in IndexedDB, in two parts:
+ *  - frozen: dated before `frozenUpTo` (~8 days back). enforce_log_edit_window
+ *    blocks inserts and updates to these, so they only change by deletion or
+ *    service-role SQL.
+ *  - recent: everything newer, still editable.
+ *
+ * Two counters on user_profiles, bumped by DB triggers (migrations
+ * 20261007130000_history_version, 20261007150000_log_version), validate it:
+ *  - log_version: any change to any row → refetch the recent part only.
+ *  - history_version: a frozen row changed → refetch everything once.
+ * Neither changed → every row comes from the browser, no data request at all.
+ *
+ * Each day as the cutoff moves forward, recent rows that crossed it simply move
+ * to the frozen part, with no download.
+ *
+ * One counter read is shared by all callers for VERSION_TTL_MS, and is dropped
+ * the moment this tab writes to a cached table (see the fetch hook in
+ * integrations/client.ts), so your own changes show up on the next read.
  *
  * Skipped in the Capacitor app (app-level caching comes later) and wherever
  * IndexedDB is unavailable: those read everything live, as before.
@@ -26,12 +37,15 @@ const DATE_COL = {
 
 export type CachedTable = keyof typeof DATE_COL;
 type Row<T extends CachedTable> = Tables<T>;
-type Record_ = { version: number; frozenUpTo: string; rows: unknown[] };
+type Versions = { history: number; log: number };
+type Saved = Versions & { frozenUpTo: string; rows: unknown[] };
 
 const PAGE = 1000; // PostgREST's per-request row cap
+const VERSION_TTL_MS = 3000;
 
 // 8, not 7: the DB counts days in user_profiles.timezone and the device in its
-// own clock. The margin keeps a row the DB still lets you edit out of the cache.
+// own clock. The margin keeps a row the DB still lets you edit out of the
+// frozen part.
 const frozenBefore = () => daysAgoLocal(8);
 
 // ── IndexedDB (native API, one object store keyed `${userId}:${table}`) ──────
@@ -64,8 +78,7 @@ function idbCall<T>(
   );
 }
 
-const cacheUsable = () =>
-  typeof indexedDB !== "undefined" && !isNativeApp();
+const cacheUsable = () => typeof indexedDB !== "undefined" && !isNativeApp();
 
 // ── Network ──────────────────────────────────────────────────────────────────
 
@@ -82,8 +95,8 @@ async function fetchRows<T extends CachedTable>(
       .from(table as CachedTable)
       .select("*")
       .eq("user_id", userId);
-    // food_logs.date is nullable; an undated row is never frozen, so the tail
-    // must include it.
+    // food_logs.date is nullable; an undated row is never frozen, so the
+    // recent part must include it.
     if (from) q = q.or(`${col}.gte.${from},${col}.is.null`);
     const { data, error } = await q
       .order(col, { ascending: true })
@@ -95,23 +108,36 @@ async function fetchRows<T extends CachedTable>(
   }
 }
 
-const versionInFlight = new Map<string, Promise<number | null>>();
-function historyVersion(userId: string): Promise<number | null> {
-  // The four tables are usually read together; ask once for all of them.
-  let p = versionInFlight.get(userId);
-  if (!p) {
-    p = Promise.resolve(
-      supabase
-        .from("user_profiles")
-        .select("history_version")
-        .eq("id", userId)
-        .maybeSingle(),
-    )
-      .then(({ data }) => data?.history_version ?? null)
-      .finally(() => versionInFlight.delete(userId));
-    versionInFlight.set(userId, p);
-  }
+// One counter read shared by every caller for a few seconds: a page's streak,
+// calendar, header and charts all ask at once.
+let versions: { userId: string; at: number; p: Promise<Versions | null> } | null =
+  null;
+
+function getVersions(userId: string): Promise<Versions | null> {
+  if (versions?.userId === userId && Date.now() - versions.at < VERSION_TTL_MS)
+    return versions.p;
+  const p = Promise.resolve(
+    supabase
+      .from("user_profiles")
+      .select("history_version, log_version")
+      .eq("id", userId)
+      .maybeSingle(),
+  ).then(({ data }) =>
+    data ? { history: data.history_version, log: data.log_version } : null,
+  );
+  versions = { userId, at: Date.now(), p };
+  p.then((v) => v === null && (versions = null)); // don't keep a failed read
   return p;
+}
+
+// A write from this tab to a cached table: forget the shared counter read so
+// the very next read sees the bump. Fired by the fetch hook in client.ts.
+const WRITE_URL =
+  /\/rest\/v1\/(food_logs|workout_logs|weight_entries|body_measurements)\b|\/rpc\/log_body_measurements\b/;
+if (typeof window !== "undefined") {
+  window.addEventListener("dombelz:write", (e) => {
+    if (WRITE_URL.test((e as CustomEvent<string>).detail)) versions = null;
+  });
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────
@@ -119,9 +145,8 @@ function historyVersion(userId: string): Promise<number | null> {
 const inFlight = new Map<string, Promise<unknown[]>>();
 
 /**
- * Every row of `table` for this user, oldest date first: frozen rows from the
- * browser cache plus a fresh read of everything newer. Callers filter, sort and
- * project in memory.
+ * Every row of `table` for this user, oldest date first. Callers filter, sort
+ * and project in memory.
  */
 export function getHistory<T extends CachedTable>(
   userId: string,
@@ -145,45 +170,48 @@ async function load<T extends CachedTable>(
   if (!cacheUsable()) return fetchRows(userId, table, null);
 
   const key = `${userId}:${table}`;
-  const [version, saved] = await Promise.all([
-    historyVersion(userId),
-    idbCall<Record_ | undefined>("readonly", (s) => s.get(key)).catch(
+  const [v, saved] = await Promise.all([
+    getVersions(userId),
+    idbCall<Saved | undefined>("readonly", (s) => s.get(key)).catch(
       () => undefined,
     ),
   ]);
-  if (version === null) return fetchRows(userId, table, null);
+  if (!v) return fetchRows(userId, table, null);
 
-  const col = DATE_COL[table];
   const cutoff = frozenBefore();
-  const isFrozen = (r: Row<T>) => {
-    const d = (r as Record<string, unknown>)[col] as string | null;
-    return d !== null && d < cutoff;
+  const save = (rows: Row<T>[]) => {
+    const rec: Saved = { ...v, frozenUpTo: cutoff, rows };
+    idbCall("readwrite", (s) => s.put(rec, key)).catch(() => {});
+    return rows;
   };
 
-  let frozen: Row<T>[];
-  let tail: Row<T>[];
-  if (saved && saved.version === version && saved.frozenUpTo <= cutoff) {
-    frozen = saved.rows as Row<T>[];
-    tail = await fetchRows(userId, table, saved.frozenUpTo);
-  } else {
-    frozen = [];
-    tail = await fetchRows(userId, table, null);
+  // No cache, an old row changed, or the clock went backwards: start over.
+  if (!saved || saved.history !== v.history || saved.frozenUpTo > cutoff)
+    return save(await fetchRows(userId, table, null));
+
+  const rows = saved.rows as Row<T>[];
+
+  // Nothing changed anywhere. Days that crossed the cutoff since last time
+  // just move to the frozen part (frozenUpTo advances), no download.
+  if (saved.log === v.log) {
+    if (saved.frozenUpTo !== cutoff) save(rows);
+    return rows;
   }
 
-  // Days that froze since the last visit move from the tail into the cache.
-  const newlyFrozen = tail.filter(isFrozen);
-  const live = tail.filter((r) => !isFrozen(r));
-  frozen = frozen.concat(newlyFrozen);
-
-  if (!saved || saved.version !== version || newlyFrozen.length || saved.frozenUpTo !== cutoff) {
-    const rec: Record_ = { version, frozenUpTo: cutoff, rows: frozen };
-    idbCall("readwrite", (s) => s.put(rec, key)).catch(() => {});
-  }
-  return frozen.concat(live);
+  // Something recent changed: keep the frozen part, refetch the rest.
+  const col = DATE_COL[table];
+  const frozen = rows.filter((r) => {
+    const d = (r as Record<string, unknown>)[col] as string | null;
+    return d !== null && d < saved.frozenUpTo;
+  });
+  return save(
+    frozen.concat(await fetchRows(userId, table, saved.frozenUpTo)),
+  );
 }
 
 /** Forget this user's cached history (sign-out, so the next person can't read it). */
 export async function clearHistoryCache(userId: string): Promise<void> {
+  versions = null;
   if (typeof indexedDB === "undefined") return;
   await Promise.all(
     (Object.keys(DATE_COL) as CachedTable[]).map((t) =>
@@ -191,9 +219,6 @@ export async function clearHistoryCache(userId: string): Promise<void> {
     ),
   );
 }
-
-/** True when `date` is old enough to be served from the cache. */
-export const isFrozenDate = (date: string) => date < frozenBefore();
 
 /** Rows ordered by date, then logged_at — like `.order("date").order("logged_at")`. */
 export function byDateThenTime<
@@ -206,10 +231,9 @@ export function byDateThenTime<
 }
 
 /** One day's food logs from history, in `.order("logged_at")` order. */
-export function dayLogs<R extends { date: string | null; logged_at: string | null }>(
-  rows: R[],
-  date: string,
-): R[] {
+export function dayLogs<
+  R extends { date: string | null; logged_at: string | null },
+>(rows: R[], date: string): R[] {
   const key = (r: R) => r.logged_at ?? "￿"; // Postgres sorts nulls last
   return rows
     .filter((r) => r.date === date)
