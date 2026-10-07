@@ -158,29 +158,40 @@ export async function deleteWeightPhoto(
   return { data: null, error: null };
 }
 
-/**
- * Replace a weight photo: upload new, verify, then delete old.
- * Never deletes the old image unless the new upload succeeds.
- */
-export async function replaceWeightPhoto(
-  oldPhotoUrl: string | null,
-  newFile: File,
+/** The photo already on this user's entry for `date`, if any. */
+export async function existingPhotoUrl(
   userId: string,
-): Promise<StorageResult<UploadResult>> {
-  // 1. Upload new
-  const uploadResult = await uploadWeightPhoto(newFile, userId);
-  if (uploadResult.error || !uploadResult.data) {
-    return uploadResult;
-  }
+  date: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("weight_entries")
+    .select("photo_url")
+    .eq("user_id", userId)
+    .eq("date", date)
+    .maybeSingle();
+  return data?.photo_url ?? null;
+}
 
-  // 2. Delete old (best-effort — new photo is already safe)
-  if (oldPhotoUrl) {
-    const deleteResult = await deleteWeightPhoto(oldPhotoUrl);
-    if (deleteResult.error) {
-      // Log but don't fail — new photo is already uploaded.
-      console.warn("[storage] old photo cleanup failed:", deleteResult.error);
-    }
+/**
+ * Run the DB write that moves an entry from `oldUrl` to `newUrl`, keeping
+ * storage in step so no file is left that no row points at:
+ * - save fails → the just-uploaded `newUrl` is deleted, the old one kept;
+ * - save works → the replaced/removed `oldUrl` is deleted.
+ * The old file is only deleted after the row stops pointing at it, so a
+ * failed save never leaves an entry showing a deleted photo.
+ */
+export async function commitPhotoChange(
+  oldUrl: string | null,
+  newUrl: string | null,
+  save: () => PromiseLike<{ error: { message: string } | null }>,
+): Promise<void> {
+  const { error } = await save();
+  if (error) {
+    if (newUrl && newUrl !== oldUrl) await deleteWeightPhoto(newUrl);
+    throw error;
   }
-
-  return uploadResult;
+  if (oldUrl && oldUrl !== newUrl) {
+    const del = await deleteWeightPhoto(oldUrl);
+    if (del.error) console.warn("[storage] old photo cleanup failed:", del.error);
+  }
 }
