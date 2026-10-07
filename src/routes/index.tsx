@@ -9,6 +9,21 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { syncFavicon } from "@/lib/theme";
+import appStoreBadge from "@/assets/badges/app-store.svg";
+import googlePlayBadge from "@/assets/badges/google-play.png";
+
+// Screenshots are bundled, so each file is named by its contents
+// (dashboard-<hash>.webp) and cached for a year under /assets. Replacing an
+// image changes its name, so visitors get the new one on the next deploy.
+const SHOT_URL: Record<string, string> = Object.fromEntries(
+  Object.entries(
+    import.meta.glob<string>("@/assets/landing/*.webp", {
+      eager: true,
+      query: "?url",
+      import: "default",
+    }),
+  ).map(([path, url]) => [path.split("/").pop()!.replace(".webp", ""), url]),
+);
 import { isNativeApp } from "@/lib/platform";
 import {
   canPromptInstall,
@@ -53,7 +68,7 @@ const THEME_CLASSES = [
   "theme-isro",
 ];
 
-// Each point shows a real app screenshot from public/landing/ (375x586 phone
+// Each point shows a real app screenshot from src/assets/landing/ (375x586 phone
 // viewport, demo account). Click a point to show it; rows also auto-advance.
 const ROWS = [
   {
@@ -512,7 +527,7 @@ function StoreBadges({ className = "" }: { className?: string }) {
     <div className={`flex flex-wrap items-center gap-4 ${className}`}>
       <div aria-label="Coming soon on the App Store" role="img">
         <img
-          src="/badges/app-store.svg"
+          src={appStoreBadge}
           alt=""
           width={120}
           height={40}
@@ -528,7 +543,7 @@ function StoreBadges({ className = "" }: { className?: string }) {
         className="flex h-10 w-[131px] items-center justify-center"
       >
         <img
-          src="/badges/google-play.png"
+          src={googlePlayBadge}
           alt=""
           width={646}
           height={250}
@@ -608,7 +623,7 @@ function Phone({
         {shots.map((s, i) => (
           <img
             key={s}
-            src={`/landing/${s}.webp`}
+            src={SHOT_URL[s]}
             alt=""
             loading={i === 0 ? "eager" : "lazy"}
             fetchPriority={priority && i === 0 ? "high" : undefined}
