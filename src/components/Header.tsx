@@ -54,7 +54,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/client";
+import { getHistory } from "@/lib/historyCache";
 
 const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard", icon: null },
@@ -488,19 +488,10 @@ export function Header({
   useEffect(() => {
     if (!user) return;
     const fetchDates = async () => {
-      const [{ data: wData }, { data: fData }] = await Promise.all([
-        supabase
-          .from("workout_logs")
-          .select("date")
-          .eq("user_id", user.id)
-          .order("date", { ascending: false })
-          .limit(400),
-        supabase
-          .from("food_logs")
-          .select("date, logged_at")
-          .eq("user_id", user.id)
-          .order("date", { ascending: false })
-          .limit(400),
+      // Runs on every navigation; old days come from the browser cache.
+      const [wData, fData] = await Promise.all([
+        getHistory(user.id, "workout_logs").catch(() => []),
+        getHistory(user.id, "food_logs").catch(() => []),
       ]);
       setWorkoutDates(
         new Set((wData ?? []).flatMap((d) => (d.date ? [d.date] : []))),

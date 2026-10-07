@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/integrations/client";
 import type { DietPreference, Tables } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
+import { dayLogs, getHistory, isFrozenDate } from "@/lib/historyCache";
 import {
   Utensils,
   UtensilsCrossed,
@@ -231,6 +232,7 @@ function FoodPage() {
 
   const load = useCallback(async () => {
     if (!user) return;
+    const foodHistory = getHistory(user.id, "food_logs").catch(() => []);
     const [{ data: p }, { data: t }, { data: m }, { data: fav }] =
       await Promise.all([
         supabase
@@ -238,18 +240,21 @@ function FoodPage() {
           .select("*")
           .eq("id", user.id)
           .maybeSingle(),
-        supabase
-          .from("food_logs")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("date", selectedDate)
-          .order("logged_at"),
-        supabase
-          .from("food_logs")
-          .select("*")
-          .eq("user_id", user.id)
-          .gte("date", thirtyDaysAgo())
-          .lte("date", today()),
+        // A day past the edit window can't change: serve it from the cached
+        // history instead of asking the database again.
+        isFrozenDate(selectedDate)
+          ? foodHistory.then((rows) => ({ data: dayLogs(rows, selectedDate) }))
+          : supabase
+              .from("food_logs")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("date", selectedDate)
+              .order("logged_at"),
+        foodHistory.then((rows) => ({
+          data: rows.filter(
+            (r) => r.date && r.date >= thirtyDaysAgo() && r.date <= today(),
+          ),
+        })),
         supabase.from("saved_meals").select("name").eq("user_id", user.id),
       ]);
     // No profile row means onboarding was never finished — the guard below

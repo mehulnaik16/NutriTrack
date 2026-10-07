@@ -68,6 +68,7 @@ import { CustomPlanTable } from "@/components/CustomPlanTable";
 import { ScrollableDayRow } from "@/components/CustomPlanDayPicker";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { byDateThenTime, getHistory } from "@/lib/historyCache";
 import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
 import { recordWorkoutLog } from "@/lib/notificationPrimer";
 import { Button } from "@/components/ui/button";
@@ -1329,16 +1330,14 @@ function WorkoutPage() {
 
     const fetchHistory = () => {
       if (!selectedCardio || !user) return;
-      supabase
-        .from("workout_logs")
-        .select(
-          "id, date, logged_at, duration_min, calories_burned, confidence, exercises_done",
-        )
-        .eq("user_id", user.id)
-        .eq("workout_name", selectedCardio)
-        .order("date", { ascending: false })
-        .order("logged_at", { ascending: false })
-        .then(({ data }) => {
+      // Old sessions come from the browser cache; recent ones are always live.
+      getHistory(user.id, "workout_logs")
+        .catch(() => [])
+        .then((rows) => {
+          const data = byDateThenTime(
+            rows.filter((r) => r.workout_name === selectedCardio),
+            true,
+          );
           setHistory(data || []);
           // If no localStorage defaults, populate from most recent log
           if (!defaults && data && data.length > 0) {
@@ -2137,16 +2136,14 @@ function WorkoutPage() {
 
     const fetchHistory = () => {
       if (!selectedExercise || !user) return;
-      supabase
-        .from("workout_logs")
-        .select(
-          "id, date, logged_at, exercises_done, calories_burned, duration_min, calc_method, confidence",
-        )
-        .eq("user_id", user.id)
-        .eq("workout_name", selectedExercise)
-        .order("date", { ascending: false })
-        .order("logged_at", { ascending: false })
-        .then(({ data }) => {
+      // Old sessions come from the browser cache; recent ones are always live.
+      getHistory(user.id, "workout_logs")
+        .catch(() => [])
+        .then((rows) => {
+          const data = byDateThenTime(
+            rows.filter((r) => r.workout_name === selectedExercise),
+            true,
+          );
           setHistory(data || []);
           // Prefill from the last session, carrying whatever fields that kind
           // uses. Falling back per kind matters: seeding a Plank with reps

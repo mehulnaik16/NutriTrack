@@ -76,6 +76,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import type { TablesInsert } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
+import { dayLogs, getHistory, isFrozenDate } from "@/lib/historyCache";
 import { markOnboarded, recordFoodLog } from "@/lib/notificationPrimer";
 import {
   Tour,
@@ -228,12 +229,8 @@ const formatDateDisplay = (dateStr: string) => {
 };
 
 async function computeStreak(userId: string): Promise<number> {
-  const { data } = await supabase
-    .from("food_logs")
-    .select("date")
-    .eq("user_id", userId)
-    .order("date", { ascending: false });
-  if (!data || data.length === 0) return 0;
+  const data = await getHistory(userId, "food_logs").catch(() => []);
+  if (data.length === 0) return 0;
   const uniqueDates = [...new Set(data.map((d) => d.date))].sort().reverse();
   let streak = 0;
   const check = new Date();
@@ -341,6 +338,7 @@ function Dashboard() {
 
   const load = useCallback(async () => {
     if (!user) return;
+    const foodHistory = getHistory(user.id, "food_logs").catch(() => []);
     const [
       { data: p, error: pErr },
       { data: t },
@@ -354,23 +352,24 @@ function Dashboard() {
         .select("*")
         .eq("id", user.id)
         .maybeSingle(),
-      supabase
-        .from("food_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", selectedDate)
-        .order("logged_at"),
-      supabase
-        .from("food_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("date", thirtyDaysAgo())
-        .lte("date", today()),
-      supabase
-        .from("weight_entries")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("date", { ascending: true }),
+      // A day past the edit window can't change: serve it from the cached
+      // history instead of asking the database again.
+      isFrozenDate(selectedDate)
+        ? foodHistory.then((rows) => ({ data: dayLogs(rows, selectedDate) }))
+        : supabase
+            .from("food_logs")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("date", selectedDate)
+            .order("logged_at"),
+      foodHistory.then((rows) => ({
+        data: rows.filter(
+          (r) => r.date && r.date >= thirtyDaysAgo() && r.date <= today(),
+        ),
+      })),
+      getHistory(user.id, "weight_entries")
+        .then((rows) => ({ data: rows }))
+        .catch(() => ({ data: null })),
       supabase
         .from("workout_plans")
         .select("*")

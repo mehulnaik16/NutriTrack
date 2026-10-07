@@ -59,6 +59,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { getHistory } from "@/lib/historyCache";
 import type { TablesInsert } from "@/integrations/types";
 import {
   uploadWeightPhoto,
@@ -198,21 +199,11 @@ function WeightPage() {
         .select("weight_kg,goal,full_name,goal_weight_kg,height_cm")
         .eq("id", user.id)
         .maybeSingle(),
-      // PostgREST caps one response at 1000 rows, and ascending order would
-      // drop the newest entries first, so page until a short page comes back.
-      (async () => {
-        const all: WeightEntry[] = [];
-        for (let from = 0; ; from += 1000) {
-          const { data } = await supabase
-            .from("weight_entries")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("date", { ascending: true })
-            .range(from, from + 999);
-          all.push(...((data as WeightEntry[]) ?? []));
-          if (!data || data.length < 1000) return { data: all };
-        }
-      })(),
+      // Oldest first, paged past PostgREST's 1000-row cap; old entries come
+      // from the browser cache.
+      getHistory(user.id, "weight_entries")
+        .then((rows) => ({ data: rows }))
+        .catch(() => ({ data: null })),
     ]);
     // No profile row means onboarding was never finished — the guard below
     // waits on `profile`, so without this the page spins forever.

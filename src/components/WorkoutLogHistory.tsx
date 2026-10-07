@@ -20,7 +20,7 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { supabase } from "@/integrations/client";
+import { byDateThenTime, getHistory } from "@/lib/historyCache";
 import { useAuth } from "@/lib/auth";
 import { CardioPaceChart } from "@/components/CardioPaceChart";
 import { Calendar } from "@/components/ui/calendar";
@@ -119,17 +119,11 @@ export function WorkoutLogHistory() {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("workout_logs")
-      .select(
-        "id, date, logged_at, workout_name, duration_min, calories_burned, calc_method, confidence, exercises_done",
-      )
-      .eq("user_id", user.id)
-      .order("date", { ascending: false })
-      .order("logged_at", { ascending: false })
-      .limit(1000)
-      .then(({ data }) => {
-        setAllLogs((data || []) as Log[]);
+    // Whole history, newest first; old sessions come from the browser cache.
+    getHistory(user.id, "workout_logs")
+      .catch(() => [])
+      .then((data) => {
+        setAllLogs(byDateThenTime(data, true) as Log[]);
         setLoading(false);
       });
   }, [user]);
