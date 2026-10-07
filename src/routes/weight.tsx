@@ -59,6 +59,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { recordWeightLog } from "@/lib/notificationPrimer";
 import { getHistory, getProfileRow } from "@/lib/historyCache";
 import type { TablesInsert } from "@/integrations/types";
 import {
@@ -315,6 +316,7 @@ function WeightPage() {
         .eq("id", user.id);
 
       toast.success("Weight logged!");
+      recordWeightLog(user.id);
       setNote("");
       setPhotoFile(null);
       setPhotoPreview(null);
