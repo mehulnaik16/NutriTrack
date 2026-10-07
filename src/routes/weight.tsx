@@ -63,7 +63,8 @@ import type { TablesInsert } from "@/integrations/types";
 import {
   uploadWeightPhoto,
   deleteWeightPhoto,
-  replaceWeightPhoto,
+  existingPhotoUrl,
+  commitPhotoChange,
 } from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
 import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
@@ -296,19 +297,26 @@ function WeightPage() {
         photo_url = result.data.publicUrl;
       }
 
+      const date = todayLocal();
       const payload: TablesInsert<"weight_entries"> = {
         user_id: user.id,
-        date: todayLocal(),
+        date,
         weight_kg: w.value,
       };
 
       if (photo_url) payload.photo_url = photo_url;
       if (note) payload.note = note;
 
-      const { error } = await supabase
-        .from("weight_entries")
-        .upsert(payload, { onConflict: "user_id,date" });
-      if (error) throw error;
+      // One photo per day: a new one replaces today's earlier photo, whose
+      // file is deleted once the row points at the new one.
+      const oldPhoto = photo_url
+        ? await existingPhotoUrl(user.id, date)
+        : null;
+      await commitPhotoChange(oldPhoto, photo_url, () =>
+        supabase
+          .from("weight_entries")
+          .upsert(payload, { onConflict: "user_id,date" }),
+      );
 
       // Update profile weight + goal weight
       await supabase
@@ -351,32 +359,28 @@ function WeightPage() {
       let finalPhotoUrl = updated.photo_url;
 
       if (newPhoto) {
-        const result = await replaceWeightPhoto(
-          originalEntry?.photo_url ?? null,
-          newPhoto,
-          user.id,
-        );
+        const result = await uploadWeightPhoto(newPhoto, user.id);
         if (result.error || !result.data) {
           throw new Error(result.error ?? "Upload failed");
         }
         finalPhotoUrl = result.data.publicUrl;
-      } else if (originalEntry?.photo_url && !updated.photo_url) {
-        // Photo was removed (not replaced)
-        await deleteWeightPhoto(originalEntry.photo_url);
-        finalPhotoUrl = null;
       }
 
-      const { error } = await supabase
-        .from("weight_entries")
-        .update({
-          date: updated.date,
-          weight_kg: updated.weight_kg,
-          note: updated.note || null,
-          photo_url: finalPhotoUrl,
-        })
-        .eq("id", updated.id);
-
-      if (error) throw error;
+      // Replaced or removed photo files are deleted only after the row saves.
+      await commitPhotoChange(
+        originalEntry?.photo_url ?? null,
+        finalPhotoUrl,
+        () =>
+          supabase
+            .from("weight_entries")
+            .update({
+              date: updated.date,
+              weight_kg: updated.weight_kg,
+              note: updated.note || null,
+              photo_url: finalPhotoUrl,
+            })
+            .eq("id", updated.id),
+      );
 
       toast.success("Entry updated!");
 

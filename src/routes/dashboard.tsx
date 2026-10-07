@@ -85,7 +85,11 @@ import {
   type TourState,
 } from "@/components/Tour";
 import { loadMealNames } from "@/lib/meals";
-import { uploadWeightPhoto } from "@/services/storage";
+import {
+  uploadWeightPhoto,
+  existingPhotoUrl,
+  commitPhotoChange,
+} from "@/services/storage";
 import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import {
   isEditableDate,
@@ -477,9 +481,10 @@ function Dashboard() {
     if (!user || !newWeight) return;
     setSavingWeight(true);
     try {
+      const date = today();
       const payload: TablesInsert<"weight_entries"> = {
         user_id: user.id,
-        date: today(),
+        date,
         weight_kg: +newWeight,
       };
 
@@ -491,10 +496,17 @@ function Dashboard() {
         payload.photo_url = result.data.publicUrl;
       }
 
-      const { error } = await supabase
-        .from("weight_entries")
-        .upsert(payload, { onConflict: "user_id,date" });
-      if (error) throw error;
+      // One photo per day: a new one replaces today's earlier photo, whose
+      // file is deleted once the row points at the new one.
+      const newPhoto = payload.photo_url ?? null;
+      const oldPhoto = newPhoto
+        ? await existingPhotoUrl(user.id, date)
+        : null;
+      await commitPhotoChange(oldPhoto, newPhoto, () =>
+        supabase
+          .from("weight_entries")
+          .upsert(payload, { onConflict: "user_id,date" }),
+      );
 
       await supabase
         .from("user_profiles")
