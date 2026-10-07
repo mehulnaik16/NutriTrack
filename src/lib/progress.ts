@@ -41,11 +41,14 @@ export async function loadProgress(
       .select("full_name")
       .eq("id", uid)
       .maybeSingle(),
-    getHistory(uid, "food_logs").catch(() => []),
-    getHistory(uid, "workout_logs").catch(() => []),
-    getHistory(uid, "weight_entries").catch(() => []),
+    getHistory(uid, "food_logs").catch(() => null),
+    getHistory(uid, "workout_logs").catch(() => null),
+    getHistory(uid, "weight_entries").catch(() => null),
     supabase.rpc("sync_achievements"),
   ]);
+  // A failed read is "unknown", not "zero logs": counting it as zero would
+  // save a lower level, and the next good read would announce a fake level-up.
+  if (!foodRows || !workoutRows || !weightRows || synced.error) return null;
 
   const earned = (synced.data ?? []) as {
     achievement_id: string;

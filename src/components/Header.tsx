@@ -492,9 +492,11 @@ export function Header({
     const fetchDates = async () => {
       // Runs on every navigation; old days come from the browser cache.
       const [wData, fData] = await Promise.all([
-        getHistory(user.id, "workout_logs").catch(() => []),
-        getHistory(user.id, "food_logs").catch(() => []),
+        getHistory(user.id, "workout_logs").catch(() => null),
+        getHistory(user.id, "food_logs").catch(() => null),
       ]);
+      // A failed read keeps the last streak (or the placeholder), never a 0.
+      if (!wData || !fData) return;
       setDatesLoaded(true);
       setWorkoutDates(
         new Set((wData ?? []).flatMap((d) => (d.date ? [d.date] : []))),

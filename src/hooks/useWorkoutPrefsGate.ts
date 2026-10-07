@@ -110,10 +110,10 @@ export function useCachedWorkoutPrefs(
   useEffect(() => {
     if (!userId) return;
     const cached = getCachedWorkoutPrefs(userId);
-    if (cached) {
-      setPrefs(cached);
-      return;
-    }
+    if (cached) setPrefs(cached);
+    // Always confirm against the account, even with a cached copy: units
+    // changed on another device used to stay stale here indefinitely. This is
+    // the validated cache (one shared counter check when nothing changed).
     let cancelled = false;
     loadWorkoutPrefs(userId)
       .then((p) => {
