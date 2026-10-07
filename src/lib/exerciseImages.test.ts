@@ -77,6 +77,20 @@ assert.strictEqual(getExerciseThumbnail("Cable Lat Pulldown"), "/exercises/lat_p
 assert.strictEqual(getExerciseThumbnail("Australian Pull Up"), "/exercises/inverted_row.jpg");
 assert.strictEqual(getExerciseThumbnail("Barbell Front Squat"), "/exercises/front_squat.jpg");
 assert.strictEqual(getExerciseThumbnail("45 Degree Leg Press"), "/exercises/leg_press.jpg");
+// Batch 3 Shoulder assertions
+assert.strictEqual(getExerciseThumbnail("Barbell Shoulder Press"), "/exercises/barbell_shoulder_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Overhead Press"), "/exercises/barbell_shoulder_press.jpg");
+assert.strictEqual(getExerciseThumbnail("OHP"), "/exercises/barbell_shoulder_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Shoulder Press"), "/exercises/dumbbell_shoulder_press.jpg");
+assert.strictEqual(getExerciseThumbnail("DB Shoulder Press"), "/exercises/dumbbell_shoulder_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Arnold Press"), "/exercises/arnold_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Lateral Raise"), "/exercises/dumbbell_lateral_raise.jpg");
+assert.strictEqual(getExerciseThumbnail("Side Lateral Raise"), "/exercises/dumbbell_lateral_raise.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Front Raise"), "/exercises/dumbbell_front_raise.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Face Pull"), "/exercises/cable_face_pull.jpg");
+assert.strictEqual(getExerciseThumbnail("Face Pulls"), "/exercises/cable_face_pull.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Reverse Fly"), "/exercises/cable_reverse_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Rear Delt Fly"), "/exercises/cable_reverse_fly.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);
