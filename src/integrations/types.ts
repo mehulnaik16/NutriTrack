@@ -930,6 +930,8 @@ export type Database = {
           has_seen_benefits_features_page: boolean
           has_seen_refer_intro: boolean
           height_cm: number | null
+          /** Bumped by DB triggers when old (frozen) log rows change. Read-only. */
+          history_version: number
           id: string
           longest_streak: number | null
           meal_frequency: number | null

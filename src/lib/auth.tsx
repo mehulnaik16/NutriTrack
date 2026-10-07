@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/client";
 import { syncTimezone } from "@/lib/timezone";
 import { cancelAll } from "@/lib/notifications";
 import { applyTheme, getLocalTheme } from "@/lib/theme";
+import { clearHistoryCache } from "@/lib/historyCache";
 
 interface AuthCtx {
   user: User | null;
@@ -118,6 +119,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Alarms live in the OS, not the session. Without this the next
           // person on the phone keeps getting the last account's reminders.
           await cancelAll().catch(() => {});
+          // Cached old logs stay on the device otherwise.
+          if (userId) await clearHistoryCache(userId);
           await supabase.auth.signOut();
           setHasProfile(null);
         },

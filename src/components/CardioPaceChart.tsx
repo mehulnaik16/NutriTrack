@@ -17,7 +17,7 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { supabase } from "@/integrations/client";
+import { byDateThenTime, getHistory } from "@/lib/historyCache";
 import { useAuth } from "@/lib/auth";
 import {
   type CardioCategory,
@@ -180,15 +180,14 @@ export function CardioPaceChart({ activityName }: Props) {
   useEffect(() => {
     if (!user || !activityName) return;
 
-    supabase
-      .from("workout_logs")
-      .select("date, duration_min, calories_burned, exercises_done")
-      .eq("user_id", user.id)
-      .eq("workout_name", activityName)
-      .order("date", { ascending: true })
-      .order("logged_at", { ascending: true })
-      .then(({ data: logs }) => {
-        setData(logs ? buildChartData(logs, category) : []);
+    getHistory(user.id, "workout_logs")
+      .catch(() => [])
+      .then((rows) => {
+        const logs = byDateThenTime(
+          rows.filter((r) => r.workout_name === activityName),
+          false,
+        );
+        setData(buildChartData(logs, category));
         setLoading(false);
       });
   }, [user, activityName]);

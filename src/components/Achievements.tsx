@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Award, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/client";
+import { getHistory } from "@/lib/historyCache";
 import { toLocalISO } from "@/lib/dates";
 
 /* ═══════════════════════════════════════════════════
@@ -213,18 +214,12 @@ export function AchievementsPage({
   useEffect(() => {
     const load = async () => {
       const [food, workouts, weights, water, meals] = await Promise.all([
-        supabase
-          .from("food_logs")
-          .select("date, logged_at, meal_type")
-          .eq("user_id", userId),
+        getHistory(userId, "food_logs").catch(() => []),
         supabase
           .from("workout_logs")
           .select("id", { count: "exact", head: true })
           .eq("user_id", userId),
-        supabase
-          .from("weight_entries")
-          .select("photo_url")
-          .eq("user_id", userId),
+        getHistory(userId, "weight_entries").catch(() => []),
         supabase
           .from("water_logs")
           .select("amount_ml")
@@ -236,7 +231,7 @@ export function AchievementsPage({
           .eq("user_id", userId),
       ]);
 
-      const foodRows = food.data ?? [];
+      const foodRows = food;
       const earlyLogs = foodRows.filter((r) => {
         if (!r.logged_at) return false;
         return new Date(r.logged_at).getHours() < 8;
@@ -254,8 +249,8 @@ export function AchievementsPage({
             .map((r) => r.date!),
         ),
         workoutCount: workouts.count ?? 0,
-        weightCount: (weights.data ?? []).length,
-        photoCount: (weights.data ?? []).filter((w) => w.photo_url).length,
+        weightCount: weights.length,
+        photoCount: weights.filter((w) => w.photo_url).length,
         hydratedDays: (water.data ?? []).length,
         savedMeals: meals.count ?? 0,
         earlyLogs,
