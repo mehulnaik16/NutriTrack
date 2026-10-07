@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setHasProfile(null);
       return;
     }
+    const localBefore = getLocalTheme();
     const { data, error } = await supabase
       .from("user_profiles")
       .select("id, timezone, theme")
@@ -59,8 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // The theme follows the account. Same read, no extra round trip: adopt the
     // account's theme, or seed it from this device if none was ever saved.
-    if (data) {
-      const local = getLocalTheme();
+    // If the theme was picked on this device while the read was in flight,
+    // that pick is newer than the row we got back — keep it.
+    const local = getLocalTheme();
+    if (data && local === localBefore) {
       if (data.theme && data.theme !== local) applyTheme(data.theme);
       else if (!data.theme)
         supabase
