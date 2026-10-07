@@ -20,12 +20,9 @@ import {
 } from "@/lib/notifications";
 import {
   PRIMER_EVENT_NAME,
-  checkDay5Eligible,
   dismissPrimer,
-  getPrimerState,
-  isOnboarded,
   markPrimerGranted,
-  triggerDay5Primer,
+  promptDay5IfDue,
   type PrimerEventDetail,
 } from "@/lib/notificationPrimer";
 import { loadPrefs, reconcile, savePrefs } from "@/lib/notification-settings";
@@ -70,28 +67,9 @@ export function NotificationPrimerDialog() {
 
   // Trigger 2. Lives here rather than in useReconcileOnForeground, which bails
   // on anything that is not the native app — a web user is owed the same single
-  // day-5 reminder. The state check runs first so the profile read only happens
-  // for the few users still eligible for it.
+  // day-5 reminder. Once per account (user_profiles.notif_primer_day5_shown).
   useEffect(() => {
-    const userId = user?.id;
-    if (!userId || !isOnboarded(userId)) return;
-    const state = getPrimerState(userId);
-    if (state.granted || state.trigger2Handled) return;
-
-    let cancelled = false;
-    void (async () => {
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("created_at")
-        .eq("id", userId)
-        .maybeSingle();
-      if (cancelled || !data) return;
-      if (checkDay5Eligible(userId, data.created_at)) triggerDay5Primer(userId);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    if (user?.id) void promptDay5IfDue(user.id);
   }, [user?.id]);
 
   const handleDismiss = useCallback(() => {

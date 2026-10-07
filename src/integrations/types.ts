@@ -939,6 +939,10 @@ export type Database = {
           plan_version: number
           /** Bumped by a DB trigger on any real change to this row. Read-only. */
           profile_version: number
+          /** Notification card after the first log: decided once per account. */
+          notif_primer_first_log_shown: boolean
+          /** Notification card on day 5: decided once per account. */
+          notif_primer_day5_shown: boolean
           longest_streak: number | null
           meal_frequency: number | null
           meal_names: string[]
@@ -980,6 +984,8 @@ export type Database = {
           has_answered_tour_offer?: boolean
           has_seen_benefits_features_page?: boolean
           theme?: string | null
+          notif_primer_first_log_shown?: boolean
+          notif_primer_day5_shown?: boolean
           has_seen_refer_intro?: boolean
           height_cm?: number | null
           id: string
@@ -1018,6 +1024,8 @@ export type Database = {
           has_seen_benefits_features_page?: boolean
           has_seen_refer_intro?: boolean
           theme?: string | null
+          notif_primer_first_log_shown?: boolean
+          notif_primer_day5_shown?: boolean
           height_cm?: number | null
           id?: string
           longest_streak?: number | null

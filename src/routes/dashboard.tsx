@@ -82,7 +82,11 @@ import {
   getPlanRow,
   getProfileRow,
 } from "@/lib/historyCache";
-import { markOnboarded, recordFoodLog } from "@/lib/notificationPrimer";
+import {
+  markOnboarded,
+  recordFoodLog,
+  recordWeightLog,
+} from "@/lib/notificationPrimer";
 import {
   Tour,
   TourOffer,
@@ -515,6 +519,7 @@ function Dashboard() {
         .eq("id", user.id);
 
       toast.success("Weight logged!");
+      recordWeightLog(user.id);
       setNewWeight("");
       setPhotoFile(null);
       setPhotoPreview(null);
