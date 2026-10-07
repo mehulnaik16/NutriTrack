@@ -7,10 +7,30 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/client";
-import { syncTimezone } from "@/lib/timezone";
 import { applyTheme, getLocalTheme } from "@/lib/theme";
-import { clearHistoryCache } from "@/lib/historyCache";
+
+// Supabase (~200 KB) is loaded on demand, not imported here: this provider sits
+// at the root, so a static import put it in the bundle every visitor downloads
+// first — including logged-out visitors on the landing page, who don't need it
+// to see the page.
+const loadClient = () =>
+  import("@/integrations/client").then((m) => m.supabase);
+
+/**
+ * A logged-out visitor on the landing page: no stored Supabase session and no
+ * sign-in redirect in the URL. Same token test as the head script in
+ * __root.tsx. Only then is "signed out" known without asking Supabase.
+ */
+function knownSignedOutOnLanding(): boolean {
+  if (typeof window === "undefined" || location.pathname !== "/") return false;
+  if (/[?#&](code|access_token|error)=/.test(location.search + location.hash))
+    return false;
+  try {
+    return !Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k));
+  } catch {
+    return false;
+  }
+}
 
 interface AuthCtx {
   user: User | null;
@@ -49,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const localBefore = getLocalTheme();
+    const supabase = await loadClient();
     const { data, error } = await supabase
       .from("user_profiles")
       .select("id, timezone, theme")
@@ -76,30 +97,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Piggy-backs on the read above so a device that has moved zones costs one
     // write and no extra round trip. Deliberately not awaited: notification
     // scheduling can run a launch behind, and sign-in must not wait on it.
-    if (data) void syncTimezone(userId, data.timezone);
+    if (data)
+      void import("@/lib/timezone").then((m) =>
+        m.syncTimezone(userId, data.timezone),
+      );
   }, [userId]);
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
+    let cancelled = false;
+    let unsubscribe = () => {};
+
+    const start = () =>
+      loadClient().then((supabase) => {
+        if (cancelled) return;
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_e, s) => {
+          setSession(s);
+          setLoading(false);
+        });
+        unsubscribe = () => subscription.unsubscribe();
+        supabase.auth.getSession().then(async ({ data }) => {
+          setSession(data.session);
+          setLoading(false);
+          if (!data.session) return;
+          // getSession trusts storage. An account deleted elsewhere keeps a
+          // token that still passes RLS until it expires, so the quiz would
+          // skip signUp and write a profile for a user that no longer exists.
+          // Only a definite "no such user" signs out — offline or a flaky
+          // network keeps the session.
+          const { error } = await supabase.auth.getUser();
+          if (error?.code === "user_not_found") {
+            await supabase.auth.signOut({ scope: "local" });
+          }
+        });
+      });
+
+    if (knownSignedOutOnLanding()) {
+      // Nothing to wait for: render signed-out now, and fetch Supabase once the
+      // browser is idle so a sign-in from this page is still picked up.
       setLoading(false);
-    });
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-      if (!data.session) return;
-      // getSession trusts storage. An account deleted elsewhere keeps a token
-      // that still passes RLS until it expires, so the quiz would skip signUp
-      // and write a profile for a user that no longer exists. Only a definite
-      // "no such user" signs out — offline or a flaky network keeps the session.
-      const { error } = await supabase.auth.getUser();
-      if (error?.code === "user_not_found") {
-        await supabase.auth.signOut({ scope: "local" });
-      }
-    });
-    return () => subscription.unsubscribe();
+      const idle = window.requestIdleCallback ?? ((f) => setTimeout(f, 1500));
+      idle(() => void start());
+    } else {
+      void start();
+    }
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -123,8 +169,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .then((m) => m.cancelAll())
             .catch(() => {});
           // Cached old logs stay on the device otherwise.
-          if (userId) await clearHistoryCache(userId);
-          await supabase.auth.signOut();
+          if (userId)
+            await import("@/lib/historyCache").then((m) =>
+              m.clearHistoryCache(userId),
+            );
+          await (await loadClient()).auth.signOut();
           setHasProfile(null);
         },
       }}
