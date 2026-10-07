@@ -22,7 +22,7 @@ import {
 import { supabase } from "@/integrations/client";
 import type { DietPreference, Tables } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
-import { dayLogs, getHistory } from "@/lib/historyCache";
+import { dayLogs, getHistory, getProfileRow } from "@/lib/historyCache";
 import {
   Utensils,
   UtensilsCrossed,
@@ -166,7 +166,8 @@ function FoodPage() {
   const [tour, setTourState] = useState<TourState | null>(null);
   useEffect(() => {
     if (user) setTourState(getTour(user.id));
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
   const [mealCount, setMealCount] = useState(4);
   const [mealNames, setMealNames] = useState<string[]>([...DEFAULT_MEALS]);
   const [userMeals, setUserMeals] = useState<string[]>([...DEFAULT_MEALS]);
@@ -201,7 +202,8 @@ function FoodPage() {
         setShowMealSetup(true);
       }
     });
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // An existing user has already answered the meals question, so open straight
   // on the diet question; a first-time user walks step 1 → step 2.
@@ -235,11 +237,8 @@ function FoodPage() {
     const foodHistory = getHistory(user.id, "food_logs").catch(() => []);
     const [{ data: p }, { data: t }, { data: m }, { data: fav }] =
       await Promise.all([
-        supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle(),
+        // Validated cache: a date change costs only the shared counter check.
+        getProfileRow(user.id),
         // The selected day, from the validated browser cache.
         foodHistory.then((rows) => ({ data: dayLogs(rows, selectedDate) })),
         foodHistory.then((rows) => ({
@@ -261,7 +260,8 @@ function FoodPage() {
     setMonthLogs(m ?? []);
     fetchLoggedDates(user.id).then(setLoggedDates);
     if (fav) setFavoriteNames(new Set(fav.map((f) => f.name)));
-  }, [user, selectedDate, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, selectedDate, navigate]);
 
   useEffect(() => {
     load();

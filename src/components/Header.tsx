@@ -484,6 +484,8 @@ export function Header({
 
   const [workoutDates, setWorkoutDates] = useState<Set<string>>(new Set());
   const [foodDates, setFoodDates] = useState<Set<string>>(new Set());
+  // False until the first read lands, so the chip never shows a fake 0.
+  const [datesLoaded, setDatesLoaded] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -493,6 +495,7 @@ export function Header({
         getHistory(user.id, "workout_logs").catch(() => []),
         getHistory(user.id, "food_logs").catch(() => []),
       ]);
+      setDatesLoaded(true);
       setWorkoutDates(
         new Set((wData ?? []).flatMap((d) => (d.date ? [d.date] : []))),
       );
@@ -508,7 +511,8 @@ export function Header({
       );
     };
     fetchDates();
-  }, [user, pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, pathname]);
 
   const overallDates = useMemo(
     () => new Set([...workoutDates, ...foodDates]),
@@ -525,6 +529,9 @@ export function Header({
     [overallDates],
   );
 
+  const streakPlaceholder = (
+    <span className="inline-block h-3 w-3 animate-pulse rounded bg-muted" />
+  );
   const streakCfg = pathname.includes("/workout")
     ? {
         count: workoutStreak,
@@ -648,7 +655,7 @@ export function Header({
                         className={`h-9 gap-1.5 rounded-full px-3 font-bold transition-all ${chipStyle}`}
                       >
                         <Flame className="h-4 w-4" />
-                        {foodStreak}
+                        {datesLoaded ? foodStreak : streakPlaceholder}
                       </Button>
                     }
                   />
@@ -665,7 +672,7 @@ export function Header({
                         className={`h-9 gap-1.5 rounded-full px-3 font-bold transition-all ${chipStyle}`}
                       >
                         <streakCfg.icon className="h-4 w-4" />
-                        {streakCfg.count}
+                        {datesLoaded ? streakCfg.count : streakPlaceholder}
                       </Button>
                     }
                   />

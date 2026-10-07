@@ -10,6 +10,7 @@
  */
 
 import { supabase } from "@/integrations/client";
+import { getPrefsRow } from "@/lib/historyCache";
 import type { Tables } from "@/integrations/types";
 import type { WeightUnit, DistanceUnit } from "@/lib/units";
 
@@ -31,11 +32,7 @@ export interface WorkoutPrefs {
   musclesPerWorkout: 1 | 2 | 3 | "not_sure";
   preferredWorkoutTime: number; // minutes
   preferredTrainingPlan:
-    | "ai_generated"
-    | "library"
-    | "custom"
-    | "skip"
-    | "none";
+    "ai_generated" | "library" | "custom" | "skip" | "none";
   /** Current display unit (editable in Profile → Workout details). */
   weightUnit: WeightUnit;
   distanceUnit: DistanceUnit;
@@ -162,11 +159,8 @@ export async function loadWorkoutPrefs(
     /* ignore */
   }
 
-  const { data, error } = await supabase
-    .from("workout_profile")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
+  // Validated cache: a repeat visit costs only the shared counter check.
+  const { data, error } = await getPrefsRow(userId);
 
   const dbPrefs = !error && data ? fromRow(data) : null;
 

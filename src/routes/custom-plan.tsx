@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { getPlanRow } from "@/lib/historyCache";
 import { todayLocal } from "@/lib/dates";
 import {
   STANDARD_MUSCLE_GROUPS,
@@ -54,7 +55,9 @@ function CustomPlanBuilder() {
   const [day, setDay] = useState(1); // 1..7
   const [week, setWeek] = useState<StandardMuscle[][]>(emptyWeek);
   const [saving, setSaving] = useState(false);
-  const [existingPlanIds, setExistingPlanIds] = useState<string[]>([]);
+  // False until the existing plan (if any) has filled `week`, so an edit never
+  // flashes an empty week first.
+  const [prefilled, setPrefilled] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [startDayIdx, setStartDayIdx] = useState(0);
 
@@ -65,17 +68,11 @@ function CustomPlanBuilder() {
   // Pre-fill when editing an existing custom plan
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("workout_plans")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (!data || data.length === 0) return;
-        setExistingPlanIds(data.map((d) => d.id));
-        const existingIdx = data[0]?.custom_plan_day_idx;
+    getPlanRow(user.id).then(({ data }) => {
+      if (data) {
+        const existingIdx = data.custom_plan_day_idx;
         if (typeof existingIdx === "number") setStartDayIdx(existingIdx);
-        const latest = data[0]?.plan_json as any;
+        const latest = data.plan_json as any;
         if (isCustomPlan(latest) && latest.days.length === TOTAL_DAYS) {
           setWeek(
             latest.days.map((d) =>
@@ -83,8 +80,11 @@ function CustomPlanBuilder() {
             ),
           );
         }
-      });
-  }, [user]);
+      }
+      setPrefilled(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const selections = week[day - 1] ?? [];
   const isRestSelected = selections.includes("Rest Day");
@@ -142,7 +142,15 @@ function CustomPlanBuilder() {
       // Update the newest row in place instead of delete-and-reinsert: the
       // row is the plan's identity, and blowing it away took the cycle
       // anchor with it. Only genuine duplicates get deleted.
-      const [keepId, ...stale] = existingPlanIds;
+      // Every plan row, newest first — read at save time, the only place the
+      // ids are needed.
+      const { data: rows, error: idsErr } = await supabase
+        .from("workout_plans")
+        .select("id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (idsErr) throw idsErr;
+      const [keepId, ...stale] = (rows ?? []).map((r) => r.id);
       if (stale.length > 0) {
         await supabase.from("workout_plans").delete().in("id", stale);
       }
@@ -173,7 +181,7 @@ function CustomPlanBuilder() {
     }
   };
 
-  if (!user) {
+  if (!user || !prefilled) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />

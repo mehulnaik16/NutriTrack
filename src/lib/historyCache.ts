@@ -37,7 +37,7 @@ const DATE_COL = {
 
 export type CachedTable = keyof typeof DATE_COL;
 type Row<T extends CachedTable> = Tables<T>;
-type Versions = { history: number; log: number };
+type Versions = { history: number; log: number; plan: number; profile: number };
 type Saved = Versions & { frozenUpTo: string; rows: unknown[] };
 
 const PAGE = 1000; // PostgREST's per-request row cap
@@ -110,8 +110,11 @@ async function fetchRows<T extends CachedTable>(
 
 // One counter read shared by every caller for a few seconds: a page's streak,
 // calendar, header and charts all ask at once.
-let versions: { userId: string; at: number; p: Promise<Versions | null> } | null =
-  null;
+let versions: {
+  userId: string;
+  at: number;
+  p: Promise<Versions | null>;
+} | null = null;
 
 function getVersions(userId: string): Promise<Versions | null> {
   if (versions?.userId === userId && Date.now() - versions.at < VERSION_TTL_MS)
@@ -119,11 +122,18 @@ function getVersions(userId: string): Promise<Versions | null> {
   const p = Promise.resolve(
     supabase
       .from("user_profiles")
-      .select("history_version, log_version")
+      .select("history_version, log_version, plan_version, profile_version")
       .eq("id", userId)
       .maybeSingle(),
   ).then(({ data }) =>
-    data ? { history: data.history_version, log: data.log_version } : null,
+    data
+      ? {
+          history: data.history_version,
+          log: data.log_version,
+          plan: data.plan_version,
+          profile: data.profile_version,
+        }
+      : null,
   );
   versions = { userId, at: Date.now(), p };
   p.then((v) => v === null && (versions = null)); // don't keep a failed read
@@ -133,7 +143,7 @@ function getVersions(userId: string): Promise<Versions | null> {
 // A write from this tab to a cached table: forget the shared counter read so
 // the very next read sees the bump. Fired by the fetch hook in client.ts.
 const WRITE_URL =
-  /\/rest\/v1\/(food_logs|workout_logs|weight_entries|body_measurements)\b|\/rpc\/log_body_measurements\b/;
+  /\/rest\/v1\/(food_logs|workout_logs|weight_entries|body_measurements|workout_plans|workout_profile|user_profiles)\b|\/rpc\/(log_body_measurements|start_trial|register_subscription)\b/;
 if (typeof window !== "undefined") {
   window.addEventListener("dombelz:write", (e) => {
     if (WRITE_URL.test((e as CustomEvent<string>).detail)) versions = null;
@@ -204,17 +214,112 @@ async function load<T extends CachedTable>(
     const d = (r as Record<string, unknown>)[col] as string | null;
     return d !== null && d < saved.frozenUpTo;
   });
-  return save(
-    frozen.concat(await fetchRows(userId, table, saved.frozenUpTo)),
-  );
+  return save(frozen.concat(await fetchRows(userId, table, saved.frozenUpTo)));
 }
+
+// ── Single cached rows (plan, workout prefs, profile) ────────────────────────
+
+type RowName = "plan" | "prefs" | "profile";
+const ROW_COUNTER: Record<RowName, "plan" | "profile"> = {
+  plan: "plan", // latest workout_plans row
+  prefs: "plan", // workout_profile — same counter, same triggers
+  profile: "profile", // user_profiles select("*")
+};
+type Result = { data: unknown; error: unknown };
+const rowInFlight = new Map<string, Promise<Result>>();
+
+/**
+ * One rarely-changing row, validated before it is shown: the saved copy is used
+ * only if its counter (plan_version / profile_version, migration
+ * 20261007170000_config_versions) still matches; otherwise `fetch` runs and its
+ * answer is saved. Same `{ data, error }` shape as a Supabase query, so callers
+ * keep their error handling. Errors and "no row" are never cached.
+ */
+export function getCachedRow<F extends () => PromiseLike<Result>>(
+  userId: string,
+  name: RowName,
+  fetch: F,
+): Promise<Awaited<ReturnType<F>>> {
+  const key = `${userId}:${name}`;
+  let p = rowInFlight.get(key);
+  if (!p) {
+    p = loadRow(userId, name, key, fetch).finally(() =>
+      rowInFlight.delete(key),
+    );
+    rowInFlight.set(key, p);
+  }
+  // A private copy per caller: pages mutate the profile object they get.
+  return p.then((r) => ({
+    ...r,
+    data: r.data && structuredClone(r.data),
+  })) as Promise<Awaited<ReturnType<F>>>;
+}
+
+async function loadRow(
+  userId: string,
+  name: RowName,
+  key: string,
+  fetch: () => PromiseLike<Result>,
+): Promise<Result> {
+  if (!cacheUsable()) return fetch();
+  const [v, saved] = await Promise.all([
+    getVersions(userId),
+    idbCall<{ version: number; row: unknown } | undefined>("readonly", (s) =>
+      s.get(key),
+    ).catch(() => undefined),
+  ]);
+  const version = v?.[ROW_COUNTER[name]];
+  if (version !== undefined && saved && saved.version === version)
+    return { data: saved.row, error: null };
+
+  const res = await fetch(); // read after the counter, so it is at least as new
+  if (version !== undefined && !res.error && res.data !== null)
+    idbCall("readwrite", (s) => s.put({ version, row: res.data }, key)).catch(
+      () => {},
+    );
+  return res;
+}
+
+type Cached<T> = Promise<{ data: T | null; error: unknown }>;
+
+/** The user's latest workout plan row (AI or custom), validated. */
+export const getPlanRow = (userId: string): Cached<Tables<"workout_plans">> =>
+  getCachedRow(userId, "plan", () =>
+    supabase
+      .from("workout_plans")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ) as Cached<Tables<"workout_plans">>;
+
+/** The user's workout_profile row (questionnaire + units), validated. */
+export const getPrefsRow = (
+  userId: string,
+): Cached<Tables<"workout_profile">> =>
+  getCachedRow(userId, "prefs", () =>
+    supabase
+      .from("workout_profile")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ) as Cached<Tables<"workout_profile">>;
+
+/** The user's whole user_profiles row, validated. */
+export const getProfileRow = (
+  userId: string,
+): Cached<Tables<"user_profiles">> =>
+  getCachedRow(userId, "profile", () =>
+    supabase.from("user_profiles").select("*").eq("id", userId).maybeSingle(),
+  ) as Cached<Tables<"user_profiles">>;
 
 /** Forget this user's cached history (sign-out, so the next person can't read it). */
 export async function clearHistoryCache(userId: string): Promise<void> {
   versions = null;
   if (typeof indexedDB === "undefined") return;
   await Promise.all(
-    (Object.keys(DATE_COL) as CachedTable[]).map((t) =>
+    [...Object.keys(DATE_COL), ...Object.keys(ROW_COUNTER)].map((t) =>
       idbCall("readwrite", (s) => s.delete(`${userId}:${t}`)).catch(() => {}),
     ),
   );

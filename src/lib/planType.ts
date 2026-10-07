@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/client";
+import { getPlanRow } from "@/lib/historyCache";
 import { isCustomPlan } from "@/lib/musclePlan";
 import type { WorkoutPrefs } from "@/lib/workoutPrefs";
 
@@ -11,13 +11,7 @@ export async function resolvePlanTypeLabel(
   userId: string,
   preferred: WorkoutPrefs["preferredTrainingPlan"],
 ): Promise<string> {
-  const { data } = await supabase
-    .from("workout_plans")
-    .select("plan_json")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data } = await getPlanRow(userId);
   if (data?.plan_json) {
     const pj = data.plan_json as any;
     if (isCustomPlan(pj)) return "Build my own";
