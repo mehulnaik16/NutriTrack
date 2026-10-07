@@ -9,8 +9,10 @@
  */
 
 import { supabase } from "@/integrations/client";
+import { isNativeApp } from "@/lib/platform";
 
 const BUCKET = "weight-photos";
+const MAX_SIDE = 1600;
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
@@ -44,6 +46,33 @@ function buildPath(userId: string, file: File): string {
   return `${userId}/${Date.now()}.${ext}`;
 }
 
+/**
+ * Web only: shrink to MAX_SIDE px and re-encode as WebP (JPEG where the
+ * browser can't encode WebP, e.g. older Safari). A 4 MB phone photo lands
+ * around 200–400 KB. Any failure, or a result no smaller, keeps the original.
+ */
+async function compressPhoto(file: File): Promise<File> {
+  if (isNativeApp()) return file;
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    bmp.close();
+    const encode = (type: string) =>
+      new Promise<Blob | null>((r) => canvas.toBlob(r, type, 0.8));
+    let blob = await encode("image/webp");
+    if (blob?.type !== "image/webp") blob = await encode("image/jpeg");
+    if (!blob || blob.size >= file.size) return file;
+    const ext = blob.type === "image/webp" ? "webp" : "jpg";
+    return new File([blob], `photo.${ext}`, { type: blob.type });
+  } catch {
+    return file;
+  }
+}
+
 // ── Public API ───────────────────────────────────────────────
 
 /**
@@ -51,12 +80,14 @@ function buildPath(userId: string, file: File): string {
  * Returns the storage path and public URL on success.
  */
 export async function uploadWeightPhoto(
-  file: File,
+  original: File,
   userId: string,
 ): Promise<StorageResult<UploadResult>> {
-  if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+  if (!ALLOWED_PHOTO_TYPES.includes(original.type)) {
     return { data: null, error: "Only JPEG, PNG, or WebP images are allowed." };
   }
+  // Compress before the size check so big phone photos still go through.
+  const file = await compressPhoto(original);
   if (file.size > MAX_PHOTO_BYTES) {
     return { data: null, error: "Image must be smaller than 8 MB." };
   }
