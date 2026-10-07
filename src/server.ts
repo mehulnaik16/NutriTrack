@@ -80,6 +80,25 @@ async function normalizeCatastrophicSsrResponse(
 }
 
 /**
+ * The landing page renders the same HTML for everyone — whether you're signed
+ * in is decided in the browser (routes/index.tsx, __root.tsx head script) — so
+ * Vercel's CDN keeps one copy instead of running SSR per visit. s-maxage is the
+ * CDN's lifetime (Vercel strips it before the browser sees it); the browser
+ * still revalidates every visit (max-age=0). Vercel drops its cache on every
+ * deploy, so a landing-page change is live as soon as it ships.
+ */
+function cacheLandingAtEdge(response: Response): Response {
+  const type = response.headers.get("content-type") ?? "";
+  if (response.status !== 200 || !type.includes("text/html")) return response;
+  const res = new Response(response.body, response);
+  res.headers.set(
+    "cache-control",
+    "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
+  );
+  return res;
+}
+
+/**
  * The Razorpay webhook is handled here rather than as a route file: this
  * version of @tanstack/react-start has no `server` option on route options, and
  * the entry already sees every request. It is intercepted before the router so
@@ -128,6 +147,8 @@ export default {
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
+      if (pathname === "/" && request.method === "GET")
+        return cacheLandingAtEdge(response);
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
