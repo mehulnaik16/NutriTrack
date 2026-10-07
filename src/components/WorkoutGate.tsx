@@ -7,8 +7,9 @@
  * reachable: a gate the user cannot leave is a worse bug than the one it fixes.
  */
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth";
 import { ChevronRight, Loader2, Lock } from "lucide-react";
 import {
   GatedPrefsCtx,
@@ -17,7 +18,15 @@ import {
 
 export function WorkoutGate({ children }: { children: ReactNode }) {
   const { state, prefs } = useWorkoutPrefsGate();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Signed out, the gate stays "loading" forever (no user to read prefs for)
+  // and the page behind it, which owns the redirect, never mounts. So the
+  // gate sends signed-out visitors to /login itself, for all six workout pages.
+  useEffect(() => {
+    if (!authLoading && !user) navigate({ to: "/login", replace: true });
+  }, [authLoading, user, navigate]);
 
   if (state === "loading") {
     return (
