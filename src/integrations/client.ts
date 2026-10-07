@@ -2,6 +2,18 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
+const announceWrites: typeof fetch = (input, init) => {
+  const p = fetch(input, init);
+  const method = init?.method ?? "GET";
+  if (typeof window === "undefined" || method === "GET" || method === "HEAD")
+    return p;
+  const url = input instanceof Request ? input.url : String(input);
+  return p.then((res) => {
+    window.dispatchEvent(new CustomEvent("dombelz:write", { detail: url }));
+    return res;
+  });
+};
+
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
@@ -27,6 +39,10 @@ function createSupabaseClient() {
       persistSession: true,
       autoRefreshToken: true,
     },
+    // NOT generated — keep when regenerating this file. Announces every
+    // finished write so src/lib/historyCache.ts drops its shared counter read
+    // and the next read sees this tab's own change.
+    global: { fetch: announceWrites },
   });
 }
 

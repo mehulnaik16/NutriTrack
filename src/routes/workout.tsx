@@ -362,22 +362,17 @@ function WorkoutPage() {
 
     // Load today's logs to show what was logged
     const today = todayLocal();
-    const { data } = await supabase
-      .from("workout_logs")
-      .select("workout_name")
-      .eq("user_id", user.id)
-      .eq("date", today);
-    if (data) {
-      setLoggedToday(data.map((d) => d.workout_name));
+    const logs = await getHistory(user.id, "workout_logs").catch(() => null);
+    if (logs) {
+      setLoggedToday(
+        logs.filter((d) => d.date === today).map((d) => d.workout_name),
+      );
     }
 
     // Load recent logs to order non-favorite exercises
-    const { data: recentLogs } = await supabase
-      .from("workout_logs")
-      .select("workout_name")
-      .eq("user_id", user.id)
-      .order("logged_at", { ascending: false })
-      .limit(100);
+    const recentLogs = logs
+      ?.sort((a, b) => (b.logged_at ?? "").localeCompare(a.logged_at ?? ""))
+      .slice(0, 100);
 
     if (recentLogs) {
       const uniqueRecent = Array.from(

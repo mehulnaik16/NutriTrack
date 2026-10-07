@@ -22,7 +22,7 @@ import {
 import { supabase } from "@/integrations/client";
 import type { DietPreference, Tables } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
-import { dayLogs, getHistory, isFrozenDate } from "@/lib/historyCache";
+import { dayLogs, getHistory } from "@/lib/historyCache";
 import {
   Utensils,
   UtensilsCrossed,
@@ -240,16 +240,8 @@ function FoodPage() {
           .select("*")
           .eq("id", user.id)
           .maybeSingle(),
-        // A day past the edit window can't change: serve it from the cached
-        // history instead of asking the database again.
-        isFrozenDate(selectedDate)
-          ? foodHistory.then((rows) => ({ data: dayLogs(rows, selectedDate) }))
-          : supabase
-              .from("food_logs")
-              .select("*")
-              .eq("user_id", user.id)
-              .eq("date", selectedDate)
-              .order("logged_at"),
+        // The selected day, from the validated browser cache.
+        foodHistory.then((rows) => ({ data: dayLogs(rows, selectedDate) })),
         foodHistory.then((rows) => ({
           data: rows.filter(
             (r) => r.date && r.date >= thirtyDaysAgo() && r.date <= today(),
