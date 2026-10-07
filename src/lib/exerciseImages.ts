@@ -72,6 +72,14 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "box jump": "/exercises/box_jump.jpg",
   "sled push": "/exercises/sled_push.jpg",
   "trx pistol squat": "/exercises/trx_pistol_squat.jpg",
+  // Approved Batch 3 Shoulder additions
+  "barbell shoulder press": "/exercises/barbell_shoulder_press.jpg",
+  "dumbbell shoulder press": "/exercises/dumbbell_shoulder_press.jpg",
+  "arnold press": "/exercises/arnold_press.jpg",
+  "dumbbell lateral raise": "/exercises/dumbbell_lateral_raise.jpg",
+  "dumbbell front raise": "/exercises/dumbbell_front_raise.jpg",
+  "cable face pull": "/exercises/cable_face_pull.jpg",
+  "cable reverse fly": "/exercises/cable_reverse_fly.jpg",
 };
 
 /**
@@ -159,6 +167,28 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "prowler sled push": "sled push",
   "pistol squat": "trx pistol squat",
   "single leg squat": "trx pistol squat",
+  // Batch 3 Shoulder aliases
+  "overhead press": "barbell shoulder press",
+  "standing overhead press": "barbell shoulder press",
+  "standing military press": "barbell shoulder press",
+  "military press": "barbell shoulder press",
+  "ohp": "barbell shoulder press",
+  "seated dumbbell shoulder press": "dumbbell shoulder press",
+  "seated dumbbell press": "dumbbell shoulder press",
+  "db shoulder press": "dumbbell shoulder press",
+  "arnold dumbbell press": "arnold press",
+  "lateral raise": "dumbbell lateral raise",
+  "side lateral raise": "dumbbell lateral raise",
+  "db lateral raise": "dumbbell lateral raise",
+  "front raise": "dumbbell front raise",
+  "db front raise": "dumbbell front raise",
+  "face pull": "cable face pull",
+  "face pulls": "cable face pull",
+  "rope face pull": "cable face pull",
+  "reverse fly": "cable reverse fly",
+  "reverse flyes": "cable reverse fly",
+  "cable rear delt fly": "cable reverse fly",
+  "rear delt fly": "cable reverse fly",
 };
 
 /**
