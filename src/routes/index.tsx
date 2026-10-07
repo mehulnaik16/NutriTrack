@@ -608,7 +608,7 @@ function Phone({
         {shots.map((s, i) => (
           <img
             key={s}
-            src={`/landing/${s}.jpg`}
+            src={`/landing/${s}.webp`}
             alt=""
             loading={i === 0 ? "eager" : "lazy"}
             fetchPriority={priority && i === 0 ? "high" : undefined}
