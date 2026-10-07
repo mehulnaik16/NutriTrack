@@ -8,6 +8,7 @@
  * by the client at all. See 20260901120000_billing_lockdown.sql.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { forgetCounterCheck } from "@/lib/historyCache";
 import { z } from "zod";
 import { supabase } from "@/integrations/client";
 import { requireSupabaseAuth } from "@/integrations/auth-middleware";
@@ -444,6 +445,9 @@ export async function subscribe(tier: Tier): Promise<{ applied: boolean }> {
             if (!res.verified) {
               console.warn("[razorpay] checkout signature did not verify");
             }
+            // The server just wrote this user's profile with the service role;
+            // make the next cached read re-check instead of trusting the last.
+            forgetCounterCheck();
             resolve({ applied: res.applied });
           })
           .catch(() => resolve({ applied: false }));
@@ -461,6 +465,7 @@ export async function subscribe(tier: Tier): Promise<{ applied: boolean }> {
 /** Cancel at period end. Takes no argument — see serverCancelSubscription. */
 export async function cancelSubscription(): Promise<void> {
   await serverCancelSubscription();
+  forgetCounterCheck(); // server-side write the fetch hook can't see
 }
 
 /** Ask for a refund. Ownership and the 2-day window are re-checked in SQL. */

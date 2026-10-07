@@ -339,7 +339,11 @@ function Dashboard() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const foodHistory = getHistory(user.id, "food_logs").catch(() => []);
+    // null = the read failed: "unknown", never "no logs".
+    const foodHistoryOrNull = getHistory(user.id, "food_logs").catch(
+      () => null,
+    );
+    const foodHistory = foodHistoryOrNull.then((rows) => rows ?? []);
     const [
       { data: p, error: pErr },
       { data: t },
@@ -420,14 +424,20 @@ function Dashboard() {
 
     // Streak from the history already loaded, set with the profile so it never
     // shows a placeholder 0; written back only when it actually changed.
-    const s = computeStreak(await foodHistory);
-    setStreak(s);
-    if (s !== p.current_streak)
-      supabase
-        .from("user_profiles")
-        .update({ current_streak: s })
-        .eq("id", user.id)
-        .then();
+    const allFood = await foodHistoryOrNull;
+    if (allFood) {
+      const s = computeStreak(allFood);
+      setStreak(s);
+      if (s !== p.current_streak)
+        supabase
+          .from("user_profiles")
+          .update({ current_streak: s })
+          .eq("id", user.id)
+          .then();
+    } else {
+      // History unreadable: show the last saved streak, and don't overwrite it.
+      setStreak(p.current_streak ?? 0);
+    }
 
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);

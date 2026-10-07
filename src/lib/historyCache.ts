@@ -143,7 +143,17 @@ function getVersions(userId: string): Promise<Versions | null> {
 // A write from this tab to a cached table: forget the shared counter read so
 // the very next read sees the bump. Fired by the fetch hook in client.ts.
 const WRITE_URL =
-  /\/rest\/v1\/(food_logs|workout_logs|weight_entries|body_measurements|workout_plans|workout_profile|user_profiles)\b|\/rpc\/(log_body_measurements|start_trial|register_subscription)\b/;
+  // Any RPC counts: several "reads" write too (get_billing_summary recomputes
+  // access_until), and a spare counter check costs one tiny request.
+  /\/rest\/v1\/(food_logs|workout_logs|weight_entries|body_measurements|workout_plans|workout_profile|user_profiles)\b|\/rest\/v1\/rpc\//;
+/**
+ * For writes the fetch hook can't see — server functions (billing) write with
+ * the service role from the server — call this once they succeed.
+ */
+export const forgetCounterCheck = () => {
+  versions = null;
+};
+
 if (typeof window !== "undefined") {
   window.addEventListener("dombelz:write", (e) => {
     if (WRITE_URL.test((e as CustomEvent<string>).detail)) versions = null;
@@ -249,9 +259,14 @@ export function getCachedRow<F extends () => PromiseLike<Result>>(
     rowInFlight.set(key, p);
   }
   // A private copy per caller: pages mutate the profile object they get.
+  // (structuredClone is missing before Safari 15.4; these rows are plain JSON.)
+  const clone = (x: unknown) =>
+    typeof structuredClone === "function"
+      ? structuredClone(x)
+      : JSON.parse(JSON.stringify(x));
   return p.then((r) => ({
     ...r,
-    data: r.data && structuredClone(r.data),
+    data: r.data && clone(r.data),
   })) as Promise<Awaited<ReturnType<F>>>;
 }
 
