@@ -59,7 +59,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
-import { getHistory } from "@/lib/historyCache";
+import { getHistory, getProfileRow } from "@/lib/historyCache";
 import type { TablesInsert } from "@/integrations/types";
 import {
   uploadWeightPhoto,
@@ -194,11 +194,8 @@ function WeightPage() {
   const load = useCallback(async () => {
     if (!user) return;
     const [{ data: p }, { data: e }] = await Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("weight_kg,goal,full_name,goal_weight_kg,height_cm")
-        .eq("id", user.id)
-        .maybeSingle(),
+      // Validated cache of the whole row (this page uses five columns of it).
+      getProfileRow(user.id),
       // Oldest first, paged past PostgREST's 1000-row cap; old entries come
       // from the browser cache.
       getHistory(user.id, "weight_entries")
@@ -222,7 +219,8 @@ function WeightPage() {
       setWeight(String(round1(kgToWeight(p.weight_kg, weightUnit))));
     if (p?.goal_weight_kg)
       setGoalWeight(String(round1(kgToWeight(p.goal_weight_kg, weightUnit))));
-  }, [user, navigate, weightUnit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, navigate, weightUnit]);
 
   useEffect(() => {
     load();
@@ -300,9 +298,7 @@ function WeightPage() {
 
       // One photo per day: a new one replaces today's earlier photo, whose
       // file is deleted once the row points at the new one.
-      const oldPhoto = photo_url
-        ? await existingPhotoUrl(user.id, date)
-        : null;
+      const oldPhoto = photo_url ? await existingPhotoUrl(user.id, date) : null;
       await commitPhotoChange(oldPhoto, photo_url, () =>
         supabase
           .from("weight_entries")
@@ -725,7 +721,14 @@ function WeightPage() {
                 free-tier users get a small in-block lock and no file input. */}
             <div className="space-y-2" data-tour="weight-photo">
               <Label>Progress photo (optional)</Label>
-              {photoLocked ? (
+              {accessState === "loading" ? (
+                // Access not known yet: hold the tile's place rather than
+                // flash the premium lock at a paying user.
+                <div
+                  aria-hidden
+                  className="h-[118px] animate-pulse rounded-lg border-2 border-dashed border-border bg-muted/30"
+                />
+              ) : photoLocked ? (
                 <Link
                   to="/plans"
                   className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 text-center transition-colors hover:border-accent"

@@ -935,6 +935,10 @@ export type Database = {
           id: string
           /** Bumped by DB triggers on any change to a cached log table. Read-only. */
           log_version: number
+          /** Bumped by DB triggers when workout_plans / workout_profile change. Read-only. */
+          plan_version: number
+          /** Bumped by a DB trigger on any real change to this row. Read-only. */
+          profile_version: number
           longest_streak: number | null
           meal_frequency: number | null
           meal_names: string[]

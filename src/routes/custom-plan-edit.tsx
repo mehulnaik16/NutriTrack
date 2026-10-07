@@ -12,6 +12,7 @@ import { CustomPlanTable } from "@/components/CustomPlanTable";
 import { CustomPlanDayPicker } from "@/components/CustomPlanDayPicker";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { getPlanRow } from "@/lib/historyCache";
 import { todayLocal } from "@/lib/dates";
 import {
   type CustomPlan,
@@ -66,29 +67,23 @@ function CustomPlanEditor() {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("workout_plans")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        setFetching(false);
-        if (!data || !isCustomPlan(data.plan_json)) return;
-        const p = data.plan_json as CustomPlan;
-        setPlan(p);
-        setPlanId(data.id);
-        setTodayIdx(
-          cycleDayIndex(
-            data.custom_plan_day_idx ?? 0,
-            data.custom_plan_day_anchor ?? null,
-            todayLocal(),
-            p.days.length,
-          ),
-        );
-      });
-  }, [user]);
+    getPlanRow(user.id).then(({ data }) => {
+      setFetching(false);
+      if (!data || !isCustomPlan(data.plan_json)) return;
+      const p = data.plan_json as CustomPlan;
+      setPlan(p);
+      setPlanId(data.id);
+      setTodayIdx(
+        cycleDayIndex(
+          data.custom_plan_day_idx ?? 0,
+          data.custom_plan_day_anchor ?? null,
+          todayLocal(),
+          p.days.length,
+        ),
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   /** Patch one day in place — never delete/reinsert the row. */
   const saveDay = async (dayIdx: number, muscles: StandardMuscle[]) => {

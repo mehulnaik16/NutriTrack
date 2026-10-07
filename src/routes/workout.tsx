@@ -68,7 +68,12 @@ import { CustomPlanTable } from "@/components/CustomPlanTable";
 import { ScrollableDayRow } from "@/components/CustomPlanDayPicker";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
-import { byDateThenTime, getHistory } from "@/lib/historyCache";
+import {
+  byDateThenTime,
+  getHistory,
+  getPlanRow,
+  getProfileRow,
+} from "@/lib/historyCache";
 import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
 import { recordWorkoutLog } from "@/lib/notificationPrimer";
 import { Button } from "@/components/ui/button";
@@ -304,7 +309,9 @@ function WorkoutPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // AI Plan state
-  const [plan, setPlan] = useState<WorkoutPlan | null>(null);
+  // undefined = still loading (skeleton), null = no plan (the "Choose your
+  // workout plan" card). Never show the empty card before we know.
+  const [plan, setPlan] = useState<WorkoutPlan | null | undefined>(undefined);
   const [planId, setPlanId] = useState<string | null>(null);
   const [planDayIdx, setPlanDayIdx] = useState(0);
   const [planExpanded, setPlanExpanded] = useState(false);
@@ -353,16 +360,49 @@ function WorkoutPage() {
       return;
     }
     loadUserData();
-  }, [user, loading, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, loading, navigate]);
 
   const loadUserData = async () => {
     if (!user) return;
     const favs = JSON.parse(localStorage.getItem("workout_favorites") || "[]");
     setFavorites(favs);
 
+    // All three in parallel, each applied as it lands — the plan used to wait
+    // behind the other two. Plan and profile come from the validated cache
+    // (lib/historyCache.ts), so a repeat visit needs only the counter check.
+    const uid = user.id;
+    const planP = getPlanRow(uid);
+    const profP = getProfileRow(uid);
+    const logsP = getHistory(uid, "workout_logs").catch(() => null);
+
+    // Load latest AI/custom plan (custom_plan_day_idx lives on this row —
+    // it's progress through THIS plan, so it travels with the plan, not the user)
+    planP.then(({ data: wp, error }) => {
+      if (error) return; // keep the skeleton rather than claim "no plan"
+      if (wp?.plan_json) {
+        const p = wp.plan_json as unknown as WorkoutPlan;
+        setPlan(p);
+        setPlanId(wp.id);
+        setPlanDayIdx(todaysPlanIndex(p.days?.length ?? 0));
+        setCustomDayIdx(wp.custom_plan_day_idx ?? 0);
+        setCustomDayAnchor(wp.custom_plan_day_anchor ?? null);
+      } else {
+        setPlan(null);
+        setPlanId(null);
+      }
+    });
+
+    // Body weight (for calorie estimates)
+    profP.then(({ data: prof }) => {
+      if (prof?.weight_kg) setBodyWeight(prof.weight_kg);
+      if (prof?.age) setUserAge(prof.age);
+      if (prof?.gender) setUserGender(prof.gender);
+    });
+
     // Load today's logs to show what was logged
     const today = todayLocal();
-    const logs = await getHistory(user.id, "workout_logs").catch(() => null);
+    const logs = await logsP;
     if (logs) {
       setLoggedToday(
         logs.filter((d) => d.date === today).map((d) => d.workout_name),
@@ -380,37 +420,7 @@ function WorkoutPage() {
       );
       setRecentExercises(uniqueRecent);
     }
-
-    // Body weight (for calorie estimates)
-    const { data: prof } = await supabase
-      .from("user_profiles")
-      .select("weight_kg, age, gender")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (prof?.weight_kg) setBodyWeight(prof.weight_kg);
-    if (prof?.age) setUserAge(prof.age);
-    if (prof?.gender) setUserGender(prof.gender);
-
-    // Load latest AI/custom plan (custom_plan_day_idx lives on this row —
-    // it's progress through THIS plan, so it travels with the plan, not the user)
-    const { data: wp } = await supabase
-      .from("workout_plans")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (wp?.plan_json) {
-      const p = wp.plan_json as unknown as WorkoutPlan;
-      setPlan(p);
-      setPlanId(wp.id);
-      setPlanDayIdx(todaysPlanIndex(p.days?.length ?? 0));
-      setCustomDayIdx(wp.custom_plan_day_idx ?? 0);
-      setCustomDayAnchor(wp.custom_plan_day_anchor ?? null);
-    } else {
-      setPlan(null);
-      setPlanId(null);
-    }
+    await Promise.all([planP, profP]);
   };
 
   const deletePlan = async () => {
@@ -488,6 +498,15 @@ function WorkoutPage() {
   // --- UI Components ---
 
   const renderPlanCard = () => {
+    // Still loading: hold the card's place without claiming "no plan".
+    if (plan === undefined) {
+      return (
+        <div
+          aria-hidden
+          className="h-[46px] w-full animate-pulse rounded-xl border border-border bg-muted/40"
+        />
+      );
+    }
     if (!plan) {
       // WorkoutGate guarantees a workout_profile exists by the time this page
       // renders, so the old "Set up my training" branch here is unreachable and
@@ -1041,7 +1060,9 @@ function WorkoutPage() {
                       loading="lazy"
                     />
                   )}
-                  <span className="font-semibold text-sm truncate">{ex.name}</span>
+                  <span className="font-semibold text-sm truncate">
+                    {ex.name}
+                  </span>
                 </div>
                 <span className="text-xs font-bold bg-accent/10 text-accent px-2 py-1 rounded shrink-0">
                   {ex.sets}
@@ -2683,7 +2704,9 @@ function WorkoutPage() {
                     <Flame className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold truncate">Calorie Calculator</p>
+                    <p className="text-xs font-bold truncate">
+                      Calorie Calculator
+                    </p>
                     <p className="text-[11px] text-muted-foreground truncate">
                       Calculate energy burn from these sets
                     </p>
@@ -2777,12 +2800,13 @@ function WorkoutPage() {
                                   Vol: {vol} {logUnit}
                                 </span>
                               )}
-                              {log.calories_burned != null && log.calories_burned > 0 && (
-                                <span className="flex items-center gap-1 text-[10px] font-bold text-orange-400 uppercase">
-                                  <Flame className="h-3 w-3 text-orange-500" />
-                                  {Math.round(log.calories_burned)} kcal
-                                </span>
-                              )}
+                              {log.calories_burned != null &&
+                                log.calories_burned > 0 && (
+                                  <span className="flex items-center gap-1 text-[10px] font-bold text-orange-400 uppercase">
+                                    <Flame className="h-3 w-3 text-orange-500" />
+                                    {Math.round(log.calories_burned)} kcal
+                                  </span>
+                                )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

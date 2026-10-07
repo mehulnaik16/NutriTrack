@@ -76,7 +76,12 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import type { TablesInsert } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
-import { dayLogs, getHistory } from "@/lib/historyCache";
+import {
+  dayLogs,
+  getHistory,
+  getPlanRow,
+  getProfileRow,
+} from "@/lib/historyCache";
 import { markOnboarded, recordFoodLog } from "@/lib/notificationPrimer";
 import {
   Tour,
@@ -228,8 +233,7 @@ const formatDateDisplay = (dateStr: string) => {
   });
 };
 
-async function computeStreak(userId: string): Promise<number> {
-  const data = await getHistory(userId, "food_logs").catch(() => []);
+function computeStreak(data: { date: string | null }[]): number {
   if (data.length === 0) return 0;
   const uniqueDates = [...new Set(data.map((d) => d.date))].sort().reverse();
   let streak = 0;
@@ -246,10 +250,6 @@ async function computeStreak(userId: string): Promise<number> {
       break;
     }
   }
-  await supabase
-    .from("user_profiles")
-    .update({ current_streak: streak })
-    .eq("id", userId);
   return streak;
 }
 
@@ -295,7 +295,8 @@ function Dashboard() {
     loadMealNames(user.id).then((names) => {
       if (names) setUserMeals(names);
     });
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Weight logging state
   const [newWeight, setNewWeight] = useState("");
@@ -347,11 +348,9 @@ function Dashboard() {
       { data: wp },
       { data: fav },
     ] = await Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle(),
+      // Profile and plan come from the validated cache: a date change or a
+      // repeat visit costs only the shared counter check.
+      getProfileRow(user.id),
       // The selected day, from the validated browser cache.
       foodHistory.then((rows) => ({ data: dayLogs(rows, selectedDate) })),
       foodHistory.then((rows) => ({
@@ -362,13 +361,7 @@ function Dashboard() {
       getHistory(user.id, "weight_entries")
         .then((rows) => ({ data: rows }))
         .catch(() => ({ data: null })),
-      supabase
-        .from("workout_plans")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      getPlanRow(user.id),
       supabase.from("saved_meals").select("name").eq("user_id", user.id),
     ]);
 
@@ -425,6 +418,17 @@ function Dashboard() {
         .then();
     }
 
+    // Streak from the history already loaded, set with the profile so it never
+    // shows a placeholder 0; written back only when it actually changed.
+    const s = computeStreak(await foodHistory);
+    setStreak(s);
+    if (s !== p.current_streak)
+      supabase
+        .from("user_profiles")
+        .update({ current_streak: s })
+        .eq("id", user.id)
+        .then();
+
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);
     setMonthLogs((m as FoodLog[]) ?? []);
@@ -459,10 +463,8 @@ function Dashboard() {
         setProfile({ ...p, ...patch } as Profile);
       }
     }
-
-    const s = await computeStreak(user.id);
-    setStreak(s);
-  }, [user, selectedDate, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, selectedDate, navigate]);
 
   useEffect(() => {
     load();
@@ -490,9 +492,7 @@ function Dashboard() {
       // One photo per day: a new one replaces today's earlier photo, whose
       // file is deleted once the row points at the new one.
       const newPhoto = payload.photo_url ?? null;
-      const oldPhoto = newPhoto
-        ? await existingPhotoUrl(user.id, date)
-        : null;
+      const oldPhoto = newPhoto ? await existingPhotoUrl(user.id, date) : null;
       await commitPhotoChange(oldPhoto, newPhoto, () =>
         supabase
           .from("weight_entries")

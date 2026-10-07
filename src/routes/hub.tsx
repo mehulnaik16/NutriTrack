@@ -59,7 +59,8 @@ function Hub() {
       .then(({ data }) => {
         if (data?.full_name) setFirstName(data.full_name.split(" ")[0]);
       });
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // ── Leaderboard state ──────────────────────────────────────────
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
@@ -68,6 +69,9 @@ function Hub() {
   const [category, setCategory] = useState("overall");
 
   useEffect(() => {
+    // Only the RANK tab shows the leaderboard: don't fetch every user's row,
+    // or hold a realtime channel open, while another tab is showing.
+    if (activeTab !== "RANK") return;
     let isMounted = true;
 
     const fetchData = () => {
@@ -177,7 +181,7 @@ function Hub() {
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [timeFilter, category]);
+  }, [timeFilter, category, activeTab]);
 
   // ── Leaderboard helpers ────────────────────────────────────────
   const getCategoryIcon = () => {

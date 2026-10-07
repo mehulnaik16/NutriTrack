@@ -20,7 +20,7 @@
  * server call.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { getBillingSummary } from "@/lib/billing";
 import { hasAccess } from "@/lib/entitlement";
@@ -126,6 +126,12 @@ export function useAccessGate(): AccessGate {
     };
   }, [userId]);
 
+  // The useState seed above runs once, usually before auth knows the user (a
+  // hard reload), so it missed the cache. Read it again once userId exists;
+  // until the RPC answers, the cached date decides, after that the RPC does.
+  const seeded = useMemo(() => (userId ? readCache(userId) : null), [userId]);
+  const until = checked ? accessUntil : (accessUntil ?? seeded);
+
   // Signed out is the auth redirect's problem, not this gate's.
   if (authLoading || !userId)
     return { state: "loading", accessUntil: null, reason: null };
@@ -133,7 +139,8 @@ export function useAccessGate(): AccessGate {
 
   // A cache hit that is still in the future renders straight through, so a
   // returning subscriber never waits on the network to see their own page.
-  if (hasAccess(accessUntil)) return { state: "entitled", accessUntil, reason };
+  if (hasAccess(until))
+    return { state: "entitled", accessUntil: until, reason };
 
-  return { state: checked ? "lapsed" : "loading", accessUntil, reason };
+  return { state: checked ? "lapsed" : "loading", accessUntil: until, reason };
 }
