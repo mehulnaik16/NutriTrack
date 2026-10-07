@@ -24,6 +24,8 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    // Start fetching a page's code on hover / touchstart, before the click.
+    defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
   });
 
