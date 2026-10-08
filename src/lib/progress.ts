@@ -13,7 +13,7 @@
 ═══════════════════════════════════════════════════════════════════════ */
 
 import { supabase } from "@/integrations/client";
-import { toLocalISO } from "@/lib/dates";
+import { sevenDayRuns, toLocalISO } from "@/lib/dates";
 import { getHistory } from "@/lib/historyCache";
 import { computeTotalXP, levelFromXP } from "@/lib/xpConfig";
 
@@ -23,7 +23,7 @@ export interface ProgressSnapshot {
   /** Derived from totalXP, surfaced so callers don't each re-derive it. */
   level: number;
   earned: { achievement_id: string; xp: number }[];
-  /** Whole 7-day streaks' worth of distinct logged days. */
+  /** Whole 7-day runs of consecutive logged days (see sevenDayRuns). */
   foodBadges: number;
   workoutBadges: number;
 }
@@ -73,7 +73,7 @@ export async function loadProgress(
     totalXP,
     level: levelFromXP(totalXP).level,
     earned,
-    foodBadges: Math.floor(new Set(foodRows.map((r) => r.date)).size / 7),
-    workoutBadges: Math.floor(new Set(workoutRows.map((r) => r.date)).size / 7),
+    foodBadges: sevenDayRuns(todayLoggedFood.map((r) => r.date)),
+    workoutBadges: sevenDayRuns(workoutRows.map((r) => r.date)),
   };
 }

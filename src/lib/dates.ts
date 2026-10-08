@@ -39,6 +39,21 @@ export function daysBetweenLocal(from: string, to: string): number {
 }
 
 /**
+ * How many whole 7-day streaks the logged dates contain: each unbroken run of
+ * consecutive days earns floor(length / 7). Scattered days earn nothing.
+ */
+export function sevenDayRuns(dates: Iterable<string | null>): number {
+  const days = [...new Set(dates)].filter((d): d is string => !!d).sort();
+  let total = 0;
+  let run = 0;
+  for (let i = 0; i < days.length; i++) {
+    run = i > 0 && daysBetweenLocal(days[i - 1], days[i]) === 1 ? run + 1 : 1;
+    if (run % 7 === 0) total++;
+  }
+  return total;
+}
+
+/**
  * Logs can be added or edited only for today and the 7 days before it;
  * anything older is view-only. Deleting stays allowed at any age. The database enforces the same window
  * (enforce_log_edit_window), this copy is for the UI.
