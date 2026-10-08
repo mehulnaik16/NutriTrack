@@ -2,9 +2,10 @@
   "name": "Dombelz — Train. Track. Transform.",
   "short_name": "Dombelz",
   "description": "AI-powered fitness & nutrition tracking. Log food by photo, voice, or barcode.",
-  "start_url": "/dashboard",
+  "id": "/dashboard",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#101014",
+  "background_color": "#F6F8F8",
   "theme_color": "#101014",
   "orientation": "portrait",
   "icons": [
