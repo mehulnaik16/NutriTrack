@@ -881,14 +881,14 @@ export const FoodSearch = forwardRef<
       )}
 
       {/* ── Action buttons: Camera → Mic → Barcode → Favourites ── */}
-      <div className="flex gap-3 justify-center flex-wrap">
+      {/* Four equal columns: squares shrink on narrow phones, 64px max. */}
+      <div className="mx-auto grid max-w-[292px] grid-cols-4 gap-2 min-[360px]:gap-3">
         <Button
           variant="outline"
           onClick={() => setCameraOpen(true)}
           title="Log food by photo"
           data-tour="food-photo"
-          className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 64, height: 64, minWidth: 64 }}
+          className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0"
         >
           <Camera style={{ width: 22, height: 22 }} />
           <span className="text-[8px] font-medium text-muted-foreground">
@@ -900,8 +900,7 @@ export const FoodSearch = forwardRef<
           onClick={() => setVoiceOpen(true)}
           title="Log food by voice"
           data-tour="food-voice"
-          className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 64, height: 64, minWidth: 64 }}
+          className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0"
         >
           <Mic style={{ width: 22, height: 22 }} />
           <span className="text-[8px] font-medium text-muted-foreground">
@@ -913,8 +912,7 @@ export const FoodSearch = forwardRef<
           onClick={() => setBarcodeMode(true)}
           title="Barcode lookup"
           data-tour="food-scan"
-          className="flex flex-col items-center justify-center gap-1 p-0"
-          style={{ width: 64, height: 64, minWidth: 64 }}
+          className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0"
         >
           <Barcode style={{ width: 22, height: 22 }} />
           <span className="text-[8px] font-medium text-muted-foreground">
@@ -929,8 +927,7 @@ export const FoodSearch = forwardRef<
           }}
           title="View Favourites"
           data-tour="food-favourites"
-          className="flex flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
-          style={{ width: 64, height: 64, minWidth: 64 }}
+          className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
         >
           <Heart style={{ width: 22, height: 22 }} className="text-red-500" />
           <span className="text-[8px] font-medium text-red-500">
