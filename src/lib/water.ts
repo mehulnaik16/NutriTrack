@@ -1,16 +1,17 @@
 /**
  * Water daily-goal / cup-size preferences.
  *
- * Local-first: if this device has a value in localStorage, use it — no DB
- * call on every load. The DB (`user_profiles.water_goal_ml`, `water_cup_ml`)
- * is only consulted when localStorage is empty (new device / cleared cache),
- * and the result is cached locally afterward. Every save writes to both, so
- * switching devices (or clearing storage) always recovers the latest value.
+ * Local-first: this device's value in localStorage shows instantly, then is
+ * checked against the account (`user_profiles.water_goal_ml`, `water_cup_ml`)
+ * through the validated profile cache, so a change made on another device
+ * shows up on the next load. Every save writes to both.
  * Does NOT touch `water_logs` (today's actual intake), which already syncs
  * to Supabase correctly.
  */
 
 import { supabase } from "@/integrations/client";
+import { resolveWaterPrefs } from "@/lib/cacheRules";
+import { getProfileRow } from "@/lib/historyCache";
 
 export const DEFAULT_WATER_GOAL_ML = 2500;
 export const DEFAULT_WATER_CUP_ML = 250;
@@ -46,27 +47,35 @@ function writeLocal(prefs: WaterPrefs) {
 }
 
 /**
- * Resolve water prefs. Returns the local value immediately if present (no
- * network call). Only hits the DB when local storage is empty, then caches
- * the result locally so subsequent loads on this device skip the DB too.
+ * Resolve water prefs. `apply` runs at once with this device's saved value (no
+ * wait, no flicker), then again only if the account's value differs, e.g. it
+ * was changed on another device. That check goes through the validated
+ * profile cache, so when nothing changed it costs only the shared counter read
+ * the page makes anyway, not a profile download.
  */
-export async function loadWaterPrefs(userId: string): Promise<WaterPrefs> {
+export function loadWaterPrefs(
+  userId: string,
+  apply: (prefs: WaterPrefs) => void,
+): void {
   const local = readLocal();
-  if (local) return local;
-
-  const { data } = await supabase
-    .from("user_profiles")
-    .select("water_goal_ml, water_cup_ml")
-    .eq("id", userId)
-    .maybeSingle();
-
-  const resolved =
-    data?.water_goal_ml != null && data?.water_cup_ml != null
-      ? { goalMl: data.water_goal_ml, cupMl: data.water_cup_ml }
-      : { goalMl: DEFAULT_WATER_GOAL_ML, cupMl: DEFAULT_WATER_CUP_ML };
-
-  writeLocal(resolved); // cache on this device so future loads skip the DB
-  return resolved;
+  if (local) apply(local);
+  getProfileRow(userId)
+    .then(({ data }) => {
+      const account =
+        data?.water_goal_ml != null && data?.water_cup_ml != null
+          ? { goalMl: data.water_goal_ml, cupMl: data.water_cup_ml }
+          : null;
+      const { prefs, changed } = resolveWaterPrefs(local, account, {
+        goalMl: DEFAULT_WATER_GOAL_ML,
+        cupMl: DEFAULT_WATER_CUP_ML,
+      });
+      writeLocal(prefs);
+      if (changed) apply(prefs);
+    })
+    .catch(() => {
+      if (!local)
+        apply({ goalMl: DEFAULT_WATER_GOAL_ML, cupMl: DEFAULT_WATER_CUP_ML });
+    });
 }
 
 /** Persist water prefs to localStorage (for instant reads) and the DB (for other devices). */

@@ -63,6 +63,14 @@ function readLocal(userId: string): string[] | null {
   }
 }
 
+function writeLocal(userId: string, names: string[]) {
+  try {
+    localStorage.setItem(localKey(userId), JSON.stringify(names));
+  } catch {
+    /* private mode / storage disabled — the DB still has them */
+  }
+}
+
 /**
  * Resolve the user's meal names, DB-first. Returns `null` only for a truly
  * first-time user (no DB names, no count, no localStorage) — callers use that
@@ -76,7 +84,12 @@ export async function loadMealNames(userId: string): Promise<string[] | null> {
     .maybeSingle();
 
   const dbNames = data?.meal_names as string[] | null;
-  if (Array.isArray(dbNames) && dbNames.length > 0) return dbNames;
+  if (Array.isArray(dbNames) && dbNames.length > 0) {
+    // Keep this device's copy current, or screens that paint from it first
+    // flash names changed on another device.
+    writeLocal(userId, dbNames);
+    return dbNames;
+  }
 
   const dbFreq = data?.meal_frequency as number | null;
   const local = readLocal(userId);
@@ -109,11 +122,7 @@ export async function saveMealNames(
     .from("user_profiles")
     .update({ meal_frequency: clean.length, meal_names: clean })
     .eq("id", userId);
-  try {
-    localStorage.setItem(localKey(userId), JSON.stringify(clean));
-  } catch {
-    /* private mode / storage disabled — the DB write already succeeded */
-  }
+  writeLocal(userId, clean);
 }
 
 /**
