@@ -1,7 +1,7 @@
 /* Runnable self-check for the weight report's layout rules. Plain assert
    script, same convention as dates.test.ts. Run: npx tsx src/lib/weightReport.test.ts */
 import assert from "node:assert";
-import { fitBox, reportDate, reportOrder } from "./weightReport";
+import { beforeAfter, fitBox, reportDate, reportOrder } from "./weightReport";
 
 // Newest first, as the user asked ("latest to oldest").
 assert.deepEqual(
@@ -28,5 +28,19 @@ assert.deepEqual(fitBox(0, 500, 120, 120), { w: 0, h: 0 }); // unreadable
 assert.equal(reportDate("2026-10-08"), "8 Oct 2026");
 assert.equal(reportDate("2026-01-31"), "31 Jan 2026");
 assert.equal(reportDate("2025-12-01"), "1 Dec 2025");
+
+// Before/after: oldest photo vs newest photo; entries without one are skipped.
+const pair = beforeAfter([
+  { date: "2026-10-08", photo_url: "a" },
+  { date: "2026-10-09", photo_url: null }, // newer, but no photo
+  { date: "2026-07-30", photo_url: "b" },
+  { date: "2026-07-01", photo_url: null }, // older, but no photo
+  { date: "2026-08-20", photo_url: "c" },
+]);
+assert.equal(pair?.before.date, "2026-07-30");
+assert.equal(pair?.after.date, "2026-10-08");
+// Needs two photos to compare.
+assert.equal(beforeAfter([{ date: "2026-10-08", photo_url: "a" }]), null);
+assert.equal(beforeAfter([]), null);
 
 console.log("✓ weightReport.test.ts: all assertions passed");
