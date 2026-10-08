@@ -96,6 +96,7 @@ import {
   type TourState,
 } from "@/components/Tour";
 import { loadMealNames } from "@/lib/meals";
+import { PENDING_ADD_KEY } from "@/lib/friendInvite";
 import {
   uploadWeightPhoto,
   existingPhotoUrl,
@@ -276,6 +277,18 @@ function computeStreak(data: { date: string | null }[]): number {
 function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  // A friend invite opened before signing in (see hub.tsx): continue it.
+  useEffect(() => {
+    if (!user) return;
+    let add: string | null = null;
+    try {
+      add = localStorage.getItem(PENDING_ADD_KEY);
+      if (add) localStorage.removeItem(PENDING_ADD_KEY);
+    } catch {
+      /* storage blocked */
+    }
+    if (add) navigate({ to: "/hub", search: { add } });
+  }, [user?.id, navigate]);
   const searchRef = useRef<FoodSearchRef>(null);
   const photoRowRef = useRef<HTMLDivElement>(null);
   // Mouse drag-to-scroll for the photo row; touch already swipes natively.
