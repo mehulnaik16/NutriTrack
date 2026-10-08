@@ -111,6 +111,14 @@ function RootShell({ children }: { children: React.ReactNode }) {
             __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}var f=document.createElement('link');f.rel='stylesheet';f.href='${FONTS_CSS}';document.head.appendChild(f);try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}try{var d=document.documentElement;if(!d.classList.contains('native-shell')&&matchMedia('(display-mode: standalone)').matches&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('splash')&&!/^\\/(privacy|terms|refund)/.test(location.pathname)){sessionStorage.setItem('splash','1');d.classList.add('show-splash')}}catch(e){}`,
           }}
         />
+        {/* Launch splash styles live here, not in styles.css: until the
+            stylesheet arrives the splash would otherwise show as a blank box
+            above the page. */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `#boot-splash{display:none;position:fixed;inset:0;z-index:9999;background:#F6F8F8;transition:opacity .3s}html.show-splash #boot-splash{display:block}html.splash-done #boot-splash{display:none}#boot-splash video{width:100%;height:100%;object-fit:contain}`,
+          }}
+        />
       </head>
       <body>
         {/* Launch splash for the installed web app (head script decides). It
