@@ -264,6 +264,8 @@ export async function groqVision(opts: {
   prompt: string;
   base64: string;
   mimeType: string;
+  /** Text sent after the image: variable input goes last. */
+  after?: string;
   max_tokens?: number;
   signal?: AbortSignal;
 }): Promise<string> {
@@ -282,6 +284,7 @@ export async function groqVision(opts: {
             type: "image_url",
             image_url: { url: `data:${opts.mimeType};base64,${opts.base64}` },
           },
+          ...(opts.after ? [{ type: "text" as const, text: opts.after }] : []),
         ],
       },
     ],

@@ -214,6 +214,9 @@ export function WeeklyReport({ userId, profile }: Props) {
           <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap break-words">
             {report}
           </p>
+          <p className="text-center text-[11px] text-muted-foreground">
+            AI can make mistakes. Check important details yourself.
+          </p>
         </CardContent>
       )}
     </Card>

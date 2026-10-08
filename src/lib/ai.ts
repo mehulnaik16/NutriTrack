@@ -565,13 +565,22 @@ export const serverFoodVision = createServerFn({ method: "POST" })
     VisionInput.extend({
       /** Which Proceed this is after failures; the model order rotates on it. */
       attempt: z.union([z.literal(1), z.literal(2)]).optional(),
+      /** Optional user hint about the food; same 50-char cap as the app. */
+      note: z.string().trim().max(50).optional(),
     }),
   )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
     const { visionChain } = await import("@/server/aiRoutes");
-    const { prompt, base64, mimeType, attempt = 1 } = ctx.data;
+    const { prompt, base64, mimeType, attempt = 1, note } = ctx.data;
+    // Labelled here, not by the client, and stripped of quotes and line
+    // breaks, so a typed note can't pose as part of the instructions.
+    const clean = note?.replace(/["\s]+/g, " ").trim();
+    const after = clean
+      ? `User's note (optional, may be wrong): "${clean}"`
+      : undefined;
     return {
-      result: (await visionChain(prompt, base64, mimeType, attempt)).text,
+      result: (await visionChain(prompt, base64, mimeType, attempt, after))
+        .text,
     };
   });
