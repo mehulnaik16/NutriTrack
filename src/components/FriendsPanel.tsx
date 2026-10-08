@@ -19,6 +19,10 @@ import {
   Gift,
   Share2,
   ImageUp,
+  MessageCircle,
+  MessageSquare,
+  Copy,
+  Download,
 } from "lucide-react";
 import { supabase } from "@/integrations/client";
 import { Button } from "@/components/ui/button";
@@ -98,7 +102,14 @@ function Avatar({
   );
 }
 
-export function FriendsPanel() {
+/** `addCode`: a username from an invite link (/hub?add=…) to offer a request to. */
+export function FriendsPanel({
+  addCode,
+  onAddHandled,
+}: {
+  addCode?: string;
+  onAddHandled?: () => void;
+} = {}) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"FRIENDS" | "REQUESTS" | "DISCOVER">(
@@ -294,14 +305,9 @@ export function FriendsPanel() {
     };
   }, [scanOpen]);
 
-  /**
-   * Share the friend code as a QR picture through the phone's share sheet
-   * (WhatsApp, Messages/iMessage, RCS…). The picture is the same QR, so the
-   * friend can scan it off their screen or upload it under "Scan a Code".
-   * Where sharing files isn't supported (most desktops), it downloads instead.
-   */
-  const shareQr = async () => {
-    if (!myUsername) return;
+  /** The friend-code QR as a PNG picture, with the username under it. */
+  const qrPicture = async (): Promise<File | null> => {
+    if (!myUsername) return null;
     const svg = renderSVG(QR_PREFIX + myUsername, {
       border: 2,
       blackColor: "#000",
@@ -326,20 +332,67 @@ export function FriendsPanel() {
     const blob = await new Promise<Blob | null>((r) =>
       canvas.toBlob(r, "image/png"),
     );
-    if (!blob) return toast.error("Couldn't create the picture");
-    const file = new File([blob], `dombelz-friend-${myUsername}.png`, {
-      type: "image/png",
-    });
-    const text = `Add me on Dombelz: @${myUsername}. Scan this code in Friends → Scan a Code.`;
-    if (navigator.canShare?.({ files: [file] })) {
+    return blob
+      ? new File([blob], `dombelz-friend-${myUsername}.png`, {
+          type: "image/png",
+        })
+      : null;
+  };
+
+  // The link opens Hub → Friends and offers to send this user a request.
+  const addLink = myUsername
+    ? `${window.location.origin}/hub?add=${encodeURIComponent(myUsername)}`
+    : "";
+  const shareText = `Add me as a friend on Dombelz! I'm @${myUsername}. Tap to send me a request: ${addLink}`;
+
+  /**
+   * Same options as Refer & Earn. "More apps" is the phone's own share sheet,
+   * so it lists whatever is installed (WhatsApp, Instagram, Messenger, RCS
+   * Messages…); the others work where that sheet doesn't exist.
+   */
+  const shareQr = async (
+    target: "system" | "whatsapp" | "sms" | "copy" | "save",
+  ) => {
+    if (!myUsername) return;
+    if (target === "system") {
+      const file = await qrPicture();
       try {
-        await navigator.share({ files: [file], text });
+        await navigator.share(
+          file && navigator.canShare?.({ files: [file] })
+            ? { files: [file], text: shareText }
+            : { text: shareText, url: addLink },
+        );
       } catch {
-        /* closed the share sheet — nothing to do */
+        /* closed the share sheet */
       }
       return;
     }
-    const url = URL.createObjectURL(blob);
+    if (target === "whatsapp") {
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+      return;
+    }
+    if (target === "sms") {
+      // iOS wants sms:&body=, everyone else sms:?body= (as in Refer & Earn).
+      const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      window.location.href = `sms:${iOS ? "&" : "?"}body=${encodeURIComponent(shareText)}`;
+      return;
+    }
+    if (target === "copy") {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast.success("Invite copied. Paste it to your friend.");
+      } catch {
+        toast.error("Couldn't copy. Use another option instead.");
+      }
+      return;
+    }
+    const file = await qrPicture();
+    if (!file) return toast.error("Couldn't create the picture");
+    const url = URL.createObjectURL(file);
     const a = document.createElement("a");
     a.href = url;
     a.download = file.name;
@@ -347,6 +400,8 @@ export function FriendsPanel() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast.success("QR code saved. Send the picture to your friend.");
   };
+  const canSystemShare =
+    typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   /** Read a friend code from an uploaded picture (e.g. one shared on WhatsApp). */
   const uploadQr = async (file: File | undefined) => {
@@ -362,6 +417,18 @@ export function FriendsPanel() {
     }
   };
   const uploadRef = useRef<HTMLInputElement>(null);
+
+  // An invite link: ask before sending, since opening a link shouldn't send
+  // a request on its own. Your own link just says so.
+  const [pendingAdd, setPendingAdd] = useState<string | null>(null);
+  useEffect(() => {
+    if (!addCode || !user || !myUsername) return;
+    if (addCode.toLowerCase() === myUsername.toLowerCase())
+      toast.info("That's your own invite link. Share it with a friend.");
+    else setPendingAdd(addCode);
+    onAddHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addCode, user?.id, myUsername]);
 
   const myQr = useMemo(
     () =>
@@ -740,9 +807,71 @@ export function FriendsPanel() {
           <p className="text-center text-xs text-muted-foreground">
             Let a friend scan this. You'll get a request to approve.
           </p>
-          <Button variant="outline" onClick={shareQr} className="mx-auto gap-2">
-            <Share2 className="h-4 w-4" /> Share
-          </Button>
+          <div>
+            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Share your QR code
+            </p>
+            <div
+              className={`grid gap-1.5 ${canSystemShare ? "grid-cols-5" : "grid-cols-4"}`}
+            >
+              {(
+                [
+                  ...(canSystemShare
+                    ? ([
+                        ["system", "More apps", Share2, "text-accent"],
+                      ] as const)
+                    : []),
+                  ["whatsapp", "WhatsApp", MessageCircle, "text-[#25D366]"],
+                  ["sms", "SMS", MessageSquare, "text-accent"],
+                  ["copy", "Copy", Copy, "text-muted-foreground"],
+                  ["save", "Save QR", Download, "text-muted-foreground"],
+                ] as const
+              ).map(([target, label, Icon, tint]) => (
+                <button
+                  key={target}
+                  type="button"
+                  onClick={() => shareQr(target)}
+                  className="flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card px-0.5 py-1.5 transition-colors hover:border-accent/50"
+                >
+                  <Icon className={`h-4 w-4 ${tint}`} />
+                  <span className="text-[10px] font-medium leading-tight text-muted-foreground">
+                    {label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Invite link confirmation ── */}
+      <Dialog
+        open={pendingAdd !== null}
+        onOpenChange={(o) => !o && setPendingAdd(null)}
+      >
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-center">Add a friend?</DialogTitle>
+            <DialogDescription className="text-center">
+              Send a friend request to{" "}
+              <span className="font-bold text-accent">@{pendingAdd}</span>?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={() => setPendingAdd(null)}>
+              Not now
+            </Button>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => {
+                const code = pendingAdd;
+                setPendingAdd(null);
+                if (code) handleCode(code);
+              }}
+            >
+              Send request
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
