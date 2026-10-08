@@ -23,8 +23,13 @@ import {
   MessageSquare,
   Copy,
   Download,
+  Send,
+  Mail,
+  Facebook,
+  AtSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/client";
+import { useDragScroll } from "@/hooks/useDragScroll";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -101,6 +106,18 @@ function Avatar({
     </div>
   );
 }
+
+type ShareTarget =
+  | "system"
+  | "whatsapp"
+  | "sms"
+  | "copy"
+  | "save"
+  | "telegram"
+  | "email"
+  | "facebook"
+  | "x";
+type ShareOption = [ShareTarget, string, typeof Share2, string];
 
 /** `addCode`: a username from an invite link (/hub?add=…) to offer a request to. */
 export function FriendsPanel({
@@ -350,9 +367,7 @@ export function FriendsPanel({
    * so it lists whatever is installed (WhatsApp, Instagram, Messenger, RCS
    * Messages…); the others work where that sheet doesn't exist.
    */
-  const shareQr = async (
-    target: "system" | "whatsapp" | "sms" | "copy" | "save",
-  ) => {
+  const shareQr = async (target: ShareTarget) => {
     if (!myUsername) return;
     if (target === "system") {
       const file = await qrPicture();
@@ -365,6 +380,19 @@ export function FriendsPanel({
       } catch {
         /* closed the share sheet */
       }
+      return;
+    }
+    const web: Partial<Record<typeof target, string>> = {
+      telegram: `https://t.me/share/url?url=${encodeURIComponent(addLink)}&text=${encodeURIComponent(shareText)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(addLink)}`,
+      x: `https://x.com/intent/post?text=${encodeURIComponent(shareText)}`,
+    };
+    if (web[target]) {
+      window.open(web[target], "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (target === "email") {
+      window.location.href = `mailto:?subject=${encodeURIComponent("Add me on Dombelz")}&body=${encodeURIComponent(shareText)}`;
       return;
     }
     if (target === "whatsapp") {
@@ -382,11 +410,27 @@ export function FriendsPanel({
       return;
     }
     if (target === "copy") {
+      // The QR picture itself, so it pastes straight into a chat. The blob is
+      // passed as a promise: Safari only allows clipboard writes started
+      // synchronously from the tap.
       try {
-        await navigator.clipboard.writeText(shareText);
-        toast.success("Invite copied. Paste it to your friend.");
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "image/png": qrPicture().then((f) => {
+              if (!f) throw new Error("no picture");
+              return f;
+            }),
+          }),
+        ]);
+        toast.success("QR code copied. Paste it into a chat.");
       } catch {
-        toast.error("Couldn't copy. Use another option instead.");
+        // No image clipboard here (older browsers): copy the invite text.
+        try {
+          await navigator.clipboard.writeText(shareText);
+          toast.success("Invite link copied. Paste it to your friend.");
+        } catch {
+          toast.error("Couldn't copy. Use another option instead.");
+        }
       }
       return;
     }
@@ -400,8 +444,24 @@ export function FriendsPanel({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast.success("QR code saved. Send the picture to your friend.");
   };
+  const shareDragScroll = useDragScroll();
   const canSystemShare =
     typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const shareOptions: ShareOption[] = [
+    // The phone's own share sheet: every installed app,
+    // Instagram and Messenger included. Absent on most desktops.
+    ...(canSystemShare
+      ? [["system", "More apps", Share2, "text-accent"] as ShareOption]
+      : []),
+    ["whatsapp", "WhatsApp", MessageCircle, "text-[#25D366]"],
+    ["sms", "SMS", MessageSquare, "text-accent"],
+    ["copy", "Copy QR", Copy, "text-muted-foreground"],
+    ["telegram", "Telegram", Send, "text-[#229ED9]"],
+    ["email", "Email", Mail, "text-accent"],
+    ["facebook", "Facebook", Facebook, "text-[#1877F2]"],
+    ["x", "X", AtSign, "text-foreground"],
+    ["save", "Save QR", Download, "text-muted-foreground"],
+  ];
 
   /** Read a friend code from an uploaded picture (e.g. one shared on WhatsApp). */
   const uploadQr = async (file: File | undefined) => {
@@ -811,30 +871,20 @@ export function FriendsPanel({
             <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Share your QR code
             </p>
+            {/* One row, about three showing; swipe, or drag with a mouse. */}
             <div
-              className={`grid gap-1.5 ${canSystemShare ? "grid-cols-5" : "grid-cols-4"}`}
+              {...shareDragScroll}
+              className="-mx-6 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-6 px-6 pb-1 [contain:inline-size] [scrollbar-width:none] select-none pointer-fine:cursor-grab [&::-webkit-scrollbar]:hidden"
             >
-              {(
-                [
-                  ...(canSystemShare
-                    ? ([
-                        ["system", "More apps", Share2, "text-accent"],
-                      ] as const)
-                    : []),
-                  ["whatsapp", "WhatsApp", MessageCircle, "text-[#25D366]"],
-                  ["sms", "SMS", MessageSquare, "text-accent"],
-                  ["copy", "Copy", Copy, "text-muted-foreground"],
-                  ["save", "Save QR", Download, "text-muted-foreground"],
-                ] as const
-              ).map(([target, label, Icon, tint]) => (
+              {shareOptions.map(([target, label, Icon, tint]) => (
                 <button
                   key={target}
                   type="button"
                   onClick={() => shareQr(target)}
-                  className="flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card px-0.5 py-1.5 transition-colors hover:border-accent/50"
+                  className="flex min-h-[64px] w-[30%] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card px-1 py-2 transition-colors hover:border-accent/50"
                 >
-                  <Icon className={`h-4 w-4 ${tint}`} />
-                  <span className="text-[10px] font-medium leading-tight text-muted-foreground">
+                  <Icon className={`h-5 w-5 ${tint}`} />
+                  <span className="text-[11px] font-medium leading-tight text-muted-foreground">
                     {label}
                   </span>
                 </button>
