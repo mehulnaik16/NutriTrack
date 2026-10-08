@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
-import { getSignedPhotoUrl } from "@/services/storage";
+import { getPhotoSrc } from "@/services/storage";
 
 /**
  * Renders a weight progress photo from the private storage bucket.
  * Local previews (blob:/data: URLs for a not-yet-uploaded file) render as-is.
+ * `date` is the entry's date; it sets how long the browser keeps the photo.
  */
 export function SignedPhoto({
   src,
+  date,
   alt,
   className,
 }: {
   src: string;
+  date?: string;
   alt: string;
   className?: string;
 }) {
@@ -26,13 +29,13 @@ export function SignedPhoto({
     }
     let cancelled = false;
     setResolved(null);
-    getSignedPhotoUrl(src).then((url) => {
+    getPhotoSrc(src, date).then((url) => {
       if (!cancelled) setResolved(url);
     });
     return () => {
       cancelled = true;
     };
-  }, [src, isLocalPreview]);
+  }, [src, date, isLocalPreview]);
 
   if (!resolved) {
     return <div className={`animate-pulse bg-muted ${className ?? ""}`} />;

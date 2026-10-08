@@ -1654,6 +1654,7 @@ function Dashboard() {
                         >
                           <SignedPhoto
                             src={e.photo_url!}
+                            date={e.date}
                             alt={`Progress photo, ${e.weight_kg} kg on ${e.date}`}
                             className="h-full w-full object-cover"
                           />
@@ -1676,6 +1677,7 @@ function Dashboard() {
                         {openPhoto && (
                           <SignedPhoto
                             src={openPhoto.photo_url!}
+                            date={openPhoto.date}
                             alt={`Progress photo, ${openPhoto.weight_kg} kg on ${openPhoto.date}`}
                             className="max-h-[75vh] w-full rounded-lg object-contain"
                           />

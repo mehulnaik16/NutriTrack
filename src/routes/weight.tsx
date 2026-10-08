@@ -1022,6 +1022,7 @@ function WeightEntryModal({
                   <div className="relative group rounded-lg overflow-hidden max-h-[50vh] w-full flex justify-center bg-black/5 transition-all">
                     <SignedPhoto
                       src={editPhotoPreview}
+                      date={editDate}
                       alt={`Weight on ${editDate}`}
                       className="w-full h-full object-contain"
                     />
