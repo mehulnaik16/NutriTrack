@@ -1276,7 +1276,9 @@ export type Database = {
       award_achievement: { Args: { p_id: string }; Returns: undefined }
       claim_referral: { Args: { code: string }; Returns: boolean }
       generate_referral_code: { Args: { full_name: string }; Returns: string }
+      data_export_status: { Args: never; Returns: Json }
       get_billing_summary: { Args: never; Returns: Json }
+      record_data_export: { Args: { p_kind: string }; Returns: boolean }
       get_friend_requests: {
         Args: never
         Returns: {

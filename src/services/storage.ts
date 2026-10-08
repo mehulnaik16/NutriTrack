@@ -9,6 +9,7 @@
  */
 
 import { supabase } from "@/integrations/client";
+import { FROZEN_DAYS, isPhotoFresh } from "@/lib/cacheRules";
 import { daysAgoLocal } from "@/lib/dates";
 import { isNativeApp } from "@/lib/platform";
 
@@ -148,8 +149,6 @@ export async function getSignedPhotoUrl(
 // moves to the long rule on its next read, with no download.
 
 const PHOTO_CACHE = "dombelz-photos";
-const RECENT_TTL_MS = 24 * 60 * 60 * 1000;
-const FROZEN_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 /** Object URLs already made this session, so remounts don't reread the cache. */
 const objectUrls = new Map<string, string>();
 
@@ -173,10 +172,10 @@ export async function getPhotoSrc(
 
   try {
     const cache = await caches.open(PHOTO_CACHE);
-    const ttl = date && date < daysAgoLocal(8) ? FROZEN_TTL_MS : RECENT_TTL_MS;
     const hit = await cache.match(cacheKey(path));
     const at = Number(hit?.headers.get("x-cached-at"));
-    if (hit && Date.now() - at < ttl) return remember(path, await hit.blob());
+    if (hit && isPhotoFresh(at, date, Date.now(), daysAgoLocal(FROZEN_DAYS)))
+      return remember(path, await hit.blob());
 
     const signed = await getSignedPhotoUrl(photoUrl);
     if (!signed) return null;
