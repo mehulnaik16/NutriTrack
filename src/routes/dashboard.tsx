@@ -278,6 +278,10 @@ function Dashboard() {
   const navigate = useNavigate();
   const searchRef = useRef<FoodSearchRef>(null);
   const photoRowRef = useRef<HTMLDivElement>(null);
+  // Mouse drag-to-scroll for the photo row; touch already swipes natively.
+  const photoDrag = useRef<{ x: number; left: number; moved: boolean } | null>(
+    null,
+  );
   const [openPhoto, setOpenPhoto] = useState<WeightEntry | null>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -1592,7 +1596,53 @@ function Dashboard() {
                     {/* Newest first; swipe right to go back in time. */}
                     <div
                       ref={photoRowRef}
-                      className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-6 px-6 pb-2 [contain:inline-size] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                      className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-6 px-6 pb-2 [contain:inline-size] [scrollbar-width:none] select-none pointer-fine:cursor-grab [&::-webkit-scrollbar]:hidden"
+                      onPointerDown={(ev) => {
+                        if (ev.pointerType !== "mouse" || ev.button !== 0)
+                          return;
+                        const row = ev.currentTarget;
+                        photoDrag.current = {
+                          x: ev.clientX,
+                          left: row.scrollLeft,
+                          moved: false,
+                        };
+                      }}
+                      onPointerMove={(ev) => {
+                        const d = photoDrag.current;
+                        if (!d) return;
+                        const dx = ev.clientX - d.x;
+                        if (!d.moved && Math.abs(dx) < 5) return;
+                        const row = ev.currentTarget;
+                        if (!d.moved) {
+                          d.moved = true;
+                          // Snapping fights a manual scroll; it comes back on release.
+                          row.style.scrollSnapType = "none";
+                          row.style.cursor = "grabbing";
+                          row.setPointerCapture(ev.pointerId);
+                        }
+                        row.scrollLeft = d.left - dx;
+                      }}
+                      onPointerUp={(ev) => {
+                        const row = ev.currentTarget;
+                        row.style.scrollSnapType = "";
+                        row.style.cursor = "";
+                        // Keep `moved` until the click it would fire is swallowed.
+                        if (!photoDrag.current?.moved) photoDrag.current = null;
+                      }}
+                      onPointerCancel={(ev) => {
+                        ev.currentTarget.style.scrollSnapType = "";
+                        ev.currentTarget.style.cursor = "";
+                        photoDrag.current = null;
+                      }}
+                      onClickCapture={(ev) => {
+                        // A drag that ends over a photo must not open it.
+                        if (photoDrag.current?.moved) {
+                          ev.stopPropagation();
+                          ev.preventDefault();
+                        }
+                        photoDrag.current = null;
+                      }}
+                      onDragStart={(ev) => ev.preventDefault()}
                     >
                       {photoEntries.map((e) => (
                         <button
