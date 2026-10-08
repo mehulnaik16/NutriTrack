@@ -88,6 +88,9 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "tricep pushdown": "/exercises/tricep_pushdown.jpg",
   "ez bar skullcrusher": "/exercises/ez_bar_skullcrusher.jpg",
   "dumbbell overhead tricep extension": "/exercises/dumbbell_overhead_tricep_extension.jpg",
+  "handstand push ups": "/exercises/handstand_push_ups.jpg",
+  "incline dumbbell curl": "/exercises/incline_dumbbell_curl.jpg",
+  "dumbbell concentration curl": "/exercises/dumbbell_concentration_curl.jpg",
 };
 
 /**
@@ -221,6 +224,16 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "seated overhead tricep extension": "dumbbell overhead tricep extension",
   "dumbbell tricep extension": "dumbbell overhead tricep extension",
   "db overhead tricep extension": "dumbbell overhead tricep extension",
+  "handstand push up": "handstand push ups",
+  "handstand pushup": "handstand push ups",
+  "handstand pushups": "handstand push ups",
+  "hspu": "handstand push ups",
+  "incline curl": "incline dumbbell curl",
+  "incline bicep curl": "incline dumbbell curl",
+  "incline db curl": "incline dumbbell curl",
+  "concentration curl": "dumbbell concentration curl",
+  "concentration curls": "dumbbell concentration curl",
+  "db concentration curl": "dumbbell concentration curl",
 };
 
 /**
