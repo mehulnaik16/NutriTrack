@@ -458,7 +458,7 @@ function FoodPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/10 pb-24">
+    <div className="min-h-screen bg-muted/10 pb-nav">
       <Header name={firstName} />
       {/* "dashboard" too: a user who taps Food mid-tour still gets this part.
           Waits for the first-visit meal setup so it never sits over a modal. */}

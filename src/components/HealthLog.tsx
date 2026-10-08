@@ -336,7 +336,7 @@ export function HealthLogPage({
     condition === "hypertension" ? bpValidation.ok : dmValidation.ok;
 
   return (
-    <div className="min-h-screen bg-background pb-24 text-foreground">
+    <div className="min-h-screen bg-background pb-nav text-foreground">
       {/* Top Header */}
       <SubHeader title="Health Log" onBack={onBack} />
 

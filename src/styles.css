@@ -549,6 +549,21 @@ html.theme-isro body::before {
     padding-bottom: max(env(safe-area-inset-bottom), 8px);
   }
 
+  /* Room for the fixed BottomNav (h-16 + border + .pb-safe) and no more; the
+     page's own bottom padding is the gap above it. No nav from md up. */
+  .pb-nav {
+    padding-bottom: calc(4rem + 1px + env(safe-area-inset-bottom));
+  }
+  .native-shell .pb-nav {
+    padding-bottom: calc(4rem + 1px + max(env(safe-area-inset-bottom), 8px));
+  }
+  @media (min-width: 48rem) {
+    .pb-nav,
+    .native-shell .pb-nav {
+      padding-bottom: 0;
+    }
+  }
+
   .font-display {
     font-family: var(--font-display);
   }

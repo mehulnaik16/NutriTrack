@@ -423,7 +423,7 @@ function Hub() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <Header name={firstName} />
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         {isIsroTheme() && (

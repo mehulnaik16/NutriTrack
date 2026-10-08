@@ -509,7 +509,7 @@ function WeightPage() {
     photoEntries[Math.min(compareIdx + 1, photoEntries.length - 1)];
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <Header name={profile.full_name?.split(" ")[0]} />
       {tour && (
         <Tour

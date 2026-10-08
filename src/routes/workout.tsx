@@ -3218,7 +3218,7 @@ function WorkoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24 selection:bg-accent/20">
+    <div className="min-h-screen bg-background pb-nav selection:bg-accent/20">
       <Header />
       <main className="mx-auto max-w-md p-5 pt-8 space-y-3">
         {/* Custom Tabs */}

@@ -118,6 +118,7 @@ import {
 import { getTelemetryLabel } from "@/lib/telemetry";
 import { changeTone, wantedDirection } from "@/lib/measurements";
 import { SignedPhoto } from "@/components/SignedPhoto";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 // Route-level lock. The page renders with the user's own data but does not
 // respond; any tap opens the upsell popup.
@@ -171,13 +172,16 @@ interface FoodLog {
   fiber_g: number;
 }
 
-/** "8 Oct", or "8 Oct 2025" for another year — for the photo watermark. */
-function photoDate(iso: string): string {
+/** "8 Oct" (year only if not this year) for the watermark; withYear for the
+ * expanded view. */
+function photoDate(iso: string, withYear = false): string {
   const d = new Date(`${iso}T00:00:00`);
   return d.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
-    ...(d.getFullYear() !== new Date().getFullYear() && { year: "numeric" }),
+    ...((withYear || d.getFullYear() !== new Date().getFullYear()) && {
+      year: "numeric",
+    }),
   });
 }
 
@@ -273,6 +277,8 @@ function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const searchRef = useRef<FoodSearchRef>(null);
+  const photoRowRef = useRef<HTMLDivElement>(null);
+  const [openPhoto, setOpenPhoto] = useState<WeightEntry | null>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -779,7 +785,7 @@ function Dashboard() {
   const todaysDay = workoutPlan?.days?.[planDayIdx];
 
   return (
-    <div className="min-h-screen bg-muted/10 pb-24">
+    <div className="min-h-screen bg-muted/10 pb-nav">
       <Header name={firstName} />
       {tour === null &&
         !profile.has_answered_tour_offer &&
@@ -1552,30 +1558,80 @@ function Dashboard() {
                     <h4 className="mb-3 flex items-baseline justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Progress Photos
                       {photoEntries.length > 1 && (
-                        <span className="text-[10px] font-medium normal-case tracking-normal">
-                          Swipe to see your journey →
-                        </span>
+                        <>
+                          <span className="text-[10px] font-medium normal-case tracking-normal md:hidden">
+                            Swipe to see your journey →
+                          </span>
+                          {/* A mouse wheel can't scroll sideways. */}
+                          <span className="hidden gap-1 md:flex">
+                            {(
+                              [
+                                [-1, "Newer photos", ChevronLeft],
+                                [1, "Older photos", ChevronRight],
+                              ] as const
+                            ).map(([dir, label, Icon]) => (
+                              <button
+                                key={dir}
+                                type="button"
+                                aria-label={label}
+                                onClick={() =>
+                                  photoRowRef.current?.scrollBy({
+                                    left: dir * 216,
+                                    behavior: "smooth",
+                                  })
+                                }
+                                className="flex h-6 w-6 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground"
+                              >
+                                <Icon className="h-3.5 w-3.5" />
+                              </button>
+                            ))}
+                          </span>
+                        </>
                       )}
                     </h4>
                     {/* Newest first; swipe right to go back in time. */}
-                    <div className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div
+                      ref={photoRowRef}
+                      className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-6 px-6 pb-2 [contain:inline-size] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    >
                       {photoEntries.map((e) => (
-                        <div
+                        <button
                           key={e.id}
-                          className="relative aspect-[3/4] w-[62%] max-w-[220px] shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-muted"
+                          type="button"
+                          onClick={() => setOpenPhoto(e)}
+                          aria-label={`Open photo from ${photoDate(e.date)}`}
+                          className="relative h-24 w-24 shrink-0 snap-start overflow-hidden rounded-lg border border-border bg-muted"
                         >
                           <SignedPhoto
                             src={e.photo_url!}
                             alt={`Progress photo, ${e.weight_kg} kg on ${e.date}`}
                             className="h-full w-full object-cover"
                           />
-                          <div className="pointer-events-none absolute inset-x-2.5 bottom-2 flex items-end justify-between text-[11px] font-semibold text-white/70 [text-shadow:0_1px_3px_rgb(0_0_0/0.6)]">
+                          <div className="pointer-events-none absolute inset-x-1.5 bottom-1 flex items-end justify-between text-[9px] font-semibold text-white/70 [text-shadow:0_1px_3px_rgb(0_0_0/0.6)]">
                             <span>{e.weight_kg} kg</span>
                             <span>{photoDate(e.date)}</span>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
+                    <Dialog
+                      open={!!openPhoto}
+                      onOpenChange={(o) => !o && setOpenPhoto(null)}
+                    >
+                      <DialogContent className="w-[92vw] max-w-md gap-3 p-3">
+                        <DialogTitle className="text-sm font-semibold">
+                          {openPhoto &&
+                            `${openPhoto.weight_kg} kg · ${photoDate(openPhoto.date, true)}`}
+                        </DialogTitle>
+                        {openPhoto && (
+                          <SignedPhoto
+                            src={openPhoto.photo_url!}
+                            alt={`Progress photo, ${openPhoto.weight_kg} kg on ${openPhoto.date}`}
+                            className="max-h-[75vh] w-full rounded-lg object-contain"
+                          />
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 )}
               </CardContent>

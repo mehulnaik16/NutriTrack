@@ -264,7 +264,7 @@ export function AchievementsPage({
     : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <Button

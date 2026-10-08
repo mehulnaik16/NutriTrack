@@ -382,7 +382,7 @@ export function GymLinkPage({
   // business. It also survives leaving a gym, which is why nothing here can
   // take it away.
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <SubHeader title="Your Gym" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
         {loading ? (
