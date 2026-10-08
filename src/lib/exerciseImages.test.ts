@@ -129,6 +129,10 @@ assert.strictEqual(getExerciseThumbnail("Farmers Walk"), "/exercises/farmers_car
 assert.strictEqual(getExerciseThumbnail("Alternating Battle Rope"), "/exercises/alternating_battle_rope.jpg");
 assert.strictEqual(getExerciseThumbnail("Battle Ropes"), "/exercises/alternating_battle_rope.jpg");
 assert.strictEqual(getExerciseThumbnail("Battle Rope"), "/exercises/alternating_battle_rope.jpg");
+assert.strictEqual(getExerciseThumbnail("Plank"), "/exercises/plank.jpg");
+assert.strictEqual(getExerciseThumbnail("Forearm Plank"), "/exercises/plank.jpg");
+assert.strictEqual(getExerciseThumbnail("Front Plank"), "/exercises/plank.jpg");
+assert.strictEqual(getExerciseThumbnail("Planks"), "/exercises/plank.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);
