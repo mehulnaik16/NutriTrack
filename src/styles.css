@@ -666,3 +666,56 @@ html.theme-isro body::before {
   }
 }
 
+/* LogoLoader: tiles start as outlines and fill in the launch video's order
+   (BrandLogo's tiles are already in that order), then empty and repeat. */
+.logo-loader g > * {
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-opacity: 0.35;
+  fill-opacity: 0;
+  animation: logo-tile-fill 1.8s ease-in-out infinite;
+}
+.logo-loader g > :nth-child(2) {
+  animation-delay: 0.1s;
+}
+.logo-loader g > :nth-child(3) {
+  animation-delay: 0.2s;
+}
+.logo-loader g > :nth-child(4) {
+  animation-delay: 0.3s;
+}
+.logo-loader g > :nth-child(5) {
+  animation-delay: 0.4s;
+}
+.logo-loader g > :nth-child(6) {
+  animation-delay: 0.5s;
+}
+.logo-loader g > :nth-child(7) {
+  animation-delay: 0.6s;
+}
+.logo-loader g > :nth-child(8) {
+  animation-delay: 0.7s;
+}
+.logo-loader g > :nth-child(9) {
+  animation-delay: 0.8s;
+}
+@keyframes logo-tile-fill {
+  0%,
+  5% {
+    fill-opacity: 0;
+  }
+  20%,
+  75% {
+    fill-opacity: 1;
+  }
+  90%,
+  100% {
+    fill-opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-loader g > * {
+    animation: none;
+    fill-opacity: 1;
+  }
+}
