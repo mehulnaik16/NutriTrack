@@ -98,6 +98,7 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "dumbbell shrug": "/exercises/dumbbell_shrug.jpg",
   "barbell shrug": "/exercises/barbell_shrug.jpg",
   "farmers carry": "/exercises/farmers_carry.jpg",
+  "alternating battle rope": "/exercises/alternating_battle_rope.jpg",
 };
 
 /**
@@ -266,6 +267,9 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "farmer's carry": "farmers carry",
   "farmer's walk": "farmers carry",
   "dumbbell farmers walk": "farmers carry",
+  "battle rope": "alternating battle rope",
+  "battle ropes": "alternating battle rope",
+  "alternating battle ropes": "alternating battle rope",
 };
 
 /**
