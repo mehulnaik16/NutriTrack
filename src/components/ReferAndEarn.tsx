@@ -250,7 +250,7 @@ export function ReferAndEarnPage({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <SubHeader title="Refer & Earn" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
         {/* ── Hero: the permanent invite ID ─────────────────────────── */}

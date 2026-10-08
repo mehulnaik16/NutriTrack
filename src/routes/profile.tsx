@@ -623,7 +623,7 @@ function Profile() {
   /* ─── PRICING PAGE ─── */
   if (page === "pricing") {
     return (
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen bg-background pb-nav">
         <SubHeader
           title="Pricing"
           onBack={goBack}
@@ -658,7 +658,7 @@ function Profile() {
   /* ─── THEME PAGE ─── */
   if (page === "theme") {
     return (
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen bg-background pb-nav">
         <SubHeader title="Theme" onBack={goBack} />
         <main className="mx-auto max-w-lg px-4 py-8">
           <p className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -694,7 +694,9 @@ function Profile() {
               {
                 id: "theme-cyber",
                 label: "Retro Cyber",
-                icon: <Terminal className="h-5 w-5 text-white" />,
+                icon: (
+                  <Terminal className="h-5 w-5 text-white [:root:not(.dark):not([class*=theme-])_&]:text-black" />
+                ),
               },
               {
                 id: "theme-cyberdeck",
@@ -737,7 +739,7 @@ function Profile() {
   /* ─── PROFILE DETAILS PAGE ─── */
   if (page === "details") {
     return (
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen bg-background pb-nav">
         <SubHeader
           title="Profile details"
           onBack={() => {
@@ -1040,7 +1042,7 @@ function Profile() {
   /* ─── WORKOUT DETAILS PAGE ─── */
   if (page === "workout-details") {
     return (
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen bg-background pb-nav">
         <SubHeader
           title="Workout details"
           onBack={() => {
@@ -1456,7 +1458,7 @@ function Profile() {
   const phone = user.phone ?? user.user_metadata?.phone ?? "";
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       {/* Top bar */}
       <div className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur px-5 py-5 flex items-center gap-4">
         <Button
@@ -1706,7 +1708,7 @@ function TransactionsPage({
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <SubHeader title="Plan & billing" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
         {/* Current plan */}
@@ -2249,7 +2251,7 @@ function SettingsPage({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <SubHeader title="Settings" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
         {/* General — Theme lives on its own Profile card */}
@@ -2544,7 +2546,7 @@ function SettingsPage({
 ══════════════════════════════════════════════════════ */
 function HelpPage({ onBack }: { onBack: () => void }) {
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <SubHeader title="Help & support" onBack={onBack} />
       <main className="mx-auto max-w-lg px-4 py-6">
         <HelpCenter />
@@ -2578,7 +2580,7 @@ function ToursPage({ userId, onBack }: { userId: string; onBack: () => void }) {
     },
   ];
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <SubHeader title="App tours" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-2 px-4 py-6">
         {tours.map(({ icon: Icon, label, start }) => (
@@ -2600,7 +2602,7 @@ function ToursPage({ userId, onBack }: { userId: string; onBack: () => void }) {
 
 function AboutPage({ onBack }: { onBack: () => void }) {
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <SubHeader title="About us" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
         <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-center">

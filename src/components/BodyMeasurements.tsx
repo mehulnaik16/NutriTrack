@@ -176,7 +176,7 @@ export function BodyMeasurementsPage({
   const diff = imbalance(rows, metric.id);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-nav">
       <SubHeader title="Body measurements" onBack={onBack} />
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
         {/* ── Which body part ───────────────────────────────────────── */}
