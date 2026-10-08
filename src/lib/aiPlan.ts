@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/client";
-import { serverWorkoutPlan } from "@/lib/ai";
+import { AI_PLAN_LIMIT_MESSAGE, serverWorkoutPlan } from "@/lib/ai";
 import {
   FITNESS_GOALS,
   FITNESS_LEVELS,
@@ -23,6 +23,34 @@ for (const names of Object.values(EXERCISES_DB)) {
   for (const n of names) CANONICAL_BY_LOWER.set(n.toLowerCase(), n);
 }
 
+/** No AI plan turns left. Callers show it as a kind toast, not an error. */
+export class AiPlanLimitError extends Error {}
+
+/** "2026-10-14T…" → "14 Oct". */
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+/**
+ * Turns left per the ai_plan_limits migration (trial: 2 in total; paid: 2 a
+ * week, 4 a month). The server enforces it; this only words the toast and
+ * saves a wasted "Generating…" wait.
+ */
+async function assertAiPlanTurn(): Promise<void> {
+  const { data, error } = await supabase.rpc("ai_plan_status");
+  if (error || !data) return; // the server still decides
+  const s = data as { paid: boolean; allowed: boolean; next: string | null };
+  if (s.allowed) return;
+  throw new AiPlanLimitError(
+    s.paid && s.next
+      ? `You've made your AI plans for now. You can make a new one on ${shortDate(s.next)} 💪`
+      : "You've used both AI plans in your free trial. Pick a plan to make more. Your current one is ready to train with 💪",
+  );
+}
+
 /**
  * Generate an AI workout plan from the user's saved workout preferences and
  * persist it as the user's single workout_plans row (replacing any prior
@@ -33,6 +61,7 @@ export async function generateAiPlan(
   userId: string,
   prefs: WorkoutPrefs,
 ): Promise<void> {
+  await assertAiPlanTurn();
   const goalLabel =
     FITNESS_GOALS.find((g) => g.value === prefs.fitnessGoal)?.label ??
     prefs.fitnessGoal;
@@ -65,10 +94,7 @@ export async function generateAiPlan(
     physical.push(`Nutrition goal: ${GOAL_PHRASE[goalPrimary]}`);
 
   const muscles = String(prefs.musclesPerWorkout) as
-    | "1"
-    | "2"
-    | "3"
-    | "not_sure";
+    "1" | "2" | "3" | "not_sure";
   const athlete = [
     "ATHLETE",
     `- Experience: ${prefs.fitnessLevel}${levelDetail ? ` (${levelDetail})` : ""}`,
@@ -87,6 +113,11 @@ export async function generateAiPlan(
       fitnessGoal: prefs.fitnessGoal,
       musclesPerWorkout: muscles,
     },
+  }).catch((e: Error) => {
+    // Another tab took the last turn between our check and this call.
+    throw e.message === AI_PLAN_LIMIT_MESSAGE
+      ? new AiPlanLimitError(e.message)
+      : e;
   });
   const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
   if (

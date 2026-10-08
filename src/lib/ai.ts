@@ -508,25 +508,47 @@ export const serverWorkoutPlan = createServerFn({ method: "POST" })
         import("@/lib/workoutPrompt"),
       ]);
     const { athlete, fitnessGoal, musclesPerWorkout } = ctx.data;
-    const raw = await groqChat({
-      model: "openai/gpt-oss-120b",
-      messages: [
-        { role: "system", content: WORKOUT_COACH_SYSTEM },
-        {
-          role: "user",
-          content: buildWorkoutUserMessage(
-            athlete,
-            fitnessGoal,
-            musclesPerWorkout,
-          ),
-        },
-      ],
-      max_tokens: 3000,
-      temperature: 0.4,
-      response_format: { type: "json_object" },
-    });
-    return { result: raw };
+    // Plan limits (ai_plan_limits migration): take a turn before the model
+    // runs, give it back if the model fails so an error never costs one.
+    const { data: turn, error: turnError } =
+      await ctx.context.supabase.rpc("claim_ai_plan");
+    if (turnError)
+      throw new Error("Couldn't start your plan. Please try again.");
+    if (!turn) throw new Error(AI_PLAN_LIMIT_MESSAGE);
+    try {
+      const raw = await groqChat({
+        model: "openai/gpt-oss-120b",
+        messages: [
+          { role: "system", content: WORKOUT_COACH_SYSTEM },
+          {
+            role: "user",
+            content: buildWorkoutUserMessage(
+              athlete,
+              fitnessGoal,
+              musclesPerWorkout,
+            ),
+          },
+        ],
+        max_tokens: 3000,
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+      });
+      const days = JSON.parse(raw.replace(/```json|```/g, "").trim())?.days;
+      if (!Array.isArray(days) || days.length === 0)
+        throw new Error("The AI returned an invalid plan. Please try again.");
+      return { result: raw };
+    } catch (e) {
+      const { supabaseAdmin } = await import("@/integrations/client.server");
+      await supabaseAdmin.rpc("release_ai_plan", { p_id: turn });
+      throw e instanceof SyntaxError
+        ? new Error("The AI returned an invalid plan. Please try again.")
+        : e;
+    }
   });
+
+/** Shown when "Let AI Pick for You" has no turns left. Kind, not a lock. */
+export const AI_PLAN_LIMIT_MESSAGE =
+  "You've used your AI plans for now. Your current plan is ready to train with 💪";
 
 // ── Voice parse ──────────────────────────────────────────────────────────────
 // Pinned server-side like the vision path: the model order and its fallbacks

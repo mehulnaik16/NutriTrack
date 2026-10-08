@@ -23,7 +23,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/lib/auth";
-import { generateAiPlan } from "@/lib/aiPlan";
+import { AiPlanLimitError, generateAiPlan } from "@/lib/aiPlan";
+import { useAccessGate } from "@/hooks/useAccessGate";
+import { AiPlanLockedCard } from "@/components/AiPlanLockedCard";
 import {
   type WeightUnit,
   type DistanceUnit,
@@ -245,6 +247,12 @@ function WorkoutSetup() {
     };
   };
 
+  // Without access the AI option is locked; don't leave it as the pick.
+  const aiLocked = useAccessGate().state === "lapsed";
+  useEffect(() => {
+    if (aiLocked && planChoice === "ai_generated") setPlanChoice("library");
+  }, [aiLocked, planChoice]);
+
   const finish = async () => {
     if (!user) return;
     setBusy(true);
@@ -267,7 +275,8 @@ function WorkoutSetup() {
         navigate({ to: "/custom-plan" });
       }
     } catch (e) {
-      toast.error((e as Error).message ?? "Something went wrong");
+      if (e instanceof AiPlanLimitError) toast(e.message);
+      else toast.error((e as Error).message ?? "Something went wrong");
     } finally {
       setBusy(false);
     }
@@ -681,21 +690,22 @@ function WorkoutSetup() {
               <p className="mb-5 text-sm text-muted-foreground">
                 How do you want your training plan?
               </p>
-              <OptionCard
-                active={planChoice === "ai_generated"}
-                onClick={() => setPlanChoice("ai_generated")}
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold">
-                  <Sparkles className="h-4 w-4 text-accent" /> Let AI Pick for
-                  Me
-                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">
-                    Recommended
+              {aiLocked ? (
+                <AiPlanLockedCard />
+              ) : (
+                <OptionCard
+                  active={planChoice === "ai_generated"}
+                  onClick={() => setPlanChoice("ai_generated")}
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    <Sparkles className="h-4 w-4 text-accent" /> Let AI Pick for
+                    You
                   </span>
-                </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  A personalized plan generated from all your answers.
-                </span>
-              </OptionCard>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    A personalized plan generated from all your answers.
+                  </span>
+                </OptionCard>
+              )}
               <OptionCard
                 active={planChoice === "library"}
                 onClick={() => setPlanChoice("library")}
@@ -747,28 +757,36 @@ function WorkoutSetup() {
               Continue <ArrowRight className="h-5 w-5" />
             </Button>
           ) : (
-            <Button
-              onClick={finish}
-              disabled={busy}
-              className="h-13 w-full gap-2 rounded-full bg-accent py-6 text-base font-bold text-accent-foreground glow-accent hover:bg-accent/90"
-            >
-              {busy ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  {planChoice === "ai_generated"
-                    ? "Building your plan…"
-                    : "Saving…"}
-                </>
-              ) : planChoice === "ai_generated" ? (
-                <>
-                  <Sparkles className="h-5 w-5" /> Generate my plan
-                </>
-              ) : (
-                <>
-                  Finish <ArrowRight className="h-5 w-5" />
-                </>
+            <>
+              {planChoice === "ai_generated" && (
+                <p className="mb-2 text-center text-[11px] text-muted-foreground">
+                  AI can make mistakes. Check the plan suits you before
+                  training.
+                </p>
               )}
-            </Button>
+              <Button
+                onClick={finish}
+                disabled={busy}
+                className="h-13 w-full gap-2 rounded-full bg-accent py-6 text-base font-bold text-accent-foreground glow-accent hover:bg-accent/90"
+              >
+                {busy ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    {planChoice === "ai_generated"
+                      ? "Building your plan…"
+                      : "Saving…"}
+                  </>
+                ) : planChoice === "ai_generated" ? (
+                  <>
+                    <Sparkles className="h-5 w-5" /> Generate my plan
+                  </>
+                ) : (
+                  <>
+                    Finish <ArrowRight className="h-5 w-5" />
+                  </>
+                )}
+              </Button>
+            </>
           )}
         </div>
       </div>
