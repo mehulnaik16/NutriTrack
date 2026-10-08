@@ -99,6 +99,8 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "barbell shrug": "/exercises/barbell_shrug.jpg",
   "farmers carry": "/exercises/farmers_carry.jpg",
   "alternating battle rope": "/exercises/alternating_battle_rope.jpg",
+  // Approved Batch 4 Core additions
+  "plank": "/exercises/plank.jpg",
 };
 
 /**
@@ -270,6 +272,9 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "battle rope": "alternating battle rope",
   "battle ropes": "alternating battle rope",
   "alternating battle ropes": "alternating battle rope",
+  "forearm plank": "plank",
+  "front plank": "plank",
+  "planks": "plank",
 };
 
 /**
