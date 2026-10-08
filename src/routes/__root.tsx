@@ -108,11 +108,22 @@ function RootShell({ children }: { children: React.ReactNode }) {
             // The landing page ("/") is always light; see routes/index.tsx.
             // On "/", a stored Supabase session adds .has-session so a
             // returning user sees the redirect spinner, not the landing page.
-            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}var f=document.createElement('link');f.rel='stylesheet';f.href='${FONTS_CSS}';document.head.appendChild(f);try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}var f=document.createElement('link');f.rel='stylesheet';f.href='${FONTS_CSS}';document.head.appendChild(f);try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}try{var d=document.documentElement;if(!d.classList.contains('native-shell')&&matchMedia('(display-mode: standalone)').matches&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('splash')&&!/^\\/(privacy|terms|refund)/.test(location.pathname)){sessionStorage.setItem('splash','1');d.classList.add('show-splash')}}catch(e){}`,
           }}
         />
       </head>
       <body>
+        {/* Launch splash for the installed web app (head script decides). It
+            plays over the page while React loads underneath, and is hidden,
+            never removed, so hydration sees the same DOM. */}
+        <div id="boot-splash" aria-hidden="true">
+          <video id="boot-video" muted playsInline preload="none" />
+        </div>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var d=document.documentElement;if(!d.classList.contains('show-splash'))return;var s=document.getElementById('boot-splash'),v=document.getElementById('boot-video'),P='/images/splash/splash-portrait-v1',done=function(){if(d.classList.contains('splash-done'))return;s.style.opacity=0;setTimeout(function(){d.classList.add('splash-done')},300)};var portrait=matchMedia('(orientation: portrait)').matches;v.src=portrait?(v.canPlayType('video/webm')?P+'.webm':P+'.mp4'):'/images/splash/splash-landscape-v1.mp4';v.onended=done;v.onerror=function(){if(/webm$/.test(v.src)){v.src=P+'.mp4';v.play().catch(done)}else done()};var p=v.play();if(p&&p.catch)p.catch(done);setTimeout(done,10000)})()`,
+          }}
+        />
         {children}
         <Scripts />
       </body>

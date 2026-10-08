@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { serverGroqChat } from "@/lib/ai";
 import { useCallback, useEffect, useState } from "react";
@@ -441,7 +442,7 @@ function WeightPage() {
   if (!user || !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+        <LogoLoader className="h-10 w-10 text-accent" />
       </div>
     );
   }

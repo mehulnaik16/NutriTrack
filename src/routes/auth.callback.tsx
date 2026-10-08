@@ -1,6 +1,6 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/client";
 
@@ -58,7 +58,7 @@ function AuthCallback() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
-      <Loader2 className="h-6 w-6 animate-spin text-accent" />
+      <LogoLoader className="h-8 w-8 text-accent" />
       <p className="text-sm text-muted-foreground">Signing you in…</p>
     </div>
   );

@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
@@ -149,7 +150,7 @@ function ReferIntro() {
   if (loading || checking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+        <LogoLoader className="h-10 w-10 text-accent" />
       </div>
     );
   }

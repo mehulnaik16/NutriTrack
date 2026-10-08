@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Header } from "@/components/Header";
@@ -29,7 +30,6 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   ChevronDown,
   Heart,
   RotateCcw,
@@ -414,7 +414,7 @@ function FoodPage() {
   if (!user || !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+        <LogoLoader className="h-8 w-8 text-accent" />
       </div>
     );
   }

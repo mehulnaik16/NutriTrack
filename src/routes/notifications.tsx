@@ -9,6 +9,7 @@
  * per concern. Works on the web too, where it saves preferences but schedules
  * nothing — the plugin only exists in the app, and the status row says so.
  */
+import { LogoLoader } from "@/components/LogoLoader";
 import {
   createFileRoute,
   Link,
@@ -387,7 +388,7 @@ function NotificationSettings() {
   if (loading || busy) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <LogoLoader className="h-8 w-8 text-muted-foreground" />
       </div>
     );
   }

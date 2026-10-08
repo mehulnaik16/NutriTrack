@@ -7,10 +7,11 @@
  * reachable: a gate the user cannot leave is a worse bug than the one it fixes.
  */
 
+import { LogoLoader } from "@/components/LogoLoader";
 import { useEffect, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
-import { ChevronRight, Loader2, Lock } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
 import {
   GatedPrefsCtx,
   useWorkoutPrefsGate,
@@ -31,7 +32,7 @@ export function WorkoutGate({ children }: { children: ReactNode }) {
   if (state === "loading") {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        <LogoLoader className="h-8 w-8 text-accent" />
       </div>
     );
   }

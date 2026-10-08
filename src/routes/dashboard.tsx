@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
@@ -688,7 +689,7 @@ function Dashboard() {
             <Button onClick={() => load()}>Try again</Button>
           </>
         ) : (
-          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          <LogoLoader className="h-8 w-8 text-accent" />
         )}
       </div>
     );

@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -205,7 +206,7 @@ function Landing() {
 
   const spinner = (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+      <LogoLoader className="h-10 w-10 text-accent" />
     </div>
   );
   if (user) return spinner; // on the way to /dashboard
