@@ -72,10 +72,15 @@ export function reportDate(iso: string): string {
   return `${d} ${months[m - 1]} ${y}`;
 }
 
-/** Load a stored photo as a small JPEG data URL, or null if it can't be read. */
+/**
+ * Load a stored photo as a small JPEG data URL, or null if it can't be read.
+ * `mark` is drawn into the picture: `left` in the top-left corner, `right` in
+ * the top-right (the before/after page's date and weight).
+ */
 async function photoJpeg(
   photoUrl: string,
   date: string,
+  mark?: { left: string; right: string },
 ): Promise<{ data: string; w: number; h: number } | null> {
   // Loaded here, not at the top, so the layout helpers stay testable in Node.
   const { getPhotoSrc } = await import("@/services/storage");
@@ -101,6 +106,20 @@ async function photoJpeg(
   ctx.fillStyle = "#fff"; // JPEG has no transparency
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  if (mark) {
+    // Light watermark: soft white text with a shadow, readable on any photo.
+    // Sized by height: both photos are drawn at the same height on the page.
+    const pad = Math.round(canvas.height * 0.03);
+    ctx.font = `600 ${Math.round(canvas.height * 0.038)}px sans-serif`;
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = Math.round(canvas.height * 0.009);
+    ctx.textAlign = "left";
+    ctx.fillText(mark.left, pad, pad);
+    ctx.textAlign = "right";
+    ctx.fillText(mark.right, canvas.width - pad, pad);
+  }
   return {
     data: canvas.toDataURL("image/jpeg", 0.75),
     w: canvas.width,
@@ -184,5 +203,65 @@ export async function buildWeightReport(
     y += 6;
   }
 
+  await addBeforeAfter(doc, entries, unit);
   return doc.output("blob");
+}
+
+/** The oldest and newest photo entries, or null with fewer than two photos. */
+export function beforeAfter<
+  T extends { date: string; photo_url: string | null },
+>(entries: T[]): { before: T; after: T } | null {
+  const shots = reportOrder(entries.filter((e) => e.photo_url));
+  return shots.length >= 2
+    ? { before: shots[shots.length - 1], after: shots[0] }
+    : null;
+}
+
+/**
+ * Last page, landscape so both photos show large: oldest photo ("Before")
+ * beside the newest ("After"), each marked with its date and weight.
+ */
+async function addBeforeAfter(
+  doc: import("jspdf").jsPDF,
+  entries: ReportEntry[],
+  unit: WeightUnit,
+): Promise<void> {
+  const pair = beforeAfter(entries);
+  if (!pair) return;
+  const shots = await Promise.all(
+    [pair.before, pair.after].map((e) =>
+      photoJpeg(e.photo_url!, e.date, {
+        left: reportDate(e.date),
+        right: `${round1(kgToWeight(e.weight_kg, unit))} ${unit}`,
+      }),
+    ),
+  );
+  if (!shots[0] || !shots[1]) return;
+
+  doc.addPage("a4", "landscape");
+  const W = PAGE_H; // landscape: the page's sides swap
+  const H = PAGE_W;
+  const gap = 10;
+  const colW = (W - 2 * MARGIN - gap) / 2;
+  const top = MARGIN + 14;
+  const maxH = H - top - MARGIN;
+  // Same height for both, so a differently cropped photo doesn't look bigger.
+  const h = Math.min(
+    ...shots.map((shot) => fitBox(shot!.w, shot!.h, colW, maxH).h),
+  );
+  ["Before", "After"].forEach((label, i) => {
+    const shot = shots[i]!;
+    const box = { w: (shot.w * h) / shot.h, h };
+    const colX = MARGIN + i * (colW + gap);
+    doc.setFont("helvetica", "bold").setFontSize(20).setTextColor(0);
+    doc.text(label, colX + colW / 2, MARGIN + 8, { align: "center" });
+    doc.addImage(
+      shot.data,
+      "JPEG",
+      colX + (colW - box.w) / 2,
+      top,
+      box.w,
+      box.h,
+    );
+  });
 }
