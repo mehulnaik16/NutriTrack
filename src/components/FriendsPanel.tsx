@@ -17,8 +17,11 @@ import {
   Loader2,
   Clock,
   Gift,
+  Share2,
+  ImageUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/client";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
   Dialog,
@@ -290,6 +293,75 @@ export function FriendsPanel() {
       clearInterval(id);
     };
   }, [scanOpen]);
+
+  /**
+   * Share the friend code as a QR picture through the phone's share sheet
+   * (WhatsApp, Messages/iMessage, RCS…). The picture is the same QR, so the
+   * friend can scan it off their screen or upload it under "Scan a Code".
+   * Where sharing files isn't supported (most desktops), it downloads instead.
+   */
+  const shareQr = async () => {
+    if (!myUsername) return;
+    const svg = renderSVG(QR_PREFIX + myUsername, {
+      border: 2,
+      blackColor: "#000",
+      whiteColor: "#fff",
+    });
+    const img = new Image();
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    await img.decode();
+    const size = 600;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size + 70;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false; // keep QR modules crisp
+    ctx.drawImage(img, 0, 0, size, size);
+    ctx.fillStyle = "#111";
+    ctx.font = "bold 32px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`@${myUsername} on Dombelz`, size / 2, size + 40);
+    const blob = await new Promise<Blob | null>((r) =>
+      canvas.toBlob(r, "image/png"),
+    );
+    if (!blob) return toast.error("Couldn't create the picture");
+    const file = new File([blob], `dombelz-friend-${myUsername}.png`, {
+      type: "image/png",
+    });
+    const text = `Add me on Dombelz: @${myUsername}. Scan this code in Friends → Scan a Code.`;
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text });
+      } catch {
+        /* closed the share sheet — nothing to do */
+      }
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success("QR code saved. Send the picture to your friend.");
+  };
+
+  /** Read a friend code from an uploaded picture (e.g. one shared on WhatsApp). */
+  const uploadQr = async (file: File | undefined) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    try {
+      const res = await new BrowserMultiFormatReader().decodeFromImageUrl(url);
+      await handleCode(res.getText());
+    } catch {
+      toast.error("No QR code found in that picture. Try a clearer one.");
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   const myQr = useMemo(
     () =>
@@ -668,6 +740,9 @@ export function FriendsPanel() {
           <p className="text-center text-xs text-muted-foreground">
             Let a friend scan this. You'll get a request to approve.
           </p>
+          <Button variant="outline" onClick={shareQr} className="mx-auto gap-2">
+            <Share2 className="h-4 w-4" /> Share
+          </Button>
         </DialogContent>
       </Dialog>
 
@@ -687,10 +762,10 @@ export function FriendsPanel() {
               ref={camRef}
               screenshotFormat="image/jpeg"
               videoConstraints={{ facingMode: "environment" }}
-              onUserMediaError={() => {
-                toast.error("Camera unavailable — search by username instead.");
-                setScanOpen(false);
-              }}
+              onUserMediaError={() =>
+                // Keep the dialog open: uploading a picture still works.
+                toast.error("Camera unavailable. Upload a QR picture instead.")
+              }
               className="h-full w-full object-cover"
             />
             <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-accent/70" />
@@ -698,6 +773,23 @@ export function FriendsPanel() {
               <Loader2 className="h-3 w-3 animate-spin" /> Looking for a code…
             </div>
           </div>
+          <input
+            ref={uploadRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              uploadQr(e.target.files?.[0]);
+              e.target.value = ""; // the same picture can be picked again
+            }}
+          />
+          <Button
+            variant="outline"
+            onClick={() => uploadRef.current?.click()}
+            className="gap-2"
+          >
+            <ImageUp className="h-4 w-4" /> Upload a QR picture
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
