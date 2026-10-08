@@ -80,6 +80,14 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "dumbbell front raise": "/exercises/dumbbell_front_raise.jpg",
   "cable face pull": "/exercises/cable_face_pull.jpg",
   "cable reverse fly": "/exercises/cable_reverse_fly.jpg",
+  // Approved Batch 3 Arm additions
+  "barbell curl": "/exercises/barbell_curl.jpg",
+  "dumbbell bicep curl": "/exercises/dumbbell_bicep_curl.jpg",
+  "hammer curls": "/exercises/hammer_curls.jpg",
+  "preacher curl": "/exercises/preacher_curl.jpg",
+  "tricep pushdown": "/exercises/tricep_pushdown.jpg",
+  "ez bar skullcrusher": "/exercises/ez_bar_skullcrusher.jpg",
+  "dumbbell overhead tricep extension": "/exercises/dumbbell_overhead_tricep_extension.jpg",
 };
 
 /**
@@ -189,6 +197,30 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "reverse flyes": "cable reverse fly",
   "cable rear delt fly": "cable reverse fly",
   "rear delt fly": "cable reverse fly",
+  // Batch 3 Arm aliases
+  "bicep curl": "barbell curl",
+  "bicep curls": "barbell curl",
+  "standing barbell curl": "barbell curl",
+  "dumbbell curl": "dumbbell bicep curl",
+  "db bicep curl": "dumbbell bicep curl",
+  "db curl": "dumbbell bicep curl",
+  "hammer curl": "hammer curls",
+  "dumbbell hammer curl": "hammer curls",
+  "db hammer curl": "hammer curls",
+  "preacher curls": "preacher curl",
+  "ez bar preacher curl": "preacher curl",
+  "cable tricep pushdown": "tricep pushdown",
+  "triceps pushdown": "tricep pushdown",
+  "skull crusher": "ez bar skullcrusher",
+  "skullcrusher": "ez bar skullcrusher",
+  "skull crushers": "ez bar skullcrusher",
+  "skullcrushers": "ez bar skullcrusher",
+  "lying triceps extension": "ez bar skullcrusher",
+  "lying tricep extension": "ez bar skullcrusher",
+  "overhead tricep extension": "dumbbell overhead tricep extension",
+  "seated overhead tricep extension": "dumbbell overhead tricep extension",
+  "dumbbell tricep extension": "dumbbell overhead tricep extension",
+  "db overhead tricep extension": "dumbbell overhead tricep extension",
 };
 
 /**

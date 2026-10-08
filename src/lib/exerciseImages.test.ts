@@ -91,6 +91,20 @@ assert.strictEqual(getExerciseThumbnail("Cable Face Pull"), "/exercises/cable_fa
 assert.strictEqual(getExerciseThumbnail("Face Pulls"), "/exercises/cable_face_pull.jpg");
 assert.strictEqual(getExerciseThumbnail("Cable Reverse Fly"), "/exercises/cable_reverse_fly.jpg");
 assert.strictEqual(getExerciseThumbnail("Rear Delt Fly"), "/exercises/cable_reverse_fly.jpg");
+// Batch 3 Arm assertions
+assert.strictEqual(getExerciseThumbnail("Barbell Curl"), "/exercises/barbell_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Bicep Curl"), "/exercises/barbell_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Bicep Curl"), "/exercises/dumbbell_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("DB Curl"), "/exercises/dumbbell_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Hammer Curls"), "/exercises/hammer_curls.jpg");
+assert.strictEqual(getExerciseThumbnail("Hammer Curl"), "/exercises/hammer_curls.jpg");
+assert.strictEqual(getExerciseThumbnail("Preacher Curl"), "/exercises/preacher_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Tricep Pushdown"), "/exercises/tricep_pushdown.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Tricep Pushdown"), "/exercises/tricep_pushdown.jpg");
+assert.strictEqual(getExerciseThumbnail("EZ Bar Skullcrusher"), "/exercises/ez_bar_skullcrusher.jpg");
+assert.strictEqual(getExerciseThumbnail("Skullcrushers"), "/exercises/ez_bar_skullcrusher.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Overhead Tricep Extension"), "/exercises/dumbbell_overhead_tricep_extension.jpg");
+assert.strictEqual(getExerciseThumbnail("Overhead Tricep Extension"), "/exercises/dumbbell_overhead_tricep_extension.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);
