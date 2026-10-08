@@ -23,6 +23,7 @@
  * here rather than at signup is far too late for either. The copy says so before
  * anyone submits.
  */
+import { LogoLoader } from "@/components/LogoLoader";
 import { useCallback, useEffect, useState } from "react";
 import { Building2, Check, Clock, Loader2, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
@@ -386,7 +387,7 @@ export function GymLinkPage({
       <main className="mx-auto max-w-lg space-y-6 px-4 py-6">
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <LogoLoader className="h-8 w-8 text-muted-foreground" />
           </div>
         ) : link && editing ? (
           <>

@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -63,7 +64,7 @@ function ResetPassword() {
           <CardContent className="p-6 sm:p-8">
             {!ready ? (
               <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                <LogoLoader className="h-8 w-8 text-accent" />
                 <p className="text-sm text-muted-foreground">
                   Verifying your reset link…
                 </p>

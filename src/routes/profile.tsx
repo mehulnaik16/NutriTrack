@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import {
   createFileRoute,
   Link,
@@ -580,7 +581,7 @@ function Profile() {
   if (!user || !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+        <LogoLoader className="h-10 w-10 text-accent" />
       </div>
     );
   }
@@ -1897,7 +1898,7 @@ function TransactionsPage({
 
           {loadingBilling ? (
             <div className="flex justify-center rounded-2xl border border-border bg-card p-8">
-              <Loader2 className="h-5 w-5 animate-spin text-accent" />
+              <LogoLoader className="h-8 w-8 text-accent" />
             </div>
           ) : !summary?.charges.length ? (
             <div className="rounded-2xl border border-border bg-card p-8 text-center">

@@ -12,9 +12,10 @@
  * It is never a redirect.
  */
 
+import { LogoLoader } from "@/components/LogoLoader";
 import { useState, type ReactNode, type SyntheticEvent } from "react";
 import { Link } from "@tanstack/react-router";
-import { Loader2, Lock, Sparkles } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 import { useAccessGate, type LapseReason } from "@/hooks/useAccessGate";
 import { BrandLogo } from "@/components/BrandLogo";
 import {
@@ -86,7 +87,7 @@ export function PremiumGate({
   if (state === "loading") {
     return (
       <div className="flex min-h-[8rem] items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-accent" />
+        <LogoLoader className="h-8 w-8 text-accent" />
       </div>
     );
   }

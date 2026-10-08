@@ -1,3 +1,4 @@
+import { LogoLoader } from "@/components/LogoLoader";
 import {
   createFileRoute,
   useNavigate,
@@ -184,7 +185,7 @@ function CustomPlanBuilder() {
   if (!user || !prefilled) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+        <LogoLoader className="h-8 w-8 text-accent" />
       </div>
     );
   }

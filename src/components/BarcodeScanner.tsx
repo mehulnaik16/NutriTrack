@@ -20,11 +20,12 @@
  * do, and it is far faster than the JS path) and falls back to ZXing elsewhere.
  */
 
+import { LogoLoader } from "@/components/LogoLoader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
-import { Flashlight, Keyboard, Loader2 } from "lucide-react";
+import { Flashlight, Keyboard } from "lucide-react";
 
 /**
  * The cut-out, as fractions of the video frame. Landscape, because a retail
@@ -353,7 +354,7 @@ export function BarcodeScanner({
 
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70">
-          <Loader2 className="h-6 w-6 animate-spin text-accent" />
+          <LogoLoader className="h-8 w-8 text-accent" />
         </div>
       )}
 
