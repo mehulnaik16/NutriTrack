@@ -117,6 +117,7 @@ import {
 } from "@/lib/nutrition";
 import { getTelemetryLabel } from "@/lib/telemetry";
 import { changeTone, wantedDirection } from "@/lib/measurements";
+import { SignedPhoto } from "@/components/SignedPhoto";
 
 // Route-level lock. The page renders with the user's own data but does not
 // respond; any tap opens the upsell popup.
@@ -168,6 +169,16 @@ interface FoodLog {
   carbs_g: number;
   fat_g: number;
   fiber_g: number;
+}
+
+/** "8 Oct", or "8 Oct 2025" for another year — for the photo watermark. */
+function photoDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    ...(d.getFullYear() !== new Date().getFullYear() && { year: "numeric" }),
+  });
 }
 
 interface WeightEntry {
@@ -740,6 +751,7 @@ function Dashboard() {
   }));
   const lastWeight = weightEntries[weightEntries.length - 1]?.weight_kg;
   const prevWeight = weightEntries[weightEntries.length - 2]?.weight_kg;
+  const photoEntries = weightEntries.filter((e) => e.photo_url).reverse();
   const weightDiff = lastWeight && prevWeight ? lastWeight - prevWeight : null;
 
   // The tour offer is answered once per account, either way, after the welcome
@@ -1535,33 +1547,34 @@ function Dashboard() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                {weightEntries.filter((e) => e.photo_url).length > 0 && (
+                {photoEntries.length > 0 && (
                   <div className="mt-6">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    <h4 className="mb-3 flex items-baseline justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Progress Photos
+                      {photoEntries.length > 1 && (
+                        <span className="text-[10px] font-medium normal-case tracking-normal">
+                          Swipe to see your journey →
+                        </span>
+                      )}
                     </h4>
-                    <div className="flex gap-4 overflow-x-auto pb-2">
-                      {weightEntries
-                        .filter((e) => e.photo_url)
-                        .reverse()
-                        .map((e) => (
-                          <div
-                            key={e.id}
-                            className="relative shrink-0 group cursor-pointer"
-                          >
-                            <img
-                              src={e.photo_url!}
-                              alt={`Weight on ${e.date}`}
-                              className="h-24 w-24 object-cover rounded-md border border-border"
-                            />
-                            <div className="absolute inset-0 bg-black/45 opacity-100 md:bg-black/60 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-md flex flex-col items-center justify-center text-white text-xs">
-                              <span className="font-bold">
-                                {e.weight_kg} kg
-                              </span>
-                              <span>{e.date.slice(5)}</span>
-                            </div>
+                    {/* Newest first; swipe right to go back in time. */}
+                    <div className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {photoEntries.map((e) => (
+                        <div
+                          key={e.id}
+                          className="relative aspect-[3/4] w-[62%] max-w-[220px] shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-muted"
+                        >
+                          <SignedPhoto
+                            src={e.photo_url!}
+                            alt={`Progress photo, ${e.weight_kg} kg on ${e.date}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <div className="pointer-events-none absolute inset-x-2.5 bottom-2 flex items-end justify-between text-[11px] font-semibold text-white/70 [text-shadow:0_1px_3px_rgb(0_0_0/0.6)]">
+                            <span>{e.weight_kg} kg</span>
+                            <span>{photoDate(e.date)}</span>
                           </div>
-                        ))}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
