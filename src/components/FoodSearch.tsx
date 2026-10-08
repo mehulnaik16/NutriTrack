@@ -879,6 +879,11 @@ export const FoodSearch = forwardRef<
           ))}
         </div>
       )}
+      {aiSuggestions.length > 0 && (
+        <p className="-mt-2 text-center text-[11px] text-muted-foreground">
+          AI can make mistakes. Check the food and weight before logging.
+        </p>
+      )}
 
       {/* ── Action buttons: Camera → Mic → Barcode → Favourites ── */}
       {/* Four equal columns: squares shrink on narrow phones, 64px max. */}
@@ -1466,6 +1471,13 @@ export const FoodSearch = forwardRef<
                 )}{" "}
                 {isEditing ? "Modify" : "Log food"}
               </Button>
+              {/* query is set only on rows that came from the AI search. */}
+              {selected.query && (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  AI can make mistakes. Check the food and weight before
+                  logging.
+                </p>
+              )}
             </div>
           )}
         </DialogContent>

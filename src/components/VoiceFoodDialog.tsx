@@ -1073,6 +1073,9 @@ export function VoiceFoodDialog({
                     : `${confirmVerb} all ${items.length} items`}
                 </Button>
               </div>
+              <p className="text-center text-[11px] text-muted-foreground">
+                AI can make mistakes. Check the food and weight before logging.
+              </p>
             </div>
           )}
         </div>

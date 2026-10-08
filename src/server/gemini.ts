@@ -63,6 +63,8 @@ async function generate(opts: {
   model: string;
   prompt: string;
   image?: { base64: string; mimeType: string };
+  /** Text sent after the image: variable input goes last. */
+  after?: string;
   max_tokens?: number;
   temperature?: number;
   signal?: AbortSignal;
@@ -82,6 +84,7 @@ async function generate(opts: {
     parts.push({
       inline_data: { mime_type: opts.image.mimeType, data: opts.image.base64 },
     });
+  if (opts.after) parts.push({ text: opts.after });
 
   const res = await fetch(
     `${GEMINI_BASE}/${opts.model}:generateContent?key=${encodeURIComponent(key)}`,
@@ -156,6 +159,7 @@ export async function geminiVision(opts: {
   prompt: string;
   base64: string;
   mimeType: string;
+  after?: string;
   max_tokens?: number;
   model?: string;
   signal?: AbortSignal;
@@ -164,6 +168,7 @@ export async function geminiVision(opts: {
     model: opts.model ?? VISION_MODEL,
     prompt: opts.prompt,
     image: { base64: opts.base64, mimeType: opts.mimeType },
+    after: opts.after,
     max_tokens: opts.max_tokens,
     signal: opts.signal,
   });
