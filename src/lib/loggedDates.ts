@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/client";
+import { getHistory } from "@/lib/historyCache";
 
 /**
  * Every date the user has ever logged food on, as local-midnight `Date`s for
@@ -16,21 +16,14 @@ import { supabase } from "@/integrations/client";
  * distinct reference.
  */
 export async function fetchLoggedDates(userId: string): Promise<Date[]> {
-  const { data } = await supabase
-    .from("food_logs")
-    .select("date")
-    .eq("user_id", userId)
-    // PostgREST caps a request at 1000 rows by default, which several years of
-    // logging would exceed — and a silent truncation would look exactly like
-    // the bug this replaces.
-    .limit(50000);
+  // getHistory pages past PostgREST's 1000-row cap and serves old days from
+  // the browser cache.
+  const rows = await getHistory(userId, "food_logs").catch(() => []);
 
   // food_logs.date is nullable (it defaults to today, but nothing forbids
   // NULL); an undated row cannot mark a day as logged.
   const seen = new Set<string>(
-    (data ?? [])
-      .map((r: { date: string | null }) => r.date)
-      .filter((d): d is string => d !== null),
+    rows.map((r) => r.date).filter((d): d is string => d !== null),
   );
   return [...seen].map((iso) => {
     // Local midnight, not `new Date(iso)` — that parses as UTC and lands on the

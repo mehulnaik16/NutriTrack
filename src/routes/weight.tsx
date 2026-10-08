@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { serverGroqChat } from "@/lib/ai";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Scale,
   TrendingDown,
@@ -59,13 +59,17 @@ import {
 } from "recharts";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
+import { recordWeightLog } from "@/lib/notificationPrimer";
+import { getHistory, getProfileRow } from "@/lib/historyCache";
 import type { TablesInsert } from "@/integrations/types";
 import {
   uploadWeightPhoto,
   deleteWeightPhoto,
-  replaceWeightPhoto,
+  existingPhotoUrl,
+  commitPhotoChange,
 } from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
+import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import { useAccessGate } from "@/hooks/useAccessGate";
 import {
   daysAgoLocal,
@@ -162,8 +166,6 @@ function WeightPage() {
   const photoLocked = accessState !== "entitled";
   const navigate = useNavigate();
   const { tour } = Route.useSearch();
-  const fileRef = useRef<HTMLInputElement>(null);
-
   // Body weight is stored canonically in kg (BMI/calorie math needs it). The page
   // DISPLAYS the current unit; its chart plots the original unit. Helpers below.
   const unitPrefs = useCachedWorkoutPrefs(user?.id);
@@ -193,26 +195,13 @@ function WeightPage() {
   const load = useCallback(async () => {
     if (!user) return;
     const [{ data: p }, { data: e }] = await Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("weight_kg,goal,full_name,goal_weight_kg,height_cm")
-        .eq("id", user.id)
-        .maybeSingle(),
-      // PostgREST caps one response at 1000 rows, and ascending order would
-      // drop the newest entries first, so page until a short page comes back.
-      (async () => {
-        const all: WeightEntry[] = [];
-        for (let from = 0; ; from += 1000) {
-          const { data } = await supabase
-            .from("weight_entries")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("date", { ascending: true })
-            .range(from, from + 999);
-          all.push(...((data as WeightEntry[]) ?? []));
-          if (!data || data.length < 1000) return { data: all };
-        }
-      })(),
+      // Validated cache of the whole row (this page uses five columns of it).
+      getProfileRow(user.id),
+      // Oldest first, paged past PostgREST's 1000-row cap; old entries come
+      // from the browser cache.
+      getHistory(user.id, "weight_entries")
+        .then((rows) => ({ data: rows }))
+        .catch(() => ({ data: null })),
     ]);
     // No profile row means onboarding was never finished — the guard below
     // waits on `profile`, so without this the page spins forever.
@@ -231,7 +220,8 @@ function WeightPage() {
       setWeight(String(round1(kgToWeight(p.weight_kg, weightUnit))));
     if (p?.goal_weight_kg)
       setGoalWeight(String(round1(kgToWeight(p.goal_weight_kg, weightUnit))));
-  }, [user, navigate, weightUnit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, navigate, weightUnit]);
 
   useEffect(() => {
     load();
@@ -255,9 +245,7 @@ function WeightPage() {
     setLoadingMotivation(false);
   };
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handlePhoto = (file: File) => {
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
@@ -299,19 +287,24 @@ function WeightPage() {
         photo_url = result.data.publicUrl;
       }
 
+      const date = todayLocal();
       const payload: TablesInsert<"weight_entries"> = {
         user_id: user.id,
-        date: todayLocal(),
+        date,
         weight_kg: w.value,
       };
 
       if (photo_url) payload.photo_url = photo_url;
       if (note) payload.note = note;
 
-      const { error } = await supabase
-        .from("weight_entries")
-        .upsert(payload, { onConflict: "user_id,date" });
-      if (error) throw error;
+      // One photo per day: a new one replaces today's earlier photo, whose
+      // file is deleted once the row points at the new one.
+      const oldPhoto = photo_url ? await existingPhotoUrl(user.id, date) : null;
+      await commitPhotoChange(oldPhoto, photo_url, () =>
+        supabase
+          .from("weight_entries")
+          .upsert(payload, { onConflict: "user_id,date" }),
+      );
 
       // Update profile weight + goal weight
       await supabase
@@ -323,6 +316,7 @@ function WeightPage() {
         .eq("id", user.id);
 
       toast.success("Weight logged!");
+      recordWeightLog(user.id);
       setNote("");
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -354,32 +348,28 @@ function WeightPage() {
       let finalPhotoUrl = updated.photo_url;
 
       if (newPhoto) {
-        const result = await replaceWeightPhoto(
-          originalEntry?.photo_url ?? null,
-          newPhoto,
-          user.id,
-        );
+        const result = await uploadWeightPhoto(newPhoto, user.id);
         if (result.error || !result.data) {
           throw new Error(result.error ?? "Upload failed");
         }
         finalPhotoUrl = result.data.publicUrl;
-      } else if (originalEntry?.photo_url && !updated.photo_url) {
-        // Photo was removed (not replaced)
-        await deleteWeightPhoto(originalEntry.photo_url);
-        finalPhotoUrl = null;
       }
 
-      const { error } = await supabase
-        .from("weight_entries")
-        .update({
-          date: updated.date,
-          weight_kg: updated.weight_kg,
-          note: updated.note || null,
-          photo_url: finalPhotoUrl,
-        })
-        .eq("id", updated.id);
-
-      if (error) throw error;
+      // Replaced or removed photo files are deleted only after the row saves.
+      await commitPhotoChange(
+        originalEntry?.photo_url ?? null,
+        finalPhotoUrl,
+        () =>
+          supabase
+            .from("weight_entries")
+            .update({
+              date: updated.date,
+              weight_kg: updated.weight_kg,
+              note: updated.note || null,
+              photo_url: finalPhotoUrl,
+            })
+            .eq("id", updated.id),
+      );
 
       toast.success("Entry updated!");
 
@@ -733,7 +723,14 @@ function WeightPage() {
                 free-tier users get a small in-block lock and no file input. */}
             <div className="space-y-2" data-tour="weight-photo">
               <Label>Progress photo (optional)</Label>
-              {photoLocked ? (
+              {accessState === "loading" ? (
+                // Access not known yet: hold the tile's place rather than
+                // flash the premium lock at a paying user.
+                <div
+                  aria-hidden
+                  className="h-[118px] animate-pulse rounded-lg border-2 border-dashed border-border bg-muted/30"
+                />
+              ) : photoLocked ? (
                 <Link
                   to="/plans"
                   className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 text-center transition-colors hover:border-accent"
@@ -746,11 +743,8 @@ function WeightPage() {
                   </p>
                 </Link>
               ) : (
-                <>
-                  <div
-                    onClick={() => fileRef.current?.click()}
-                    className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 hover:border-accent transition-colors"
-                  >
+                <PhotoSourcePicker onPick={handlePhoto}>
+                  <div className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 hover:border-accent transition-colors">
                     {photoPreview ? (
                       <img
                         src={photoPreview}
@@ -766,15 +760,7 @@ function WeightPage() {
                       </>
                     )}
                   </div>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handlePhoto}
-                  />
-                </>
+                </PhotoSourcePicker>
               )}
             </div>
 
@@ -993,7 +979,10 @@ function WeightEntryModal({
   const [editNote, setEditNote] = useState("");
   const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const pickEditPhoto = (file: File) => {
+    setEditPhotoFile(file);
+    setEditPhotoPreview(URL.createObjectURL(file));
+  };
 
   useEffect(() => {
     if (entry) {
@@ -1095,13 +1084,11 @@ function WeightEntryModal({
                     {isEditing && (
                       <div className="absolute inset-0 bg-black/50 opacity-100 md:bg-black/60 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                         {!photoLocked && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => fileRef.current?.click()}
-                          >
-                            Change Photo
-                          </Button>
+                          <PhotoSourcePicker onPick={pickEditPhoto}>
+                            <Button variant="secondary" size="sm">
+                              Change Photo
+                            </Button>
+                          </PhotoSourcePicker>
                         )}
                         <Button
                           variant="destructive"
@@ -1128,30 +1115,16 @@ function WeightEntryModal({
                       </p>
                     </Link>
                   ) : (
-                    <div
-                      onClick={() => fileRef.current?.click()}
-                      className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 hover:border-accent transition-colors w-full"
-                    >
-                      <Camera className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Tap to add a progress photo
-                      </p>
-                    </div>
+                    <PhotoSourcePicker onPick={pickEditPhoto}>
+                      <div className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 hover:border-accent transition-colors w-full">
+                        <Camera className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Tap to add a progress photo
+                        </p>
+                      </div>
+                    </PhotoSourcePicker>
                   ))
                 )}
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setEditPhotoFile(file);
-                      setEditPhotoPreview(URL.createObjectURL(file));
-                    }
-                  }}
-                />
               </div>
             )}
 

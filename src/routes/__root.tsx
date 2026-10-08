@@ -1,22 +1,24 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import {
   Outlet,
   Link,
-  createRootRouteWithContext,
+  createRootRoute,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { Toaster } from "sonner";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { getLocalTheme, syncFavicon } from "@/lib/theme";
 import { BottomNav } from "@/components/BottomNav";
 import appCss from "../styles.css?url";
 
-import { useReconcileOnForeground } from "@/lib/useReconcileOnForeground";
-import { useProgressToasts } from "@/lib/useProgressToasts";
-import { NotificationPrimerDialog } from "@/components/NotificationPrimerDialog";
+// Not needed to draw the first screen, so kept out of the main bundle and
+// fetched right after: the toast host, and the signed-in-only notification
+// hooks + permission prompt (which also pull in Capacitor and the quotes).
+const Toaster = lazy(() =>
+  import("sonner").then((m) => ({ default: m.Toaster })),
+);
+const SignedInExtras = lazy(() => import("@/components/SignedInExtras"));
 
 function NotFoundComponent() {
   return (
@@ -35,7 +37,7 @@ function NotFoundComponent() {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
+export const Route = createRootRoute(
   {
     head: () => ({
       meta: [
@@ -77,10 +79,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           href: "https://fonts.gstatic.com",
           crossOrigin: "anonymous",
         },
-        {
-          rel: "stylesheet",
-          href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=VT323&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap",
-        },
+        // The Google Fonts stylesheet itself is added by the head script in
+        // RootShell, not here: a script-inserted stylesheet doesn't block the
+        // first paint (~0.75 s on mobile). display=swap shows fallback text
+        // until the fonts land.
       ],
     }),
     shellComponent: RootShell,
@@ -88,6 +90,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     notFoundComponent: NotFoundComponent,
   },
 );
+
+const FONTS_CSS =
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=VT323&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap";
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
@@ -101,7 +106,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
             // instead would render the header under the status bar for a frame
             // and then jump, which is more noticeable than the overlap itself.
             // The landing page ("/") is always light; see routes/index.tsx.
-            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t)}catch(e){}try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}`,
+            // On "/", a stored Supabase session adds .has-session so a
+            // returning user sees the redirect spinner, not the landing page.
+            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}var f=document.createElement('link');f.rel='stylesheet';f.href='${FONTS_CSS}';document.head.appendChild(f);try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}`,
           }}
         />
       </head>
@@ -114,7 +121,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
   // The landing page keeps the green brand icon; routes/index.tsx swaps it on
   // the way in and out.
   useEffect(
@@ -122,12 +128,13 @@ function RootComponent() {
     [],
   );
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <NotificationReconciler />
-        <NotificationPrimerDialog />
-        <Outlet />
-        <BottomNav />
+    <AuthProvider>
+      <Suspense fallback={null}>
+        <SignedInOnly />
+      </Suspense>
+      <Outlet />
+      <BottomNav />
+      <Suspense fallback={null}>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -162,25 +169,14 @@ function RootComponent() {
             } as React.CSSProperties
           }
         />
-        <SpeedInsights />
-      </AuthProvider>
-    </QueryClientProvider>
+      </Suspense>
+      <SpeedInsights />
+    </AuthProvider>
   );
 }
 
-/**
- * Renders nothing; exists to run the notification hooks inside AuthProvider.
- *
- * They have to be children rather than calls in RootComponent because both
- * need the signed-in user, and useAuth only works below the provider.
- *
- * Two of them, doing opposite jobs: one rebuilds the OS alarms that fire when
- * the app is closed, the other announces things that happened while the user
- * was on another screen.
- */
-function NotificationReconciler() {
+/** Loads the notification hooks and prompt only once someone is signed in. */
+function SignedInOnly() {
   const { user } = useAuth();
-  useReconcileOnForeground(user?.id ?? null);
-  useProgressToasts(user?.id ?? null);
-  return null;
+  return user ? <SignedInExtras /> : null;
 }

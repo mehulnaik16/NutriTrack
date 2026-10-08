@@ -7,8 +7,22 @@ import {
   ChevronDown,
   Download,
 } from "lucide-react";
-import { toast } from "sonner";
 import { syncFavicon } from "@/lib/theme";
+import appStoreBadge from "@/assets/badges/app-store.svg";
+import googlePlayBadge from "@/assets/badges/google-play.png";
+
+// Screenshots are bundled, so each file is named by its contents
+// (dashboard-<hash>.webp) and cached for a year under /assets. Replacing an
+// image changes its name, so visitors get the new one on the next deploy.
+const SHOT_URL: Record<string, string> = Object.fromEntries(
+  Object.entries(
+    import.meta.glob<string>("@/assets/landing/*.webp", {
+      eager: true,
+      query: "?url",
+      import: "default",
+    }),
+  ).map(([path, url]) => [path.split("/").pop()!.replace(".webp", ""), url]),
+);
 import { isNativeApp } from "@/lib/platform";
 import {
   canPromptInstall,
@@ -53,7 +67,7 @@ const THEME_CLASSES = [
   "theme-isro",
 ];
 
-// Each point shows a real app screenshot from public/landing/ (375x586 phone
+// Each point shows a real app screenshot from src/assets/landing/ (375x586 phone
 // viewport, demo account). Click a point to show it; rows also auto-advance.
 const ROWS = [
   {
@@ -183,18 +197,27 @@ function Landing() {
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/dashboard", replace: true });
+    // The head script guessed "signed in" from a stored token that turned out
+    // dead: show the page after all.
+    if (!loading && !user)
+      document.documentElement.classList.remove("has-session");
   }, [user, loading, navigate]);
 
-  if (loading || user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
-      </div>
-    );
-  }
+  const spinner = (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+    </div>
+  );
+  if (user) return spinner; // on the way to /dashboard
 
+  // Rendered while the auth check is still running too, so the server sends
+  // the real page (Google's first paint, and the hero image is in the HTML).
+  // A returning user never sees it: the head script in __root.tsx marks
+  // <html class="has-session"> before first paint, which swaps in the spinner.
   return (
-    <div className="relative isolate min-h-screen overflow-x-clip bg-card text-foreground">
+    <>
+    <div className="hidden [.has-session_&]:contents">{spinner}</div>
+    <div className="relative isolate min-h-screen overflow-x-clip bg-card text-foreground [.has-session_&]:hidden">
       {/* Soft colour blobs behind the hero so the glass header has something
           to blur. */}
       <div
@@ -493,6 +516,7 @@ function Landing() {
         </div>
       </footer>
     </div>
+    </>
   );
 }
 
@@ -501,7 +525,13 @@ function StoreBadges({ className = "" }: { className?: string }) {
   return (
     <div className={`flex flex-wrap items-center gap-4 ${className}`}>
       <div aria-label="Coming soon on the App Store" role="img">
-        <img src="/badges/app-store.svg" alt="" className="h-10" />
+        <img
+          src={appStoreBadge}
+          alt=""
+          width={120}
+          height={40}
+          className="h-10 w-auto"
+        />
       </div>
       {/* Google's PNG has ~9.5px transparent padding at this size. The box is
           the visible badge (131x40) and the image overflows it evenly, so the
@@ -512,9 +542,11 @@ function StoreBadges({ className = "" }: { className?: string }) {
         className="flex h-10 w-[131px] items-center justify-center"
       >
         <img
-          src="/badges/google-play.png"
+          src={googlePlayBadge}
           alt=""
-          className="h-[58px] max-w-none"
+          width={646}
+          height={250}
+          className="h-[58px] w-auto max-w-none"
         />
       </div>
       <InstallAppButton />
@@ -533,6 +565,8 @@ function InstallAppButton() {
   if (!show) return null;
 
   const install = async () => {
+    // Loaded on tap, so the landing page's first paint doesn't wait on it.
+    const { toast } = await import("sonner");
     // Instagram/Facebook etc. browsers cannot install; send the user to a
     // real browser first.
     if (isInAppBrowser()) {
@@ -574,16 +608,26 @@ function InstallAppButton() {
 // Phone frame around real app screenshots. All shots stack and crossfade, so
 // switching never waits on a network fetch. The bottom fades out because the
 // captures are a short (375x586) phone viewport.
-function Phone({ shots, active = 0 }: { shots: string[]; active?: number }) {
+function Phone({
+  shots,
+  active = 0,
+  priority = false,
+}: {
+  shots: string[];
+  active?: number;
+  /** The hero shot: Google's "largest paint", so fetch it before anything else. */
+  priority?: boolean;
+}) {
   return (
     <div className="mx-auto w-full max-w-[300px] rounded-[2.5rem] border-[10px] border-foreground bg-foreground shadow-2xl [mask-image:linear-gradient(to_bottom,black_88%,transparent)]">
       <div className="relative aspect-[375/586] overflow-hidden rounded-[1.9rem] bg-card">
         {shots.map((s, i) => (
           <img
             key={s}
-            src={`/landing/${s}.jpg`}
+            src={SHOT_URL[s]}
             alt=""
             loading={i === 0 ? "eager" : "lazy"}
+            fetchPriority={priority && i === 0 ? "high" : undefined}
             className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-500 ${
               i === active ? "opacity-100" : "opacity-0"
             }`}
@@ -614,7 +658,7 @@ function TiltPhone() {
     >
       <div ref={ref} className="transition-transform duration-200 ease-out">
         <div className="animate-float motion-reduce:animate-none">
-          <Phone shots={["dashboard"]} />
+          <Phone shots={["dashboard"]} priority />
         </div>
       </div>
     </div>

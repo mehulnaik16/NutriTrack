@@ -54,7 +54,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/client";
+import { getHistory } from "@/lib/historyCache";
 
 const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard", icon: null },
@@ -484,24 +484,20 @@ export function Header({
 
   const [workoutDates, setWorkoutDates] = useState<Set<string>>(new Set());
   const [foodDates, setFoodDates] = useState<Set<string>>(new Set());
+  // False until the first read lands, so the chip never shows a fake 0.
+  const [datesLoaded, setDatesLoaded] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const fetchDates = async () => {
-      const [{ data: wData }, { data: fData }] = await Promise.all([
-        supabase
-          .from("workout_logs")
-          .select("date")
-          .eq("user_id", user.id)
-          .order("date", { ascending: false })
-          .limit(400),
-        supabase
-          .from("food_logs")
-          .select("date, logged_at")
-          .eq("user_id", user.id)
-          .order("date", { ascending: false })
-          .limit(400),
+      // Runs on every navigation; old days come from the browser cache.
+      const [wData, fData] = await Promise.all([
+        getHistory(user.id, "workout_logs").catch(() => null),
+        getHistory(user.id, "food_logs").catch(() => null),
       ]);
+      // A failed read keeps the last streak (or the placeholder), never a 0.
+      if (!wData || !fData) return;
+      setDatesLoaded(true);
       setWorkoutDates(
         new Set((wData ?? []).flatMap((d) => (d.date ? [d.date] : []))),
       );
@@ -517,7 +513,8 @@ export function Header({
       );
     };
     fetchDates();
-  }, [user, pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, pathname]);
 
   const overallDates = useMemo(
     () => new Set([...workoutDates, ...foodDates]),
@@ -534,6 +531,9 @@ export function Header({
     [overallDates],
   );
 
+  const streakPlaceholder = (
+    <span className="inline-block h-3 w-3 animate-pulse rounded bg-muted" />
+  );
   const streakCfg = pathname.includes("/workout")
     ? {
         count: workoutStreak,
@@ -657,7 +657,7 @@ export function Header({
                         className={`h-9 gap-1.5 rounded-full px-3 font-bold transition-all ${chipStyle}`}
                       >
                         <Flame className="h-4 w-4" />
-                        {foodStreak}
+                        {datesLoaded ? foodStreak : streakPlaceholder}
                       </Button>
                     }
                   />
@@ -674,7 +674,7 @@ export function Header({
                         className={`h-9 gap-1.5 rounded-full px-3 font-bold transition-all ${chipStyle}`}
                       >
                         <streakCfg.icon className="h-4 w-4" />
-                        {streakCfg.count}
+                        {datesLoaded ? streakCfg.count : streakPlaceholder}
                       </Button>
                     }
                   />

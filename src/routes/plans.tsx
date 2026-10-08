@@ -10,6 +10,7 @@ function Plans() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [summary, setSummary] = useState<BillingSummary | null>(null);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -20,11 +21,15 @@ function Plans() {
       })
       .catch(() => {
         /* the trial button is still correct without it */
+      })
+      .finally(() => {
+        if (!cancelled) setChecked(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-4 py-10">
@@ -42,7 +47,8 @@ function Plans() {
         <PricingPlans
           // One trial per account, ever — so once trial_start_date exists the
           // cards offer the paid plan instead of a button that would do nothing.
-          trialUsed={!!summary?.trial_start_date}
+          // Unknown until the summary answers, so a used trial is never offered.
+          trialUsed={checked ? !!summary?.trial_start_date : undefined}
           selectedPlan={summary?.selected_plan}
           onTrialStarted={() => navigate({ to: "/welcome", replace: true })}
           onBought={() => navigate({ to: "/dashboard" })}

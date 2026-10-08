@@ -1,4 +1,5 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { Activity, Dumbbell, Scale, Utensils } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -41,9 +42,24 @@ function HubIcon({ className }: { className?: string }) {
   );
 }
 
+const TABS = ["/dashboard", "/food", "/workout", "/hub", "/weight"] as const;
+
 export function BottomNav() {
   const { user } = useAuth();
   const { pathname } = useLocation();
+  const router = useRouter();
+
+  // Each tab's code is a separate file fetched on first visit — on mobile
+  // data that's a visible pause after the tap. Fetch all five once the app
+  // is idle so every tab opens instantly.
+  useEffect(() => {
+    if (!user) return;
+    const go = () => TABS.forEach((to) => router.preloadRoute({ to }).catch(() => {}));
+    const id = window.requestIdleCallback?.(go) ?? window.setTimeout(go, 1500);
+    return () =>
+      window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id);
+  }, [user, router]);
+
   // Visibility depends on the session and the route only — never on a network
   // read. This used to also require useAuth().hasProfile === true, and that
   // flag stays null whenever the user_profiles check fails or hangs (a dropped

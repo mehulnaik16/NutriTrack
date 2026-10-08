@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SubHeader } from "@/components/SubHeader";
 import { supabase } from "@/integrations/client";
+import { getHistory } from "@/lib/historyCache";
 import {
   daysAgoLocal,
   EDIT_WINDOW_DAYS,
@@ -93,12 +94,9 @@ export function BodyMeasurementsPage({
   );
 
   const load = useCallback(async () => {
-    const { data } = await supabase
-      .from("body_measurements")
-      .select("measured_at, measurements, note")
-      .eq("user_id", userId)
-      .order("measured_at", { ascending: false });
-    setRows((data as MeasurementRow[]) ?? []);
+    // Newest first; old rows come from the browser cache.
+    const data = await getHistory(userId, "body_measurements").catch(() => []);
+    setRows(data.reverse() as MeasurementRow[]);
   }, [userId]);
 
   useEffect(() => {

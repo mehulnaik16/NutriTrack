@@ -12,7 +12,7 @@
  * abandoned form.
  */
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   getCachedWorkoutPrefs,
@@ -76,9 +76,18 @@ export function useWorkoutPrefsGate(): WorkoutPrefsGate {
     };
   }, [userId]);
 
+  // The useState seed above runs once, usually before auth knows the user (a
+  // hard reload), so it missed the cache. Read it again once userId exists;
+  // until the DB answers, the cached copy decides, after that the DB does.
+  const seeded = useMemo(
+    () => (userId ? getCachedWorkoutPrefs(userId) : null),
+    [userId],
+  );
+  const current = checked ? prefs : (prefs ?? seeded);
+
   // The signed-out case belongs to the auth redirect, not to this gate.
   if (authLoading || !userId) return { state: "loading", prefs: null };
-  if (prefs) return { state: "ready", prefs };
+  if (current) return { state: "ready", prefs: current };
   return { state: checked ? "missing" : "loading", prefs: null };
 }
 
@@ -101,10 +110,10 @@ export function useCachedWorkoutPrefs(
   useEffect(() => {
     if (!userId) return;
     const cached = getCachedWorkoutPrefs(userId);
-    if (cached) {
-      setPrefs(cached);
-      return;
-    }
+    if (cached) setPrefs(cached);
+    // Always confirm against the account, even with a cached copy: units
+    // changed on another device used to stay stale here indefinitely. This is
+    // the validated cache (one shared counter check when nothing changed).
     let cancelled = false;
     loadWorkoutPrefs(userId)
       .then((p) => {

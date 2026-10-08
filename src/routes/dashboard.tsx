@@ -76,7 +76,17 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import type { TablesInsert } from "@/integrations/types";
 import { fetchLoggedDates } from "@/lib/loggedDates";
-import { markOnboarded, recordFoodLog } from "@/lib/notificationPrimer";
+import {
+  dayLogs,
+  getHistory,
+  getPlanRow,
+  getProfileRow,
+} from "@/lib/historyCache";
+import {
+  markOnboarded,
+  recordFoodLog,
+  recordWeightLog,
+} from "@/lib/notificationPrimer";
 import {
   Tour,
   TourOffer,
@@ -85,7 +95,12 @@ import {
   type TourState,
 } from "@/components/Tour";
 import { loadMealNames } from "@/lib/meals";
-import { uploadWeightPhoto } from "@/services/storage";
+import {
+  uploadWeightPhoto,
+  existingPhotoUrl,
+  commitPhotoChange,
+} from "@/services/storage";
+import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import {
   isEditableDate,
   todayLocal,
@@ -222,13 +237,8 @@ const formatDateDisplay = (dateStr: string) => {
   });
 };
 
-async function computeStreak(userId: string): Promise<number> {
-  const { data } = await supabase
-    .from("food_logs")
-    .select("date")
-    .eq("user_id", userId)
-    .order("date", { ascending: false });
-  if (!data || data.length === 0) return 0;
+function computeStreak(data: { date: string | null }[]): number {
+  if (data.length === 0) return 0;
   const uniqueDates = [...new Set(data.map((d) => d.date))].sort().reverse();
   let streak = 0;
   const check = new Date();
@@ -244,17 +254,12 @@ async function computeStreak(userId: string): Promise<number> {
       break;
     }
   }
-  await supabase
-    .from("user_profiles")
-    .update({ current_streak: streak })
-    .eq("id", userId);
   return streak;
 }
 
 function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const fileRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<FoodSearchRef>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -294,7 +299,8 @@ function Dashboard() {
     loadMealNames(user.id).then((names) => {
       if (names) setUserMeals(names);
     });
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Weight logging state
   const [newWeight, setNewWeight] = useState("");
@@ -337,6 +343,11 @@ function Dashboard() {
 
   const load = useCallback(async () => {
     if (!user) return;
+    // null = the read failed: "unknown", never "no logs".
+    const foodHistoryOrNull = getHistory(user.id, "food_logs").catch(
+      () => null,
+    );
+    const foodHistory = foodHistoryOrNull.then((rows) => rows ?? []);
     const [
       { data: p, error: pErr },
       { data: t },
@@ -345,35 +356,20 @@ function Dashboard() {
       { data: wp },
       { data: fav },
     ] = await Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("food_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", selectedDate)
-        .order("logged_at"),
-      supabase
-        .from("food_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("date", thirtyDaysAgo())
-        .lte("date", today()),
-      supabase
-        .from("weight_entries")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("date", { ascending: true }),
-      supabase
-        .from("workout_plans")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      // Profile and plan come from the validated cache: a date change or a
+      // repeat visit costs only the shared counter check.
+      getProfileRow(user.id),
+      // The selected day, from the validated browser cache.
+      foodHistory.then((rows) => ({ data: dayLogs(rows, selectedDate) })),
+      foodHistory.then((rows) => ({
+        data: rows.filter(
+          (r) => r.date && r.date >= thirtyDaysAgo() && r.date <= today(),
+        ),
+      })),
+      getHistory(user.id, "weight_entries")
+        .then((rows) => ({ data: rows }))
+        .catch(() => ({ data: null })),
+      getPlanRow(user.id),
       supabase.from("saved_meals").select("name").eq("user_id", user.id),
     ]);
 
@@ -430,6 +426,23 @@ function Dashboard() {
         .then();
     }
 
+    // Streak from the history already loaded, set with the profile so it never
+    // shows a placeholder 0; written back only when it actually changed.
+    const allFood = await foodHistoryOrNull;
+    if (allFood) {
+      const s = computeStreak(allFood);
+      setStreak(s);
+      if (s !== p.current_streak)
+        supabase
+          .from("user_profiles")
+          .update({ current_streak: s })
+          .eq("id", user.id)
+          .then();
+    } else {
+      // History unreadable: show the last saved streak, and don't overwrite it.
+      setStreak(p.current_streak ?? 0);
+    }
+
     setProfile(p as Profile);
     setTodayLogs((t as FoodLog[]) ?? []);
     setMonthLogs((m as FoodLog[]) ?? []);
@@ -464,10 +477,8 @@ function Dashboard() {
         setProfile({ ...p, ...patch } as Profile);
       }
     }
-
-    const s = await computeStreak(user.id);
-    setStreak(s);
-  }, [user, selectedDate, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, selectedDate, navigate]);
 
   useEffect(() => {
     load();
@@ -477,9 +488,10 @@ function Dashboard() {
     if (!user || !newWeight) return;
     setSavingWeight(true);
     try {
+      const date = today();
       const payload: TablesInsert<"weight_entries"> = {
         user_id: user.id,
-        date: today(),
+        date,
         weight_kg: +newWeight,
       };
 
@@ -491,10 +503,15 @@ function Dashboard() {
         payload.photo_url = result.data.publicUrl;
       }
 
-      const { error } = await supabase
-        .from("weight_entries")
-        .upsert(payload, { onConflict: "user_id,date" });
-      if (error) throw error;
+      // One photo per day: a new one replaces today's earlier photo, whose
+      // file is deleted once the row points at the new one.
+      const newPhoto = payload.photo_url ?? null;
+      const oldPhoto = newPhoto ? await existingPhotoUrl(user.id, date) : null;
+      await commitPhotoChange(oldPhoto, newPhoto, () =>
+        supabase
+          .from("weight_entries")
+          .upsert(payload, { onConflict: "user_id,date" }),
+      );
 
       await supabase
         .from("user_profiles")
@@ -502,6 +519,7 @@ function Dashboard() {
         .eq("id", user.id);
 
       toast.success("Weight logged!");
+      recordWeightLog(user.id);
       setNewWeight("");
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -513,12 +531,9 @@ function Dashboard() {
     }
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
-    }
+  const handlePhotoChange = (file: File) => {
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const totals = useMemo(
@@ -1297,22 +1312,15 @@ function Dashboard() {
                       kg
                     </span>
                   </div>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className={`shrink-0 ${photoFile ? "border-energy text-energy bg-energy/5" : ""}`}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handlePhotoChange}
-                  />
+                  <PhotoSourcePicker onPick={handlePhotoChange}>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className={`shrink-0 ${photoFile ? "border-energy text-energy bg-energy/5" : ""}`}
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </PhotoSourcePicker>
                   <Button
                     onClick={saveWeight}
                     disabled={savingWeight || !newWeight}

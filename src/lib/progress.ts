@@ -14,6 +14,7 @@
 
 import { supabase } from "@/integrations/client";
 import { toLocalISO } from "@/lib/dates";
+import { getHistory } from "@/lib/historyCache";
 import { computeTotalXP, levelFromXP } from "@/lib/xpConfig";
 
 export interface ProgressSnapshot {
@@ -34,21 +35,21 @@ export async function loadProgress(
   // One RPC recomputes eligibility server-side and returns the earned set with
   // xp. Water and saved-meal counts are not fetched — they were only ever
   // inputs to the client-side eligibility test that no longer exists.
-  const [prof, food, workouts, weights, synced] = await Promise.all([
+  const [prof, foodRows, workoutRows, weightRows, synced] = await Promise.all([
     supabase
       .from("user_profiles")
       .select("full_name")
       .eq("id", uid)
       .maybeSingle(),
-    supabase.from("food_logs").select("date, logged_at").eq("user_id", uid),
-    supabase.from("workout_logs").select("date").eq("user_id", uid),
-    supabase.from("weight_entries").select("date").eq("user_id", uid),
+    getHistory(uid, "food_logs").catch(() => null),
+    getHistory(uid, "workout_logs").catch(() => null),
+    getHistory(uid, "weight_entries").catch(() => null),
     supabase.rpc("sync_achievements"),
   ]);
+  // A failed read is "unknown", not "zero logs": counting it as zero would
+  // save a lower level, and the next good read would announce a fake level-up.
+  if (!foodRows || !workoutRows || !weightRows || synced.error) return null;
 
-  const foodRows = food.data ?? [];
-  const workoutRows = workouts.data ?? [];
-  const weightRows = weights.data ?? [];
   const earned = (synced.data ?? []) as {
     achievement_id: string;
     xp: number;

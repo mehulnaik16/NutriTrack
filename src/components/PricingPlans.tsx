@@ -40,8 +40,12 @@ export function PricingPlans({
   onTrialStarted,
   onBought,
 }: {
-  /** True once trial_start_date exists — running or lapsed, it is spent. */
-  trialUsed: boolean;
+  /**
+   * True once trial_start_date exists — running or lapsed, it is spent.
+   * undefined = not known yet: no trial banner, buttons wait, so nobody is
+   * offered a trial they already used.
+   */
+  trialUsed: boolean | undefined;
   selectedPlan?: string | null;
   onTrialStarted?: (state: TrialState) => void;
   onBought?: () => void;
@@ -122,7 +126,7 @@ export function PricingPlans({
 
   return (
     <>
-      {showsTrialBanner(trialUsed) && (
+      {trialUsed !== undefined && showsTrialBanner(trialUsed) && (
         <div className="mb-8 rounded-2xl bg-accent p-5 text-center text-accent-foreground shadow-lg glow-accent-sm">
           <div className="mb-1 flex items-center justify-center gap-2 text-base font-bold">
             <Sparkles className="h-5 w-5" /> Try any plan FREE for{" "}
@@ -138,7 +142,7 @@ export function PricingPlans({
         {PLANS.map((p) => {
           const cta = planCta({
             planId: p.id,
-            trialUsed,
+            trialUsed: trialUsed ?? true,
             selectedPlan,
             native,
           });
@@ -230,11 +234,15 @@ export function PricingPlans({
                 ) : (
                   <Button
                     onClick={() => (cta === "buy" ? buy(p.id) : start(p.id))}
-                    disabled={cta === "current" || busy !== null}
+                    disabled={
+                      trialUsed === undefined ||
+                      cta === "current" ||
+                      busy !== null
+                    }
                     className={`mt-4 md:mt-6 w-full rounded-full font-bold ${p.popular ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
                     variant={p.popular ? "default" : "outline"}
                   >
-                    {busy === p.id ? (
+                    {busy === p.id || trialUsed === undefined ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : cta === "buy" ? (
                       "Subscribe"

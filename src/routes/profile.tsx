@@ -94,6 +94,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { applyTheme, getLocalTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/client";
+import { getProfileRow } from "@/lib/historyCache";
 import { loadMealNames, saveMealNames } from "@/lib/meals";
 import { loadWaterPrefs, saveWaterPrefs } from "@/lib/water";
 import { serverDeleteAccount } from "@/lib/delete-account";
@@ -347,7 +348,8 @@ function Profile() {
   // Plan type is DERIVED from the real workout_plans row (not the stored
   // preference), so deleting a plan on the Workout page shows here as "No
   // plan" with no manual edit. Read-only — the gym Workout page owns it.
-  const [planTypeLabel, setPlanTypeLabel] = useState("No plan");
+  // null until resolved: never say "No plan" before we know.
+  const [planTypeLabel, setPlanTypeLabel] = useState<string | null>(null);
   const [isEditingWp, setIsEditingWp] = useState(false);
   const [savingWp, setSavingWp] = useState(false);
   const [wpLevel, setWpLevel] = useState<WorkoutPrefs["fitnessLevel"]>(
@@ -402,31 +404,26 @@ function Profile() {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("user_profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        // No profile row means onboarding was never finished — the guard below
-        // waits on `profile`, so without this the page spins forever.
-        if (!data) {
-          navigate({ to: "/quiz", replace: true });
-          return;
-        }
-        setProfile(data);
-        if (data?.weight_kg) setWeight(String(data.weight_kg));
-        if (data?.height_cm) setHeight(String(data.height_cm));
-        if (data?.full_name) setName(data.full_name);
-        if (data?.age) setAge(String(data.age));
-        if (data?.gender) setGender(data.gender);
-        if (data?.goal) {
-          const { primary, loseRate: rate } = decomposeGoalKey(data.goal);
-          setGoal(primary);
-          if (rate) setLoseRate(rate);
-        }
-        if (data?.activity_level) setActivity(data.activity_level);
-      });
+    getProfileRow(user.id).then(({ data }) => {
+      // No profile row means onboarding was never finished — the guard below
+      // waits on `profile`, so without this the page spins forever.
+      if (!data) {
+        navigate({ to: "/quiz", replace: true });
+        return;
+      }
+      setProfile(data);
+      if (data?.weight_kg) setWeight(String(data.weight_kg));
+      if (data?.height_cm) setHeight(String(data.height_cm));
+      if (data?.full_name) setName(data.full_name);
+      if (data?.age) setAge(String(data.age));
+      if (data?.gender) setGender(data.gender);
+      if (data?.goal) {
+        const { primary, loseRate: rate } = decomposeGoalKey(data.goal);
+        setGoal(primary);
+        if (rate) setLoseRate(rate);
+      }
+      if (data?.activity_level) setActivity(data.activity_level);
+    });
   }, [user, navigate]);
 
   useEffect(() => {
@@ -461,7 +458,8 @@ function Profile() {
     resolvePlanTypeLabel(user.id, wp?.preferredTrainingPlan ?? "none").then(
       setPlanTypeLabel,
     );
-  }, [user, page, wp]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, page, wp?.preferredTrainingPlan]);
 
   const updateProfile = async () => {
     if (!user || !profile) return;
@@ -1262,7 +1260,9 @@ function Profile() {
                           Plan type
                         </Label>
                         <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
-                          {planTypeLabel}
+                          {planTypeLabel ?? (
+                            <span className="h-3 w-28 animate-pulse rounded bg-muted" />
+                          )}
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           Synced with your Workout page — change it there.
@@ -1315,7 +1315,7 @@ function Profile() {
                             : String(wp.musclesPerWorkout)
                         }
                       />
-                      <InfoRow label="Plan type" value={planTypeLabel} />
+                      <InfoRow label="Plan type" value={planTypeLabel ?? "…"} />
                       <div className="grid grid-cols-2 divide-x divide-border">
                         <InfoCell label="Weight unit" value={wpWeightUnit} />
                         <InfoCell
@@ -1660,7 +1660,15 @@ function TransactionsPage({
     !!sub &&
     !sub.cancelled_at &&
     ["authenticated", "active", "pending", "halted"].includes(sub.status);
-  const hasAccessNow = summary?.has_access ?? trialActive;
+  // undefined while the summary loads: no "Ended" / "Buy" until we know. A
+  // failed load falls back to the trial dates, as before.
+  const hasAccessNow: boolean | undefined =
+    summary?.has_access ?? (loadingBilling ? undefined : trialActive);
+  const billingSkeleton = (w: string) => (
+    <span
+      className={`inline-block h-5 ${w} animate-pulse rounded-md bg-muted`}
+    />
+  );
 
   async function doCancel() {
     setBusy(true);
@@ -1714,19 +1722,23 @@ function TransactionsPage({
                     <h3 className="font-display text-xl font-bold">
                       {plan.name}
                     </h3>
-                    <Badge
-                      className={
-                        hasAccessNow
-                          ? "bg-accent text-accent-foreground"
-                          : "bg-warn/20 text-warn"
-                      }
-                    >
-                      {hasAccessNow
-                        ? trialActive
-                          ? "Trial active"
-                          : "Active"
-                        : "Ended"}
-                    </Badge>
+                    {hasAccessNow === undefined ? (
+                      billingSkeleton("w-16")
+                    ) : (
+                      <Badge
+                        className={
+                          hasAccessNow
+                            ? "bg-accent text-accent-foreground"
+                            : "bg-warn/20 text-warn"
+                        }
+                      >
+                        {hasAccessNow
+                          ? trialActive
+                            ? "Trial active"
+                            : "Active"
+                          : "Ended"}
+                      </Badge>
+                    )}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     ₹{plan.price}
@@ -1796,10 +1808,15 @@ function TransactionsPage({
                 variant="outline"
                 className="mt-4 w-full rounded-xl font-semibold"
                 onClick={onPricing}
+                disabled={hasAccessNow === undefined}
               >
                 {/* Once access has lapsed the only useful move is paying, so
                     the button says that rather than "View plans". */}
-                {hasAccessNow ? "View plans" : `Buy · ₹${plan.price}`}
+                {hasAccessNow === undefined
+                  ? billingSkeleton("w-24")
+                  : hasAccessNow
+                    ? "View plans"
+                    : `Buy · ₹${plan.price}`}
               </Button>
             </div>
           ) : (
