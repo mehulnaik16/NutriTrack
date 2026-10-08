@@ -112,6 +112,20 @@ assert.strictEqual(getExerciseThumbnail("Incline Dumbbell Curl"), "/exercises/in
 assert.strictEqual(getExerciseThumbnail("Incline Curl"), "/exercises/incline_dumbbell_curl.jpg");
 assert.strictEqual(getExerciseThumbnail("Dumbbell Concentration Curl"), "/exercises/dumbbell_concentration_curl.jpg");
 assert.strictEqual(getExerciseThumbnail("Concentration Curl"), "/exercises/dumbbell_concentration_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Bicep Curl"), "/exercises/cable_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Curl"), "/exercises/cable_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Close Grip Bench Press"), "/exercises/close_grip_bench_press.jpg");
+assert.strictEqual(getExerciseThumbnail("CGBP"), "/exercises/close_grip_bench_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Bench Dip"), "/exercises/bench_dip.jpg");
+assert.strictEqual(getExerciseThumbnail("Tricep Dip"), "/exercises/bench_dip.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Kickbacks"), "/exercises/dumbbell_kickbacks.jpg");
+assert.strictEqual(getExerciseThumbnail("DB Kickback"), "/exercises/dumbbell_kickbacks.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Shrug"), "/exercises/dumbbell_shrug.jpg");
+assert.strictEqual(getExerciseThumbnail("DB Shrug"), "/exercises/dumbbell_shrug.jpg");
+assert.strictEqual(getExerciseThumbnail("Barbell Shrug"), "/exercises/barbell_shrug.jpg");
+assert.strictEqual(getExerciseThumbnail("Shrugs"), "/exercises/barbell_shrug.jpg");
+assert.strictEqual(getExerciseThumbnail("Farmer's Carry"), "/exercises/farmers_carry.jpg");
+assert.strictEqual(getExerciseThumbnail("Farmers Walk"), "/exercises/farmers_carry.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);
