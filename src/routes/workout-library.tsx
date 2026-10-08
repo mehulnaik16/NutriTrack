@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { loadWorkoutPrefs, saveWorkoutPrefs } from "@/lib/workoutPrefs";
 import { WORKOUT_LIBRARY, type LibraryPlan } from "@/lib/workoutLibrary";
-import { getExerciseThumbnail } from "@/lib/exerciseImages";
+import { exerciseThumbnailUrl } from "@/lib/exerciseThumbnailUrl";
 
 export const Route = createFileRoute("/workout-library")({
   component: GatedWorkoutLibrary,
@@ -214,7 +214,7 @@ function PreviewView({ plan }: { plan: LibraryPlan }) {
           {/* Read-only exercise list (logging happens on /workout after Select) */}
           <div className="divide-y divide-border/60">
             {day.exercises.map((ex, i) => {
-              const thumb = getExerciseThumbnail(ex.name);
+              const thumb = exerciseThumbnailUrl(ex.name);
               return (
                 <div
                   key={i}

@@ -25,7 +25,7 @@ import type {
   CalorieResult,
   Confidence,
 } from "@/lib/calorieEngine";
-import { getExerciseThumbnail } from "@/lib/exerciseImages";
+import { exerciseThumbnailUrl } from "@/lib/exerciseThumbnailUrl";
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -762,10 +762,10 @@ function WorkoutPage() {
                     className="group flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/20"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      {getExerciseThumbnail(ex.name) ? (
+                      {exerciseThumbnailUrl(ex.name) ? (
                         <div className="relative shrink-0">
                           <img
-                            src={getExerciseThumbnail(ex.name)!}
+                            src={exerciseThumbnailUrl(ex.name)!}
                             alt={ex.name}
                             className="h-9 w-9 rounded-full border border-border/80 object-cover bg-white shadow-xs"
                             loading="lazy"
@@ -1045,7 +1045,7 @@ function WorkoutPage() {
 
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden divide-y divide-border/50">
           {routine.exercises.map((ex, i) => {
-            const thumb = getExerciseThumbnail(ex.name);
+            const thumb = exerciseThumbnailUrl(ex.name);
             return (
               <div
                 key={i}
@@ -2324,10 +2324,10 @@ function WorkoutPage() {
       >
         <DialogContent className="w-full h-[100dvh] max-w-none max-h-none sm:max-w-2xl sm:h-[92vh] rounded-none sm:rounded-3xl border-border/50 bg-background/98 backdrop-blur-2xl px-4 pb-4 pt-12 sm:px-6 sm:pb-6 sm:pt-8 overflow-y-auto overflow-x-hidden flex flex-col gap-0">
           <DialogHeader className="flex flex-col items-center">
-            {getExerciseThumbnail(selectedExercise ?? "") && (
+            {exerciseThumbnailUrl(selectedExercise ?? "") && (
               <div className="mb-2">
                 <img
-                  src={getExerciseThumbnail(selectedExercise ?? "")!}
+                  src={exerciseThumbnailUrl(selectedExercise ?? "")!}
                   alt={selectedExercise ?? ""}
                   className="h-16 w-16 rounded-full border-2 border-border/80 object-cover bg-white shadow-sm"
                 />
