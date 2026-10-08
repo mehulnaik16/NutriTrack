@@ -186,7 +186,6 @@ function WeightPage() {
   const [saving, setSaving] = useState(false);
   const [motivation, setMotivation] = useState<string | null>(null);
   const [loadingMotivation, setLoadingMotivation] = useState(false);
-  const [compareIdx, setCompareIdx] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
@@ -503,10 +502,6 @@ function WeightPage() {
   }));
 
   // Photos with images for comparison
-  const photoEntries = entries.filter((e) => e.photo_url);
-  const compareA = photoEntries[compareIdx];
-  const compareB =
-    photoEntries[Math.min(compareIdx + 1, photoEntries.length - 1)];
 
   return (
     <div className="min-h-screen bg-background pb-nav">
@@ -840,58 +835,6 @@ function WeightPage() {
                     )}
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ── Photo comparison ── */}
-        {photoEntries.length >= 2 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Photo comparison</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCompareIdx(Math.max(0, compareIdx - 1))}
-                    disabled={compareIdx === 0}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      setCompareIdx(
-                        Math.min(photoEntries.length - 2, compareIdx + 1),
-                      )
-                    }
-                    disabled={compareIdx >= photoEntries.length - 2}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {[compareA, compareB].map(
-                  (entry, i) =>
-                    entry && (
-                      <div key={i} className="space-y-1">
-                        <SignedPhoto
-                          src={entry.photo_url!}
-                          alt={entry.date}
-                          className="w-full rounded-lg object-cover aspect-[3/4]"
-                        />
-                        <p className="text-center text-xs text-muted-foreground">
-                          {entry.date} · {disp(entry.weight_kg)} {wu}
-                        </p>
-                      </div>
-                    ),
-                )}
               </div>
             </CardContent>
           </Card>
