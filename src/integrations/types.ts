@@ -1279,6 +1279,9 @@ export type Database = {
       data_export_status: { Args: never; Returns: Json }
       get_billing_summary: { Args: never; Returns: Json }
       record_data_export: { Args: { p_kind: string }; Returns: boolean }
+      ai_plan_status: { Args: never; Returns: Json }
+      claim_ai_plan: { Args: never; Returns: string | null }
+      release_ai_plan: { Args: { p_id: string }; Returns: undefined }
       get_friend_requests: {
         Args: never
         Returns: {
