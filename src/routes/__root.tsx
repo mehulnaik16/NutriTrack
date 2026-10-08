@@ -123,13 +123,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <body>
         {/* Launch splash for the installed web app (head script decides). It
             plays over the page while React loads underneath, and is hidden,
-            never removed, so hydration sees the same DOM. */}
+            never removed, so hydration sees the same DOM. Only 0.4–2.45 s of the
+            video plays (#t=): the tiles filling, without the blank lead-in or
+            the shine after. */}
         <div id="boot-splash" aria-hidden="true">
           <video id="boot-video" muted playsInline preload="none" />
         </div>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var d=document.documentElement;if(!d.classList.contains('show-splash'))return;var s=document.getElementById('boot-splash'),v=document.getElementById('boot-video'),P='/images/splash/splash-portrait-v1',done=function(){if(d.classList.contains('splash-done'))return;s.style.opacity=0;setTimeout(function(){d.classList.add('splash-done')},300)};var portrait=matchMedia('(orientation: portrait)').matches;v.src=portrait?(v.canPlayType('video/webm')?P+'.webm':P+'.mp4'):'/images/splash/splash-landscape-v1.mp4';v.onended=done;v.onerror=function(){if(/webm$/.test(v.src)){v.src=P+'.mp4';v.play().catch(done)}else done()};var p=v.play();if(p&&p.catch)p.catch(done);setTimeout(done,10000)})()`,
+            __html: `(function(){var d=document.documentElement;if(!d.classList.contains('show-splash'))return;var s=document.getElementById('boot-splash'),v=document.getElementById('boot-video'),P='/images/splash/splash-portrait-v1',over=0,done=function(){if(over)return;over=1;v.pause();s.style.opacity=0;setTimeout(function(){d.classList.add('splash-done')},300)};var portrait=matchMedia('(orientation: portrait)').matches;var T='#t=0.4,2.45';v.src=(portrait?(v.canPlayType('video/webm')?P+'.webm':P+'.mp4'):'/images/splash/splash-landscape-v1.mp4')+T;v.onended=v.onpause=done;(function w(){if(over)return;if(v.currentTime>=2.4)done();else requestAnimationFrame(w)})();v.onerror=function(){if(/webm/.test(v.src)){v.src=P+'.mp4'+T;v.play().catch(done)}else done()};var p=v.play();if(p&&p.catch)p.catch(done);setTimeout(done,8000)})()`,
           }}
         />
         {children}
