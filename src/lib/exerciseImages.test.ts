@@ -105,6 +105,13 @@ assert.strictEqual(getExerciseThumbnail("EZ Bar Skullcrusher"), "/exercises/ez_b
 assert.strictEqual(getExerciseThumbnail("Skullcrushers"), "/exercises/ez_bar_skullcrusher.jpg");
 assert.strictEqual(getExerciseThumbnail("Dumbbell Overhead Tricep Extension"), "/exercises/dumbbell_overhead_tricep_extension.jpg");
 assert.strictEqual(getExerciseThumbnail("Overhead Tricep Extension"), "/exercises/dumbbell_overhead_tricep_extension.jpg");
+assert.strictEqual(getExerciseThumbnail("Handstand Push-ups"), "/exercises/handstand_push_ups.jpg");
+assert.strictEqual(getExerciseThumbnail("Handstand Push Up"), "/exercises/handstand_push_ups.jpg");
+assert.strictEqual(getExerciseThumbnail("HSPU"), "/exercises/handstand_push_ups.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Dumbbell Curl"), "/exercises/incline_dumbbell_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Curl"), "/exercises/incline_dumbbell_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Concentration Curl"), "/exercises/dumbbell_concentration_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Concentration Curl"), "/exercises/dumbbell_concentration_curl.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);
