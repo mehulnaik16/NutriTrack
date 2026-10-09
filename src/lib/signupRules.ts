@@ -85,3 +85,47 @@ export function referIntroDue(createdAt: string | null, today: string) {
   if (!createdAt) return false;
   return daysBetweenLocal(toLocalISO(new Date(createdAt)), today) + 1 >= 6;
 }
+
+/**
+ * Words for the commitment page, from the saved goal. The goal is the first
+ * four weeks at the chosen rate, a milestone that feels close enough to keep.
+ */
+export function commitCopy(
+  goal: string | null,
+  weightKg: number | null,
+  fullName: string | null,
+  today = new Date(),
+) {
+  const first = fullName?.trim().split(/\s+/)[0];
+  const title = first ? `${first}, make it official` : "Make it official";
+  const m = /^(lose|gain)_(\d)_(\d+)kg$/.exec(goal ?? "");
+  const kind = m?.[1] ?? (goal === "gain_muscle" ? "gain" : "maintain");
+  if (kind === "maintain")
+    return {
+      title,
+      goal: weightKg
+        ? `staying around ${Math.round(weightKg)} kg and feeling strong in it`
+        : "staying where I am and feeling strong in it",
+      pledge:
+        "I'll keep doing the small things: logging my meals, moving most days, and not letting one busy week turn into a lost month.",
+    };
+  const kg = (m ? Number(`${m[2]}.${m[3]}`) : 0.25) * 4;
+  const by = new Date(today.getTime() + 28 * 864e5).toLocaleDateString(
+    "en-IN",
+    { day: "numeric", month: "short" },
+  );
+  const amount = kg === 1 ? "first kilo" : `first ${kg} kg`;
+  return kind === "lose"
+    ? {
+        title,
+        goal: `losing my ${amount} by ${by}`,
+        pledge:
+          "I'll log my meals honestly, even the ones I'm not proud of. A bad day is just one day, and I'll show up again the next morning.",
+      }
+    : {
+        title,
+        goal: `putting on my ${amount} by ${by}`,
+        pledge:
+          "I'll eat enough even when I'm not hungry, train with intent, and remember that slow, steady weight is the kind that stays.",
+      };
+}

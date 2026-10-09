@@ -12,6 +12,7 @@ import {
   phoneDigits,
   quizProfileRow,
   referIntroDue,
+  commitCopy,
 } from "./signupRules.ts";
 import {
   calcBMI,
@@ -141,12 +142,27 @@ import { isLightOnlyPath } from "./theme.ts";
     "/welcome",
     "/signup",
     "/signup-details",
+    "/commit",
     "/plans",
   ])
     assert.ok(isLightOnlyPath(p), p);
   for (const p of ["/login", "/dashboard", "/profile", "/signup/x", "/quizzes"])
     assert.ok(!isLightOnlyPath(p), p);
   console.log("✓ S6 light theme on exactly the sign-up pages");
+}
+
+{
+  const day = new Date(2026, 9, 9); // 9 Oct; four weeks later is 6 Nov
+  const lose = commitCopy("lose_0_5kg", 82, "Kausthub B", day);
+  assert.equal(lose.title, "Kausthub, make it official");
+  assert.equal(lose.goal, "losing my first 2 kg by 6 Nov");
+  assert.equal(commitCopy("lose_0_25kg", 82, "", day).goal, "losing my first kilo by 6 Nov");
+  assert.equal(commitCopy("lose_0_25kg", 82, "", day).title, "Make it official");
+  assert.equal(commitCopy("gain_0_75kg", 60, null, day).goal, "putting on my first 3 kg by 6 Nov");
+  assert.equal(commitCopy("gain_muscle", 60, null, day).goal, "putting on my first kilo by 6 Nov");
+  assert.match(commitCopy("maintain", 70.4, null, day).goal, /around 70 kg/);
+  assert.match(commitCopy(null, null, null, day).goal, /^staying where I am/);
+  console.log("✓ S7 commitment words follow the goal");
 }
 
 console.log("\n✅ All sign-up rule tests passed.");

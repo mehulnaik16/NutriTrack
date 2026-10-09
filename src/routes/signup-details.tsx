@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,10 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  FINAL_QUESTION_PAGE,
-  SignupProgress,
-} from "@/components/SignupProgress";
 import { useForceLightTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
@@ -36,7 +28,6 @@ export const Route = createFileRoute("/signup-details")({
 function SignupDetails() {
   useForceLightTheme();
   const navigate = useNavigate();
-  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [heard, setHeard] = useState<string>();
   const [saving, setSaving] = useState(false);
@@ -63,13 +54,9 @@ function SignupDetails() {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background px-4 py-8 text-foreground">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
-        <SignupProgress
-          page={FINAL_QUESTION_PAGE}
-          label="Final question"
-          onBack={() => router.history.back()}
-        />
-
-        <h1 className="text-3xl font-semibold">Final question</h1>
+        {/* No back arrow or progress line: the trial has started, there is
+            nothing to go back to. */}
+        <h1 className="mt-12 text-3xl font-semibold">Final question</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Answer this and you're all set.
         </p>

@@ -44,7 +44,7 @@ function Plans() {
     <div className="relative min-h-screen overflow-hidden bg-background px-4 py-10">
       <div className="bg-grid bg-radial-fade absolute inset-0" />
       <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-accent/15 blur-[110px]" />
-      <div className="relative mx-auto max-w-6xl">
+      <div className="relative mx-auto max-w-6xl animate-in fade-in duration-700">
         {/* Only during sign-up: no trial or plan yet. */}
         {checked && !summary?.trial_start_date && !summary?.selected_plan && (
           <div className="mx-auto max-w-md">
@@ -72,7 +72,7 @@ function Plans() {
           // /dashboard decides what is still due: the phone number for anyone
           // who has not given one yet, otherwise the app.
           onTrialStarted={() => navigate({ to: "/dashboard", replace: true })}
-          onBought={() => navigate({ to: "/dashboard" })}
+          onBought={() => navigate({ to: "/dashboard", replace: true })}
         />
       </div>
     </div>

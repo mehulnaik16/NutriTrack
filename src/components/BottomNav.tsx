@@ -11,6 +11,7 @@ const HIDDEN_ON = new Set([
   "/plans",
   "/quiz",
   "/welcome",
+  "/commit",
   "/signup",
   "/signup-details",
   "/refer-intro",
