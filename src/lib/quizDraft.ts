@@ -45,7 +45,7 @@ export const DEFAULT_QUIZ_FORM: QuizFormData = {
   password: "",
   repeatPassword: "",
   age: 0,
-  gender: "Male",
+  gender: "",
   heightCm: 170,
   weightKg: 70,
   activity: "Sedentary",

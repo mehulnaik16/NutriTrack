@@ -69,7 +69,7 @@ import { isLightOnlyPath } from "./theme.ts";
 {
   const row = quizProfileRow("u2", "", false, {});
   assert.strictEqual(row.age, null, "unanswered age is null, not 0 (DB check)");
-  assert.strictEqual(row.gender, DEFAULT_QUIZ_FORM.gender);
+  assert.strictEqual(row.gender, null, "no gender picked is null");
   assert.strictEqual(row.goal, "maintain");
   assert.strictEqual(row.marketing_opt_in, false);
   assert.ok(row.daily_calorie_target > 0, "a calorie target is still set");
@@ -135,9 +135,16 @@ import { isLightOnlyPath } from "./theme.ts";
 
 // S6: every sign-up page renders light; app pages keep the user's theme.
 {
-  for (const p of ["/", "/quiz", "/welcome", "/signup", "/signup-details"])
+  for (const p of [
+    "/",
+    "/quiz",
+    "/welcome",
+    "/signup",
+    "/signup-details",
+    "/plans",
+  ])
     assert.ok(isLightOnlyPath(p), p);
-  for (const p of ["/login", "/dashboard", "/plans", "/signup/x", "/quizzes"])
+  for (const p of ["/login", "/dashboard", "/profile", "/signup/x", "/quizzes"])
     assert.ok(!isLightOnlyPath(p), p);
   console.log("✓ S6 light theme on exactly the sign-up pages");
 }
