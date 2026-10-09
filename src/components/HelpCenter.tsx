@@ -138,7 +138,7 @@ const FAQ_GROUPS: { title: string; items: Faq[] }[] = [
       },
       {
         q: "What do the plans cost?",
-        a: `On our website: ${prices}. Every plan unlocks everything; they differ only in length. Prices include 18% GST. In the Android and iOS apps, Google Play or the App Store shows its price at checkout.`,
+        a: `On our website: ${prices}. Every plan unlocks everything; they differ only in length. In the Android and iOS apps, Google Play or the App Store shows its price at checkout.`,
         // Website prices inside the native app read as steering to an outside
         // purchase (App Store 3.1.1, Play Payments policy).
         webOnly: true,

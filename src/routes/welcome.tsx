@@ -1,5 +1,9 @@
 import { LogoLoader } from "@/components/LogoLoader";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Utensils,
@@ -18,6 +22,8 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { useForceLightTheme } from "@/lib/theme";
+import { SignupProgress } from "@/components/SignupProgress";
 import { supabase } from "@/integrations/client";
 
 export const Route = createFileRoute("/welcome")({ component: Welcome });
@@ -105,19 +111,24 @@ const FEATURES = [
 ];
 
 function Welcome() {
+  // Part of the sign-up flow, which is always light.
+  useForceLightTheme();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
   // "checking" avoids flashing the intro to a user who has already seen it,
   // before the flag read resolves and we redirect them out.
   const [checking, setChecking] = useState(true);
   const [canProceed, setCanProceed] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [noProfile, setNoProfile] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (loading) return;
+    // The intro sits between the quiz and sign-up, so it is shown signed out.
     if (!user) {
-      navigate({ to: "/login", replace: true });
+      setChecking(false);
       return;
     }
     let cancelled = false;
@@ -135,9 +146,10 @@ function Welcome() {
             setChecking(false);
             return;
           }
-          // No row means onboarding was never finished — send them to the quiz.
+          // No row: signed in mid-flow, so this is the pre-sign-up intro.
           if (!data) {
-            navigate({ to: "/quiz", replace: true });
+            setNoProfile(true);
+            setChecking(false);
             return;
           }
           if (data.has_seen_benefits_features_page) {
@@ -177,7 +189,12 @@ function Welcome() {
   }, [checking]);
 
   const goToDashboard = async () => {
-    if (!user || leaving) return;
+    if (leaving) return;
+    // Before an account (or a profile) exists, the next step is sign-up.
+    if (!user || noProfile) {
+      navigate({ to: "/signup" });
+      return;
+    }
     setLeaving(true);
     const { error } = await supabase
       .from("user_profiles")
@@ -204,7 +221,15 @@ function Welcome() {
       <div className="bg-grid bg-radial-fade pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-accent/15 blur-[110px]" />
 
-      <div className="relative mx-auto w-full max-w-lg px-5 pt-12">
+      <div className="relative mx-auto w-full max-w-lg px-5 pt-8">
+        {/* Only mid-sign-up: an onboarded user reaching this page is past it. */}
+        {(!user || noProfile) && (
+          <SignupProgress
+            page={1}
+            label="Welcome"
+            onBack={() => router.history.back()}
+          />
+        )}
         {/* ── HERO ── */}
         <div className="text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-accent">

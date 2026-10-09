@@ -105,6 +105,7 @@ import {
 } from "@/services/storage";
 import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import {
+  daysBetweenLocal,
   isEditableDate,
   todayLocal,
   toLocalISO,
@@ -432,14 +433,19 @@ function Dashboard() {
       return;
     }
 
-    // Compulsory-once onboarding screens, in order: benefits/features intro, then
-    // the Refer & Earn intro. Each is forced on every landing until the user
-    // dismisses it (which sets its flag), so they survive logout / app-close.
+    // Compulsory-once screens: the benefits/features intro, then the Refer &
+    // Earn intro. Each is forced on every landing until the user dismisses it
+    // (which sets its flag), so they survive logout / app-close.
     if (!p.has_seen_benefits_features_page) {
       navigate({ to: "/welcome", replace: true });
       return;
     }
-    if (!p.has_seen_refer_intro) {
+    // Refer & Earn waits for day 6 (sign-up day is day 1), once they have used
+    // the app for a while; any first visit on or after day 6 shows it.
+    const accountDay = p.created_at
+      ? daysBetweenLocal(toLocalISO(new Date(p.created_at)), todayLocal()) + 1
+      : 1;
+    if (!p.has_seen_refer_intro && accountDay >= 6) {
       navigate({ to: "/refer-intro", replace: true });
       return;
     }

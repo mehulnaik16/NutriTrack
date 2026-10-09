@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { SocialSignInButtons } from "@/components/SocialSignInButtons";
 import { authErrorMessage } from "@/lib/authErrors";
 import { supabase } from "@/integrations/client";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -178,14 +178,9 @@ function Login() {
                   )}
                 </Button>
               </form>
-              <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  or
-                </span>
-                <div className="h-px flex-1 bg-border" />
+              <div className="mt-4">
+                <SocialSignInButtons />
               </div>
-              <GoogleSignInButton />
               <div className="my-7 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">

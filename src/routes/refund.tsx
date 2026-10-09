@@ -67,10 +67,10 @@ const SECTIONS: LegalSection[] = [
           ))}
         </ul>
         <p>
-          Prices include 18% GST. You pay the full amount for the period up
-          front. Plans <strong>renew automatically</strong> at the end of each
-          period through the UPI Autopay or card mandate you approved, until you
-          cancel. Your bank or UPI app notifies you before each automatic debit.
+          You pay the full amount for the period up front. Plans{" "}
+          <strong>renew automatically</strong> at the end of each period through
+          the UPI Autopay or card mandate you approved, until you cancel. Your
+          bank or UPI app notifies you before each automatic debit.
         </p>
       </>
     ),
@@ -117,9 +117,8 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          You can get a <strong>full refund</strong> (including GST) of any
-          website payment — your first purchase or any renewal — if you ask
-          within{" "}
+          You can get a <strong>full refund</strong> of any website payment —
+          your first purchase or any renewal — if you ask within{" "}
           <strong>
             {W} days ({W * 24} hours)
           </strong>{" "}
@@ -136,8 +135,8 @@ const SECTIONS: LegalSection[] = [
           </li>
           <li>
             Or email{" "}
-            <a {...emailLink(LEGAL.supportEmail)}>{LEGAL.supportEmail}</a>{" "}
-            from your account email with the payment date, amount and Razorpay
+            <a {...emailLink(LEGAL.supportEmail)}>{LEGAL.supportEmail}</a> from
+            your account email with the payment date, amount and Razorpay
             payment ID (in your payment receipt email).
           </li>
         </ul>
@@ -302,11 +301,10 @@ const SECTIONS: LegalSection[] = [
   },
   {
     id: "taxes",
-    title: "Taxes and invoices",
+    title: "Invoices",
     body: (
       <p>
-        All prices include 18% GST. A refund returns the full amount you paid,
-        GST included.{" "}
+        A refund returns the full amount you paid.{" "}
         {LEGAL.gstin
           ? `Our GSTIN is ${LEGAL.gstin}. Email us for a GST invoice, quoting your payment ID and GSTIN if you want to claim input credit.`
           : "Email us if you need an invoice for your payment."}
