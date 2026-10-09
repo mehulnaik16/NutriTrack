@@ -73,14 +73,17 @@ export function reportDate(iso: string): string {
 }
 
 /**
- * Load a stored photo as a small JPEG data URL, or null if it can't be read.
- * `mark` is drawn into the picture: `left` in the top-left corner, `right` in
- * the top-right (the before/after page's date and weight).
+ * Load a stored photo as a JPEG data URL, or null if it can't be read. `mark`
+ * is drawn into the picture: `left` / `right` in the top corners (the
+ * before/after page's date and weight), `bottomRight` in that corner (a single
+ * photo's download).
  */
 async function photoJpeg(
   photoUrl: string,
   date: string,
-  mark?: { left: string; right: string },
+  mark?: { left?: string; right?: string; bottomRight?: string },
+  maxPx = PHOTO_PX,
+  quality = 0.75,
 ): Promise<{ data: string; w: number; h: number } | null> {
   // Loaded here, not at the top, so the layout helpers stay testable in Node.
   const { getPhotoSrc } = await import("@/services/storage");
@@ -96,7 +99,7 @@ async function photoJpeg(
   }
   const scale = Math.min(
     1,
-    PHOTO_PX / Math.max(img.naturalWidth, img.naturalHeight),
+    maxPx / Math.max(img.naturalWidth, img.naturalHeight),
   );
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(img.naturalWidth * scale);
@@ -116,15 +119,34 @@ async function photoJpeg(
     ctx.shadowColor = "rgba(0,0,0,0.6)";
     ctx.shadowBlur = Math.round(canvas.height * 0.009);
     ctx.textAlign = "left";
-    ctx.fillText(mark.left, pad, pad);
+    if (mark.left) ctx.fillText(mark.left, pad, pad);
     ctx.textAlign = "right";
-    ctx.fillText(mark.right, canvas.width - pad, pad);
+    if (mark.right) ctx.fillText(mark.right, canvas.width - pad, pad);
+    if (mark.bottomRight) {
+      ctx.textBaseline = "bottom";
+      ctx.fillText(mark.bottomRight, canvas.width - pad, canvas.height - pad);
+    }
   }
   return {
-    data: canvas.toDataURL("image/jpeg", 0.75),
+    data: canvas.toDataURL("image/jpeg", quality),
     w: canvas.width,
     h: canvas.height,
   };
+}
+
+/** One progress photo as a JPEG file with its date in the bottom-right corner. */
+export async function weightPhotoFile(
+  photoUrl: string,
+  date: string,
+): Promise<Blob | null> {
+  const shot = await photoJpeg(
+    photoUrl,
+    date,
+    { bottomRight: reportDate(date) },
+    2000,
+    0.9,
+  );
+  return shot ? (await fetch(shot.data)).blob() : null;
 }
 
 export async function buildWeightReport(
