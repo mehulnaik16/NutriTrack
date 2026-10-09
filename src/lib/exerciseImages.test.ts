@@ -172,6 +172,15 @@ assert.strictEqual(getExerciseThumbnail("Incline Push Up"), "/exercises/incline_
 assert.strictEqual(getExerciseThumbnail("Incline Pushups"), "/exercises/incline_push_up.jpg");
 assert.strictEqual(getExerciseThumbnail("Decline Push Up"), "/exercises/decline_push_up.jpg");
 assert.strictEqual(getExerciseThumbnail("Decline Pushups"), "/exercises/decline_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Diamond Push Up"), "/exercises/diamond_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Diamond Pushups"), "/exercises/diamond_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Close Grip Push Up"), "/exercises/close_grip_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Floor Press"), "/exercises/floor_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Barbell Floor Press"), "/exercises/floor_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Machine Chest Fly"), "/exercises/machine_chest_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Pec Deck"), "/exercises/machine_chest_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Dumbbell Fly"), "/exercises/incline_dumbbell_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Fly"), "/exercises/incline_dumbbell_fly.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);

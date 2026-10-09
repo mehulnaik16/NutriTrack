@@ -119,9 +119,13 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "iron bridge": "/exercises/iron_bridge.jpg",
   "medicine ball slams": "/exercises/medicine_ball_slams.jpg",
   "renegade row": "/exercises/renegade_row.jpg",
-  // Approved Phase 2 Batch 5 Chest additions
   "incline push up": "/exercises/incline_push_up.jpg",
   "decline push up": "/exercises/decline_push_up.jpg",
+  "diamond push up": "/exercises/diamond_push_up.jpg",
+  "close grip push up": "/exercises/close_grip_push_up.jpg",
+  "floor press": "/exercises/floor_press.jpg",
+  "machine chest fly": "/exercises/machine_chest_fly.jpg",
+  "incline dumbbell fly": "/exercises/incline_dumbbell_fly.jpg",
 };
 
 /**
@@ -344,6 +348,23 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "decline pushups": "decline push up",
   "decline push ups": "decline push up",
   "decline push-up": "decline push up",
+  "diamond pushups": "diamond push up",
+  "diamond push ups": "diamond push up",
+  "diamond push-up": "diamond push up",
+  "close-grip push up": "close grip push up",
+  "narrow push up": "close grip push up",
+  "close grip pushups": "close grip push up",
+  "barbell floor press": "floor press",
+  "dumbbell floor press": "floor press",
+  "pec deck": "machine chest fly",
+  "pec deck fly": "machine chest fly",
+  "machine fly": "machine chest fly",
+  "machine flyes": "machine chest fly",
+  "seated machine fly": "machine chest fly",
+  "incline db fly": "incline dumbbell fly",
+  "incline fly": "incline dumbbell fly",
+  "incline dumbbell flye": "incline dumbbell fly",
+  "incline flyes": "incline dumbbell fly",
 };
 
 /**
