@@ -258,4 +258,19 @@ for (const [q, wrong] of [
   );
 }
 
+// F11: a regional name matches only in full. "benne" (Kannada, butter) is a
+// fragment of Avocado's "Bennephala"; showing Avocado hid the Search AI button.
+{
+  assert.deepStrictEqual(searchFoods("benne", 12), [], "benne lists nothing");
+  assert.ok(
+    searchFoods("bennehannu", 3).some((f) => f.name === "Avocado fruit"),
+    "a whole regional name still matches",
+  );
+  assert.ok(
+    searchFoods("sajje", 3).some((f) => /bajra/i.test(f.name)),
+    "sajje still finds Bajra",
+  );
+  console.log(`✓ F11 regional names match whole: benne → AI, sajje → Bajra`);
+}
+
 console.log("\n✅ All food-fuzzy tests passed.");
