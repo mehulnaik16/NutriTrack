@@ -4,7 +4,7 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Utensils,
   Dumbbell,
@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useForceLightTheme } from "@/lib/theme";
-import { SignupProgress } from "@/components/SignupProgress";
+import { INTRO_PAGE, SignupProgress } from "@/components/SignupProgress";
 import { supabase } from "@/integrations/client";
 
 export const Route = createFileRoute("/welcome")({ component: Welcome });
@@ -119,10 +119,8 @@ function Welcome() {
   // "checking" avoids flashing the intro to a user who has already seen it,
   // before the flag read resolves and we redirect them out.
   const [checking, setChecking] = useState(true);
-  const [canProceed, setCanProceed] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [noProfile, setNoProfile] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -168,26 +166,6 @@ function Welcome() {
     };
   }, [user, loading, navigate]);
 
-  // Enable the CTA only once the bottom sentinel scrolls into view, i.e. the
-  // user has reached the end of the page. On tall screens where everything
-  // fits, it intersects immediately — nothing to scroll, already "seen".
-  useEffect(() => {
-    if (checking) return;
-    const el = sentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setCanProceed(true);
-          obs.disconnect();
-        }
-      },
-      { rootMargin: "0px 0px -40px 0px" },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [checking]);
-
   const goToDashboard = async () => {
     if (leaving) return;
     // Before an account (or a profile) exists, the next step is sign-up.
@@ -225,7 +203,7 @@ function Welcome() {
         {/* Only mid-sign-up: an onboarded user reaching this page is past it. */}
         {(!user || noProfile) && (
           <SignupProgress
-            page={1}
+            page={INTRO_PAGE}
             label="Welcome"
             onBack={() => router.history.back()}
           />
@@ -301,9 +279,6 @@ function Welcome() {
             ))}
           </div>
         </div>
-
-        {/* Bottom sentinel — reaching it unlocks the CTA. */}
-        <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
       </div>
 
       {/* ── STICKY CTA ── */}
@@ -311,20 +286,14 @@ function Welcome() {
         <div className="mx-auto w-full max-w-lg">
           <Button
             onClick={goToDashboard}
-            disabled={!canProceed || leaving}
-            className={`h-12 w-full rounded-full text-base font-bold ${
-              canProceed
-                ? "bg-accent text-accent-foreground glow-accent hover:bg-accent/90"
-                : "cursor-not-allowed"
-            }`}
+            disabled={leaving}
+            className="h-12 w-full rounded-full bg-accent text-base font-bold text-accent-foreground glow-accent hover:bg-accent/90"
           >
             Continue
-            {canProceed && <ArrowRight className="ml-2 h-5 w-5" />}
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            {canProceed
-              ? "Your journey starts now"
-              : "Scroll to the bottom to continue"}
+            Your journey starts now
           </p>
         </div>
       </div>

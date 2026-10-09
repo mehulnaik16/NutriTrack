@@ -22,7 +22,7 @@ import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
 import { loadQuizDraft } from "@/lib/quizDraft";
 import { saveQuizProfile } from "@/lib/quizProfile";
 import { useForceLightTheme } from "@/lib/theme";
-import { SignupProgress } from "@/components/SignupProgress";
+import { ACCOUNT_PAGE, SignupProgress } from "@/components/SignupProgress";
 
 export const Route = createFileRoute("/signup")({ component: Signup });
 
@@ -66,7 +66,8 @@ function Signup() {
       await saveQuizProfile(uid, name, optIn, draft);
       await refreshProfile();
       toast.success("Account created!");
-      navigate({ to: "/signup-details", replace: true });
+      // Commitment will come first once it exists; the phone number is last.
+      navigate({ to: "/plans", replace: true });
     } catch (e) {
       toast.error(authErrorMessage((e as Error | undefined)?.message));
       savingRef.current = false;
@@ -153,7 +154,7 @@ function Signup() {
     <div className="flex min-h-[100dvh] flex-col bg-background px-4 py-8 text-foreground">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
         <SignupProgress
-          page={2}
+          page={ACCOUNT_PAGE}
           label="Create an account"
           onBack={() =>
             mode === "email" ? setMode("choose") : router.history.back()

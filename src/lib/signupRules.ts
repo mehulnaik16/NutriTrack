@@ -31,7 +31,8 @@ export function quizProfileRow(
     full_name: fullName,
     // 0 means unanswered; the DB check allows null or 18-100.
     age: d.age || null,
-    gender: d.gender,
+    // Unanswered (no pre-selection) is stored as null, not "".
+    gender: d.gender || null,
     height_cm: d.heightCm,
     weight_kg: d.weightKg,
     activity_level: d.activity,

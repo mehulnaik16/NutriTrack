@@ -375,8 +375,6 @@ function Quiz() {
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
         <SignupProgress
           page={step}
-          total={STEPS.length}
-          showCount={false}
           label={STEPS[step - 1]?.title ?? ""}
           onBack={() =>
             step > 1 ? router.history.back() : navigate({ to: "/login" })

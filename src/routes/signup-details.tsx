@@ -14,7 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SignupProgress } from "@/components/SignupProgress";
+import {
+  FINAL_QUESTION_PAGE,
+  SignupProgress,
+} from "@/components/SignupProgress";
 import { useForceLightTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
@@ -26,8 +29,9 @@ export const Route = createFileRoute("/signup-details")({
 });
 
 /**
- * Right after "Create an account": a phone number (required) and where they
- * heard about Dombelz (optional), then on to pricing.
+ * The last sign-up step, after pricing: a phone number (required) and where
+ * they heard about Dombelz (optional). /dashboard sends anyone without a phone
+ * number here until they answer, so it is asked once of every user.
  */
 function SignupDetails() {
   useForceLightTheme();
@@ -52,7 +56,7 @@ function SignupDetails() {
         return;
       }
     }
-    navigate({ to: "/plans", replace: true });
+    navigate({ to: "/dashboard", replace: true });
   };
   const phoneOk = isIndianMobile(phone);
 
@@ -60,7 +64,7 @@ function SignupDetails() {
     <div className="flex min-h-[100dvh] flex-col bg-background px-4 py-8 text-foreground">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
         <SignupProgress
-          page={3}
+          page={FINAL_QUESTION_PAGE}
           label="Final question"
           onBack={() => router.history.back()}
         />

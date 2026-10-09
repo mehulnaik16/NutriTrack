@@ -158,6 +158,7 @@ interface Profile {
   created_at: string | null;
   trial_start_date: string | null;
   selected_plan: string | null;
+  phone?: string | null;
   has_answered_tour_offer?: boolean;
 }
 
@@ -430,6 +431,13 @@ function Dashboard() {
     // null, so this gate always has a way out.
     if (!p.trial_start_date && !p.selected_plan) {
       navigate({ to: "/plans", replace: true });
+      return;
+    }
+
+    // The phone number is the last sign-up step, after pricing. Asked once of
+    // every user, existing ones included, until it is answered.
+    if (!p.phone) {
+      navigate({ to: "/signup-details", replace: true });
       return;
     }
 
