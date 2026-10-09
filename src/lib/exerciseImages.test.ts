@@ -150,6 +150,10 @@ assert.strictEqual(getExerciseThumbnail("Mountain Climbers"), "/exercises/mounta
 assert.strictEqual(getExerciseThumbnail("Cable Wood Chop High to Low"), "/exercises/cable_wood_chop.jpg");
 assert.strictEqual(getExerciseThumbnail("Cable Wood Chop"), "/exercises/cable_wood_chop.jpg");
 assert.strictEqual(getExerciseThumbnail("Woodchoppers"), "/exercises/cable_wood_chop.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Wood Chop Low to High"), "/exercises/cable_wood_chop_low_to_high.jpg");
+assert.strictEqual(getExerciseThumbnail("Wood Chop Low to High"), "/exercises/cable_wood_chop_low_to_high.jpg");
+assert.strictEqual(getExerciseThumbnail("Burpee"), "/exercises/burpee.jpg");
+assert.strictEqual(getExerciseThumbnail("Burpees"), "/exercises/burpee.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);

@@ -110,6 +110,8 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "kettlebell swing": "/exercises/kettlebell_swing.jpg",
   "mountain climber": "/exercises/mountain_climber.jpg",
   "cable wood chop high to low": "/exercises/cable_wood_chop.jpg",
+  "cable wood chop low to high": "/exercises/cable_wood_chop_low_to_high.jpg",
+  "burpee": "/exercises/burpee.jpg",
 };
 
 /**
@@ -300,6 +302,10 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "wood chop": "cable wood chop high to low",
   "woodchop": "cable wood chop high to low",
   "woodchoppers": "cable wood chop high to low",
+  "burpees": "burpee",
+  "wood chop low to high": "cable wood chop low to high",
+  "cable woodchop low to high": "cable wood chop low to high",
+  "low to high wood chop": "cable wood chop low to high",
 };
 
 /**
