@@ -2482,8 +2482,9 @@ function SettingsPage({
           </div>
           <p className="mt-2 px-1 text-xs text-muted-foreground">
             Your data belongs to you. Exports include food, weight, workout, and
-            water logs. Each export can be downloaded once a week; on the free
-            plan the food diary and weight report are once a month.
+            water logs. Everything (JSON) is once a week. The food diary is once
+            a week (once a month on the free plan). The weight report is once a
+            month; single photos can be downloaded from each weight entry.
           </p>
         </section>
 

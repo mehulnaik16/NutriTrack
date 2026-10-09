@@ -120,6 +120,7 @@ import {
 import { getTelemetryLabel } from "@/lib/telemetry";
 import { changeTone, wantedDirection } from "@/lib/measurements";
 import { SignedPhoto } from "@/components/SignedPhoto";
+import { PhotoDownloadButton } from "@/components/PhotoDownloadButton";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 // Route-level lock. The page renders with the user's own data but does not
@@ -1648,6 +1649,14 @@ function Dashboard() {
                             alt={`Progress photo, ${openPhoto.weight_kg} kg on ${openPhoto.date}`}
                             className="max-h-[75vh] w-full rounded-lg object-contain"
                           />
+                        )}
+                        {openPhoto && (
+                          <div className="flex justify-start">
+                            <PhotoDownloadButton
+                              photoUrl={openPhoto.photo_url!}
+                              date={openPhoto.date}
+                            />
+                          </div>
                         )}
                       </DialogContent>
                     </Dialog>

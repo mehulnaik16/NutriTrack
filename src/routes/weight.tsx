@@ -70,6 +70,7 @@ import {
   commitPhotoChange,
 } from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
+import { PhotoDownloadButton } from "@/components/PhotoDownloadButton";
 import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import { useAccessGate } from "@/hooks/useAccessGate";
 import {
@@ -1185,6 +1186,14 @@ function WeightEntryModal({
                 </>
               ) : (
                 <>
+                  {entry.photo_url && (
+                    <div className="mr-auto">
+                      <PhotoDownloadButton
+                        photoUrl={entry.photo_url}
+                        date={entry.date}
+                      />
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
