@@ -86,7 +86,6 @@ function SignupDetails() {
                 type="tel"
                 inputMode="numeric"
                 autoComplete="tel-national"
-                placeholder="98765 43210"
                 value={phone}
                 onChange={(e) => setPhone(phoneDigits(e.target.value))}
                 className="h-12 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
