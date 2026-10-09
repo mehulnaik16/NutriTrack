@@ -44,7 +44,10 @@ export const Route = createRootRoute(
         { charSet: "utf-8" },
         {
           name: "viewport",
-          content: "width=device-width, initial-scale=1, viewport-fit=cover",
+          // App-like fixed scale: no pinch zoom, and no auto-zoom when an
+          // input is focused on iOS.
+          content:
+            "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
         },
         { title: "Dombelz — Train. Track. Transform." },
         {
@@ -148,6 +151,12 @@ function RootComponent() {
     () => syncFavicon(location.pathname === "/" ? "dark" : getLocalTheme()),
     [],
   );
+  // iOS Safari ignores user-scalable=no, so block its pinch gesture directly.
+  useEffect(() => {
+    const block = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", block);
+    return () => document.removeEventListener("gesturestart", block);
+  }, []);
   return (
     <AuthProvider>
       <Suspense fallback={null}>
