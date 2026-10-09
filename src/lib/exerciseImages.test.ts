@@ -154,6 +154,20 @@ assert.strictEqual(getExerciseThumbnail("Cable Wood Chop Low to High"), "/exerci
 assert.strictEqual(getExerciseThumbnail("Wood Chop Low to High"), "/exercises/cable_wood_chop_low_to_high.jpg");
 assert.strictEqual(getExerciseThumbnail("Burpee"), "/exercises/burpee.jpg");
 assert.strictEqual(getExerciseThumbnail("Burpees"), "/exercises/burpee.jpg");
+assert.strictEqual(getExerciseThumbnail("Rope Crunch"), "/exercises/rope_crunch.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Crunch"), "/exercises/rope_crunch.jpg");
+assert.strictEqual(getExerciseThumbnail("Hollow Body Hold"), "/exercises/hollow_body_hold.jpg");
+assert.strictEqual(getExerciseThumbnail("Hollow Body"), "/exercises/hollow_body_hold.jpg");
+assert.strictEqual(getExerciseThumbnail("Crunches"), "/exercises/crunches.jpg");
+assert.strictEqual(getExerciseThumbnail("Crunch"), "/exercises/crunches.jpg");
+assert.strictEqual(getExerciseThumbnail("Bear Crawl Hold"), "/exercises/bear_crawl_hold.jpg");
+assert.strictEqual(getExerciseThumbnail("Bear Plank"), "/exercises/bear_crawl_hold.jpg");
+assert.strictEqual(getExerciseThumbnail("Iron Bridge"), "/exercises/iron_bridge.jpg");
+assert.strictEqual(getExerciseThumbnail("Glute Bridge Hold"), "/exercises/iron_bridge.jpg");
+assert.strictEqual(getExerciseThumbnail("Medicine Ball Slams"), "/exercises/medicine_ball_slams.jpg");
+assert.strictEqual(getExerciseThumbnail("Med Ball Slam"), "/exercises/medicine_ball_slams.jpg");
+assert.strictEqual(getExerciseThumbnail("Renegade Row"), "/exercises/renegade_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Renegade Rows"), "/exercises/renegade_row.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);

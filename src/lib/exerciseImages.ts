@@ -112,6 +112,13 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "cable wood chop high to low": "/exercises/cable_wood_chop.jpg",
   "cable wood chop low to high": "/exercises/cable_wood_chop_low_to_high.jpg",
   "burpee": "/exercises/burpee.jpg",
+  "rope crunch": "/exercises/rope_crunch.jpg",
+  "hollow body hold": "/exercises/hollow_body_hold.jpg",
+  "crunches": "/exercises/crunches.jpg",
+  "bear crawl hold": "/exercises/bear_crawl_hold.jpg",
+  "iron bridge": "/exercises/iron_bridge.jpg",
+  "medicine ball slams": "/exercises/medicine_ball_slams.jpg",
+  "renegade row": "/exercises/renegade_row.jpg",
 };
 
 /**
@@ -306,6 +313,28 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "wood chop low to high": "cable wood chop low to high",
   "cable woodchop low to high": "cable wood chop low to high",
   "low to high wood chop": "cable wood chop low to high",
+  "cable crunch": "rope crunch",
+  "cable crunches": "rope crunch",
+  "cable rope crunch": "rope crunch",
+  "rope crunches": "rope crunch",
+  "hollow body": "hollow body hold",
+  "hollow hold": "hollow body hold",
+  "crunch": "crunches",
+  "floor crunch": "crunches",
+  "abdominal crunch": "crunches",
+  "bear plank": "bear crawl hold",
+  "bear crawl": "bear crawl hold",
+  "glute bridge hold": "iron bridge",
+  "glute bridge": "iron bridge",
+  "bridge": "iron bridge",
+  "med ball slam": "medicine ball slams",
+  "med ball slams": "medicine ball slams",
+  "medicine ball slam": "medicine ball slams",
+  "ball slam": "medicine ball slams",
+  "ball slams": "medicine ball slams",
+  "renegade rows": "renegade row",
+  "dumbbell renegade row": "renegade row",
+  "db renegade row": "renegade row",
 };
 
 /**
