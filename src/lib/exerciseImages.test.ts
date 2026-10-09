@@ -168,6 +168,10 @@ assert.strictEqual(getExerciseThumbnail("Medicine Ball Slams"), "/exercises/medi
 assert.strictEqual(getExerciseThumbnail("Med Ball Slam"), "/exercises/medicine_ball_slams.jpg");
 assert.strictEqual(getExerciseThumbnail("Renegade Row"), "/exercises/renegade_row.jpg");
 assert.strictEqual(getExerciseThumbnail("Renegade Rows"), "/exercises/renegade_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Push Up"), "/exercises/incline_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Pushups"), "/exercises/incline_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Decline Push Up"), "/exercises/decline_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Decline Pushups"), "/exercises/decline_push_up.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);

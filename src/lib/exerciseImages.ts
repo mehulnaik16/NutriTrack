@@ -119,6 +119,9 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "iron bridge": "/exercises/iron_bridge.jpg",
   "medicine ball slams": "/exercises/medicine_ball_slams.jpg",
   "renegade row": "/exercises/renegade_row.jpg",
+  // Approved Phase 2 Batch 5 Chest additions
+  "incline push up": "/exercises/incline_push_up.jpg",
+  "decline push up": "/exercises/decline_push_up.jpg",
 };
 
 /**
@@ -335,6 +338,12 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "renegade rows": "renegade row",
   "dumbbell renegade row": "renegade row",
   "db renegade row": "renegade row",
+  "incline pushups": "incline push up",
+  "incline push ups": "incline push up",
+  "incline push-up": "incline push up",
+  "decline pushups": "decline push up",
+  "decline push ups": "decline push up",
+  "decline push-up": "decline push up",
 };
 
 /**
