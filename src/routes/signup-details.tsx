@@ -19,23 +19,11 @@ import { useForceLightTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { toast } from "sonner";
+import { HEARD_ABOUT, isIndianMobile, phoneDigits } from "@/lib/signupRules";
 
 export const Route = createFileRoute("/signup-details")({
   component: SignupDetails,
 });
-
-/** Stored key -> label. Keys match the heard_about check in the migration. */
-const HEARD_ABOUT: [string, string][] = [
-  ["instagram", "Instagram"],
-  ["youtube", "YouTube"],
-  ["google", "Google search"],
-  ["friend", "Friend or family"],
-  ["gym", "Gym or trainer"],
-  ["facebook", "Facebook"],
-  ["x", "X (Twitter)"],
-  ["app_store", "App Store / Play Store"],
-  ["other", "Other"],
-];
 
 /**
  * Right after "Create an account": a phone number (required) and where they
@@ -66,8 +54,7 @@ function SignupDetails() {
     }
     navigate({ to: "/plans", replace: true });
   };
-  // Indian mobile numbers: 10 digits starting 6-9.
-  const phoneOk = /^[6-9]\d{9}$/.test(phone);
+  const phoneOk = isIndianMobile(phone);
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background px-4 py-8 text-foreground">
@@ -95,12 +82,9 @@ function SignupDetails() {
                 type="tel"
                 inputMode="numeric"
                 autoComplete="tel-national"
-                maxLength={10}
                 placeholder="98765 43210"
                 value={phone}
-                onChange={(e) =>
-                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                }
+                onChange={(e) => setPhone(phoneDigits(e.target.value))}
                 className="h-12 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
               />
             </div>

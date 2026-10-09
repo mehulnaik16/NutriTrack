@@ -76,7 +76,10 @@ function Signup() {
 
   // Signed in: back from Google/Apple, or arriving with a session already.
   useEffect(() => {
-    if (loading || !user || hasProfile === null) return;
+    // Mid-save, finish() owns the next page: its own refreshProfile() flips
+    // hasProfile to true, which must not send the user on to /dashboard (and
+    // from there /plans), skipping the final question.
+    if (loading || !user || hasProfile === null || savingRef.current) return;
     if (hasProfile) {
       navigate({ to: "/dashboard", replace: true });
       return;

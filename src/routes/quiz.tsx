@@ -974,12 +974,14 @@ function Wheel({
         tabIndex={0}
         onScroll={onScroll}
         onKeyDown={(e) => {
+          // Pick directly (the effect above scrolls): a smooth scroll per
+          // press loses quick repeats, since each starts from the old row.
           if (e.key === "ArrowDown" && index < items.length - 1) {
             e.preventDefault();
-            go(index + 1);
+            onPick(index + 1);
           } else if (e.key === "ArrowUp" && index > 0) {
             e.preventDefault();
-            go(index - 1);
+            onPick(index - 1);
           }
         }}
         className="no-scrollbar relative snap-y snap-mandatory overflow-y-scroll rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent"
