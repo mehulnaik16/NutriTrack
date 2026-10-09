@@ -22,7 +22,6 @@ import { todayLocal } from "@/lib/dates";
 import {
   PLANS,
   PLAN_FEATURES,
-  PRICE_TAX_NOTE,
   activeGift,
   giftLabel,
   monthlyRate,
@@ -183,9 +182,6 @@ export function PricingPlans({
                         {periodLabel(p.months)}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {PRICE_TAX_NOTE}
-                    </p>
                     {kind && (
                       <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">
                         <Gift className="h-3.5 w-3.5" /> {giftLabel(kind)}

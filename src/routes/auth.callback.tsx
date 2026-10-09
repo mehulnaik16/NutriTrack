@@ -39,7 +39,8 @@ function AuthCallback() {
         .maybeSingle();
 
       if (cancelled) return;
-      navigate({ to: profile ? "/dashboard" : "/quiz", replace: true });
+      // No profile: /signup writes the quiz answers, or sends them to the quiz.
+      navigate({ to: profile ? "/dashboard" : "/signup", replace: true });
     };
 
     // detectSessionInUrl resolves the OAuth response asynchronously; the

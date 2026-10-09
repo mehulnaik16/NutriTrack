@@ -11,6 +11,8 @@ const HIDDEN_ON = new Set([
   "/plans",
   "/quiz",
   "/welcome",
+  "/signup",
+  "/signup-details",
   "/refer-intro",
   "/refer-how-it-works",
   "/refer-terms",
@@ -54,10 +56,13 @@ export function BottomNav() {
   // is idle so every tab opens instantly.
   useEffect(() => {
     if (!user) return;
-    const go = () => TABS.forEach((to) => router.preloadRoute({ to }).catch(() => {}));
+    const go = () =>
+      TABS.forEach((to) => router.preloadRoute({ to }).catch(() => {}));
     const id = window.requestIdleCallback?.(go) ?? window.setTimeout(go, 1500);
     return () =>
-      window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id);
+      window.cancelIdleCallback
+        ? window.cancelIdleCallback(id)
+        : clearTimeout(id);
   }, [user, router]);
 
   // Visibility depends on the session and the route only — never on a network

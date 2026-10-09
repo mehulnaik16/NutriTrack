@@ -32,12 +32,6 @@ export const PLANS: readonly Plan[] = [
   },
 ];
 
-/**
- * Shown beside every price. The prices carry 18% GST inside them (GST_BPS in
- * src/server/razorpay.ts), so what is quoted is exactly what is charged.
- */
-export const PRICE_TAX_NOTE = "Inclusive of all taxes";
-
 /** The referral gift (+60 days) comes with this plan only — never the others. */
 export const GIFT_PLAN_ID = "yearly";
 

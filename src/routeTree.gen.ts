@@ -30,6 +30,8 @@ import { Route as ReferIntroRouteImport } from './routes/refer-intro'
 import { Route as ReferTermsRouteImport } from './routes/refer-terms'
 import { Route as RefundRouteImport } from './routes/refund'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SignupDetailsRouteImport } from './routes/signup-details'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WeightRouteImport } from './routes/weight'
 import { Route as WelcomeRouteImport } from './routes/welcome'
@@ -144,6 +146,16 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupDetailsRoute = SignupDetailsRouteImport.update({
+  id: '/signup-details',
+  path: '/signup-details',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -207,6 +219,8 @@ export interface FileRoutesByFullPath {
   '/refer-terms': typeof ReferTermsRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/signup-details': typeof SignupDetailsRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/welcome': typeof WelcomeRoute
@@ -238,6 +252,8 @@ export interface FileRoutesByTo {
   '/refer-terms': typeof ReferTermsRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/signup-details': typeof SignupDetailsRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/welcome': typeof WelcomeRoute
@@ -270,6 +286,8 @@ export interface FileRoutesById {
   '/refer-terms': typeof ReferTermsRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/signup-details': typeof SignupDetailsRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/welcome': typeof WelcomeRoute
@@ -303,6 +321,8 @@ export interface FileRouteTypes {
     | '/refer-terms'
     | '/refund'
     | '/reset-password'
+    | '/signup'
+    | '/signup-details'
     | '/terms'
     | '/weight'
     | '/welcome'
@@ -334,6 +354,8 @@ export interface FileRouteTypes {
     | '/refer-terms'
     | '/refund'
     | '/reset-password'
+    | '/signup'
+    | '/signup-details'
     | '/terms'
     | '/weight'
     | '/welcome'
@@ -365,6 +387,8 @@ export interface FileRouteTypes {
     | '/refer-terms'
     | '/refund'
     | '/reset-password'
+    | '/signup'
+    | '/signup-details'
     | '/terms'
     | '/weight'
     | '/welcome'
@@ -397,6 +421,8 @@ export interface RootRouteChildren {
   ReferTermsRoute: typeof ReferTermsRoute
   RefundRoute: typeof RefundRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
+  SignupDetailsRoute: typeof SignupDetailsRoute
   TermsRoute: typeof TermsRoute
   WeightRoute: typeof WeightRoute
   WelcomeRoute: typeof WelcomeRoute
@@ -556,6 +582,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup-details': {
+      id: '/signup-details'
+      path: '/signup-details'
+      fullPath: '/signup-details'
+      preLoaderRoute: typeof SignupDetailsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -637,6 +677,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReferTermsRoute: ReferTermsRoute,
   RefundRoute: RefundRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
+  SignupDetailsRoute: SignupDetailsRoute,
   TermsRoute: TermsRoute,
   WeightRoute: WeightRoute,
   WelcomeRoute: WelcomeRoute,

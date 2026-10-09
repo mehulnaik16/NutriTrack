@@ -36,6 +36,9 @@ export interface QuizDraft {
 
 export const QUIZ_DRAFT_KEY = "dombelz.quizDraft";
 
+/** Invite code parked across an OAuth round trip (sessionStorage). */
+export const REF_STORAGE_KEY = "dombelz.referralCode";
+
 export const DEFAULT_QUIZ_FORM: QuizFormData = {
   fullName: "",
   email: "",

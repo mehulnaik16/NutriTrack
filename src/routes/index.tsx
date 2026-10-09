@@ -1,6 +1,6 @@
 import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -8,7 +8,7 @@ import {
   ChevronDown,
   Download,
 } from "lucide-react";
-import { syncFavicon } from "@/lib/theme";
+import { useForceLightTheme } from "@/lib/theme";
 import appStoreBadge from "@/assets/badges/app-store.svg";
 import googlePlayBadge from "@/assets/badges/google-play.png";
 
@@ -45,28 +45,13 @@ import {
 import { useAuth } from "@/lib/auth";
 // The landing page used to carry its own Starter/Pro/Elite array at prices the
 // product no longer sells. Pricing has one definition now.
-import {
-  PLANS,
-  PLAN_FEATURES,
-  PRICE_TAX_NOTE,
-  monthlyRate,
-  periodLabel,
-} from "@/lib/plans";
+import { PLANS, PLAN_FEATURES, monthlyRate, periodLabel } from "@/lib/plans";
 import { BASE_TRIAL_DAYS } from "@/lib/trial";
 
 export const Route = createFileRoute("/")({ component: Landing });
 
 // Layout follows docs/design/landing-template.md: Hevy's structure, our light
-// theme. Keep this list in sync with the theme script in __root.tsx.
-const THEME_CLASSES = [
-  "dark",
-  "theme-ocean",
-  "theme-sunset",
-  "theme-forest",
-  "theme-cyber",
-  "theme-cyberdeck",
-  "theme-isro",
-];
+// theme.
 
 // Each point shows a real app screenshot from src/assets/landing/ (375x586 phone
 // viewport, demo account). Click a point to show it; rows also auto-advance.
@@ -170,24 +155,7 @@ function Landing() {
     [PLANS[0]?.id ?? "monthly"]: true,
   });
 
-  // The landing page is always light. __root.tsx skips the saved theme on a
-  // hard load of "/"; this covers client-side arrival and restores the saved
-  // theme on the way out.
-  useLayoutEffect(() => {
-    const c = document.documentElement.classList;
-    c.remove(...THEME_CLASSES);
-    syncFavicon("dark"); // green brand icon on the landing page
-    return () => {
-      let t = "dark";
-      try {
-        t = localStorage.getItem("theme") ?? "dark";
-      } catch {
-        // Storage blocked: fall back to the default dark theme.
-      }
-      if (t !== "light") c.add(THEME_CLASSES.includes(t) ? t : "dark");
-      syncFavicon(t);
-    };
-  }, []);
+  useForceLightTheme();
 
   const togglePlanFeatures = (planId: string) => {
     setExpandedPlans((prev) => ({
@@ -389,9 +357,6 @@ function Landing() {
                     {periodLabel(p.months)}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {PRICE_TAX_NOTE}
-                </p>
                 {p.months > 1 && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Works out to ₹{monthlyRate(p)}/month

@@ -123,7 +123,6 @@ import {
   findPlan,
   giftLabel,
   periodLabel,
-  PRICE_TAX_NOTE,
 } from "@/lib/plans";
 import { useGift } from "@/hooks/useReferralGift";
 import {
@@ -1759,9 +1758,6 @@ function TransactionsPage({
                     ₹{plan.price}
                     {periodLabel(plan.months)}
                     {trialActive ? " after trial" : ""}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {PRICE_TAX_NOTE}
                   </p>
                   {giftKind && (
                     <p className="mt-1 text-xs font-semibold text-accent">

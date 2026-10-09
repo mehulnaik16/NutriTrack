@@ -4,38 +4,30 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useForceLightTheme } from "@/lib/theme";
+import { SignupProgress } from "@/components/SignupProgress";
+import { Mars, Venus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
 import { AGE_YEARS } from "@/lib/measurements";
-import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
-import { isValidCode, REFEREE_GIFT_DAYS } from "@/lib/referral";
+import { isValidCode } from "@/lib/referral";
 import { isPartnerCode, partnerKindOf, type PartnerKind } from "@/lib/gym";
 import {
-  clearQuizDraft,
   DEFAULT_QUIZ_FORM,
   loadQuizDraft,
+  REF_STORAGE_KEY,
   saveQuizDraft,
   type QuizFormData as FormData,
 } from "@/lib/quizDraft";
-import { serverLinkGym, serverVerifyGymCode } from "@/lib/gym-link";
-import { findPlan, GIFT_PLAN_ID } from "@/lib/plans";
+import { serverVerifyGymCode } from "@/lib/gym-link";
 import {
   activityMultipliers,
   bmiCategory,
@@ -55,10 +47,10 @@ import {
  * inserting one meant renumbering every branch and hoping none was missed — the
  * referral step is the first time that bill came due. Everything now derives
  * from this list: the panel that renders, the header, the count, the bound
- * validateSearch clamps to, and where Continue turns into Create My Account.
+ * validateSearch clamps to, and where Continue turns into Confirm.
  */
 const STEPS = [
-  { key: "account", title: "Create Account" },
+  { key: "account", title: "About You" },
   { key: "referral", title: "Invite Code" },
   { key: "body", title: "Body Stats" },
   { key: "activity", title: "Activity" },
@@ -85,8 +77,6 @@ export const Route = createFileRoute("/quiz")({
     return out;
   },
 });
-
-const REF_STORAGE_KEY = "dombelz.referralCode";
 
 /**
  * Google OAuth navigates away and back, which loses the search param, so the
@@ -116,20 +106,17 @@ function Quiz() {
   const navigate = useNavigate();
   const routeNavigate = Route.useNavigate();
   const router = useRouter();
-  const { user, loading, hasProfile, refreshProfile } = useAuth();
-  const isOAuth = !!user;
+  const { user, loading, hasProfile } = useAuth();
+  // Sign-up is always light, whatever theme the user picked.
+  useForceLightTheme();
   const { step: searchStep, ref: searchRef } = Route.useSearch();
   const step = searchStep ?? 1;
   const stepKey: StepKey = STEPS[step - 1]?.key ?? "account";
   // Each step is a real history entry: forward pushes, back pops.
   const setStep = (n: number) =>
     routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
-  const [submitting, setSubmitting] = useState(false);
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [draft] = useState(loadQuizDraft);
-  /** Set the moment the profile is written, so the guard below doesn't fight
-   *  the hand-off to /plans that submit() is already performing. */
-  const finishedRef = useRef(false);
   const resumedRef = useRef(false);
   const [d, setD] = useState<FormData>(() => ({
     ...DEFAULT_QUIZ_FORM,
@@ -326,7 +313,6 @@ function Quiz() {
   // Mirror every answer as it changes. The step lives in the URL, which is lost
   // the moment the wizard is left, so it is saved here too.
   useEffect(() => {
-    if (finishedRef.current) return;
     saveQuizDraft({ step, d, loseRate, unit, applied, appliedKind });
   }, [step, d, loseRate, unit, applied, appliedKind]);
 
@@ -350,7 +336,7 @@ function Quiz() {
   // overwrites the saved profile with whatever this form currently holds.
   // /dashboard owns the decision about which onboarding screen is still due.
   useEffect(() => {
-    if (hasProfile !== true || finishedRef.current) return;
+    if (hasProfile !== true) return;
     navigate({ to: "/dashboard", replace: true });
   }, [hasProfile, navigate]);
 
@@ -376,273 +362,62 @@ function Quiz() {
     [target, goalKey, d.weightKg],
   );
 
-  const canNext = () => {
-    if (stepKey === "account") {
-      const identityOk = d.fullName.trim() !== "" && d.email.trim() !== "";
-      if (isOAuth) return identityOk && d.age >= AGE_YEARS.min;
-      return (
-        identityOk &&
-        d.password.length >= 8 &&
-        d.password.length <= 72 &&
-        d.password === d.repeatPassword &&
-        d.age >= AGE_YEARS.min
-      );
-    }
-    // Optional, so an empty box passes. A code that is present but unverified
-    // does not: the user fixes it, clears it, or taps Skip for now.
-    if (stepKey === "referral") {
-      return codeInput.trim() === "" || codeState === "valid";
-    }
-    if (stepKey === "body") return d.heightCm > 0 && d.weightKg > 0;
-    if (stepKey === "activity") return !!d.activity;
-    if (stepKey === "goal") {
-      if (!d.goal) return false;
-      // lose/gain goals need a rate chosen (loseRate must match the active goal)
-      if (d.goal === "lose") return loseRate.startsWith("lose_");
-      if (d.goal === "gain") return loseRate.startsWith("gain_");
-      return true; // maintain needs no sub-selection
-    }
-    return true;
-  };
+  // shortcut: every step can be skipped while the new sign-up flow is being
+  // designed; restore per-step checks (git history) once all pages exist.
+  const canNext = () => true;
 
-  const submit = async () => {
-    setSubmitting(true);
-    try {
-      let userId = user?.id;
-      if (!userId) {
-        const { data: signup, error } = await supabase.auth.signUp({
-          email: d.email,
-          password: d.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-            data: { full_name: d.fullName },
-          },
-        });
-        if (error) throw error;
-        userId = signup.user?.id;
-      }
-      if (!userId) throw new Error("No user created");
-
-      const { error: pErr } = await supabase.from("user_profiles").upsert({
-        id: userId,
-        full_name: d.fullName,
-        age: d.age,
-        gender: d.gender,
-        height_cm: d.heightCm,
-        weight_kg: d.weightKg,
-        activity_level: d.activity,
-        goal: goalKey,
-        bmi,
-        bmr,
-        tdee,
-        daily_calorie_target: target,
-        protein_target_g: macros.protein,
-        carbs_target_g: macros.carbs,
-        fat_target_g: macros.fat,
-        fiber_target_g: macros.fiber,
-      });
-      if (pErr) throw pErr;
-
-      // Attribution is best-effort by design: an unknown code, a self-referral
-      // or a second attempt all come back false, and none of them may block an
-      // account that has already been created.
-      //
-      // Whether this earns anything is decided server-side either way —
-      // claim_referral() and link_gym() both derive it from the account's own
-      // state, so nothing sent from here can talk them into a reward.
-      const refCode = applied;
-      if (refCode) {
-        try {
-          if (appliedKind && appliedKind !== "friend") {
-            await serverLinkGym({ data: { code: refCode } });
-          } else {
-            await supabase.rpc("claim_referral", { code: refCode });
-          }
-          sessionStorage.removeItem(REF_STORAGE_KEY);
-        } catch (refErr) {
-          console.warn("[referral] could not claim code", refErr);
-        }
-      }
-
-      // Set before refreshProfile so the already-onboarded guard doesn't race
-      // this hand-off and redirect to /dashboard instead of /plans.
-      finishedRef.current = true;
-      clearQuizDraft();
-      // The nav stays hidden until the provider knows a profile exists.
-      await refreshProfile();
-      toast.success("Account created!");
-      // `replace`, so a back press can't re-enter the review step and submit a
-      // second time over a profile that is already written.
-      navigate({ to: "/plans", replace: true });
-    } catch (e) {
-      const raw = (e as Error | undefined)?.message;
-      toast.error(authErrorMessage(raw));
-      // An existing account can't be created again, and the quiz has no way
-      // forward from here — the login screen does, including Google.
-      if (isAlreadyRegistered(raw)) navigate({ to: "/login" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // Confirm only moves on: the intro comes next, then "Save your plan"
+  // (/signup) creates the account and writes these answers from the draft.
+  const submit = () => navigate({ to: "/welcome" });
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-4 py-8">
-      <div className="mx-auto max-w-md w-full">
-        {/* Top Navigation */}
-        <div className="mb-8 flex items-center justify-between text-sm font-medium">
-          <button
-            className="text-accent p-2 -ml-2"
-            onClick={() =>
-              step > 1 ? router.history.back() : navigate({ to: "/login" })
-            }
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-          <span className="text-foreground font-bold tracking-wide">
-            {STEPS[step - 1]?.title} ({step}/{STEPS.length})
-          </span>
-          {/* the referral step carries its own Skip; the rest are required */}
-          <div className="w-10" />
-        </div>
+    <div className="flex min-h-[100dvh] flex-col bg-background text-foreground px-4 py-8">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
+        <SignupProgress
+          page={step}
+          total={STEPS.length}
+          showCount={false}
+          label={STEPS[step - 1]?.title ?? ""}
+          onBack={() =>
+            step > 1 ? router.history.back() : navigate({ to: "/login" })
+          }
+        />
 
-        <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="flex flex-1 flex-col animate-in fade-in slide-in-from-right-4 duration-500">
           {stepKey === "account" && (
             <div className="space-y-6">
-              {applied && (referrerName || gymName) && (
-                <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
-                  <p className="flex items-center gap-2 font-display text-base font-bold text-accent">
-                    {appliedKind && appliedKind !== "friend"
-                      ? `${appliedKind === "gym" ? "🏋️" : "🎁"} ${gymName} has you covered`
-                      : `🎁 ${referrerName} sent you a gift`}
-                  </p>
-                  <p className="mt-1.5 text-sm text-muted-foreground">
-                    Sign up for a free trial to explore everything, plus{" "}
-                    {REFEREE_GIFT_DAYS} extra days if you go{" "}
-                    {findPlan(GIFT_PLAN_ID)?.name ?? "Yearly"}.
-                  </p>
-                  <p className="mt-2 text-xs font-medium text-muted-foreground">
-                    {appliedKind && appliedKind !== "friend"
-                      ? "Partner code applied:"
-                      : "Gift code applied:"}{" "}
-                    <span className="font-display tracking-widest text-accent">
-                      {applied}
-                    </span>
-                  </p>
-                </div>
-              )}
               <h2 className="text-3xl font-semibold mb-2">Tell us about you</h2>
-              <p className="text-muted-foreground mb-8 text-sm">
-                {isOAuth
-                  ? "Finish your profile to get started on your journey."
-                  : "Create your account to get started on your journey."}
-              </p>
-              {!isOAuth && (
-                <div className="mb-8 space-y-5">
-                  <GoogleSignInButton label="Sign up with Google" />
-                  <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-border" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      or
-                    </span>
-                    <div className="h-px flex-1 bg-border" />
-                  </div>
-                </div>
-              )}
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <Label className="text-foreground/80">Full Name</Label>
-                  <Input
-                    value={d.fullName}
-                    onChange={(e) => set("fullName", e.target.value)}
-                    className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl"
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-foreground/80">Email</Label>
-                    <Input
-                      type="email"
-                      value={d.email}
-                      disabled={isOAuth}
-                      onChange={(e) => set("email", e.target.value)}
-                      className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl"
-                    />
-                  </div>
-                  {!isOAuth && (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-foreground/80">Password</Label>
-                        <Input
-                          type="password"
-                          value={d.password}
-                          onChange={(e) => set("password", e.target.value)}
-                          className={`bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl ${d.password.length > 72 ? "ring-2 ring-red-500" : ""}`}
-                        />
-                        {d.password.length > 72 && (
-                          <p className="text-xs text-red-500">
-                            Password cannot be longer than 72 characters
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-foreground/80">
-                          Repeat Password
-                        </Label>
-                        <Input
-                          type="password"
-                          value={d.repeatPassword}
-                          onChange={(e) =>
-                            set("repeatPassword", e.target.value)
-                          }
-                          className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl"
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground/80">
-                    Age (must be {AGE_YEARS.min}+)
-                  </Label>
-                  <Input
-                    type="number"
-                    min={AGE_YEARS.min}
-                    value={d.age || ""}
-                    onChange={(e) => set("age", +e.target.value)}
-                    className="bg-card border-0 focus-visible:ring-accent text-foreground h-12 rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-foreground/80">Gender</Label>
-                  <RadioGroup
-                    value={d.gender}
-                    onValueChange={(v) => set("gender", v)}
-                    className="flex gap-4 text-foreground"
+              <div className="space-y-5 pt-4">
+                <BirthYearPicker onAge={(age) => set("age", age)} />
+                <div className="space-y-3">
+                  <Label className="text-base text-foreground/80">Gender</Label>
+                  <div
+                    role="radiogroup"
+                    aria-label="Gender"
+                    className="flex gap-5"
                   >
-                    {["Male", "Female", "Other"].map((g) => (
-                      <div key={g} className="flex items-center gap-2">
-                        <RadioGroupItem
-                          value={g}
-                          id={g}
-                          className="border-accent text-accent"
-                        />
-                        <Label htmlFor={g} className="text-foreground/80">
+                    {(
+                      [
+                        ["Male", Mars],
+                        ["Female", Venus],
+                      ] as const
+                    ).map(([g, Icon]) => {
+                      const on = d.gender === g;
+                      return (
+                        <button
+                          key={g}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          onClick={() => set("gender", g)}
+                          className={`flex h-24 w-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 text-sm font-semibold transition-colors ${on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-card text-muted-foreground hover:border-muted-foreground/40"}`}
+                        >
+                          <Icon className="h-7 w-7" />
                           {g}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -657,10 +432,7 @@ function Quiz() {
                 </span>
               </h2>
               <p className="text-muted-foreground mb-8 text-sm">
-                From a friend, your gym, your doctor or a creator. Any of them
-                gets you {REFEREE_GIFT_DAYS} extra days on the{" "}
-                {findPlan(GIFT_PLAN_ID)?.name ?? "Yearly"} plan. This is the
-                only place a code counts, so enter it now if you have one.
+                Enter your invite code if you have one.
               </p>
 
               <div className="space-y-2">
@@ -705,10 +477,8 @@ function Quiz() {
                 {codeState === "valid" && (
                   <p className="text-sm font-medium text-accent">
                     {appliedKind && appliedKind !== "friend"
-                      ? `${appliedKind === "gym" ? "🏋️" : "🎁"} ${gymName ?? "Your partner"} verified — `
-                      : `🎁 Gift from ${referrerName ?? "your friend"} applied — `}
-                    +{REFEREE_GIFT_DAYS} days on the{" "}
-                    {findPlan(GIFT_PLAN_ID)?.name ?? "Yearly"} plan.
+                      ? `✓ ${gymName ?? "Your partner"}'s code applied`
+                      : `✓ ${referrerName ?? "Your friend"}'s code applied`}
                   </p>
                 )}
                 {codeState === "invalid" && codeError && (
@@ -717,10 +487,6 @@ function Quiz() {
                   </p>
                 )}
               </div>
-
-              <p className="text-xs text-muted-foreground">
-                No code? Carry on — you'll still get your free trial.
-              </p>
             </div>
           )}
 
@@ -1055,8 +821,6 @@ function Quiz() {
                 Let's make sure everything looks right.
               </p>
               <div className="grid gap-3 sm:grid-cols-2 text-sm">
-                <Row label="Name" value={d.fullName} />
-                <Row label="Email" value={d.email} />
                 <Row label="Age" value={String(d.age)} />
                 <Row label="Gender" value={d.gender} />
                 <Row label="Height" value={`${d.heightCm} cm`} />
@@ -1099,7 +863,7 @@ function Quiz() {
             </div>
           )}
 
-          <div className="mt-12 flex flex-col items-center justify-center gap-3">
+          <div className="mt-auto flex flex-col items-center justify-center gap-3 pt-12">
             {step < STEPS.length ? (
               <>
                 <Button
@@ -1130,16 +894,15 @@ function Quiz() {
             ) : (
               <Button
                 onClick={submit}
-                disabled={submitting}
                 className="w-full max-w-sm rounded-full h-14 bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-lg disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground"
               >
-                {submitting ? "Creating…" : "Create My Account"}
+                Confirm
               </Button>
             )}
           </div>
         </div>
       </div>
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-6 pb-6 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <a
           href="/login"
@@ -1148,23 +911,138 @@ function Quiz() {
           Log in
         </a>
       </p>
-      <p className="mt-3 pb-6 text-center text-xs text-muted-foreground/80">
-        By creating an account you agree to our{" "}
-        <a
-          href="/terms"
-          className="text-accent underline-offset-2 hover:underline"
-        >
-          Terms
-        </a>{" "}
-        and{" "}
-        <a
-          href="/privacy"
-          className="text-accent underline-offset-2 hover:underline"
-        >
-          Privacy Policy
-        </a>
-        .
-      </p>
+    </div>
+  );
+}
+
+const ROW_PX = 40;
+
+/**
+ * One scroll-wheel column: five rows visible, the middle one selected and
+ * sitting on the lime band. Snap scrolling picks the row; arrow keys work too.
+ */
+function Wheel({
+  label,
+  items,
+  index,
+  onPick,
+}: {
+  label: string;
+  items: string[];
+  index: number;
+  onPick: (i: number) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const settle = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Follow outside changes (a day clamped by a shorter month) without a jump
+  // when the scroll itself caused them.
+  useEffect(() => {
+    const el = ref.current;
+    if (el && Math.round(el.scrollTop / ROW_PX) !== index) {
+      el.scrollTop = index * ROW_PX;
+    }
+  }, [index]);
+
+  const onScroll = () => {
+    clearTimeout(settle.current);
+    settle.current = setTimeout(() => {
+      const el = ref.current;
+      if (!el) return;
+      const i = Math.min(
+        items.length - 1,
+        Math.max(0, Math.round(el.scrollTop / ROW_PX)),
+      );
+      if (i !== index) onPick(i);
+    }, 80);
+  };
+
+  const go = (i: number) =>
+    ref.current?.scrollTo({ top: i * ROW_PX, behavior: "smooth" });
+
+  return (
+    <div className="relative flex-1">
+      <div
+        className="pointer-events-none absolute inset-x-1 rounded-xl bg-accent shadow-[0_6px_20px_-6px_var(--accent)]"
+        style={{ top: ROW_PX * 2, height: ROW_PX }}
+      />
+      <div
+        ref={ref}
+        role="listbox"
+        aria-label={label}
+        aria-activedescendant={`${label}-${index}`}
+        tabIndex={0}
+        onScroll={onScroll}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" && index < items.length - 1) {
+            e.preventDefault();
+            go(index + 1);
+          } else if (e.key === "ArrowUp" && index > 0) {
+            e.preventDefault();
+            go(index - 1);
+          }
+        }}
+        className="no-scrollbar relative snap-y snap-mandatory overflow-y-scroll rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        style={{ height: ROW_PX * 5, paddingBlock: ROW_PX * 2 }}
+      >
+        {items.map((text, i) => {
+          const far = Math.abs(i - index);
+          return (
+            <div
+              key={text}
+              id={`${label}-${i}`}
+              role="option"
+              aria-selected={i === index}
+              onClick={() => go(i)}
+              className={`flex snap-center cursor-pointer items-center justify-center text-sm transition-colors ${
+                far === 0
+                  ? "font-bold text-accent-foreground"
+                  : far === 1
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground/40"
+              }`}
+              style={{ height: ROW_PX }}
+            >
+              {text}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Birth year on a wheel. Only the derived age leaves this component (year
+ * difference, so it can be a year high before the birthday); nothing else is
+ * stored.
+ */
+function BirthYearPicker({ onAge }: { onAge: (age: number) => void }) {
+  const thisYear = new Date().getFullYear();
+  const years = Array.from(
+    { length: AGE_YEARS.max - AGE_YEARS.min + 1 },
+    (_, i) => thisYear - AGE_YEARS.max + i,
+  );
+  const [year, setYear] = useState(2000);
+
+  // The wheel always shows a year, so the age must match it from the start.
+  useEffect(() => {
+    onAge(thisYear - year);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      <Label className="text-foreground/80">What year were you born?</Label>
+      <Wheel
+        label="Birth year"
+        items={years.map(String)}
+        index={years.indexOf(year)}
+        onPick={(i) => {
+          setYear(years[i]);
+          onAge(thisYear - years[i]);
+        }}
+      />
     </div>
   );
 }

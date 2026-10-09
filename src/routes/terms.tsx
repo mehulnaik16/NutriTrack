@@ -238,9 +238,8 @@ const SECTIONS: LegalSection[] = [
           ))}
         </ul>
         <p>
-          These are our website prices, in Indian Rupees and inclusive of all
-          taxes (18% GST included). The full amount for the period is charged up
-          front.
+          These are our website prices, in Indian Rupees. The full amount for
+          the period is charged up front.
         </p>
         <p>
           <strong>Where you can buy.</strong> On our website, payments are

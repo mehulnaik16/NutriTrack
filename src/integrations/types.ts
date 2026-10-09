@@ -927,6 +927,9 @@ export type Database = {
           gym_attribution_ended_at: string | null
           has_answered_tour_offer: boolean
           theme: string | null
+          marketing_opt_in: boolean
+          phone: string | null
+          heard_about: string | null
           has_seen_benefits_features_page: boolean
           has_seen_refer_intro: boolean
           height_cm: number | null
@@ -984,6 +987,9 @@ export type Database = {
           has_answered_tour_offer?: boolean
           has_seen_benefits_features_page?: boolean
           theme?: string | null
+          marketing_opt_in?: boolean
+          phone?: string | null
+          heard_about?: string | null
           notif_primer_first_log_shown?: boolean
           notif_primer_day5_shown?: boolean
           has_seen_refer_intro?: boolean
@@ -1024,6 +1030,9 @@ export type Database = {
           has_seen_benefits_features_page?: boolean
           has_seen_refer_intro?: boolean
           theme?: string | null
+          marketing_opt_in?: boolean
+          phone?: string | null
+          heard_about?: string | null
           notif_primer_first_log_shown?: boolean
           notif_primer_day5_shown?: boolean
           height_cm?: number | null
