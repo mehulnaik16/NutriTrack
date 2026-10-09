@@ -1,19 +1,11 @@
 import { supabase } from "@/integrations/client";
 import { serverLinkGym } from "@/lib/gym-link";
 import {
-  calcBMI,
-  calcBMR,
-  calcCalorieTarget,
-  calcMacros,
-  calcTDEE,
-  resolveGoalKey,
-} from "@/lib/nutrition";
-import {
   clearQuizDraft,
-  DEFAULT_QUIZ_FORM,
   REF_STORAGE_KEY,
   type QuizDraft,
 } from "@/lib/quizDraft";
+import { quizProfileRow } from "@/lib/signupRules";
 
 /**
  * Write the quiz answers to the signed-in user's profile, claim any invite
@@ -26,34 +18,9 @@ export async function saveQuizProfile(
   marketingOptIn: boolean,
   draft: Partial<QuizDraft>,
 ): Promise<void> {
-  const d = { ...DEFAULT_QUIZ_FORM, ...draft.d };
-  const goalKey = resolveGoalKey(d.goal, draft.loseRate ?? "lose_0_25kg");
-  const bmi = calcBMI(d.weightKg, d.heightCm);
-  const bmr = calcBMR(d.weightKg, d.heightCm, d.age, d.gender);
-  const tdee = calcTDEE(bmr, d.activity);
-  const target = calcCalorieTarget(tdee, goalKey, d.gender);
-  const macros = calcMacros(target, goalKey, d.weightKg);
-
-  const { error } = await supabase.from("user_profiles").upsert({
-    id: userId,
-    full_name: fullName,
-    // 0 means unanswered; the DB check allows null or 18-100.
-    age: d.age || null,
-    gender: d.gender,
-    height_cm: d.heightCm,
-    weight_kg: d.weightKg,
-    activity_level: d.activity,
-    goal: goalKey,
-    bmi,
-    bmr,
-    tdee,
-    daily_calorie_target: target,
-    protein_target_g: macros.protein,
-    carbs_target_g: macros.carbs,
-    fat_target_g: macros.fat,
-    fiber_target_g: macros.fiber,
-    marketing_opt_in: marketingOptIn,
-  });
+  const { error } = await supabase
+    .from("user_profiles")
+    .upsert(quizProfileRow(userId, fullName, marketingOptIn, draft));
   if (error) throw error;
 
   // The intro was shown before sign-up, so the dashboard must not force it

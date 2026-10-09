@@ -105,13 +105,13 @@ import {
 } from "@/services/storage";
 import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import {
-  daysBetweenLocal,
   isEditableDate,
   todayLocal,
   toLocalISO,
   VIEW_ONLY_MESSAGE,
 } from "@/lib/dates";
 import { formatQty } from "@/lib/foodUnits";
+import { referIntroDue } from "@/lib/signupRules";
 import {
   calcBMR,
   calcTDEE,
@@ -440,12 +440,11 @@ function Dashboard() {
       navigate({ to: "/welcome", replace: true });
       return;
     }
-    // Refer & Earn waits for day 6 (sign-up day is day 1), once they have used
-    // the app for a while; any first visit on or after day 6 shows it.
-    const accountDay = p.created_at
-      ? daysBetweenLocal(toLocalISO(new Date(p.created_at)), todayLocal()) + 1
-      : 1;
-    if (!p.has_seen_refer_intro && accountDay >= 6) {
+    // Refer & Earn waits for day 6 of the account (see referIntroDue).
+    if (
+      !p.has_seen_refer_intro &&
+      referIntroDue(p.created_at, todayLocal())
+    ) {
       navigate({ to: "/refer-intro", replace: true });
       return;
     }
