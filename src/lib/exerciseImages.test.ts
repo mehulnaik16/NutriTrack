@@ -133,6 +133,23 @@ assert.strictEqual(getExerciseThumbnail("Plank"), "/exercises/plank.jpg");
 assert.strictEqual(getExerciseThumbnail("Forearm Plank"), "/exercises/plank.jpg");
 assert.strictEqual(getExerciseThumbnail("Front Plank"), "/exercises/plank.jpg");
 assert.strictEqual(getExerciseThumbnail("Planks"), "/exercises/plank.jpg");
+assert.strictEqual(getExerciseThumbnail("Side Plank"), "/exercises/side_plank.jpg");
+assert.strictEqual(getExerciseThumbnail("Side Planks"), "/exercises/side_plank.jpg");
+assert.strictEqual(getExerciseThumbnail("Ab Wheel Rollout"), "/exercises/ab_wheel_rollout.jpg");
+assert.strictEqual(getExerciseThumbnail("Ab Rollout"), "/exercises/ab_wheel_rollout.jpg");
+assert.strictEqual(getExerciseThumbnail("Hanging Leg Raise"), "/exercises/hanging_leg_raise.jpg");
+assert.strictEqual(getExerciseThumbnail("Hanging Knee Raise"), "/exercises/hanging_knee_raise.jpg");
+assert.strictEqual(getExerciseThumbnail("Russian Twist"), "/exercises/russian_twist.jpg");
+assert.strictEqual(getExerciseThumbnail("Russian Twists"), "/exercises/russian_twist.jpg");
+assert.strictEqual(getExerciseThumbnail("Bicycle Crunch"), "/exercises/bicycle_crunch.jpg");
+assert.strictEqual(getExerciseThumbnail("Bicycle Crunches"), "/exercises/bicycle_crunch.jpg");
+assert.strictEqual(getExerciseThumbnail("Kettlebell Swing"), "/exercises/kettlebell_swing.jpg");
+assert.strictEqual(getExerciseThumbnail("Kettlebell Swings"), "/exercises/kettlebell_swing.jpg");
+assert.strictEqual(getExerciseThumbnail("Mountain Climber"), "/exercises/mountain_climber.jpg");
+assert.strictEqual(getExerciseThumbnail("Mountain Climbers"), "/exercises/mountain_climber.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Wood Chop High to Low"), "/exercises/cable_wood_chop.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Wood Chop"), "/exercises/cable_wood_chop.jpg");
+assert.strictEqual(getExerciseThumbnail("Woodchoppers"), "/exercises/cable_wood_chop.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);

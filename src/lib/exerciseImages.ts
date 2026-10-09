@@ -101,6 +101,15 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "alternating battle rope": "/exercises/alternating_battle_rope.jpg",
   // Approved Batch 4 Core additions
   "plank": "/exercises/plank.jpg",
+  "side plank": "/exercises/side_plank.jpg",
+  "ab wheel rollout": "/exercises/ab_wheel_rollout.jpg",
+  "hanging leg raise": "/exercises/hanging_leg_raise.jpg",
+  "hanging knee raise": "/exercises/hanging_knee_raise.jpg",
+  "russian twist": "/exercises/russian_twist.jpg",
+  "bicycle crunch": "/exercises/bicycle_crunch.jpg",
+  "kettlebell swing": "/exercises/kettlebell_swing.jpg",
+  "mountain climber": "/exercises/mountain_climber.jpg",
+  "cable wood chop high to low": "/exercises/cable_wood_chop.jpg",
 };
 
 /**
@@ -275,6 +284,22 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "forearm plank": "plank",
   "front plank": "plank",
   "planks": "plank",
+  "side planks": "side plank",
+  "ab rollout": "ab wheel rollout",
+  "ab wheel": "ab wheel rollout",
+  "hanging leg raises": "hanging leg raise",
+  "hanging knee raises": "hanging knee raise",
+  "russian twists": "russian twist",
+  "bicycle crunches": "bicycle crunch",
+  "kettlebell swings": "kettlebell swing",
+  "kb swing": "kettlebell swing",
+  "kb swings": "kettlebell swing",
+  "mountain climbers": "mountain climber",
+  "cable wood chop": "cable wood chop high to low",
+  "cable woodchop": "cable wood chop high to low",
+  "wood chop": "cable wood chop high to low",
+  "woodchop": "cable wood chop high to low",
+  "woodchoppers": "cable wood chop high to low",
 };
 
 /**
