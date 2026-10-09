@@ -16,9 +16,9 @@ export const THEMES = [
 export function getLocalTheme(): string {
   try {
     const t = localStorage.getItem("theme");
-    return t && THEMES.includes(t) ? t : "dark";
+    return t && THEMES.includes(t) ? t : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 
