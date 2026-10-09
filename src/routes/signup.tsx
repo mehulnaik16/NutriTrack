@@ -37,7 +37,7 @@ const nameOf = (u: User) =>
 /**
  * "Save your plan": the last step of sign-up. The quiz answers wait in the
  * local draft; the account is created here (Google, Apple or email) and the
- * answers are written to it, then the user goes on to pricing.
+ * answers are written to it, then the user goes on to the commitment.
  */
 function Signup() {
   useForceLightTheme();
@@ -66,8 +66,8 @@ function Signup() {
       await saveQuizProfile(uid, name, optIn, draft);
       await refreshProfile();
       toast.success("Account created!");
-      // Commitment will come first once it exists; the phone number is last.
-      navigate({ to: "/plans", replace: true });
+      // Then the commitment, pricing, and the phone number last.
+      navigate({ to: "/commit", replace: true });
     } catch (e) {
       toast.error(authErrorMessage((e as Error | undefined)?.message));
       savingRef.current = false;

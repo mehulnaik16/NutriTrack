@@ -1,20 +1,20 @@
 /**
  * Pages in sign-up, one line from first to last: the 6 quiz steps, the intro,
- * "Create an account", pricing, then the phone number last. The commitment
- * page (between account and pricing) will make it 11.
+ * "Create an account", the commitment, pricing, then the phone number last.
  */
-export const SIGNUP_PAGES = 10;
+export const SIGNUP_PAGES = 11;
 
 /** Page numbers after the quiz, so callers never hard-code a position. */
 export const INTRO_PAGE = 7;
 export const ACCOUNT_PAGE = 8;
-export const PRICING_PAGE = 9;
-export const FINAL_QUESTION_PAGE = 10;
+export const COMMIT_PAGE = 9;
+export const PRICING_PAGE = 10;
+// Page 11, the phone number, shows no line: the trial has started by then.
 
 /**
  * How full the line is on a page, 0-1. Fast early, slow late: big jumps on
  * the first pages so sign-up feels quick to get through, small ones near the
- * end. With 10 pages: 17, 33, 47, 60, 71, 81, 89, 94, 98, 100 %.
+ * end. With 11 pages: 16, 30, 44, 56, 66, 76, 84, 90, 95, 99, 100 %.
  */
 const progressFill = (page: number) =>
   1 - (1 - Math.min(page, SIGNUP_PAGES) / SIGNUP_PAGES) ** 1.8;

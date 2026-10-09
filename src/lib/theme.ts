@@ -68,7 +68,7 @@ export function syncFavicon(theme: string) {
  * page, sign-up, and pricing. Keep in sync with the boot script in routes/__root.tsx.
  */
 export const isLightOnlyPath = (path: string) =>
-  /^\/(quiz|welcome|signup|signup-details|plans)?$/.test(path);
+  /^\/(quiz|welcome|signup|signup-details|commit|plans)?$/.test(path);
 
 /**
  * Hold the light theme while the calling page is mounted. __root.tsx skips the
