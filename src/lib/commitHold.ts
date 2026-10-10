@@ -23,6 +23,11 @@ const CSS = `
 .ch-dark{position:fixed;inset:0;z-index:2147482999;visibility:hidden;pointer-events:none;background:radial-gradient(circle at var(--x) var(--y),#142a09,#000 62%)}
 .ch-dark svg{position:absolute;overflow:visible;filter:drop-shadow(0 0 22px rgba(120,210,50,.6))}
 .ch-fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2147483000}
+@media (max-height:760px){.ch{padding:16px 24px}.ch h1{font-size:28px}.ch-card{padding:20px 22px;font-size:16px}.ch-btn{margin:24px 0 14px;width:130px}.ch-hint{font-size:16px}}
+.ch-cap{position:absolute;left:24px;right:24px;margin:0;text-align:center;color:#dfeed0;font-size:17px;letter-spacing:.01em;opacity:0}
+.ch-go{all:unset;position:absolute;left:50%;bottom:calc(40px + env(safe-area-inset-bottom));transform:translateX(-50%);box-sizing:border-box;display:flex;align-items:center;height:48px;padding:0 32px;border-radius:99px;border:1px solid rgba(198,255,110,.45);color:#d6f5b0;font-size:16px;white-space:nowrap;cursor:pointer;opacity:0;-webkit-tap-highlight-color:transparent;transition:background .2s}
+.ch-go:hover,.ch-go:active{background:rgba(198,255,110,.1)}
+.ch-go:focus-visible{outline:2px solid #c6ff6e;outline-offset:4px}
 `;
 
 const h = (tag, attrs = {}, ...kids) => {
@@ -41,6 +46,8 @@ export function mountCommitHold(host, o = {}) {
     goal = 'gaining 2.5 kg by Apr 1',
     pledge = 'I will track my meals, fuel my body with intention, and hold myself accountable.',
     hint = 'Tap and hold to make your commitment',
+    caption = "It's official.",
+    cta = "I'm ready",
     holdMs = 3000,
     sound,
     onDone,
@@ -183,14 +190,36 @@ export function mountCommitHold(host, o = {}) {
     }
     if (audio) audio.play().catch(() => {});
     burstT = 0; acc = 0;
-    // Ease out instead of cutting straight to the next page: the page behind goes
-    // blank, then the dark scene and sparks fade to white before onDone.
+    // The burst settles on the lit logo with a caption under it and one button;
+    // nothing moves on until the user taps it.
     timer = setTimeout(() => {
       setState('done');
       root.style.visibility = 'hidden';
-      const ease = { duration: calm ? 300 : 900, easing: 'ease-in-out', fill: 'forwards' };
-      fx.animate({ opacity: [1, 0] }, ease);
-      dark.animate({ opacity: [1, 0] }, ease).onfinish = () => { timer = setTimeout(() => onDone && onDone(), 150); };
+      // The logo burst where it sat, low on the page; glide it (and its glow) up
+      // to the upper middle so the caption and button fit under it.
+      const r = gloss.getBoundingClientRect();
+      const y0 = r.top + r.height / 2, dy = H * 0.4 - y0;
+      const glide = { duration: calm ? 1 : 700, easing: 'cubic-bezier(.3,.7,.2,1)', fill: 'forwards' };
+      gloss.animate({ transform: ['translateY(0)', `translateY(${dy}px)`] }, glide);
+      try { CSS.registerProperty({ name: '--y', syntax: '<length>', inherits: false, initialValue: '0px' }); } catch {}
+      dark.animate({ '--y': [`${y0}px`, `${y0 + dy}px`] }, glide); // no @property: the glow jumps instead
+      const cap = h('p', { class: 'ch-cap' }, caption);
+      cap.style.top = `${r.bottom + dy + 24}px`;
+      const go = h('button', { class: 'ch-go', type: 'button' }, cta);
+      dark.append(cap, go);
+      dark.style.pointerEvents = 'auto';
+      const show = { duration: calm ? 1 : 600, easing: 'ease-out', fill: 'forwards' };
+      cap.animate({ opacity: [0, 1] }, { ...show, delay: calm ? 0 : 500 });
+      go.animate({ opacity: [0, 1] }, { ...show, delay: calm ? 0 : 750 });
+      go.focus({ preventScroll: true });
+      go.addEventListener('click', () => {
+        if (go.disabled) return;
+        go.disabled = true;
+        // Ease out to white instead of cutting straight to the next page.
+        const ease = { duration: calm ? 300 : 900, easing: 'ease-in-out', fill: 'forwards' };
+        fx.animate({ opacity: [1, 0] }, ease);
+        dark.animate({ opacity: [1, 0] }, ease).onfinish = () => { timer = setTimeout(() => onDone && onDone(), 150); };
+      });
     }, BURST_MS);
   }
 

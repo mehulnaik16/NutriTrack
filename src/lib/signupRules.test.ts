@@ -156,6 +156,8 @@ import { isLightOnlyPath } from "./theme.ts";
   const lose = commitCopy("lose_0_5kg", 82, "Kausthub B", day);
   assert.equal(lose.title, "Kausthub, make it official");
   assert.equal(lose.goal, "losing my first 2 kg by 6 Nov");
+  assert.equal(lose.caption, "Kausthub, it's official.");
+  assert.equal(commitCopy("maintain", 70, "", day).caption, "It's official.");
   assert.equal(commitCopy("lose_0_25kg", 82, "", day).goal, "losing my first kilo by 6 Nov");
   assert.equal(commitCopy("lose_0_25kg", 82, "", day).title, "Make it official");
   assert.equal(commitCopy("gain_0_75kg", 60, null, day).goal, "putting on my first 3 kg by 6 Nov");
