@@ -59,22 +59,49 @@ function SignupDetails() {
           Answer this and you're all set.
         </p>
 
-        <div className="mt-8 space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="sd-phone" className="text-base">
+        <div className="mt-8 space-y-8">
+          <div className="space-y-3">
+            <Label htmlFor="sd-phone" className="block text-base">
               Phone number
             </Label>
-            <div className="flex h-12 items-center rounded-xl bg-card focus-within:ring-1 focus-within:ring-accent">
-              <span className="pl-3 pr-2 text-muted-foreground">+91</span>
-              <Input
-                id="sd-phone"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel-national"
-                value={phone}
-                onChange={(e) => setPhone(phoneDigits(e.target.value))}
-                className="h-12 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-              />
+            <div className="flex gap-2">
+              <div
+                aria-hidden
+                className="flex h-14 w-16 shrink-0 items-center justify-center rounded-xl bg-card text-base"
+              >
+                +91
+              </div>
+              <div className="relative h-14 flex-1 rounded-xl bg-card focus-within:ring-1 focus-within:ring-accent">
+                <Input
+                  id="sd-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  value={phone}
+                  onChange={(e) => setPhone(phoneDigits(e.target.value))}
+                  // Chrome paints its own box on an autofilled input; cover it
+                  // with the card colour so the field stays one surface.
+                  className="h-11 border-0 bg-transparent px-4 text-lg tabular-nums tracking-wide shadow-none focus-visible:ring-0 autofill:shadow-[inset_0_0_0_1000px_var(--card)] autofill:[-webkit-text-fill-color:var(--foreground)]"
+                />
+                {/* One bar per digit, so the length shows at a glance. */}
+                <div
+                  aria-hidden
+                  className="absolute inset-x-4 bottom-2.5 flex gap-1.5"
+                >
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <span
+                      key={i}
+                      className={`h-[3px] flex-1 rounded-full transition-colors ${
+                        phone.length === 10 && !phoneOk
+                          ? "bg-red-500/70"
+                          : phone.length > i
+                            ? "bg-accent"
+                            : "bg-muted-foreground/25"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
             {phone !== "" && !phoneOk && (
               <p className="text-xs text-red-500">
@@ -83,8 +110,8 @@ function SignupDetails() {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-base">
+          <div className="space-y-3">
+            <Label className="block text-base">
               How did you hear about us?{" "}
               <span className="font-normal text-muted-foreground">
                 (optional)

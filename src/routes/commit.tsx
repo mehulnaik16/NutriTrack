@@ -48,7 +48,7 @@ function Commit() {
     if (!copy || !host.current) return;
     return mountCommitHold(host.current, {
       ...copy,
-      hint: "Press and hold the logo",
+      hint: "Tap and hold to make your commitment",
       sound: "/sounds/commit-burst.mp3",
       onDone: () => navigate({ to: "/plans", replace: true }),
     });
@@ -64,7 +64,7 @@ function Commit() {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-white">
-      <div className="mx-auto w-full max-w-md px-4 pt-8">
+      <div className="mx-auto w-full max-w-md px-4 pt-4">
         <SignupProgress page={COMMIT_PAGE} label="Commitment" />
       </div>
       <div ref={host} className="mx-auto min-h-0 w-full max-w-md flex-1" />

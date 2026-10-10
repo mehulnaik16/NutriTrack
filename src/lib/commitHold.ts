@@ -7,19 +7,33 @@ const LOGO = {"w": 387.8, "h": 377.0, "color": "#598b14", "paths": ["M10.8 8.8L4
 
 const NS = 'http://www.w3.org/2000/svg';
 const SVG_TAGS = new Set(['svg', 'path', 'clipPath', 'defs', 'line', 'polygon', 'g', 'linearGradient', 'stop', 'rect']);
+const RIDGE = '#b8dc7a'; // resting fingerprint, light green
+const FILL = '#598b14';  // the hold fills it with the logo green
+
+// Fingerprint round the logo (viewBox 160), after the reference: concentric
+// ridges, solid over the top with one break each, broken into short dashes
+// along the bottom. The inner ridge (r 48) clears the logo's corners (r 41).
+const pt = (r, deg) => [80 + r * Math.sin(deg * Math.PI / 180), 80 - r * Math.cos(deg * Math.PI / 180)];
+const arc = (r, a, b) => { const [x0, y0] = pt(r, a), [x1, y1] = pt(r, b); return `M${x0} ${y0}A${r} ${r} 0 ${b - a > 180 ? 1 : 0} 1 ${x1} ${y1}`; };
+const FP = [48, 54.5, 61, 67.5, 74].map((r, i) => {
+  const br = [-40, 55, -75, 20, 85][i]; // where the top ridge breaks, staggered
+  const top = arc(r, -118 - i * 4, br - 7) + arc(r, br + 7, 118 + i * 4);
+  return { top, low: arc(r, 126 + i * 4, 234 - i * 4) };
+});
 const BURST_MS = 2400; // matches burst.mp3
 const REACH = 500;     // wipe triangle reach, bigger than the logo
 let uid = 0;
 
 const CSS = `
-.ch{position:relative;height:100%;box-sizing:border-box;padding:28px 24px;display:flex;flex-direction:column;align-items:center;background:#fff;color:#111;font-family:inherit;overflow:hidden}
-.ch h1{align-self:flex-start;margin:0 0 auto;font-size:34px;line-height:1.15;font-weight:700}
-.ch-card{margin:0 12px;padding:28px 30px;border-radius:28px;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.1);font-size:19px;line-height:1.5;color:#8a8a8a}
-.ch-card p{margin:0}.ch-card p+p{margin-top:12px}.ch-card b{color:#111;font-weight:600}
-.ch-btn{all:unset;display:block;margin:44px 0 22px;width:170px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
-.ch-btn:focus-visible{outline:3px solid #598b14;outline-offset:14px;border-radius:24px}
-.ch-btn svg{display:block;width:100%;overflow:visible}
-.ch-hint{margin:0 0 auto;font-weight:600;font-size:17px}
+.ch{position:relative;height:100%;box-sizing:border-box;padding:clamp(4px,1dvh,8px) 24px clamp(16px,3dvh,28px);display:flex;flex-direction:column;align-items:center;background:#fff;color:#111;font-family:inherit;overflow:hidden}
+.ch h1{align-self:flex-start;margin:0 0 auto;font-size:clamp(22px,3.6dvh,30px);line-height:1.2;font-weight:700}
+.ch-card{width:100%;box-sizing:border-box;margin-top:clamp(12px,3dvh,32px);padding:clamp(14px,2.4dvh,22px) clamp(16px,2.8dvh,24px);border:1px solid #eee;border-radius:24px;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.08);font-size:clamp(14px,2.1dvh,17px);line-height:1.45;color:#8a8a8a}
+.ch-card p{margin:0}.ch-card p+p{margin-top:.6em}.ch-card b{color:#111;font-weight:600}
+.ch-btn{all:unset;position:relative;display:block;flex:none;margin-top:clamp(16px,4dvh,44px);width:clamp(124px,23dvh,190px);aspect-ratio:1;border-radius:50%;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
+.ch-btn:focus-visible{outline:3px solid #598b14;outline-offset:6px}
+.ch-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ch-logo{position:absolute;left:50%;top:50%;width:36%;transform:translate(-50%,-50%);overflow:visible}
+.ch-hint{margin:clamp(12px,2.5dvh,22px) 0 auto;font-weight:600;font-size:clamp(13px,1.9dvh,15px);text-align:center}
 .ch-dark{position:fixed;inset:0;z-index:2147482999;visibility:hidden;pointer-events:none;background:radial-gradient(circle at var(--x) var(--y),#142a09,#000 62%)}
 .ch-dark svg{position:absolute;overflow:visible;filter:drop-shadow(0 0 22px rgba(120,210,50,.6))}
 .ch-fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2147483000}
@@ -56,10 +70,10 @@ export function mountCommitHold(host, o = {}) {
   const edgeEl = h('line', { stroke: '#e4ffa8', 'stroke-width': 3, 'stroke-linecap': 'round', visibility: 'hidden' });
   const flameO = h('path', { fill: '#4fe016', 'fill-opacity': 0.65, visibility: 'hidden' });
   const flameI = h('path', { fill: '#e8ff9a', 'fill-opacity': 0.9, visibility: 'hidden' });
-  const main = h('svg', { viewBox: `0 0 ${LOGO.w} ${LOGO.h}`, 'aria-hidden': 'true' },
+  const main = h('svg', { class: 'ch-logo', viewBox: `0 0 ${LOGO.w} ${LOGO.h}`, 'aria-hidden': 'true' },
     h('defs', {}, ...paths.map((d, i) => h('clipPath', { id: `${id}w${i}` }, wipes[i])),
       ...paths.map((d, i) => h('clipPath', { id: `${id}t${i}` }, h('path', { d })))),
-    ...paths.map((d) => h('path', { d, fill: '#f2f4f4', stroke: '#d9dddd', 'stroke-width': 2 })),
+    ...paths.map((d) => h('path', { d, fill: '#dde8cc' })),
     ...paths.map((d, i) => h('path', { d, fill: color, 'clip-path': `url(#${id}w${i})` })),
     flameO, flameI, edgeEl);
 
@@ -76,7 +90,14 @@ export function mountCommitHold(host, o = {}) {
     ...paths.map((d, i) => h('path', { d, fill: 'none', stroke: 'rgba(255,255,255,.5)', 'stroke-width': 7, 'clip-path': `url(#${id}t${i})` })),
     h('g', { 'clip-path': `url(#${id}all)` }, sheen));
 
-  const btn = h('button', { class: 'ch-btn', type: 'button', 'aria-label': `${hint}. Hold for ${Math.round(holdMs / 1000)} seconds.` }, main);
+  // ---- fingerprint ring: light-green ridges, a green copy drawn over them as the hold fills
+  const ridge = { fill: 'none', 'stroke-width': 2, 'stroke-linecap': 'round' };
+  const fills = FP.map((f) => h('path', { d: f.top, ...ridge, stroke: FILL, pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 }));
+  const lows = FP.map((f) => h('path', { d: f.low, ...ridge, stroke: RIDGE, 'stroke-dasharray': '2.5 4.5' }));
+  const ring = h('svg', { class: 'ch-ring', viewBox: '0 0 160 160', 'aria-hidden': 'true' },
+    ...FP.map((f) => h('path', { d: f.top, ...ridge, stroke: RIDGE })), ...fills, ...lows);
+
+  const btn = h('button', { class: 'ch-btn', type: 'button', 'aria-label': `${hint}. Hold for ${Math.round(holdMs / 1000)} seconds.` }, ring, main);
   const dark = h('div', { class: 'ch-dark' }, gloss);
   const fx = h('canvas', { class: 'ch-fx' });
   const cx2 = fx.getContext('2d');
@@ -143,8 +164,10 @@ export function mountCommitHold(host, o = {}) {
     const burn = live && holding && !calm;
     if (burn) { flameO.setAttribute('d', flameD(edge, time, 1)); flameI.setAttribute('d', flameD(edge, time + 1.3, 0.5)); }
     flameO.setAttribute('visibility', burn ? 'visible' : 'hidden'); flameI.setAttribute('visibility', burn ? 'visible' : 'hidden');
+    for (const f of fills) f.setAttribute('stroke-dashoffset', 1 - p);
+    lows.forEach((l, i) => l.setAttribute('stroke', p >= (i + 1) / lows.length ? FILL : RIDGE));
     const shake = calm || p < 0.85 ? 0 : (p - 0.85) / 0.15 * 1.5;
-    btn.style.transform = `translate(${rnd(-shake, shake)}px,${rnd(-shake, shake)}px) scale(${1 + 0.06 * p})`;
+    btn.style.transform = `translate(${rnd(-shake, shake)}px,${rnd(-shake, shake)}px) scale(${1 + 0.04 * p})`;
     return live ? edge : null;
   }
 
