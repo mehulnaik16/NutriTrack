@@ -98,11 +98,13 @@ export function commitCopy(
 ) {
   const first = fullName?.trim().split(/\s+/)[0];
   const title = first ? `${first}, make it official` : "Make it official";
+  const caption = first ? `${first}, it's official.` : "It's official.";
   const m = /^(lose|gain)_(\d)_(\d+)kg$/.exec(goal ?? "");
   const kind = m?.[1] ?? (goal === "gain_muscle" ? "gain" : "maintain");
   if (kind === "maintain")
     return {
       title,
+      caption,
       goal: weightKg
         ? `staying around ${Math.round(weightKg)} kg and feeling strong in it`
         : "staying where I am and feeling strong in it",
@@ -118,12 +120,14 @@ export function commitCopy(
   return kind === "lose"
     ? {
         title,
+        caption,
         goal: `losing my ${amount} by ${by}`,
         pledge:
           "I'll log my meals honestly, even the ones I'm not proud of. A bad day is just one day, and I'll show up again the next morning.",
       }
     : {
         title,
+        caption,
         goal: `putting on my ${amount} by ${by}`,
         pledge:
           "I'll eat enough even when I'm not hungry, train with intent, and remember that slow, steady weight is the kind that stays.",
