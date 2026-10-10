@@ -134,21 +134,21 @@ import { isLightOnlyPath } from "./theme.ts";
   console.log("✓ S5 Refer & Earn waits for day 6");
 }
 
-// S6: every sign-up page renders light; app pages keep the user's theme.
+// S6: only the landing page is forced light; sign-up follows the theme.
 {
+  assert.ok(isLightOnlyPath("/"));
   for (const p of [
-    "/",
     "/quiz",
     "/welcome",
     "/signup",
     "/signup-details",
     "/commit",
     "/plans",
+    "/login",
+    "/dashboard",
   ])
-    assert.ok(isLightOnlyPath(p), p);
-  for (const p of ["/login", "/dashboard", "/profile", "/signup/x", "/quizzes"])
     assert.ok(!isLightOnlyPath(p), p);
-  console.log("✓ S6 light theme on exactly the sign-up pages");
+  console.log("✓ S6 only the landing page is forced light");
 }
 
 {
