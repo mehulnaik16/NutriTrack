@@ -37,7 +37,6 @@ const CSS = `
 .ch-dark{position:fixed;inset:0;z-index:2147482999;visibility:hidden;pointer-events:none;background:radial-gradient(circle at var(--x) var(--y),#142a09,#000 62%)}
 .ch-dark svg{position:absolute;overflow:visible;filter:drop-shadow(0 0 22px rgba(120,210,50,.6))}
 .ch-fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2147483000}
-@media (max-height:760px){.ch{padding:16px 24px}.ch h1{font-size:28px}.ch-card{padding:20px 22px;font-size:16px}.ch-btn{margin:24px 0 14px;width:130px}.ch-hint{font-size:16px}}
 .ch-cap{position:absolute;left:24px;right:24px;margin:0;text-align:center;color:#dfeed0;font-size:17px;letter-spacing:.01em;opacity:0}
 .ch-go{all:unset;position:absolute;left:50%;bottom:calc(40px + env(safe-area-inset-bottom));transform:translateX(-50%);box-sizing:border-box;display:flex;align-items:center;height:48px;padding:0 32px;border-radius:99px;border:1px solid rgba(198,255,110,.45);color:#d6f5b0;font-size:16px;white-space:nowrap;cursor:pointer;opacity:0;-webkit-tap-highlight-color:transparent;transition:background .2s}
 .ch-go:hover,.ch-go:active{background:rgba(198,255,110,.1)}
