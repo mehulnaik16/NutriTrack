@@ -1,7 +1,18 @@
 import { useEffect } from "react";
-import { Link, useLocation, useRouter } from "@tanstack/react-router";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { Activity, Dumbbell, Scale, Utensils } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { HOME, tabStep } from "@/lib/tabHistory";
+
+/** History index of the Home entry in this tab (see lib/tabHistory.ts). */
+const HOME_IDX_KEY = "dombelz.homeIdx";
+const historyIdx = (router: ReturnType<typeof useRouter>) =>
+  (router.history.location.state as { __TSR_index?: number }).__TSR_index ?? 0;
 
 // Full-screen routes where the nav must stay hidden — during onboarding showing
 // it would let the user bypass the /welcome scroll gate by tapping a tab, and
@@ -51,6 +62,40 @@ export function BottomNav() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const router = useRouter();
+  const navigate = useNavigate();
+
+  // Remember where Home sits in the history, so tab taps can keep the stack
+  // at [Home, tab] instead of adding an entry per tap.
+  useEffect(() => {
+    if (pathname !== HOME) return;
+    try {
+      sessionStorage.setItem(HOME_IDX_KEY, String(historyIdx(router)));
+    } catch {
+      // Storage blocked: tab taps fall back to swapping the entry.
+    }
+  }, [pathname, router]);
+
+  const goTab = (e: React.MouseEvent, to: string) => {
+    e.preventDefault();
+    let home: number | null = null;
+    try {
+      const v = sessionStorage.getItem(HOME_IDX_KEY);
+      home = v === null ? null : Number(v);
+    } catch {
+      /* unknown: tabStep only swaps */
+    }
+    const step = tabStep(pathname, to, historyIdx(router), home);
+    if (step.kind === "none") return;
+    if (step.kind === "push") return void navigate({ to });
+    if (step.kind === "replace") return void navigate({ to, replace: true });
+    if (step.then)
+      window.addEventListener(
+        "popstate",
+        () => navigate({ to, replace: true }),
+        { once: true },
+      );
+    router.history.go(-step.steps);
+  };
 
   // Each tab's code is a separate file fetched on first visit — on mobile
   // data that's a visible pause after the tap. Fetch all five once the app
@@ -92,6 +137,7 @@ export function BottomNav() {
           <Link
             key={item.to}
             to={item.to}
+            onClick={(e) => goTab(e, item.to)}
             data-tour={item.to === "/food" ? "nav-food" : undefined}
             className="group flex h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl text-muted-foreground transition-colors hover:text-foreground [&.active]:text-accent"
           >
