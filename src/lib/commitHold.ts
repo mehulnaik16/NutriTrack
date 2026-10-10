@@ -237,10 +237,13 @@ export function mountCommitHold(host, o = {}) {
       go.addEventListener('click', () => {
         if (go.disabled) return;
         go.disabled = true;
-        // Ease out to white instead of cutting straight to the next page.
+        // Ease into the theme's own background (Carbon or light), the colour the
+        // next page opens on, so there is no white flash between dark screens.
         const ease = { duration: calm ? 300 : 900, easing: 'ease-in-out', fill: 'forwards' };
+        const bg = h('div', { style: 'position:absolute;inset:0;background:var(--background,#fff);opacity:0' });
+        dark.append(bg);
         fx.animate({ opacity: [1, 0] }, ease);
-        dark.animate({ opacity: [1, 0] }, ease).onfinish = () => { timer = setTimeout(() => onDone && onDone(), 150); };
+        bg.animate({ opacity: [0, 1] }, ease).onfinish = () => { timer = setTimeout(() => onDone && onDone(), 150); };
       });
     }, BURST_MS);
   }

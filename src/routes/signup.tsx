@@ -312,7 +312,6 @@ function Signup() {
               />
               <span>
                 Send me tips, new features, and personalized offers from Dombelz
-                (optional)
               </span>
             </label>
           </div>

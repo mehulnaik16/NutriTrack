@@ -64,7 +64,17 @@ function Commit() {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-white">
-      <div className="mx-auto w-full max-w-md px-4 pt-4">
+      {/* The page is white whatever the theme, so the line takes the light
+          theme's green and grey (as in styles.css :root), not Carbon's. */}
+      <div
+        className="mx-auto w-full max-w-md px-4 pt-4"
+        style={
+          {
+            "--accent": "oklch(0.58 0.16 130)",
+            "--muted": "oklch(0.93 0.004 120)",
+          } as React.CSSProperties
+        }
+      >
         <SignupProgress page={COMMIT_PAGE} label="Commitment" />
       </div>
       <div ref={host} className="mx-auto min-h-0 w-full max-w-md flex-1" />
