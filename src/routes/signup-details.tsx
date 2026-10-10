@@ -71,7 +71,9 @@ function SignupDetails() {
               >
                 +91
               </div>
-              <div className="relative h-14 flex-1 rounded-xl bg-card focus-within:ring-1 focus-within:ring-accent">
+              {/* Sized to the 10 digits: each digit sits in a 1.4rem cell over its
+                  own bar (letter-spacing fills the cell after the digit). */}
+              <div className="relative h-14 w-64 rounded-xl bg-card focus-within:ring-1 focus-within:ring-accent">
                 <Input
                   id="sd-phone"
                   type="tel"
@@ -81,17 +83,17 @@ function SignupDetails() {
                   onChange={(e) => setPhone(phoneDigits(e.target.value))}
                   // Chrome paints its own box on an autofilled input; cover it
                   // with the card colour so the field stays one surface.
-                  className="h-11 border-0 bg-transparent px-4 text-lg tabular-nums tracking-wide shadow-none focus-visible:ring-0 autofill:shadow-[inset_0_0_0_1000px_var(--card)] autofill:[-webkit-text-fill-color:var(--foreground)]"
+                  className="h-11 border-0 bg-transparent pl-4 pr-1 text-lg tabular-nums tracking-[calc(1.4rem-1ch)] shadow-none md:text-lg focus-visible:ring-0 autofill:shadow-[inset_0_0_0_1000px_var(--card)] autofill:[-webkit-text-fill-color:var(--foreground)]"
                 />
-                {/* One bar per digit, so the length shows at a glance. */}
+                {/* One bar per digit, under it, so the length shows at a glance. */}
                 <div
                   aria-hidden
-                  className="absolute inset-x-4 bottom-2.5 flex gap-1.5"
+                  className="absolute bottom-2.5 left-4 flex text-lg"
                 >
                   {Array.from({ length: 10 }, (_, i) => (
                     <span
                       key={i}
-                      className={`h-[3px] flex-1 rounded-full transition-colors ${
+                      className={`mr-[calc(1.4rem-1ch)] h-[3px] w-[1ch] rounded-full transition-colors ${
                         phone.length === 10 && !phoneOk
                           ? "bg-red-500/70"
                           : phone.length > i
