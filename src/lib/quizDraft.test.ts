@@ -16,6 +16,7 @@ import {
   DEFAULT_QUIZ_FORM,
   loadQuizDraft,
   QUIZ_DRAFT_KEY,
+  saveDraftPage,
   saveQuizDraft,
   type QuizDraft,
 } from "./quizDraft";
@@ -61,6 +62,15 @@ assert.equal(back.loseRate, "lose_0_5kg");
 assert.equal(back.applied, "RAH38291");
 assert.equal(back.d?.password, "", "password comes back empty, not undefined");
 assert.equal(back.d?.repeatPassword, "");
+
+// The page reached is recorded without losing the answers; with no answers
+// saved there is nothing to resume, so nothing is written.
+saveDraftPage("welcome");
+assert.equal(loadQuizDraft().page, "welcome");
+assert.equal(loadQuizDraft().d?.fullName, "Asha");
+clearQuizDraft();
+saveDraftPage("signup");
+assert.deepEqual(loadQuizDraft(), {});
 
 // A corrupt or foreign value must read as "nothing to resume", never throw —
 // otherwise one bad key bricks the signup screen.

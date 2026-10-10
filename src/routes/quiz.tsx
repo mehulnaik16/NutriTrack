@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,6 +57,9 @@ type StepKey = (typeof STEPS)[number]["key"];
 
 export const Route = createFileRoute("/quiz")({
   component: Quiz,
+  // The answers start from the localStorage draft, which the server cannot
+  // read; rendering there drew defaults (age 0) and broke hydration.
+  ssr: false,
   // `ref` carries an invite code — a friend's (RAH38291) or a partner's
   // (GYM-IRONVAULT-123, DR-ANANYA304, PRIYAFITQUEEN60). Unlisted params are
   // stripped by the router, so leaving it out here silently discards every
@@ -104,7 +103,6 @@ function pendingReferralCode(fromSearch?: string): string | null {
 function Quiz() {
   const navigate = useNavigate();
   const routeNavigate = Route.useNavigate();
-  const router = useRouter();
   const { user, loading, hasProfile } = useAuth();
   const { step: searchStep, ref: searchRef } = Route.useSearch();
   const step = searchStep ?? 1;
@@ -114,7 +112,7 @@ function Quiz() {
     routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [draft] = useState(loadQuizDraft);
-  const resumedRef = useRef(false);
+  const [resumed, setResumed] = useState(false);
   const [d, setD] = useState<FormData>(() => ({
     ...DEFAULT_QUIZ_FORM,
     ...draft.d,
@@ -309,25 +307,43 @@ function Quiz() {
 
   // Mirror every answer as it changes. The step lives in the URL, which is lost
   // the moment the wizard is left, so it is saved here too.
+  // Not before the resume below has run: a first save on /quiz would overwrite
+  // the saved step and page with step 1 before they are read.
   useEffect(() => {
-    saveQuizDraft({ step, d, loseRate, unit, applied, appliedKind });
-  }, [step, d, loseRate, unit, applied, appliedKind]);
+    if (!resumed) return;
+    saveQuizDraft({
+      step,
+      d,
+      loseRate,
+      unit,
+      applied,
+      appliedKind,
+      page: "quiz",
+    });
+  }, [resumed, step, d, loseRate, unit, applied, appliedKind]);
 
-  // Reopen on the step they left. Only for a user who already has a session:
-  // a fresh email signup needs the password, which is deliberately not saved,
-  // so it resumes on the account step with every other answer already filled.
+  // Reopen where they left: a later sign-up page, or the quiz step. Once the
+  // URL holds a step (given, or restored here), saving may start.
   useEffect(() => {
-    if (loading || resumedRef.current) return;
-    resumedRef.current = true;
-    if (searchStep !== undefined || !user) return;
+    if (loading || resumed) return;
+    if (searchStep !== undefined) {
+      setResumed(true);
+      return;
+    }
+    if (draft.page === "welcome" || draft.page === "signup") {
+      navigate({ to: `/${draft.page}`, replace: true });
+      return;
+    }
     const saved = draft.step ?? 1;
     if (saved > 1) {
       routeNavigate({
         search: (prev) => ({ ...prev, step: saved }),
         replace: true,
       });
+    } else {
+      setResumed(true);
     }
-  }, [loading, user, searchStep, draft.step, routeNavigate]);
+  }, [loading, resumed, searchStep, draft, navigate, routeNavigate]);
 
   // A finished account has no business in the wizard: pressing Create again
   // overwrites the saved profile with whatever this form currently holds.
@@ -359,9 +375,10 @@ function Quiz() {
     [target, goalKey, d.weightKg],
   );
 
-  // shortcut: every step can be skipped while the new sign-up flow is being
-  // designed; restore per-step checks (git history) once all pages exist.
-  const canNext = () => true;
+  // shortcut: only gender is required; the other steps can still be skipped
+  // while the new sign-up flow is being designed. Restore per-step checks
+  // (git history) once all pages exist.
+  const canNext = () => stepKey !== "account" || d.gender !== "";
 
   // Confirm only moves on: the intro comes next, then "Save your plan"
   // (/signup) creates the account and writes these answers from the draft.
@@ -374,7 +391,12 @@ function Quiz() {
           page={step}
           label={STEPS[step - 1]?.title ?? ""}
           onBack={() =>
-            step > 1 ? router.history.back() : navigate({ to: "/login" })
+            step > 1
+              ? routeNavigate({
+                  search: (prev) => ({ ...prev, step: step - 1 }),
+                  replace: true,
+                })
+              : navigate({ to: "/login" })
           }
         />
 
@@ -574,88 +596,56 @@ function Quiz() {
           {stepKey === "activity" && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <h2 className="text-3xl font-semibold mb-2">Activity level</h2>
-              <p className="text-muted-foreground mb-8 text-sm">
+              <p className="text-muted-foreground text-sm">
                 How active are you on an average week?
               </p>
               <RadioGroup
                 value={d.activity}
                 onValueChange={(v) => set("activity", v)}
-                className="grid gap-3"
+                className="grid gap-2"
               >
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Sedentary" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Sedentary"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Sedentary (little or no exercise)
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Lightly Active" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Lightly Active"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Lightly Active (1–3 days/week)
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Moderately Active" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Moderately Active"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Moderately Active (3–5 days/week)
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Very Active" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Very Active"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Very Active (6–7 days/week)
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Super Active" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Super Active"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Super Active (twice/day or physical job)
-                  </span>
-                </label>
+                {(
+                  [
+                    ["Sedentary", "Little or no exercise"],
+                    ["Lightly Active", "1–3 days a week"],
+                    ["Moderately Active", "3–5 days a week"],
+                    ["Very Active", "6–7 days a week"],
+                    ["Super Active", "Twice a day or physical job"],
+                  ] as const
+                ).map(([value, hint]) => (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${d.activity === value ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
+                  >
+                    <RadioGroupItem
+                      value={value}
+                      className="border-accent text-accent"
+                    />
+                    <span className="text-sm font-semibold">{value}</span>
+                    <span className="ml-auto text-right text-xs text-muted-foreground">
+                      {hint}
+                    </span>
+                  </label>
+                ))}
               </RadioGroup>
               {bmr > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2 mt-8 animate-in slide-in-from-bottom-2 duration-300">
-                  <div className="rounded-xl border border-border bg-card p-4 text-center">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">
-                      BMR (Baseline)
+                <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="rounded-xl border border-border bg-card p-3 text-center">
+                    <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+                      BMR
                     </div>
-                    <div className="text-2xl font-bold">
+                    <div className="text-xl font-bold">
                       {bmr}{" "}
                       <span className="text-sm font-normal text-muted-foreground">
                         kcal
                       </span>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-accent/30 bg-accent/10 p-4 text-center">
-                    <div className="text-xs text-accent uppercase tracking-wider font-bold mb-1">
-                      TDEE (With Activity)
+                  <div className="rounded-xl border border-accent/30 bg-accent/10 p-3 text-center">
+                    <div className="text-[11px] text-accent uppercase tracking-wider font-bold mb-1">
+                      TDEE
                     </div>
-                    <div className="text-2xl font-bold text-accent">
+                    <div className="text-xl font-bold text-accent">
                       {tdee}{" "}
                       <span className="text-sm font-normal text-accent/70">
                         kcal

@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { getBillingSummary, type BillingSummary } from "@/lib/billing";
@@ -14,7 +10,6 @@ export const Route = createFileRoute("/plans")({ component: Plans });
 function Plans() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const router = useRouter();
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [checked, setChecked] = useState(false);
 
@@ -48,7 +43,7 @@ function Plans() {
             <SignupProgress
               page={PRICING_PAGE}
               label="Choose your plan"
-              onBack={() => router.history.back()}
+              onBack={() => navigate({ to: "/commit", replace: true })}
             />
           </div>
         )}

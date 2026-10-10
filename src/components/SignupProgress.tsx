@@ -30,29 +30,34 @@ export function SignupProgress({
 }: {
   page: number;
   label: string;
-  onBack: () => void;
+  /** Left out where there is nothing to go back to. */
+  onBack?: () => void;
 }) {
   return (
     <div className="mb-8 flex items-center gap-3">
-      <button
-        type="button"
-        aria-label="Back"
-        className="-ml-2 p-2 text-accent"
-        onClick={onBack}
-      >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      {onBack ? (
+        <button
+          type="button"
+          aria-label="Back"
+          className="-ml-2 p-2 text-accent"
+          onClick={onBack}
         >
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-      </button>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+      ) : (
+        <span aria-hidden className="-ml-2 block h-10 w-10" />
+      )}
       <div
         role="progressbar"
         aria-label={label}

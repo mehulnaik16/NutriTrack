@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/client";
@@ -17,7 +13,6 @@ export const Route = createFileRoute("/commit")({ component: Commit });
 function Commit() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const router = useRouter();
   const host = useRef<HTMLDivElement>(null);
   const [copy, setCopy] = useState<ReturnType<typeof commitCopy> | null>(null);
 
@@ -70,11 +65,7 @@ function Commit() {
   return (
     <div className="flex h-[100dvh] flex-col bg-white">
       <div className="mx-auto w-full max-w-md px-4 pt-8">
-        <SignupProgress
-          page={COMMIT_PAGE}
-          label="Commitment"
-          onBack={() => router.history.back()}
-        />
+        <SignupProgress page={COMMIT_PAGE} label="Commitment" />
       </div>
       <div ref={host} className="mx-auto min-h-0 w-full max-w-md flex-1" />
     </div>

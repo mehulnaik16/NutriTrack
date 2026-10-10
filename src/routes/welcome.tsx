@@ -1,9 +1,5 @@
 import { LogoLoader } from "@/components/LogoLoader";
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Utensils,
@@ -22,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { loadQuizDraft, saveDraftPage } from "@/lib/quizDraft";
 import { INTRO_PAGE, SignupProgress } from "@/components/SignupProgress";
 import { supabase } from "@/integrations/client";
 
@@ -112,12 +109,12 @@ const FEATURES = [
 function Welcome() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const router = useRouter();
   // "checking" avoids flashing the intro to a user who has already seen it,
   // before the flag read resolves and we redirect them out.
   const [checking, setChecking] = useState(true);
   const [leaving, setLeaving] = useState(false);
   const [noProfile, setNoProfile] = useState(false);
+  useEffect(() => saveDraftPage("welcome"), []);
 
   useEffect(() => {
     if (loading) return;
@@ -202,7 +199,13 @@ function Welcome() {
           <SignupProgress
             page={INTRO_PAGE}
             label="Welcome"
-            onBack={() => router.history.back()}
+            onBack={() =>
+              navigate({
+                to: "/quiz",
+                search: { step: loadQuizDraft().step ?? 1 },
+                replace: true,
+              })
+            }
           />
         )}
         {/* ── HERO ── */}
