@@ -32,7 +32,12 @@ export interface QuizDraft {
   unit: "kg" | "lb";
   applied: string | null;
   appliedKind: "friend" | PartnerKind | null;
+  /** The sign-up page they last reached, so a return lands there. */
+  page?: DraftPage;
 }
+
+/** The pages before an account exists; after it, /dashboard routes them. */
+export type DraftPage = "quiz" | "welcome" | "signup";
 
 export const QUIZ_DRAFT_KEY = "dombelz.quizDraft";
 
@@ -78,6 +83,18 @@ export function saveQuizDraft(draft: QuizDraft): void {
     );
   } catch {
     /* private mode — the quiz still works, it just can't be resumed */
+  }
+}
+
+/** Record the page reached, keeping the saved answers. Needs a draft: with
+ *  no answers there is nothing to resume. */
+export function saveDraftPage(page: DraftPage): void {
+  const draft = loadQuizDraft();
+  if (!draft.d) return;
+  try {
+    localStorage.setItem(QUIZ_DRAFT_KEY, JSON.stringify({ ...draft, page }));
+  } catch {
+    /* private mode — no resume */
   }
 }
 

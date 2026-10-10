@@ -163,7 +163,9 @@ assert.strictEqual(getExerciseThumbnail("Crunch"), "/exercises/crunches.jpg");
 assert.strictEqual(getExerciseThumbnail("Bear Crawl Hold"), "/exercises/bear_crawl_hold.jpg");
 assert.strictEqual(getExerciseThumbnail("Bear Plank"), "/exercises/bear_crawl_hold.jpg");
 assert.strictEqual(getExerciseThumbnail("Iron Bridge"), "/exercises/iron_bridge.jpg");
-assert.strictEqual(getExerciseThumbnail("Glute Bridge Hold"), "/exercises/iron_bridge.jpg");
+// Glute Bridge is its own exercise, not Iron Bridge or a hip thrust: no picture until it has one.
+assert.strictEqual(getExerciseThumbnail("Glute Bridge"), null);
+assert.strictEqual(getExerciseThumbnail("Glute Bridge Hold"), null);
 assert.strictEqual(getExerciseThumbnail("Medicine Ball Slams"), "/exercises/medicine_ball_slams.jpg");
 assert.strictEqual(getExerciseThumbnail("Med Ball Slam"), "/exercises/medicine_ball_slams.jpg");
 assert.strictEqual(getExerciseThumbnail("Renegade Row"), "/exercises/renegade_row.jpg");
@@ -181,6 +183,12 @@ assert.strictEqual(getExerciseThumbnail("Machine Chest Fly"), "/exercises/machin
 assert.strictEqual(getExerciseThumbnail("Pec Deck"), "/exercises/machine_chest_fly.jpg");
 assert.strictEqual(getExerciseThumbnail("Incline Dumbbell Fly"), "/exercises/incline_dumbbell_fly.jpg");
 assert.strictEqual(getExerciseThumbnail("Incline Fly"), "/exercises/incline_dumbbell_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Wide Push Up"), "/exercises/wide_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Wide Grip Pushups"), "/exercises/wide_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Single Arm Dumbbell Bench Press"), "/exercises/single_arm_dumbbell_bench_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Single Arm DB Bench Press"), "/exercises/single_arm_dumbbell_bench_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate-Loaded Incline Chest Press"), "/exercises/plate_loaded_incline_chest_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Plate Loaded Chest Press"), "/exercises/plate_loaded_incline_chest_press.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);

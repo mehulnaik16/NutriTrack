@@ -1,25 +1,18 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
 import { mountCommitHold } from "@/lib/commitHold";
 import { commitCopy } from "@/lib/signupRules";
-import { useForceLightTheme } from "@/lib/theme";
 import { COMMIT_PAGE, SignupProgress } from "@/components/SignupProgress";
 
 export const Route = createFileRoute("/commit")({ component: Commit });
 
 /** Hold-to-commit, between "Create an account" and pricing. */
 function Commit() {
-  useForceLightTheme();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const router = useRouter();
   const host = useRef<HTMLDivElement>(null);
   const [copy, setCopy] = useState<ReturnType<typeof commitCopy> | null>(null);
 
@@ -55,7 +48,7 @@ function Commit() {
     if (!copy || !host.current) return;
     return mountCommitHold(host.current, {
       ...copy,
-      hint: "Press and hold the logo",
+      hint: "Tap and hold to make your commitment",
       sound: "/sounds/commit-burst.mp3",
       onDone: () => navigate({ to: "/plans", replace: true }),
     });
@@ -71,12 +64,18 @@ function Commit() {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-white">
-      <div className="mx-auto w-full max-w-md px-4 pt-8">
-        <SignupProgress
-          page={COMMIT_PAGE}
-          label="Commitment"
-          onBack={() => router.history.back()}
-        />
+      {/* The page is white whatever the theme, so the line takes the light
+          theme's green and grey (as in styles.css :root), not Carbon's. */}
+      <div
+        className="mx-auto w-full max-w-md px-4 pt-4"
+        style={
+          {
+            "--accent": "oklch(0.58 0.16 130)",
+            "--muted": "oklch(0.93 0.004 120)",
+          } as React.CSSProperties
+        }
+      >
+        <SignupProgress page={COMMIT_PAGE} label="Commitment" />
       </div>
       <div ref={host} className="mx-auto min-h-0 w-full max-w-md flex-1" />
     </div>

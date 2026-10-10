@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
@@ -19,9 +15,8 @@ import {
 import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
 import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
-import { loadQuizDraft } from "@/lib/quizDraft";
+import { loadQuizDraft, saveDraftPage } from "@/lib/quizDraft";
 import { saveQuizProfile } from "@/lib/quizProfile";
-import { useForceLightTheme } from "@/lib/theme";
 import { ACCOUNT_PAGE, SignupProgress } from "@/components/SignupProgress";
 
 export const Route = createFileRoute("/signup")({ component: Signup });
@@ -40,11 +35,10 @@ const nameOf = (u: User) =>
  * answers are written to it, then the user goes on to the commitment.
  */
 function Signup() {
-  useForceLightTheme();
   const { user, loading, hasProfile, refreshProfile } = useAuth();
   const navigate = useNavigate();
-  const router = useRouter();
   const [draft] = useState(loadQuizDraft);
+  useEffect(() => saveDraftPage("signup"), []);
   const [terms, setTerms] = useState(false);
   const [tips, setTips] = useState(false);
   const [mode, setMode] = useState<"choose" | "email">("choose");
@@ -157,7 +151,9 @@ function Signup() {
           page={ACCOUNT_PAGE}
           label="Create an account"
           onBack={() =>
-            mode === "email" ? setMode("choose") : router.history.back()
+            mode === "email"
+              ? setMode("choose")
+              : navigate({ to: "/welcome", replace: true })
           }
         />
 
@@ -316,7 +312,6 @@ function Signup() {
               />
               <span>
                 Send me tips, new features, and personalized offers from Dombelz
-                (optional)
               </span>
             </label>
           </div>

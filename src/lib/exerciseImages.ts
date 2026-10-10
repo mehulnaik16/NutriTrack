@@ -126,6 +126,9 @@ export const EXERCISE_THUMBNAILS: Record<string, string> = {
   "floor press": "/exercises/floor_press.jpg",
   "machine chest fly": "/exercises/machine_chest_fly.jpg",
   "incline dumbbell fly": "/exercises/incline_dumbbell_fly.jpg",
+  "wide push up": "/exercises/wide_push_up.jpg",
+  "single arm dumbbell bench press": "/exercises/single_arm_dumbbell_bench_press.jpg",
+  "plate loaded incline chest press": "/exercises/plate_loaded_incline_chest_press.jpg",
 };
 
 /**
@@ -149,7 +152,6 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "barbell squat": "back squat",
   // Newly approved aliases
   "hammer strength chest press": "plate loaded chest press",
-  "plate loaded incline chest press": "plate loaded chest press",
   "flat dumbbell fly": "dumbbell fly",
   "dumbbell chest fly": "dumbbell fly",
   "dips": "chest dip",
@@ -330,9 +332,6 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "abdominal crunch": "crunches",
   "bear plank": "bear crawl hold",
   "bear crawl": "bear crawl hold",
-  "glute bridge hold": "iron bridge",
-  "glute bridge": "iron bridge",
-  "bridge": "iron bridge",
   "med ball slam": "medicine ball slams",
   "med ball slams": "medicine ball slams",
   "medicine ball slam": "medicine ball slams",
@@ -364,6 +363,14 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "incline fly": "incline dumbbell fly",
   "incline dumbbell flye": "incline dumbbell fly",
   "incline flyes": "incline dumbbell fly",
+  "wide grip push up": "wide push up",
+  "wide grip pushups": "wide push up",
+  "wide pushups": "wide push up",
+  "wide push ups": "wide push up",
+  "single arm db bench press": "single arm dumbbell bench press",
+  "one arm dumbbell bench press": "single arm dumbbell bench press",
+  "one arm db bench press": "single arm dumbbell bench press",
+  "incline plate loaded chest press": "plate loaded incline chest press",
 };
 
 /**

@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForceLightTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { toast } from "sonner";
@@ -26,7 +25,6 @@ export const Route = createFileRoute("/signup-details")({
  * number here until they answer, so it is asked once of every user.
  */
 function SignupDetails() {
-  useForceLightTheme();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [heard, setHeard] = useState<string>();
@@ -61,22 +59,51 @@ function SignupDetails() {
           Answer this and you're all set.
         </p>
 
-        <div className="mt-8 space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="sd-phone" className="text-base">
+        <div className="mt-8 space-y-8">
+          <div className="space-y-3">
+            <Label htmlFor="sd-phone" className="block text-base">
               Phone number
             </Label>
-            <div className="flex h-12 items-center rounded-xl bg-card focus-within:ring-1 focus-within:ring-accent">
-              <span className="pl-3 pr-2 text-muted-foreground">+91</span>
-              <Input
-                id="sd-phone"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel-national"
-                value={phone}
-                onChange={(e) => setPhone(phoneDigits(e.target.value))}
-                className="h-12 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-              />
+            <div className="flex gap-2">
+              <div
+                aria-hidden
+                className="flex h-14 w-16 shrink-0 items-center justify-center rounded-xl bg-card text-base"
+              >
+                +91
+              </div>
+              {/* Sized to the 10 digits: each digit sits in a 1.4rem cell over its
+                  own bar (letter-spacing fills the cell after the digit). */}
+              <div className="relative h-14 w-64 rounded-xl bg-card focus-within:ring-1 focus-within:ring-accent">
+                <Input
+                  id="sd-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  value={phone}
+                  onChange={(e) => setPhone(phoneDigits(e.target.value))}
+                  // Chrome paints its own box on an autofilled input; cover it
+                  // with the card colour so the field stays one surface.
+                  className="h-11 border-0 bg-transparent pl-4 pr-1 text-lg tabular-nums tracking-[calc(1.4rem-1ch)] shadow-none md:text-lg focus-visible:ring-0 autofill:shadow-[inset_0_0_0_1000px_var(--card)] autofill:[-webkit-text-fill-color:var(--foreground)]"
+                />
+                {/* One bar per digit, under it, so the length shows at a glance. */}
+                <div
+                  aria-hidden
+                  className="absolute bottom-2.5 left-4 flex text-lg"
+                >
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <span
+                      key={i}
+                      className={`mr-[calc(1.4rem-1ch)] h-[3px] w-[1ch] rounded-full transition-colors ${
+                        phone.length === 10 && !phoneOk
+                          ? "bg-red-500/70"
+                          : phone.length > i
+                            ? "bg-accent"
+                            : "bg-muted-foreground/25"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
             {phone !== "" && !phoneOk && (
               <p className="text-xs text-red-500">
@@ -85,8 +112,8 @@ function SignupDetails() {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-base">
+          <div className="space-y-3">
+            <Label className="block text-base">
               How did you hear about us?{" "}
               <span className="font-normal text-muted-foreground">
                 (optional)

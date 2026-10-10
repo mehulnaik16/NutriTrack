@@ -352,7 +352,7 @@ function Profile() {
   const [activity, setActivity] = useState("");
   const [loseRate, setLoseRate] = useState("lose_0_25kg");
   const [saving, setSaving] = useState(false);
-  const [theme, setTheme] = useState<string>("light");
+  const [theme, setTheme] = useState<string>("dark");
   const [wp, setWp] = useState<WorkoutPrefs | null>(() =>
     user ? getCachedWorkoutPrefs(user.id) : null,
   );
@@ -679,12 +679,12 @@ function Profile() {
             {[
               {
                 id: "dark",
-                label: "Carbon",
+                label: "Carbon (default)",
                 icon: <Moon className="h-5 w-5 text-accent" />,
               },
               {
                 id: "light",
-                label: "Light (default)",
+                label: "Light",
                 icon: <Sun className="h-5 w-5 text-yellow-500" />,
               },
               {

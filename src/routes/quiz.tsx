@@ -1,14 +1,9 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useForceLightTheme } from "@/lib/theme";
 import { SignupProgress } from "@/components/SignupProgress";
 import { Mars, Venus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -62,6 +57,9 @@ type StepKey = (typeof STEPS)[number]["key"];
 
 export const Route = createFileRoute("/quiz")({
   component: Quiz,
+  // The answers start from the localStorage draft, which the server cannot
+  // read; rendering there drew defaults (age 0) and broke hydration.
+  ssr: false,
   // `ref` carries an invite code — a friend's (RAH38291) or a partner's
   // (GYM-IRONVAULT-123, DR-ANANYA304, PRIYAFITQUEEN60). Unlisted params are
   // stripped by the router, so leaving it out here silently discards every
@@ -105,10 +103,7 @@ function pendingReferralCode(fromSearch?: string): string | null {
 function Quiz() {
   const navigate = useNavigate();
   const routeNavigate = Route.useNavigate();
-  const router = useRouter();
   const { user, loading, hasProfile } = useAuth();
-  // Sign-up is always light, whatever theme the user picked.
-  useForceLightTheme();
   const { step: searchStep, ref: searchRef } = Route.useSearch();
   const step = searchStep ?? 1;
   const stepKey: StepKey = STEPS[step - 1]?.key ?? "account";
@@ -117,7 +112,7 @@ function Quiz() {
     routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [draft] = useState(loadQuizDraft);
-  const resumedRef = useRef(false);
+  const [resumed, setResumed] = useState(false);
   const [d, setD] = useState<FormData>(() => ({
     ...DEFAULT_QUIZ_FORM,
     ...draft.d,
@@ -312,25 +307,43 @@ function Quiz() {
 
   // Mirror every answer as it changes. The step lives in the URL, which is lost
   // the moment the wizard is left, so it is saved here too.
+  // Not before the resume below has run: a first save on /quiz would overwrite
+  // the saved step and page with step 1 before they are read.
   useEffect(() => {
-    saveQuizDraft({ step, d, loseRate, unit, applied, appliedKind });
-  }, [step, d, loseRate, unit, applied, appliedKind]);
+    if (!resumed) return;
+    saveQuizDraft({
+      step,
+      d,
+      loseRate,
+      unit,
+      applied,
+      appliedKind,
+      page: "quiz",
+    });
+  }, [resumed, step, d, loseRate, unit, applied, appliedKind]);
 
-  // Reopen on the step they left. Only for a user who already has a session:
-  // a fresh email signup needs the password, which is deliberately not saved,
-  // so it resumes on the account step with every other answer already filled.
+  // Reopen where they left: a later sign-up page, or the quiz step. Once the
+  // URL holds a step (given, or restored here), saving may start.
   useEffect(() => {
-    if (loading || resumedRef.current) return;
-    resumedRef.current = true;
-    if (searchStep !== undefined || !user) return;
+    if (loading || resumed) return;
+    if (searchStep !== undefined) {
+      setResumed(true);
+      return;
+    }
+    if (draft.page === "welcome" || draft.page === "signup") {
+      navigate({ to: `/${draft.page}`, replace: true });
+      return;
+    }
     const saved = draft.step ?? 1;
     if (saved > 1) {
       routeNavigate({
         search: (prev) => ({ ...prev, step: saved }),
         replace: true,
       });
+    } else {
+      setResumed(true);
     }
-  }, [loading, user, searchStep, draft.step, routeNavigate]);
+  }, [loading, resumed, searchStep, draft, navigate, routeNavigate]);
 
   // A finished account has no business in the wizard: pressing Create again
   // overwrites the saved profile with whatever this form currently holds.
@@ -362,9 +375,10 @@ function Quiz() {
     [target, goalKey, d.weightKg],
   );
 
-  // shortcut: every step can be skipped while the new sign-up flow is being
-  // designed; restore per-step checks (git history) once all pages exist.
-  const canNext = () => true;
+  // shortcut: only gender is required; the other steps can still be skipped
+  // while the new sign-up flow is being designed. Restore per-step checks
+  // (git history) once all pages exist.
+  const canNext = () => stepKey !== "account" || d.gender !== "";
 
   // Confirm only moves on: the intro comes next, then "Save your plan"
   // (/signup) creates the account and writes these answers from the draft.
@@ -377,7 +391,12 @@ function Quiz() {
           page={step}
           label={STEPS[step - 1]?.title ?? ""}
           onBack={() =>
-            step > 1 ? router.history.back() : navigate({ to: "/login" })
+            step > 1
+              ? routeNavigate({
+                  search: (prev) => ({ ...prev, step: step - 1 }),
+                  replace: true,
+                })
+              : navigate({ to: "/login" })
           }
         />
 
@@ -385,14 +404,13 @@ function Quiz() {
           {stepKey === "account" && (
             <div className="space-y-6">
               <h2 className="text-3xl font-semibold mb-2">Tell us about you</h2>
-              <div className="space-y-5 pt-4">
-                <BirthYearPicker onAge={(age) => set("age", age)} />
+              <div className="space-y-8 pt-4">
                 <div className="space-y-3">
                   <Label className="text-base text-foreground/80">Gender</Label>
                   <div
                     role="radiogroup"
                     aria-label="Gender"
-                    className="flex gap-5"
+                    className="flex w-full rounded-full border border-border bg-card p-1"
                   >
                     {(
                       [
@@ -408,15 +426,16 @@ function Quiz() {
                           role="radio"
                           aria-checked={on}
                           onClick={() => set("gender", g)}
-                          className={`flex h-24 w-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 text-sm font-semibold transition-colors ${on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-card text-muted-foreground hover:border-muted-foreground/40"}`}
+                          className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${on ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
                         >
-                          <Icon className="h-7 w-7" />
+                          <Icon className="h-4 w-4" />
                           {g}
                         </button>
                       );
                     })}
                   </div>
                 </div>
+                <BirthYearPicker onAge={(age) => set("age", age)} />
               </div>
             </div>
           )}
@@ -489,164 +508,144 @@ function Quiz() {
           )}
 
           {stepKey === "body" && (
-            <div className="space-y-6 animate-in fade-in duration-300 flex flex-col items-center">
-              <h2 className="text-3xl font-semibold mb-2 self-start">
-                What's your weight?
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <h2 className="text-3xl font-semibold mb-2">
+                Your weight and height
               </h2>
-              <p className="text-muted-foreground mb-8 text-sm self-start">
+              <p className="text-muted-foreground text-sm">
                 We use your weight to personalize workouts and training
                 calculations.
               </p>
 
-              {/* Toggle */}
-              <div className="flex bg-card rounded-xl p-1 w-full max-w-sm mb-6 cursor-pointer">
-                <div
-                  onClick={() => setUnit("kg")}
-                  className={`flex-1 text-center py-2 rounded-lg font-bold text-sm transition-colors ${unit === "kg" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
-                >
-                  Kilograms (kg)
-                </div>
-                <div
-                  onClick={() => setUnit("lb")}
-                  className={`flex-1 text-center py-2 rounded-lg font-bold text-sm transition-colors ${unit === "lb" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
-                >
-                  Pounds (lb)
-                </div>
+              <div className="flex w-full rounded-full border border-border bg-card p-1">
+                {(
+                  [
+                    ["kg", "Kilograms (kg)"],
+                    ["lb", "Pounds (lb)"],
+                  ] as const
+                ).map(([u, text]) => (
+                  <button
+                    key={u}
+                    type="button"
+                    aria-pressed={unit === u}
+                    onClick={() => setUnit(u)}
+                    className={`flex-1 rounded-full py-2 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${unit === u ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {text}
+                  </button>
+                ))}
               </div>
 
-              {/* Big Number */}
-              <div className="text-7xl font-bold tracking-tight mb-8">
-                {unit === "kg" ? d.weightKg : Math.round(d.weightKg * 2.20462)}{" "}
-                <span className="text-3xl text-muted-foreground font-normal">
-                  {unit}
-                </span>
-              </div>
-
-              {/* Robust Native Slider for Weight */}
-              <div className="w-full max-w-sm mt-4 px-2">
-                <Slider
-                  value={[d.weightKg]}
-                  onValueChange={(v) => set("weightKg", v[0])}
-                  min={30}
-                  max={200}
-                  step={1}
-                  className="py-4 cursor-grab active:cursor-grabbing [&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:bg-accent [&_[role=slider]]:border-accent [&_[role=slider]]:shadow-[0_0_20px_-2px_var(--accent)] [&_.relative]:bg-muted [&_.relative>div]:bg-accent"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground/60 mt-2 font-medium">
-                  <span>30 kg</span>
-                  <span>200 kg</span>
+              {(
+                [
+                  {
+                    label: "Weight",
+                    value: d.weightKg,
+                    key: "weightKg",
+                    min: 30,
+                    max: 200,
+                    show: (kg: number) =>
+                      unit === "kg" ? kg : Math.round(kg * 2.20462),
+                    unit,
+                  },
+                  {
+                    label: "Height",
+                    value: d.heightCm,
+                    key: "heightCm",
+                    min: 100,
+                    max: 250,
+                    show: (cm: number) => cm,
+                    unit: "cm",
+                  },
+                ] as const
+              ).map((m) => (
+                <div key={m.key} className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <Label className="text-base text-foreground/80">
+                      {m.label}
+                    </Label>
+                    <span className="text-3xl font-bold tracking-tight">
+                      {m.show(m.value)}{" "}
+                      <span className="text-base font-normal text-muted-foreground">
+                        {m.unit}
+                      </span>
+                    </span>
+                  </div>
+                  <Slider
+                    aria-label={m.label}
+                    value={[m.value]}
+                    onValueChange={(v) => set(m.key, v[0])}
+                    min={m.min}
+                    max={m.max}
+                    step={1}
+                    className="py-3 cursor-grab active:cursor-grabbing [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:bg-accent [&_[role=slider]]:border-accent [&_.relative]:bg-muted [&_.relative>div]:bg-accent"
+                  />
+                  <div className="flex justify-between text-xs font-medium text-muted-foreground/60">
+                    <span>
+                      {m.show(m.min)} {m.unit}
+                    </span>
+                    <span>
+                      {m.show(m.max)} {m.unit}
+                    </span>
+                  </div>
                 </div>
-              </div>
-
-              {/* Height Input */}
-              <div className="w-full max-w-sm mt-12 space-y-4">
-                <Label className="text-foreground/80 text-lg">
-                  Height (cm)
-                </Label>
-                <Slider
-                  value={[d.heightCm]}
-                  onValueChange={(v) => set("heightCm", v[0])}
-                  min={100}
-                  max={250}
-                  step={1}
-                  className="py-4 cursor-grab active:cursor-grabbing [&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:bg-accent [&_[role=slider]]:border-accent [&_[role=slider]]:shadow-[0_0_20px_-2px_var(--accent)] [&_.relative]:bg-muted [&_.relative>div]:bg-accent"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground/60 mt-2 font-medium">
-                  <span>100 cm</span>
-                  <span className="text-lg text-foreground font-bold">
-                    {d.heightCm} cm
-                  </span>
-                  <span>250 cm</span>
-                </div>
-              </div>
+              ))}
             </div>
           )}
 
           {stepKey === "activity" && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <h2 className="text-3xl font-semibold mb-2">Activity level</h2>
-              <p className="text-muted-foreground mb-8 text-sm">
+              <p className="text-muted-foreground text-sm">
                 How active are you on an average week?
               </p>
               <RadioGroup
                 value={d.activity}
                 onValueChange={(v) => set("activity", v)}
-                className="grid gap-3"
+                className="grid gap-2"
               >
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Sedentary" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Sedentary"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Sedentary (little or no exercise)
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Lightly Active" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Lightly Active"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Lightly Active (1–3 days/week)
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Moderately Active" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Moderately Active"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Moderately Active (3–5 days/week)
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Very Active" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Very Active"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Very Active (6–7 days/week)
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-colors ${d.activity === "Super Active" ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
-                >
-                  <RadioGroupItem
-                    value="Super Active"
-                    className="border-accent text-accent"
-                  />
-                  <span className="font-medium">
-                    Super Active (twice/day or physical job)
-                  </span>
-                </label>
+                {(
+                  [
+                    ["Sedentary", "Little or no exercise"],
+                    ["Lightly Active", "1–3 days a week"],
+                    ["Moderately Active", "3–5 days a week"],
+                    ["Very Active", "6–7 days a week"],
+                    ["Super Active", "Twice a day or physical job"],
+                  ] as const
+                ).map(([value, hint]) => (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${d.activity === value ? "border-accent bg-accent/10" : "border-border bg-card hover:border-muted-foreground/30"}`}
+                  >
+                    <RadioGroupItem
+                      value={value}
+                      className="border-accent text-accent"
+                    />
+                    <span className="text-sm font-semibold">{value}</span>
+                    <span className="ml-auto text-right text-xs text-muted-foreground">
+                      {hint}
+                    </span>
+                  </label>
+                ))}
               </RadioGroup>
               {bmr > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2 mt-8 animate-in slide-in-from-bottom-2 duration-300">
-                  <div className="rounded-xl border border-border bg-card p-4 text-center">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">
-                      BMR (Baseline)
+                <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="rounded-xl border border-border bg-card p-3 text-center">
+                    <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+                      BMR
                     </div>
-                    <div className="text-2xl font-bold">
+                    <div className="text-xl font-bold">
                       {bmr}{" "}
                       <span className="text-sm font-normal text-muted-foreground">
                         kcal
                       </span>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-accent/30 bg-accent/10 p-4 text-center">
-                    <div className="text-xs text-accent uppercase tracking-wider font-bold mb-1">
-                      TDEE (With Activity)
+                  <div className="rounded-xl border border-accent/30 bg-accent/10 p-3 text-center">
+                    <div className="text-[11px] text-accent uppercase tracking-wider font-bold mb-1">
+                      TDEE
                     </div>
-                    <div className="text-2xl font-bold text-accent">
+                    <div className="text-xl font-bold text-accent">
                       {tdee}{" "}
                       <span className="text-sm font-normal text-accent/70">
                         kcal
@@ -959,9 +958,9 @@ function Wheel({
     ref.current?.scrollTo({ top: i * ROW_PX, behavior: "smooth" });
 
   return (
-    <div className="relative flex-1">
+    <div className="relative mx-auto w-40">
       <div
-        className="pointer-events-none absolute inset-x-1 rounded-xl bg-accent shadow-[0_6px_20px_-6px_var(--accent)]"
+        className="pointer-events-none absolute inset-x-0 rounded-full bg-accent"
         style={{ top: ROW_PX * 2, height: ROW_PX }}
       />
       <div
@@ -996,7 +995,7 @@ function Wheel({
               onClick={() => go(i)}
               className={`flex snap-center cursor-pointer items-center justify-center text-sm transition-colors ${
                 far === 0
-                  ? "font-bold text-accent-foreground"
+                  ? "text-base font-bold text-accent-foreground"
                   : far === 1
                     ? "font-medium text-foreground"
                     : "text-muted-foreground/40"
@@ -1033,7 +1032,9 @@ function BirthYearPicker({ onAge }: { onAge: (age: number) => void }) {
 
   return (
     <div className="space-y-3">
-      <Label className="text-foreground/80">What year were you born?</Label>
+      <Label className="text-base text-foreground/80">
+        What year were you born?
+      </Label>
       <Wheel
         label="Birth year"
         items={years.map(String)}
