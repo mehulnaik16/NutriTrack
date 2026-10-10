@@ -113,6 +113,8 @@ export function visionChain(
   base64: string,
   mimeType: string,
   attempt: PhotoAttempt,
+  /** Already-labelled user note, sent after the photo. */
+  after?: string,
 ) {
   // retry: a new Proceed is a new attempt, so an earlier attempt's busy
   // cooldown does not skip a model the user's order names.
@@ -120,12 +122,13 @@ export function visionChain(
     provider: "gemini",
     model,
     retry: true,
-    run: (signal) => geminiVision({ model, prompt, base64, mimeType, signal }),
+    run: (signal) =>
+      geminiVision({ model, prompt, base64, mimeType, after, signal }),
   });
   const qwen: Step = {
     provider: "groq",
     model: GROQ_VISION,
-    run: (signal) => groqVision({ prompt, base64, mimeType, signal }),
+    run: (signal) => groqVision({ prompt, base64, mimeType, after, signal }),
   };
   const orders: Record<PhotoAttempt, Step[]> = {
     1: [g(LITE), g(FLASH_36), g(FLASH_37)],

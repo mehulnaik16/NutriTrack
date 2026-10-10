@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/client";
 import { Header } from "@/components/Header";
 import { WorkoutLogHistory } from "@/components/WorkoutLogHistory";
 import { FriendsPanel } from "@/components/FriendsPanel";
+import { PENDING_ADD_KEY } from "@/lib/friendInvite";
 import { RankPage } from "@/components/RankPage";
 import { Card, CardHeader } from "@/components/ui/card";
 import {
@@ -28,6 +29,9 @@ import { useAuth } from "@/lib/auth";
 import { getTelemetryLabel, isIsroTheme } from "@/lib/telemetry";
 
 export const Route = createFileRoute("/hub")({
+  // ?add=<username>: a friend invite link (see FriendsPanel's share options).
+  validateSearch: (s: Record<string, unknown>): { add?: string } =>
+    typeof s.add === "string" && s.add ? { add: s.add } : {},
   component: Hub,
 });
 
@@ -43,9 +47,23 @@ interface LeaderboardUser {
 }
 
 function Hub() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { add } = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  // Invite link opened while signed out: remember it and sign in first; the
+  // dashboard brings it back here afterwards.
+  useEffect(() => {
+    if (authLoading || user || !add) return;
+    try {
+      localStorage.setItem(PENDING_ADD_KEY, add);
+    } catch {
+      /* storage blocked: they can still scan or search after signing in */
+    }
+    navigate({ to: "/login", search: {}, replace: true });
+  }, [authLoading, user, add, navigate]);
   const [activeTab, setActiveTab] = useState<"ANALYTICS" | "FRIENDS" | "RANK">(
-    "ANALYTICS",
+    add ? "FRIENDS" : "ANALYTICS",
   );
   const [firstName, setFirstName] = useState<string | undefined>(undefined);
 
@@ -462,7 +480,10 @@ function Hub() {
           {activeTab === "ANALYTICS" ? (
             <WorkoutLogHistory />
           ) : activeTab === "FRIENDS" ? (
-            <FriendsPanel />
+            <FriendsPanel
+              addCode={add}
+              onAddHandled={() => navigate({ search: {}, replace: true })}
+            />
           ) : (
             <>
               <RankPage />

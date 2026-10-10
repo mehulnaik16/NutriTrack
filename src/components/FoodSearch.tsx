@@ -1,4 +1,5 @@
 import {
+  useDeferredValue,
   useMemo,
   useRef,
   useState,
@@ -372,18 +373,22 @@ export const FoodSearch = forwardRef<
       });
   }, [userId, date]);
 
-  const suggestions = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (term.length < 2) return [];
+  // Typing stays instant on slow phones; the list catches up a frame later.
+  const deferredQ = useDeferredValue(q);
+  const { suggestions, guessed } = useMemo(() => {
+    const term = deferredQ.trim().toLowerCase();
+    if (term.length < 2) return { suggestions: [], guessed: false };
     // Substring first, because it is exact and instant. Only when it finds
     // nothing is the typo-tolerant pass worth running — and that pass is what
     // keeps a food we already hold from ever reaching the paid model.
     // searchFoods rather than a copy of it, so its curated-row tiebreak
     // reaches this list too.
     const matches = searchFoods(term, 12);
-    if (matches.length > 0) return matches;
-    return strongFoods(term, 8);
-  }, [q]);
+    if (matches.length > 0) return { suggestions: matches, guessed: false };
+    // Typo guesses: "benne" (Kannada, butter) reads as a typo of "penne", so
+    // the Search AI button stays offered next to them.
+    return { suggestions: strongFoods(term, 8), guessed: true };
+  }, [deferredQ]);
 
   /**
    * Per-100 g AI row -> the absolute-macro shape the review list expects.
@@ -810,24 +815,27 @@ export const FoodSearch = forwardRef<
             if (aiSuggestions.length > 0) setAiSuggestions([]);
           }}
           onKeyDown={(e) => {
-            // Only reach for the AI when the local database came up empty —
+            // Only reach for the AI when the local database came up empty
+            // or with typo guesses only —
             // Enter is a typing habit, and firing it over a list of local
             // matches spends a metered Groq call on an answered query.
-            if (e.key === "Enter" && suggestions.length === 0)
+            if (e.key === "Enter" && (guessed || suggestions.length === 0))
               handleAiFallback();
           }}
           className="pl-9"
         />
-        {q.length >= 2 && suggestions.length === 0 && !searching && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAiFallback()}
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-[10px] text-accent uppercase font-bold px-2 hover:bg-accent/10"
-          >
-            Search AI
-          </Button>
-        )}
+        {q.length >= 2 &&
+          (guessed || suggestions.length === 0) &&
+          !searching && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleAiFallback()}
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-[10px] text-accent uppercase font-bold px-2 hover:bg-accent/10"
+            >
+              Search AI
+            </Button>
+          )}
         {searching && (
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
         )}
@@ -878,6 +886,11 @@ export const FoodSearch = forwardRef<
             </button>
           ))}
         </div>
+      )}
+      {aiSuggestions.length > 0 && (
+        <p className="-mt-2 text-center text-[11px] text-muted-foreground">
+          AI can make mistakes. Check the food and weight before logging.
+        </p>
       )}
 
       {/* ── Action buttons: Camera → Mic → Barcode → Favourites ── */}
@@ -1466,6 +1479,13 @@ export const FoodSearch = forwardRef<
                 )}{" "}
                 {isEditing ? "Modify" : "Log food"}
               </Button>
+              {/* query is set only on rows that came from the AI search. */}
+              {selected.query && (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  AI can make mistakes. Check the food and weight before
+                  logging.
+                </p>
+              )}
             </div>
           )}
         </DialogContent>

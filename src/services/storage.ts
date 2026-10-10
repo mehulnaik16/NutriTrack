@@ -9,6 +9,8 @@
  */
 
 import { supabase } from "@/integrations/client";
+import { FROZEN_DAYS, isPhotoFresh } from "@/lib/cacheRules";
+import { daysAgoLocal } from "@/lib/dates";
 import { isNativeApp } from "@/lib/platform";
 
 const BUCKET = "weight-photos";
@@ -54,7 +56,9 @@ function buildPath(userId: string, file: File): string {
 async function compressPhoto(file: File): Promise<File> {
   if (isNativeApp()) return file;
   try {
-    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const bmp = await createImageBitmap(file, {
+      imageOrientation: "from-image",
+    });
     const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(bmp.width * scale);
@@ -133,6 +137,93 @@ export async function getSignedPhotoUrl(
   return data.signedUrl;
 }
 
+// ── Browser photo cache (web only) ──────────────────────────
+//
+// A signed URL carries a fresh token every time, so the browser's own cache
+// never matches and each view re-downloaded the photo. The bytes are cached
+// here instead, keyed by object path. Paths are never reused (uploads are
+// timestamped, upsert:false; a replaced photo gets a new path), so a cached
+// copy is never wrong. The same split as lib/historyCache.ts sets how long one
+// is kept: photos of entries older than 8 days are kept for a year; the
+// latest week's are re-downloaded after a day. An entry crossing the cutoff
+// moves to the long rule on its next read, with no download.
+
+const PHOTO_CACHE = "dombelz-photos";
+/** Object URLs already made this session, so remounts don't reread the cache. */
+const objectUrls = new Map<string, string>();
+
+const photoCacheOn = () => typeof caches !== "undefined" && !isNativeApp();
+// Cache Storage needs a URL key; this one is never fetched.
+const cacheKey = (path: string) => `/__photo-cache/${path}`;
+
+/**
+ * A displayable URL for a stored photo: a cached copy when there is a fresh
+ * one, else a signed URL whose bytes are cached for next time. `date` is the
+ * weight entry's date (YYYY-MM-DD); without it the photo counts as recent.
+ */
+export async function getPhotoSrc(
+  photoUrl: string,
+  date?: string,
+): Promise<string | null> {
+  const path = extractPath(photoUrl);
+  if (!path || !photoCacheOn()) return getSignedPhotoUrl(photoUrl);
+  const known = objectUrls.get(path);
+  if (known) return known;
+
+  try {
+    const cache = await caches.open(PHOTO_CACHE);
+    const hit = await cache.match(cacheKey(path));
+    const at = Number(hit?.headers.get("x-cached-at"));
+    if (hit && isPhotoFresh(at, date, Date.now(), daysAgoLocal(FROZEN_DAYS)))
+      return remember(path, await hit.blob());
+
+    const signed = await getSignedPhotoUrl(photoUrl);
+    if (!signed) return null;
+    const res = await fetch(signed);
+    if (!res.ok) return signed;
+    const blob = await res.blob();
+    await cache.put(
+      cacheKey(path),
+      new Response(blob, {
+        headers: {
+          "content-type": blob.type,
+          "x-cached-at": String(Date.now()),
+        },
+      }),
+    );
+    return remember(path, blob);
+  } catch {
+    // Quota, private mode or a blocked cache: show it the old way.
+    return getSignedPhotoUrl(photoUrl);
+  }
+}
+
+function remember(path: string, blob: Blob): string {
+  const url = URL.createObjectURL(blob);
+  objectUrls.set(path, url);
+  return url;
+}
+
+/** Drop one photo from the cache (it was deleted or replaced). */
+async function forgetPhoto(path: string): Promise<void> {
+  const url = objectUrls.get(path);
+  if (url) URL.revokeObjectURL(url);
+  objectUrls.delete(path);
+  if (photoCacheOn())
+    await caches
+      .open(PHOTO_CACHE)
+      .then((c) => c.delete(cacheKey(path)))
+      .catch(() => {});
+}
+
+/** Remove every cached photo; called on sign-out. */
+export async function clearPhotoCache(): Promise<void> {
+  for (const url of objectUrls.values()) URL.revokeObjectURL(url);
+  objectUrls.clear();
+  if (typeof caches !== "undefined")
+    await caches.delete(PHOTO_CACHE).catch(() => {});
+}
+
 /**
  * Delete a weight photo by its stored URL.
  * Safely extracts the object path first.
@@ -148,6 +239,7 @@ export async function deleteWeightPhoto(
     return { data: null, error: null };
   }
 
+  await forgetPhoto(path);
   const { error } = await supabase.storage.from(BUCKET).remove([path]);
 
   if (error) {
@@ -192,6 +284,7 @@ export async function commitPhotoChange(
   }
   if (oldUrl && oldUrl !== newUrl) {
     const del = await deleteWeightPhoto(oldUrl);
-    if (del.error) console.warn("[storage] old photo cleanup failed:", del.error);
+    if (del.error)
+      console.warn("[storage] old photo cleanup failed:", del.error);
   }
 }

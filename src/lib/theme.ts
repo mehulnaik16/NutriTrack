@@ -1,3 +1,5 @@
+import { useLayoutEffect } from "react";
+
 // Keep in sync with the boot script in routes/__root.tsx and the check
 // constraint on user_profiles.theme.
 export const THEMES = [
@@ -14,9 +16,9 @@ export const THEMES = [
 export function getLocalTheme(): string {
   try {
     const t = localStorage.getItem("theme");
-    return t && THEMES.includes(t) ? t : "dark";
+    return t && THEMES.includes(t) ? t : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 
@@ -52,21 +54,48 @@ export function syncFavicon(theme: string) {
       if (call !== iconCall) return;
       link.href =
         "data:image/svg+xml," +
-        encodeURIComponent(svg.replace(/fill="#[0-9A-Fa-f]{6}"/, `fill="${fill}"`));
+        encodeURIComponent(
+          svg.replace(/fill="#[0-9A-Fa-f]{6}"/, `fill="${fill}"`),
+        );
     })
     .catch(() => {
       iconSvg = undefined; // keep the green default; retry on next change
     });
 }
 
-/** Save on this device and repaint. The landing page ("/") stays light. */
+/**
+ * Pages that always render light, whatever theme the user picked: the landing
+ * page, sign-up, and pricing. Keep in sync with the boot script in routes/__root.tsx.
+ */
+export const isLightOnlyPath = (path: string) =>
+  /^\/(quiz|welcome|signup|signup-details|commit|plans)?$/.test(path);
+
+/**
+ * Hold the light theme while the calling page is mounted. __root.tsx skips the
+ * saved theme on a hard load of a light-only path; this covers client-side
+ * arrival and restores the saved theme on the way out.
+ */
+export function useForceLightTheme() {
+  useLayoutEffect(() => {
+    const c = document.documentElement.classList;
+    c.remove(...THEMES);
+    syncFavicon("dark"); // green brand icon
+    return () => {
+      const t = getLocalTheme();
+      if (t !== "light") c.add(t);
+      syncFavicon(t);
+    };
+  }, []);
+}
+
+/** Save on this device and repaint. Light-only pages keep their light look. */
 export function applyTheme(theme: string) {
   try {
     localStorage.setItem("theme", theme);
   } catch {
     // Storage blocked: the theme still applies for this page view.
   }
-  if (location.pathname === "/") return;
+  if (isLightOnlyPath(location.pathname)) return;
   syncFavicon(theme);
   const c = document.documentElement.classList;
   c.remove(...THEMES);

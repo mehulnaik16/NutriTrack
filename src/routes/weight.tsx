@@ -70,6 +70,7 @@ import {
   commitPhotoChange,
 } from "@/services/storage";
 import { SignedPhoto } from "@/components/SignedPhoto";
+import { PhotoDownloadButton } from "@/components/PhotoDownloadButton";
 import { PhotoSourcePicker } from "@/components/PhotoSourcePicker";
 import { useAccessGate } from "@/hooks/useAccessGate";
 import {
@@ -186,7 +187,6 @@ function WeightPage() {
   const [saving, setSaving] = useState(false);
   const [motivation, setMotivation] = useState<string | null>(null);
   const [loadingMotivation, setLoadingMotivation] = useState(false);
-  const [compareIdx, setCompareIdx] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
@@ -503,10 +503,6 @@ function WeightPage() {
   }));
 
   // Photos with images for comparison
-  const photoEntries = entries.filter((e) => e.photo_url);
-  const compareA = photoEntries[compareIdx];
-  const compareB =
-    photoEntries[Math.min(compareIdx + 1, photoEntries.length - 1)];
 
   return (
     <div className="min-h-screen bg-background pb-nav">
@@ -845,58 +841,6 @@ function WeightPage() {
           </Card>
         )}
 
-        {/* ── Photo comparison ── */}
-        {photoEntries.length >= 2 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Photo comparison</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCompareIdx(Math.max(0, compareIdx - 1))}
-                    disabled={compareIdx === 0}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      setCompareIdx(
-                        Math.min(photoEntries.length - 2, compareIdx + 1),
-                      )
-                    }
-                    disabled={compareIdx >= photoEntries.length - 2}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {[compareA, compareB].map(
-                  (entry, i) =>
-                    entry && (
-                      <div key={i} className="space-y-1">
-                        <SignedPhoto
-                          src={entry.photo_url!}
-                          alt={entry.date}
-                          className="w-full rounded-lg object-cover aspect-[3/4]"
-                        />
-                        <p className="text-center text-xs text-muted-foreground">
-                          {entry.date} · {disp(entry.weight_kg)} {wu}
-                        </p>
-                      </div>
-                    ),
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* ── Entry history (bottom sheet) ── */}
         <Drawer open={historyOpen} onOpenChange={setHistoryOpen}>
           <DrawerContent className="mx-auto max-w-lg p-5 pb-8">
@@ -1079,6 +1023,7 @@ function WeightEntryModal({
                   <div className="relative group rounded-lg overflow-hidden max-h-[50vh] w-full flex justify-center bg-black/5 transition-all">
                     <SignedPhoto
                       src={editPhotoPreview}
+                      date={editDate}
                       alt={`Weight on ${editDate}`}
                       className="w-full h-full object-contain"
                     />
@@ -1241,6 +1186,14 @@ function WeightEntryModal({
                 </>
               ) : (
                 <>
+                  {entry.photo_url && (
+                    <div className="mr-auto">
+                      <PhotoDownloadButton
+                        photoUrl={entry.photo_url}
+                        date={entry.date}
+                      />
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

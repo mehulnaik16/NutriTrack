@@ -108,16 +108,49 @@ export const kcalOf = (it: IFCTItem) =>
       4 * (it.choavldf ?? 0) +
       7 * (it.alcohol ?? 0);
 
+/** Lowercased name and lang, computed once per row instead of per keystroke. */
+const LOWER = new WeakMap<IFCTItem, { name: string; lang: string }>();
+const lower = (it: IFCTItem) => {
+  let l = LOWER.get(it);
+  if (!l)
+    LOWER.set(
+      it,
+      (l = {
+        name: it.name.toLowerCase(),
+        lang: (it.lang ?? "").toLowerCase(),
+      }),
+    );
+  return l;
+};
+
+const isLetter = (c: string | undefined) => !!c && /\p{L}/u.test(c);
+
+/**
+ * Whether `q` appears in `text` as whole words. Regional names must match in
+ * full: "benne" (butter) is only a fragment of Avocado's "Bennephala", and a
+ * fragment hit there hid the Search AI button. Partial typing ("sajj") is
+ * still caught by the fuzzy pass in foodFuzzy.ts.
+ */
+function hasWhole(text: string, q: string): boolean {
+  for (let i = text.indexOf(q); i !== -1; i = text.indexOf(q, i + 1)) {
+    if (!isLetter(text[i - 1]) && !isLetter(text[i + q.length])) return true;
+  }
+  return false;
+}
+
 /** Relevance rank for a search term — lower is better, 5 = no match. */
 export function rank(item: IFCTItem, q: string): number {
-  const name = item.name.toLowerCase();
-  const lang = item.lang.toLowerCase();
+  const { name, lang } = lower(item);
   if (name.startsWith(q)) return 0;
   if (name.includes(` ${q}`)) return 1;
   if (name.includes(q)) return 2;
-  if (lang.includes(q)) return 3;
+  if (hasWhole(lang, q)) return 3;
   return 5;
 }
+
+/** One collator for every sort: localeCompare with options builds one per call,
+ *  which was 98% of a two-letter search's time. */
+const byName = new Intl.Collator(undefined, { sensitivity: "base" }).compare;
 
 /**
  * 0 for a curated extraFoods row (every code there is prefixed "X"), 1 for
@@ -147,9 +180,7 @@ export function searchFoods(query: string, limit = 8): IFCTItem[] {
   matches.sort(
     (a, b) =>
       a.r - b.r ||
-      a.item.name.localeCompare(b.item.name, undefined, {
-        sensitivity: "base",
-      }) ||
+      byName(a.item.name, b.item.name) ||
       curatedFirst(a.item) - curatedFirst(b.item),
   );
   return matches.slice(0, limit).map((m) => m.item);

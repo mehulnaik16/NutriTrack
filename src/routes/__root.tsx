@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { getLocalTheme, syncFavicon } from "@/lib/theme";
+import { getLocalTheme, isLightOnlyPath, syncFavicon } from "@/lib/theme";
 import { BottomNav } from "@/components/BottomNav";
 import appCss from "../styles.css?url";
 
@@ -44,7 +44,10 @@ export const Route = createRootRoute(
         { charSet: "utf-8" },
         {
           name: "viewport",
-          content: "width=device-width, initial-scale=1, viewport-fit=cover",
+          // App-like fixed scale: no pinch zoom, and no auto-zoom when an
+          // input is focused on iOS.
+          content:
+            "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
         },
         { title: "Dombelz — Train. Track. Transform." },
         {
@@ -52,7 +55,7 @@ export const Route = createRootRoute(
           content:
             "AI-powered fitness & nutrition tracking. Log food by photo, voice, or barcode. Train smarter with personalized plans.",
         },
-        { name: "theme-color", content: "#101014" },
+        { name: "theme-color", content: "#F6F7F5" },
         { property: "og:title", content: "Dombelz — Train. Track. Transform." },
         {
           property: "og:description",
@@ -96,7 +99,7 @@ const FONTS_CSS =
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script
@@ -108,7 +111,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
             // The landing page ("/") is always light; see routes/index.tsx.
             // On "/", a stored Supabase session adds .has-session so a
             // returning user sees the redirect spinner, not the landing page.
-            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='dark';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&location.pathname!=='/')c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}var f=document.createElement('link');f.rel='stylesheet';f.href='${FONTS_CSS}';document.head.appendChild(f);try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}try{var d=document.documentElement;if(!d.classList.contains('native-shell')&&matchMedia('(display-mode: standalone)').matches&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('splash')&&!/^\\/(privacy|terms|refund)/.test(location.pathname)){sessionStorage.setItem('splash','1');d.classList.add('show-splash')}}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('theme'),v=['dark','light','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro'],c=document.documentElement.classList;if(v.indexOf(t)<0)t='light';c.remove('dark','theme-ocean','theme-sunset','theme-forest','theme-cyber','theme-cyberdeck','theme-isro');if(t!=='light'&&!/^\\/(quiz|welcome|signup|signup-details|commit|plans)?$/.test(location.pathname))c.add(t);if(location.pathname==='/'&&Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)}))c.add('has-session')}catch(e){}var f=document.createElement('link');f.rel='stylesheet';f.href='${FONTS_CSS}';document.head.appendChild(f);try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-shell')}catch(e){}try{var d=document.documentElement;if(!d.classList.contains('native-shell')&&matchMedia('(display-mode: standalone)').matches&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('splash')&&!/^\\/(privacy|terms|refund)/.test(location.pathname)){sessionStorage.setItem('splash','1');d.classList.add('show-splash')}}catch(e){}`,
           }}
         />
         {/* Launch splash styles live here, not in styles.css: until the
@@ -145,9 +148,18 @@ function RootComponent() {
   // The landing page keeps the green brand icon; routes/index.tsx swaps it on
   // the way in and out.
   useEffect(
-    () => syncFavicon(location.pathname === "/" ? "dark" : getLocalTheme()),
+    () =>
+      syncFavicon(
+        isLightOnlyPath(location.pathname) ? "dark" : getLocalTheme(),
+      ),
     [],
   );
+  // iOS Safari ignores user-scalable=no, so block its pinch gesture directly.
+  useEffect(() => {
+    const block = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", block);
+    return () => document.removeEventListener("gesturestart", block);
+  }, []);
   return (
     <AuthProvider>
       <Suspense fallback={null}>

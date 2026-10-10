@@ -5,7 +5,9 @@ import { Library, Loader2, PencilRuler, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { generateAiPlan } from "@/lib/aiPlan";
+import { AiPlanLimitError, generateAiPlan } from "@/lib/aiPlan";
+import { useAccessGate } from "@/hooks/useAccessGate";
+import { AiPlanLockedCard } from "@/components/AiPlanLockedCard";
 import { loadWorkoutPrefs } from "@/lib/workoutPrefs";
 
 export const Route = createFileRoute("/choose-plan")({
@@ -28,6 +30,7 @@ function ChoosePlan() {
   const navigate = useNavigate();
   const [choice, setChoice] = useState<Choice | null>(null);
   const [busy, setBusy] = useState(false);
+  const aiLocked = useAccessGate().state === "lapsed";
 
   const confirm = async () => {
     if (!user || !choice || busy) return;
@@ -51,6 +54,10 @@ function ChoosePlan() {
       toast.success("Your personalized plan is ready! 💪");
       navigate({ to: "/workout" });
     } catch (e) {
+      if (e instanceof AiPlanLimitError) {
+        toast(e.message);
+        return;
+      }
       toast.error(
         (e as Error).message ?? "Couldn't generate a plan. Please try again.",
       );
@@ -87,20 +94,21 @@ function ChoosePlan() {
       </div>
 
       <main className="mx-auto max-w-md space-y-3 px-4 py-6">
-        <OptionCard
-          active={choice === "ai_generated"}
-          onClick={() => setChoice("ai_generated")}
-        >
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="h-4 w-4 text-accent" /> Let AI Pick for Me
-            <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">
-              Recommended
+        {aiLocked ? (
+          <AiPlanLockedCard />
+        ) : (
+          <OptionCard
+            active={choice === "ai_generated"}
+            onClick={() => setChoice("ai_generated")}
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <Sparkles className="h-4 w-4 text-accent" /> Let AI Pick for You
             </span>
-          </span>
-          <span className="mt-1 block text-xs text-muted-foreground">
-            A personalized plan generated from your workout details.
-          </span>
-        </OptionCard>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              A personalized plan generated from your workout details.
+            </span>
+          </OptionCard>
+        )}
 
         <OptionCard
           active={choice === "custom"}
@@ -131,6 +139,11 @@ function ChoosePlan() {
       {/* ── Sticky confirm ── */}
       <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur-xl md:bottom-0">
         <div className="mx-auto max-w-md px-4 py-3">
+          {choice === "ai_generated" && (
+            <p className="mb-2 text-center text-[11px] text-muted-foreground">
+              AI can make mistakes. Check the plan suits you before training.
+            </p>
+          )}
           <Button
             className="w-full"
             disabled={!choice || busy}

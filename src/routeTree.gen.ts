@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CalorieCalculatorRouteImport } from './routes/calorie-calculator'
 import { Route as ChoosePlanRouteImport } from './routes/choose-plan'
+import { Route as CommitRouteImport } from './routes/commit'
 import { Route as CustomPlanRouteImport } from './routes/custom-plan'
 import { Route as CustomPlanEditRouteImport } from './routes/custom-plan-edit'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -30,6 +31,8 @@ import { Route as ReferIntroRouteImport } from './routes/refer-intro'
 import { Route as ReferTermsRouteImport } from './routes/refer-terms'
 import { Route as RefundRouteImport } from './routes/refund'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SignupDetailsRouteImport } from './routes/signup-details'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WeightRouteImport } from './routes/weight'
 import { Route as WelcomeRouteImport } from './routes/welcome'
@@ -52,6 +55,11 @@ const CalorieCalculatorRoute = CalorieCalculatorRouteImport.update({
 const ChoosePlanRoute = ChoosePlanRouteImport.update({
   id: '/choose-plan',
   path: '/choose-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommitRoute = CommitRouteImport.update({
+  id: '/commit',
+  path: '/commit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomPlanRoute = CustomPlanRouteImport.update({
@@ -144,6 +152,16 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupDetailsRoute = SignupDetailsRouteImport.update({
+  id: '/signup-details',
+  path: '/signup-details',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -189,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/calorie-calculator': typeof CalorieCalculatorRoute
   '/choose-plan': typeof ChoosePlanRoute
+  '/commit': typeof CommitRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
@@ -207,6 +226,8 @@ export interface FileRoutesByFullPath {
   '/refer-terms': typeof ReferTermsRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/signup-details': typeof SignupDetailsRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/welcome': typeof WelcomeRoute
@@ -220,6 +241,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/calorie-calculator': typeof CalorieCalculatorRoute
   '/choose-plan': typeof ChoosePlanRoute
+  '/commit': typeof CommitRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
@@ -238,6 +260,8 @@ export interface FileRoutesByTo {
   '/refer-terms': typeof ReferTermsRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/signup-details': typeof SignupDetailsRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/welcome': typeof WelcomeRoute
@@ -252,6 +276,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/calorie-calculator': typeof CalorieCalculatorRoute
   '/choose-plan': typeof ChoosePlanRoute
+  '/commit': typeof CommitRoute
   '/custom-plan': typeof CustomPlanRoute
   '/custom-plan-edit': typeof CustomPlanEditRoute
   '/dashboard': typeof DashboardRoute
@@ -270,6 +295,8 @@ export interface FileRoutesById {
   '/refer-terms': typeof ReferTermsRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/signup-details': typeof SignupDetailsRoute
   '/terms': typeof TermsRoute
   '/weight': typeof WeightRoute
   '/welcome': typeof WelcomeRoute
@@ -285,6 +312,7 @@ export interface FileRouteTypes {
     | '/'
     | '/calorie-calculator'
     | '/choose-plan'
+    | '/commit'
     | '/custom-plan'
     | '/custom-plan-edit'
     | '/dashboard'
@@ -303,6 +331,8 @@ export interface FileRouteTypes {
     | '/refer-terms'
     | '/refund'
     | '/reset-password'
+    | '/signup'
+    | '/signup-details'
     | '/terms'
     | '/weight'
     | '/welcome'
@@ -316,6 +346,7 @@ export interface FileRouteTypes {
     | '/'
     | '/calorie-calculator'
     | '/choose-plan'
+    | '/commit'
     | '/custom-plan'
     | '/custom-plan-edit'
     | '/dashboard'
@@ -334,6 +365,8 @@ export interface FileRouteTypes {
     | '/refer-terms'
     | '/refund'
     | '/reset-password'
+    | '/signup'
+    | '/signup-details'
     | '/terms'
     | '/weight'
     | '/welcome'
@@ -347,6 +380,7 @@ export interface FileRouteTypes {
     | '/'
     | '/calorie-calculator'
     | '/choose-plan'
+    | '/commit'
     | '/custom-plan'
     | '/custom-plan-edit'
     | '/dashboard'
@@ -365,6 +399,8 @@ export interface FileRouteTypes {
     | '/refer-terms'
     | '/refund'
     | '/reset-password'
+    | '/signup'
+    | '/signup-details'
     | '/terms'
     | '/weight'
     | '/welcome'
@@ -379,6 +415,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CalorieCalculatorRoute: typeof CalorieCalculatorRoute
   ChoosePlanRoute: typeof ChoosePlanRoute
+  CommitRoute: typeof CommitRoute
   CustomPlanRoute: typeof CustomPlanRoute
   CustomPlanEditRoute: typeof CustomPlanEditRoute
   DashboardRoute: typeof DashboardRoute
@@ -397,6 +434,8 @@ export interface RootRouteChildren {
   ReferTermsRoute: typeof ReferTermsRoute
   RefundRoute: typeof RefundRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
+  SignupDetailsRoute: typeof SignupDetailsRoute
   TermsRoute: typeof TermsRoute
   WeightRoute: typeof WeightRoute
   WelcomeRoute: typeof WelcomeRoute
@@ -428,6 +467,13 @@ declare module '@tanstack/react-router' {
       path: '/choose-plan'
       fullPath: '/choose-plan'
       preLoaderRoute: typeof ChoosePlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/commit': {
+      id: '/commit'
+      path: '/commit'
+      fullPath: '/commit'
+      preLoaderRoute: typeof CommitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/custom-plan': {
@@ -556,6 +602,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup-details': {
+      id: '/signup-details'
+      path: '/signup-details'
+      fullPath: '/signup-details'
+      preLoaderRoute: typeof SignupDetailsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -619,6 +679,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CalorieCalculatorRoute: CalorieCalculatorRoute,
   ChoosePlanRoute: ChoosePlanRoute,
+  CommitRoute: CommitRoute,
   CustomPlanRoute: CustomPlanRoute,
   CustomPlanEditRoute: CustomPlanEditRoute,
   DashboardRoute: DashboardRoute,
@@ -637,6 +698,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReferTermsRoute: ReferTermsRoute,
   RefundRoute: RefundRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
+  SignupDetailsRoute: SignupDetailsRoute,
   TermsRoute: TermsRoute,
   WeightRoute: WeightRoute,
   WelcomeRoute: WelcomeRoute,

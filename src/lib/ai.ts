@@ -508,25 +508,47 @@ export const serverWorkoutPlan = createServerFn({ method: "POST" })
         import("@/lib/workoutPrompt"),
       ]);
     const { athlete, fitnessGoal, musclesPerWorkout } = ctx.data;
-    const raw = await groqChat({
-      model: "openai/gpt-oss-120b",
-      messages: [
-        { role: "system", content: WORKOUT_COACH_SYSTEM },
-        {
-          role: "user",
-          content: buildWorkoutUserMessage(
-            athlete,
-            fitnessGoal,
-            musclesPerWorkout,
-          ),
-        },
-      ],
-      max_tokens: 3000,
-      temperature: 0.4,
-      response_format: { type: "json_object" },
-    });
-    return { result: raw };
+    // Plan limits (ai_plan_limits migration): take a turn before the model
+    // runs, give it back if the model fails so an error never costs one.
+    const { data: turn, error: turnError } =
+      await ctx.context.supabase.rpc("claim_ai_plan");
+    if (turnError)
+      throw new Error("Couldn't start your plan. Please try again.");
+    if (!turn) throw new Error(AI_PLAN_LIMIT_MESSAGE);
+    try {
+      const raw = await groqChat({
+        model: "openai/gpt-oss-120b",
+        messages: [
+          { role: "system", content: WORKOUT_COACH_SYSTEM },
+          {
+            role: "user",
+            content: buildWorkoutUserMessage(
+              athlete,
+              fitnessGoal,
+              musclesPerWorkout,
+            ),
+          },
+        ],
+        max_tokens: 3000,
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+      });
+      const days = JSON.parse(raw.replace(/```json|```/g, "").trim())?.days;
+      if (!Array.isArray(days) || days.length === 0)
+        throw new Error("The AI returned an invalid plan. Please try again.");
+      return { result: raw };
+    } catch (e) {
+      const { supabaseAdmin } = await import("@/integrations/client.server");
+      await supabaseAdmin.rpc("release_ai_plan", { p_id: turn });
+      throw e instanceof SyntaxError
+        ? new Error("The AI returned an invalid plan. Please try again.")
+        : e;
+    }
   });
+
+/** Shown when "Let AI Pick for You" has no turns left. Kind, not a lock. */
+export const AI_PLAN_LIMIT_MESSAGE =
+  "You've used your AI plans for now. Your current plan is ready to train with 💪";
 
 // ── Voice parse ──────────────────────────────────────────────────────────────
 // Pinned server-side like the vision path: the model order and its fallbacks
@@ -565,13 +587,22 @@ export const serverFoodVision = createServerFn({ method: "POST" })
     VisionInput.extend({
       /** Which Proceed this is after failures; the model order rotates on it. */
       attempt: z.union([z.literal(1), z.literal(2)]).optional(),
+      /** Optional user hint about the food; same 50-char cap as the app. */
+      note: z.string().trim().max(50).optional(),
     }),
   )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
     const { visionChain } = await import("@/server/aiRoutes");
-    const { prompt, base64, mimeType, attempt = 1 } = ctx.data;
+    const { prompt, base64, mimeType, attempt = 1, note } = ctx.data;
+    // Labelled here, not by the client, and stripped of quotes and line
+    // breaks, so a typed note can't pose as part of the instructions.
+    const clean = note?.replace(/["\s]+/g, " ").trim();
+    const after = clean
+      ? `User's note (optional, may be wrong): "${clean}"`
+      : undefined;
     return {
-      result: (await visionChain(prompt, base64, mimeType, attempt)).text,
+      result: (await visionChain(prompt, base64, mimeType, attempt, after))
+        .text,
     };
   });

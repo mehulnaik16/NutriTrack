@@ -78,6 +78,8 @@ export function altNames(lang: string): string[] {
     .filter((n) => n.length >= 2);
 }
 
+// shortcut: Fuse scans every row per search (~25 ms at 1.7k rows), upgrade to an
+// indexed engine such as MiniSearch when the catalog passes ~10k rows.
 let fuse: Fuse<Indexed> | null = null;
 
 function index(): Fuse<Indexed> {

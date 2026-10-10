@@ -96,6 +96,8 @@ import {
   type TourState,
 } from "@/components/Tour";
 import { loadMealNames } from "@/lib/meals";
+import { PENDING_ADD_KEY } from "@/lib/friendInvite";
+import { useDragScroll } from "@/hooks/useDragScroll";
 import {
   uploadWeightPhoto,
   existingPhotoUrl,
@@ -109,6 +111,7 @@ import {
   VIEW_ONLY_MESSAGE,
 } from "@/lib/dates";
 import { formatQty } from "@/lib/foodUnits";
+import { referIntroDue } from "@/lib/signupRules";
 import {
   calcBMR,
   calcTDEE,
@@ -118,6 +121,7 @@ import {
 import { getTelemetryLabel } from "@/lib/telemetry";
 import { changeTone, wantedDirection } from "@/lib/measurements";
 import { SignedPhoto } from "@/components/SignedPhoto";
+import { PhotoDownloadButton } from "@/components/PhotoDownloadButton";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 // Route-level lock. The page renders with the user's own data but does not
@@ -154,6 +158,7 @@ interface Profile {
   created_at: string | null;
   trial_start_date: string | null;
   selected_plan: string | null;
+  phone?: string | null;
   has_answered_tour_offer?: boolean;
 }
 
@@ -276,8 +281,22 @@ function computeStreak(data: { date: string | null }[]): number {
 function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  // A friend invite opened before signing in (see hub.tsx): continue it.
+  useEffect(() => {
+    if (!user) return;
+    let add: string | null = null;
+    try {
+      add = localStorage.getItem(PENDING_ADD_KEY);
+      if (add) localStorage.removeItem(PENDING_ADD_KEY);
+    } catch {
+      /* storage blocked */
+    }
+    if (add) navigate({ to: "/hub", search: { add } });
+  }, [user?.id, navigate]);
   const searchRef = useRef<FoodSearchRef>(null);
   const photoRowRef = useRef<HTMLDivElement>(null);
+  // Mouse drag-to-scroll for the photo row; touch already swipes natively.
+  const photoDragScroll = useDragScroll();
   const [openPhoto, setOpenPhoto] = useState<WeightEntry | null>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -415,14 +434,25 @@ function Dashboard() {
       return;
     }
 
-    // Compulsory-once onboarding screens, in order: benefits/features intro, then
-    // the Refer & Earn intro. Each is forced on every landing until the user
-    // dismisses it (which sets its flag), so they survive logout / app-close.
+    // The phone number is the last sign-up step, after pricing. Asked once of
+    // every user, existing ones included, until it is answered.
+    if (!p.phone) {
+      navigate({ to: "/signup-details", replace: true });
+      return;
+    }
+
+    // Compulsory-once screens: the benefits/features intro, then the Refer &
+    // Earn intro. Each is forced on every landing until the user dismisses it
+    // (which sets its flag), so they survive logout / app-close.
     if (!p.has_seen_benefits_features_page) {
       navigate({ to: "/welcome", replace: true });
       return;
     }
-    if (!p.has_seen_refer_intro) {
+    // Refer & Earn waits for day 6 of the account (see referIntroDue).
+    if (
+      !p.has_seen_refer_intro &&
+      referIntroDue(p.created_at, todayLocal())
+    ) {
       navigate({ to: "/refer-intro", replace: true });
       return;
     }
@@ -1592,7 +1622,8 @@ function Dashboard() {
                     {/* Newest first; swipe right to go back in time. */}
                     <div
                       ref={photoRowRef}
-                      className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-6 px-6 pb-2 [contain:inline-size] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                      className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-6 px-6 pb-2 [contain:inline-size] [scrollbar-width:none] select-none pointer-fine:cursor-grab [&::-webkit-scrollbar]:hidden"
+                      {...photoDragScroll}
                     >
                       {photoEntries.map((e) => (
                         <button
@@ -1604,6 +1635,7 @@ function Dashboard() {
                         >
                           <SignedPhoto
                             src={e.photo_url!}
+                            date={e.date}
                             alt={`Progress photo, ${e.weight_kg} kg on ${e.date}`}
                             className="h-full w-full object-cover"
                           />
@@ -1626,9 +1658,18 @@ function Dashboard() {
                         {openPhoto && (
                           <SignedPhoto
                             src={openPhoto.photo_url!}
+                            date={openPhoto.date}
                             alt={`Progress photo, ${openPhoto.weight_kg} kg on ${openPhoto.date}`}
                             className="max-h-[75vh] w-full rounded-lg object-contain"
                           />
+                        )}
+                        {openPhoto && (
+                          <div className="flex justify-start">
+                            <PhotoDownloadButton
+                              photoUrl={openPhoto.photo_url!}
+                              date={openPhoto.date}
+                            />
+                          </div>
                         )}
                       </DialogContent>
                     </Dialog>

@@ -927,6 +927,9 @@ export type Database = {
           gym_attribution_ended_at: string | null
           has_answered_tour_offer: boolean
           theme: string | null
+          marketing_opt_in: boolean
+          phone: string | null
+          heard_about: string | null
           has_seen_benefits_features_page: boolean
           has_seen_refer_intro: boolean
           height_cm: number | null
@@ -984,6 +987,9 @@ export type Database = {
           has_answered_tour_offer?: boolean
           has_seen_benefits_features_page?: boolean
           theme?: string | null
+          marketing_opt_in?: boolean
+          phone?: string | null
+          heard_about?: string | null
           notif_primer_first_log_shown?: boolean
           notif_primer_day5_shown?: boolean
           has_seen_refer_intro?: boolean
@@ -1024,6 +1030,9 @@ export type Database = {
           has_seen_benefits_features_page?: boolean
           has_seen_refer_intro?: boolean
           theme?: string | null
+          marketing_opt_in?: boolean
+          phone?: string | null
+          heard_about?: string | null
           notif_primer_first_log_shown?: boolean
           notif_primer_day5_shown?: boolean
           height_cm?: number | null
@@ -1276,7 +1285,13 @@ export type Database = {
       award_achievement: { Args: { p_id: string }; Returns: undefined }
       claim_referral: { Args: { code: string }; Returns: boolean }
       generate_referral_code: { Args: { full_name: string }; Returns: string }
+      data_export_status: { Args: never; Returns: Json }
       get_billing_summary: { Args: never; Returns: Json }
+      record_data_export: { Args: { p_kind: string }; Returns: boolean }
+      ai_plan_status: { Args: never; Returns: Json }
+      claim_ai_plan: { Args: never; Returns: string | null }
+      claim_photo_download: { Args: never; Returns: boolean }
+      release_ai_plan: { Args: { p_id: string }; Returns: undefined }
       get_friend_requests: {
         Args: never
         Returns: {

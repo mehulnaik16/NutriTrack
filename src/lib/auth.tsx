@@ -173,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await import("@/lib/historyCache").then((m) =>
               m.clearHistoryCache(userId),
             );
+          await import("@/services/storage").then((m) => m.clearPhotoCache());
           await (await loadClient()).auth.signOut();
           setHasProfile(null);
         },

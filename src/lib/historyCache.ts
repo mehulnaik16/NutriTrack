@@ -25,6 +25,7 @@
  */
 import { supabase } from "@/integrations/client";
 import type { Tables } from "@/integrations/types";
+import { FROZEN_DAYS } from "@/lib/cacheRules";
 import { daysAgoLocal } from "@/lib/dates";
 import { isNativeApp } from "@/lib/platform";
 
@@ -46,7 +47,7 @@ const VERSION_TTL_MS = 3000;
 // 8, not 7: the DB counts days in user_profiles.timezone and the device in its
 // own clock. The margin keeps a row the DB still lets you edit out of the
 // frozen part.
-const frozenBefore = () => daysAgoLocal(8);
+const frozenBefore = () => daysAgoLocal(FROZEN_DAYS);
 
 // ── IndexedDB (native API, one object store keyed `${userId}:${table}`) ──────
 

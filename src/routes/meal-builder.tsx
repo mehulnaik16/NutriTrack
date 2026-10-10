@@ -476,6 +476,11 @@ function MealBuilderPage() {
               ))}
             </div>
           )}
+          {aiSuggestions.length > 0 && (
+            <p className="-mt-2 text-center text-[11px] text-muted-foreground">
+              AI can make mistakes. Check the food and weight before logging.
+            </p>
+          )}
 
           {/* Same three quick-add flows as the Log Food screen; here each result
               becomes an ingredient instead of a diary entry. */}

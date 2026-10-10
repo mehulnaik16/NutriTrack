@@ -32,7 +32,7 @@ export function WaterStreak({ userId, streak }: Props) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    loadWaterPrefs(userId).then((p) => {
+    loadWaterPrefs(userId, (p) => {
       setDailyGoalMl(p.goalMl);
       setStepMl(p.cupMl);
     });

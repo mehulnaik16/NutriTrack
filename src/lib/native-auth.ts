@@ -64,12 +64,14 @@ export interface NativeAuthResult {
  * Resolves rather than throwing, because every outcome here — success, the user
  * backing out, a timeout — is an ordinary thing a sign-in button has to render.
  */
-export async function signInWithGoogleNative(): Promise<NativeAuthResult> {
+export async function signInWithOAuthNative(
+  provider: "google" | "apple" = "google",
+): Promise<NativeAuthResult> {
   // skipBrowserRedirect keeps supabase-js from navigating this WebView. It
   // still generates the URL and stores the PKCE verifier, which is exactly the
   // half we want; we do the opening ourselves so it lands in a Custom Tab.
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
+    provider,
     options: { redirectTo: AUTH_REDIRECT, skipBrowserRedirect: true },
   });
 

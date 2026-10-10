@@ -17,8 +17,20 @@ import {
   Loader2,
   Clock,
   Gift,
+  Share2,
+  ImageUp,
+  MessageCircle,
+  MessageSquare,
+  Copy,
+  Download,
+  Send,
+  Mail,
+  Facebook,
+  AtSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/client";
+import { useDragScroll } from "@/hooks/useDragScroll";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
   Dialog,
@@ -95,7 +107,26 @@ function Avatar({
   );
 }
 
-export function FriendsPanel() {
+type ShareTarget =
+  | "system"
+  | "whatsapp"
+  | "sms"
+  | "copy"
+  | "save"
+  | "telegram"
+  | "email"
+  | "facebook"
+  | "x";
+type ShareOption = [ShareTarget, string, typeof Share2, string];
+
+/** `addCode`: a username from an invite link (/hub?add=…) to offer a request to. */
+export function FriendsPanel({
+  addCode,
+  onAddHandled,
+}: {
+  addCode?: string;
+  onAddHandled?: () => void;
+} = {}) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"FRIENDS" | "REQUESTS" | "DISCOVER">(
@@ -290,6 +321,174 @@ export function FriendsPanel() {
       clearInterval(id);
     };
   }, [scanOpen]);
+
+  /** The friend-code QR as a PNG picture, with the username under it. */
+  const qrPicture = async (): Promise<File | null> => {
+    if (!myUsername) return null;
+    const svg = renderSVG(QR_PREFIX + myUsername, {
+      border: 2,
+      blackColor: "#000",
+      whiteColor: "#fff",
+    });
+    const img = new Image();
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    await img.decode();
+    const size = 600;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size + 70;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false; // keep QR modules crisp
+    ctx.drawImage(img, 0, 0, size, size);
+    ctx.fillStyle = "#111";
+    ctx.font = "bold 32px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`@${myUsername} on Dombelz`, size / 2, size + 40);
+    const blob = await new Promise<Blob | null>((r) =>
+      canvas.toBlob(r, "image/png"),
+    );
+    return blob
+      ? new File([blob], `dombelz-friend-${myUsername}.png`, {
+          type: "image/png",
+        })
+      : null;
+  };
+
+  // The link opens Hub → Friends and offers to send this user a request.
+  const addLink = myUsername
+    ? `${window.location.origin}/hub?add=${encodeURIComponent(myUsername)}`
+    : "";
+  const shareText = `Add me as a friend on Dombelz! I'm @${myUsername}. Tap to send me a request: ${addLink}`;
+
+  /**
+   * Same options as Refer & Earn. "More apps" is the phone's own share sheet,
+   * so it lists whatever is installed (WhatsApp, Instagram, Messenger, RCS
+   * Messages…); the others work where that sheet doesn't exist.
+   */
+  const shareQr = async (target: ShareTarget) => {
+    if (!myUsername) return;
+    if (target === "system") {
+      const file = await qrPicture();
+      try {
+        await navigator.share(
+          file && navigator.canShare?.({ files: [file] })
+            ? { files: [file], text: shareText }
+            : { text: shareText, url: addLink },
+        );
+      } catch {
+        /* closed the share sheet */
+      }
+      return;
+    }
+    const web: Partial<Record<typeof target, string>> = {
+      telegram: `https://t.me/share/url?url=${encodeURIComponent(addLink)}&text=${encodeURIComponent(shareText)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(addLink)}`,
+      x: `https://x.com/intent/post?text=${encodeURIComponent(shareText)}`,
+    };
+    if (web[target]) {
+      window.open(web[target], "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (target === "email") {
+      window.location.href = `mailto:?subject=${encodeURIComponent("Add me on Dombelz")}&body=${encodeURIComponent(shareText)}`;
+      return;
+    }
+    if (target === "whatsapp") {
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+      return;
+    }
+    if (target === "sms") {
+      // iOS wants sms:&body=, everyone else sms:?body= (as in Refer & Earn).
+      const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      window.location.href = `sms:${iOS ? "&" : "?"}body=${encodeURIComponent(shareText)}`;
+      return;
+    }
+    if (target === "copy") {
+      // The QR picture itself, so it pastes straight into a chat. The blob is
+      // passed as a promise: Safari only allows clipboard writes started
+      // synchronously from the tap.
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "image/png": qrPicture().then((f) => {
+              if (!f) throw new Error("no picture");
+              return f;
+            }),
+          }),
+        ]);
+        toast.success("QR code copied. Paste it into a chat.");
+      } catch {
+        // No image clipboard here (older browsers): copy the invite text.
+        try {
+          await navigator.clipboard.writeText(shareText);
+          toast.success("Invite link copied. Paste it to your friend.");
+        } catch {
+          toast.error("Couldn't copy. Use another option instead.");
+        }
+      }
+      return;
+    }
+    const file = await qrPicture();
+    if (!file) return toast.error("Couldn't create the picture");
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success("QR code saved. Send the picture to your friend.");
+  };
+  const shareDragScroll = useDragScroll();
+  const canSystemShare =
+    typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const shareOptions: ShareOption[] = [
+    // The phone's own share sheet: every installed app,
+    // Instagram and Messenger included. Absent on most desktops.
+    ...(canSystemShare
+      ? [["system", "More apps", Share2, "text-accent"] as ShareOption]
+      : []),
+    ["whatsapp", "WhatsApp", MessageCircle, "text-[#25D366]"],
+    ["sms", "SMS", MessageSquare, "text-accent"],
+    ["copy", "Copy QR", Copy, "text-muted-foreground"],
+    ["telegram", "Telegram", Send, "text-[#229ED9]"],
+    ["email", "Email", Mail, "text-accent"],
+    ["facebook", "Facebook", Facebook, "text-[#1877F2]"],
+    ["x", "X", AtSign, "text-foreground"],
+    ["save", "Save QR", Download, "text-muted-foreground"],
+  ];
+
+  /** Read a friend code from an uploaded picture (e.g. one shared on WhatsApp). */
+  const uploadQr = async (file: File | undefined) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    try {
+      const res = await new BrowserMultiFormatReader().decodeFromImageUrl(url);
+      await handleCode(res.getText());
+    } catch {
+      toast.error("No QR code found in that picture. Try a clearer one.");
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+  const uploadRef = useRef<HTMLInputElement>(null);
+
+  // An invite link: ask before sending, since opening a link shouldn't send
+  // a request on its own. Your own link just says so.
+  const [pendingAdd, setPendingAdd] = useState<string | null>(null);
+  useEffect(() => {
+    if (!addCode || !user || !myUsername) return;
+    if (addCode.toLowerCase() === myUsername.toLowerCase())
+      toast.info("That's your own invite link. Share it with a friend.");
+    else setPendingAdd(addCode);
+    onAddHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addCode, user?.id, myUsername]);
 
   const myQr = useMemo(
     () =>
@@ -668,6 +867,61 @@ export function FriendsPanel() {
           <p className="text-center text-xs text-muted-foreground">
             Let a friend scan this. You'll get a request to approve.
           </p>
+          <div>
+            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Share your QR code
+            </p>
+            {/* One row, about three showing; swipe, or drag with a mouse. */}
+            <div
+              {...shareDragScroll}
+              className="-mx-6 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-6 px-6 pb-1 [contain:inline-size] [scrollbar-width:none] select-none pointer-fine:cursor-grab [&::-webkit-scrollbar]:hidden"
+            >
+              {shareOptions.map(([target, label, Icon, tint]) => (
+                <button
+                  key={target}
+                  type="button"
+                  onClick={() => shareQr(target)}
+                  className="flex min-h-[64px] w-[30%] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card px-1 py-2 transition-colors hover:border-accent/50"
+                >
+                  <Icon className={`h-5 w-5 ${tint}`} />
+                  <span className="text-[11px] font-medium leading-tight text-muted-foreground">
+                    {label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Invite link confirmation ── */}
+      <Dialog
+        open={pendingAdd !== null}
+        onOpenChange={(o) => !o && setPendingAdd(null)}
+      >
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-center">Add a friend?</DialogTitle>
+            <DialogDescription className="text-center">
+              Send a friend request to{" "}
+              <span className="font-bold text-accent">@{pendingAdd}</span>?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={() => setPendingAdd(null)}>
+              Not now
+            </Button>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => {
+                const code = pendingAdd;
+                setPendingAdd(null);
+                if (code) handleCode(code);
+              }}
+            >
+              Send request
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -687,10 +941,10 @@ export function FriendsPanel() {
               ref={camRef}
               screenshotFormat="image/jpeg"
               videoConstraints={{ facingMode: "environment" }}
-              onUserMediaError={() => {
-                toast.error("Camera unavailable — search by username instead.");
-                setScanOpen(false);
-              }}
+              onUserMediaError={() =>
+                // Keep the dialog open: uploading a picture still works.
+                toast.error("Camera unavailable. Upload a QR picture instead.")
+              }
               className="h-full w-full object-cover"
             />
             <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-accent/70" />
@@ -698,6 +952,23 @@ export function FriendsPanel() {
               <Loader2 className="h-3 w-3 animate-spin" /> Looking for a code…
             </div>
           </div>
+          <input
+            ref={uploadRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              uploadQr(e.target.files?.[0]);
+              e.target.value = ""; // the same picture can be picked again
+            }}
+          />
+          <Button
+            variant="outline"
+            onClick={() => uploadRef.current?.click()}
+            className="gap-2"
+          >
+            <ImageUp className="h-4 w-4" /> Upload a QR picture
+          </Button>
         </DialogContent>
       </Dialog>
     </div>

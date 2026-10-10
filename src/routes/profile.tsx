@@ -95,7 +95,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { applyTheme, getLocalTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/client";
-import { getProfileRow } from "@/lib/historyCache";
+import { getHistory, getProfileRow } from "@/lib/historyCache";
 import { loadMealNames, saveMealNames } from "@/lib/meals";
 import { loadWaterPrefs, saveWaterPrefs } from "@/lib/water";
 import { serverDeleteAccount } from "@/lib/delete-account";
@@ -123,7 +123,6 @@ import {
   findPlan,
   giftLabel,
   periodLabel,
-  PRICE_TAX_NOTE,
 } from "@/lib/plans";
 import { useGift } from "@/hooks/useReferralGift";
 import {
@@ -161,6 +160,18 @@ import {
   kgToWeight,
   round1,
 } from "@/lib/units";
+
+type ExportKind = "json" | "csv" | "weight_pdf";
+
+/** "2026-10-15T…" → "15 Oct" (with the year only when it isn't this year). */
+function formatExportDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    ...(d.getFullYear() !== new Date().getFullYear() && { year: "numeric" }),
+  });
+}
 
 /** WorkoutPrefs -> the profile page's wp* draft-field values (edit form + cache seed). */
 function wpFieldValues(p: WorkoutPrefs) {
@@ -341,7 +352,7 @@ function Profile() {
   const [activity, setActivity] = useState("");
   const [loseRate, setLoseRate] = useState("lose_0_25kg");
   const [saving, setSaving] = useState(false);
-  const [theme, setTheme] = useState<string>("dark");
+  const [theme, setTheme] = useState<string>("light");
   const [wp, setWp] = useState<WorkoutPrefs | null>(() =>
     user ? getCachedWorkoutPrefs(user.id) : null,
   );
@@ -668,12 +679,12 @@ function Profile() {
             {[
               {
                 id: "dark",
-                label: "Carbon (default)",
+                label: "Carbon",
                 icon: <Moon className="h-5 w-5 text-accent" />,
               },
               {
                 id: "light",
-                label: "Light",
+                label: "Light (default)",
                 icon: <Sun className="h-5 w-5 text-yellow-500" />,
               },
               {
@@ -1748,9 +1759,6 @@ function TransactionsPage({
                     {periodLabel(plan.months)}
                     {trialActive ? " after trial" : ""}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {PRICE_TAX_NOTE}
-                  </p>
                   {giftKind && (
                     <p className="mt-1 text-xs font-semibold text-accent">
                       {giftLabel(giftKind)}
@@ -2070,13 +2078,58 @@ function SettingsPage({
   const [cupSize, setCupSize] = useState("250");
 
   useEffect(() => {
-    loadWaterPrefs(userId).then((p) => {
+    loadWaterPrefs(userId, (p) => {
       setWaterGoal(String(p.goalMl));
       setCupSize(String(p.cupMl));
     });
   }, [userId]);
 
-  const [exporting, setExporting] = useState<"json" | "csv" | null>(null);
+  const [exporting, setExporting] = useState<ExportKind | null>(null);
+  // When each export may next run (null = now); loaded from the server, which
+  // also enforces it (migration 20261008180000_data_export_limits).
+  const [exportNext, setExportNext] = useState<Record<
+    ExportKind,
+    string | null
+  > | null>(null);
+  const loadExportStatus = async () => {
+    const { data } = await supabase.rpc("data_export_status");
+    const next = (data as { next?: Record<ExportKind, string | null> } | null)
+      ?.next;
+    if (next) setExportNext(next);
+    return next ?? null;
+  };
+  useEffect(() => {
+    loadExportStatus();
+  }, [userId]);
+
+  /**
+   * Run one export under its limit: ask the server first, build and download,
+   * and only then count it, so a failed export does not use up the turn.
+   */
+  const runExport = async (
+    kind: ExportKind,
+    build: () => Promise<boolean>,
+    done: string,
+  ) => {
+    setExporting(kind);
+    try {
+      const next = (await loadExportStatus())?.[kind];
+      if (next) {
+        toast.info(
+          `You've already downloaded this recently. It's available again on ${formatExportDate(next)}.`,
+        );
+        return;
+      }
+      if (!(await build())) return;
+      await supabase.rpc("record_data_export", { p_kind: kind });
+      await loadExportStatus();
+      toast.success(done);
+    } catch {
+      toast.error("Export failed. Please try again; it wasn't counted.");
+    } finally {
+      setExporting(null);
+    }
+  };
 
   // Account deletion (required by Google Play & App Store policies)
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -2138,8 +2191,9 @@ function SettingsPage({
     toast.success("Water preferences saved");
   };
 
-  const download = (content: string, filename: string, type: string) => {
-    const blob = new Blob([content], { type });
+  const download = (content: string | Blob, filename: string, type: string) => {
+    const blob =
+      content instanceof Blob ? content : new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -2148,107 +2202,113 @@ function SettingsPage({
     URL.revokeObjectURL(url);
   };
 
-  const exportJSON = async () => {
-    setExporting("json");
-    try {
-      const [profileRes, food, weightRes, workouts, water, savedMeals] =
-        await Promise.all([
-          supabase
-            .from("user_profiles")
-            .select("*")
-            .eq("id", userId)
-            .maybeSingle(),
-          supabase
-            .from("food_logs")
-            .select("*")
-            .eq("user_id", userId)
-            .order("date"),
-          supabase
-            .from("weight_entries")
-            .select("*")
-            .eq("user_id", userId)
-            .order("date"),
-          supabase
-            .from("workout_logs")
-            .select("*")
-            .eq("user_id", userId)
-            .order("date"),
-          supabase
-            .from("water_logs")
-            .select("*")
-            .eq("user_id", userId)
-            .order("date"),
-          supabase.from("saved_meals").select("*").eq("user_id", userId),
-        ]);
-      const payload = {
-        exported_at: new Date().toISOString(),
-        profile: profileRes.data,
-        food_logs: food.data ?? [],
-        weight_entries: weightRes.data ?? [],
-        workout_logs: workouts.data ?? [],
-        water_logs: water.data ?? [],
-        saved_meals: savedMeals.data ?? [],
-      };
-      download(
-        JSON.stringify(payload, null, 2),
-        `dombelz-export-${new Date().toISOString().slice(0, 10)}.json`,
-        "application/json",
-      );
-      toast.success("Export downloaded");
-    } catch (e) {
-      toast.error((e as Error).message ?? "Export failed");
-    } finally {
-      setExporting(null);
-    }
-  };
+  const stamp = () => new Date().toISOString().slice(0, 10);
+  const byDate = <T extends { date: string | null }>(rows: T[]) =>
+    rows.sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
 
-  const exportCSV = async () => {
-    setExporting("csv");
-    try {
-      const { data, error } = await supabase
-        .from("food_logs")
-        .select(
-          "date,meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g",
-        )
-        .eq("user_id", userId)
-        .order("date");
-      if (error) throw error;
-      const rows = data ?? [];
-      const esc = (v: unknown) => {
-        const s = String(v ?? "");
-        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-      };
-      const header =
-        "date,meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g";
-      const body = rows
-        .map((r) =>
-          [
-            r.date,
-            r.meal_type,
-            r.food_name,
-            r.quantity_g,
-            r.calories,
-            r.protein_g,
-            r.carbs_g,
-            r.fat_g,
-            r.fiber_g,
-          ]
-            .map(esc)
-            .join(","),
-        )
-        .join("\n");
-      download(
-        `${header}\n${body}`,
-        `dombelz-food-diary-${new Date().toISOString().slice(0, 10)}.csv`,
-        "text/csv",
-      );
-      toast.success("Food diary downloaded");
-    } catch (e) {
-      toast.error((e as Error).message ?? "Export failed");
-    } finally {
-      setExporting(null);
-    }
-  };
+  // Log tables come through getHistory: every row (paged past PostgREST's
+  // 1000-row cap) and no download at all when the browser cache is current.
+  const exportJSON = () =>
+    runExport(
+      "json",
+      async () => {
+        const [profileRes, food, weight, workouts, water, savedMeals] =
+          await Promise.all([
+            supabase
+              .from("user_profiles")
+              .select("*")
+              .eq("id", userId)
+              .maybeSingle(),
+            getHistory(userId, "food_logs"),
+            getHistory(userId, "weight_entries"),
+            getHistory(userId, "workout_logs"),
+            supabase
+              .from("water_logs")
+              .select("*")
+              .eq("user_id", userId)
+              .order("date"),
+            supabase.from("saved_meals").select("*").eq("user_id", userId),
+          ]);
+        // A partial file must not count as this week's export.
+        if (profileRes.error || water.error || savedMeals.error)
+          throw new Error("read failed");
+        const payload = {
+          exported_at: new Date().toISOString(),
+          profile: profileRes.data,
+          food_logs: byDate(food),
+          weight_entries: byDate(weight),
+          workout_logs: byDate(workouts),
+          water_logs: water.data ?? [],
+          saved_meals: savedMeals.data ?? [],
+        };
+        download(
+          JSON.stringify(payload, null, 2),
+          `dombelz-export-${stamp()}.json`,
+          "application/json",
+        );
+        return true;
+      },
+      "Export downloaded",
+    );
+
+  const exportCSV = () =>
+    runExport(
+      "csv",
+      async () => {
+        const rows = byDate(await getHistory(userId, "food_logs"));
+        const esc = (v: unknown) => {
+          const s = String(v ?? "");
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const header =
+          "date,meal_type,food_name,quantity_g,calories,protein_g,carbs_g,fat_g,fiber_g";
+        const body = rows
+          .map((r) =>
+            [
+              r.date,
+              r.meal_type,
+              r.food_name,
+              r.quantity_g,
+              r.calories,
+              r.protein_g,
+              r.carbs_g,
+              r.fat_g,
+              r.fiber_g,
+            ]
+              .map(esc)
+              .join(","),
+          )
+          .join("\n");
+        download(
+          `${header}\n${body}`,
+          `dombelz-food-diary-${stamp()}.csv`,
+          "text/csv",
+        );
+        return true;
+      },
+      "Food diary downloaded",
+    );
+
+  const exportWeightPdf = () =>
+    runExport(
+      "weight_pdf",
+      async () => {
+        const entries = await getHistory(userId, "weight_entries");
+        if (entries.length === 0) {
+          toast.info("No weight entries yet. Log your weight first.");
+          return false;
+        }
+        const { buildWeightReport } = await import("@/lib/weightReport");
+        const unit = getCachedWorkoutPrefs(userId)?.weightUnit ?? "kg";
+        download(
+          await buildWeightReport(entries, unit),
+          `dombelz-weight-report-${stamp()}.pdf`,
+          "application/pdf",
+        );
+        return true;
+      },
+      "Weight report downloaded",
+    );
 
   return (
     <div className="min-h-screen bg-background pb-nav">
@@ -2374,40 +2434,53 @@ function SettingsPage({
             Data export
           </p>
           <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-            <button
-              onClick={exportJSON}
-              disabled={exporting !== null}
-              className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40 disabled:opacity-60"
-            >
-              <span className="flex items-center gap-3 text-sm font-medium">
-                <Download className="h-5 w-5 text-accent" />
-                Export everything (JSON)
-              </span>
-              {exporting === "json" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-              )}
-            </button>
-            <button
-              onClick={exportCSV}
-              disabled={exporting !== null}
-              className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-muted/40 disabled:opacity-60"
-            >
-              <span className="flex items-center gap-3 text-sm font-medium">
-                <Download className="h-5 w-5 text-accent" />
-                Export food diary (CSV)
-              </span>
-              {exporting === "csv" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-              )}
-            </button>
+            {(
+              [
+                ["json", "Export everything (JSON)", exportJSON],
+                ["csv", "Export food diary (CSV)", exportCSV],
+                // Web and installed web app only for now; the phone app's
+                // WebView can't save a generated file without a share sheet.
+                ...(isNativeApp()
+                  ? []
+                  : [
+                      [
+                        "weight_pdf",
+                        "Export weight & photos (PDF)",
+                        exportWeightPdf,
+                      ] as const,
+                    ]),
+              ] as const
+            ).map(([kind, label, run]) => (
+              <button
+                key={kind}
+                onClick={run}
+                disabled={exporting !== null}
+                className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/40 disabled:opacity-60"
+              >
+                <span className="flex items-center gap-3 text-sm font-medium">
+                  <Download className="h-5 w-5 shrink-0 text-accent" />
+                  <span>
+                    {label}
+                    {exportNext?.[kind] && (
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        Available again on {formatExportDate(exportNext[kind]!)}
+                      </span>
+                    )}
+                  </span>
+                </span>
+                {exporting === kind ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+                )}
+              </button>
+            ))}
           </div>
           <p className="mt-2 px-1 text-xs text-muted-foreground">
             Your data belongs to you. Exports include food, weight, workout, and
-            water logs.
+            water logs. Everything (JSON) is once a week. The food diary is once
+            a week (once a month on the free plan). The weight report is once a
+            month; single photos can be downloaded from each weight entry.
           </p>
         </section>
 
