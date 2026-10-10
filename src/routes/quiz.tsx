@@ -8,7 +8,6 @@ import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useForceLightTheme } from "@/lib/theme";
 import { SignupProgress } from "@/components/SignupProgress";
 import { Mars, Venus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -107,8 +106,6 @@ function Quiz() {
   const routeNavigate = Route.useNavigate();
   const router = useRouter();
   const { user, loading, hasProfile } = useAuth();
-  // Sign-up is always light, whatever theme the user picked.
-  useForceLightTheme();
   const { step: searchStep, ref: searchRef } = Route.useSearch();
   const step = searchStep ?? 1;
   const stepKey: StepKey = STEPS[step - 1]?.key ?? "account";
@@ -385,14 +382,13 @@ function Quiz() {
           {stepKey === "account" && (
             <div className="space-y-6">
               <h2 className="text-3xl font-semibold mb-2">Tell us about you</h2>
-              <div className="space-y-5 pt-4">
-                <BirthYearPicker onAge={(age) => set("age", age)} />
+              <div className="space-y-8 pt-4">
                 <div className="space-y-3">
                   <Label className="text-base text-foreground/80">Gender</Label>
                   <div
                     role="radiogroup"
                     aria-label="Gender"
-                    className="flex gap-5"
+                    className="flex w-full rounded-full border border-border bg-card p-1"
                   >
                     {(
                       [
@@ -408,15 +404,16 @@ function Quiz() {
                           role="radio"
                           aria-checked={on}
                           onClick={() => set("gender", g)}
-                          className={`flex h-24 w-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 text-sm font-semibold transition-colors ${on ? "border-accent bg-accent text-accent-foreground" : "border-border bg-card text-muted-foreground hover:border-muted-foreground/40"}`}
+                          className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${on ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
                         >
-                          <Icon className="h-7 w-7" />
+                          <Icon className="h-4 w-4" />
                           {g}
                         </button>
                       );
                     })}
                   </div>
                 </div>
+                <BirthYearPicker onAge={(age) => set("age", age)} />
               </div>
             </div>
           )}
@@ -489,76 +486,88 @@ function Quiz() {
           )}
 
           {stepKey === "body" && (
-            <div className="space-y-6 animate-in fade-in duration-300 flex flex-col items-center">
-              <h2 className="text-3xl font-semibold mb-2 self-start">
-                What's your weight?
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <h2 className="text-3xl font-semibold mb-2">
+                Your weight and height
               </h2>
-              <p className="text-muted-foreground mb-8 text-sm self-start">
+              <p className="text-muted-foreground text-sm">
                 We use your weight to personalize workouts and training
                 calculations.
               </p>
 
-              {/* Toggle */}
-              <div className="flex bg-card rounded-xl p-1 w-full max-w-sm mb-6 cursor-pointer">
-                <div
-                  onClick={() => setUnit("kg")}
-                  className={`flex-1 text-center py-2 rounded-lg font-bold text-sm transition-colors ${unit === "kg" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
-                >
-                  Kilograms (kg)
-                </div>
-                <div
-                  onClick={() => setUnit("lb")}
-                  className={`flex-1 text-center py-2 rounded-lg font-bold text-sm transition-colors ${unit === "lb" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}
-                >
-                  Pounds (lb)
-                </div>
+              <div className="flex w-full rounded-full border border-border bg-card p-1">
+                {(
+                  [
+                    ["kg", "Kilograms (kg)"],
+                    ["lb", "Pounds (lb)"],
+                  ] as const
+                ).map(([u, text]) => (
+                  <button
+                    key={u}
+                    type="button"
+                    aria-pressed={unit === u}
+                    onClick={() => setUnit(u)}
+                    className={`flex-1 rounded-full py-2 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${unit === u ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {text}
+                  </button>
+                ))}
               </div>
 
-              {/* Big Number */}
-              <div className="text-7xl font-bold tracking-tight mb-8">
-                {unit === "kg" ? d.weightKg : Math.round(d.weightKg * 2.20462)}{" "}
-                <span className="text-3xl text-muted-foreground font-normal">
-                  {unit}
-                </span>
-              </div>
-
-              {/* Robust Native Slider for Weight */}
-              <div className="w-full max-w-sm mt-4 px-2">
-                <Slider
-                  value={[d.weightKg]}
-                  onValueChange={(v) => set("weightKg", v[0])}
-                  min={30}
-                  max={200}
-                  step={1}
-                  className="py-4 cursor-grab active:cursor-grabbing [&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:bg-accent [&_[role=slider]]:border-accent [&_[role=slider]]:shadow-[0_0_20px_-2px_var(--accent)] [&_.relative]:bg-muted [&_.relative>div]:bg-accent"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground/60 mt-2 font-medium">
-                  <span>30 kg</span>
-                  <span>200 kg</span>
+              {(
+                [
+                  {
+                    label: "Weight",
+                    value: d.weightKg,
+                    key: "weightKg",
+                    min: 30,
+                    max: 200,
+                    show: (kg: number) =>
+                      unit === "kg" ? kg : Math.round(kg * 2.20462),
+                    unit,
+                  },
+                  {
+                    label: "Height",
+                    value: d.heightCm,
+                    key: "heightCm",
+                    min: 100,
+                    max: 250,
+                    show: (cm: number) => cm,
+                    unit: "cm",
+                  },
+                ] as const
+              ).map((m) => (
+                <div key={m.key} className="space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <Label className="text-base text-foreground/80">
+                      {m.label}
+                    </Label>
+                    <span className="text-3xl font-bold tracking-tight">
+                      {m.show(m.value)}{" "}
+                      <span className="text-base font-normal text-muted-foreground">
+                        {m.unit}
+                      </span>
+                    </span>
+                  </div>
+                  <Slider
+                    aria-label={m.label}
+                    value={[m.value]}
+                    onValueChange={(v) => set(m.key, v[0])}
+                    min={m.min}
+                    max={m.max}
+                    step={1}
+                    className="py-3 cursor-grab active:cursor-grabbing [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:bg-accent [&_[role=slider]]:border-accent [&_.relative]:bg-muted [&_.relative>div]:bg-accent"
+                  />
+                  <div className="flex justify-between text-xs font-medium text-muted-foreground/60">
+                    <span>
+                      {m.show(m.min)} {m.unit}
+                    </span>
+                    <span>
+                      {m.show(m.max)} {m.unit}
+                    </span>
+                  </div>
                 </div>
-              </div>
-
-              {/* Height Input */}
-              <div className="w-full max-w-sm mt-12 space-y-4">
-                <Label className="text-foreground/80 text-lg">
-                  Height (cm)
-                </Label>
-                <Slider
-                  value={[d.heightCm]}
-                  onValueChange={(v) => set("heightCm", v[0])}
-                  min={100}
-                  max={250}
-                  step={1}
-                  className="py-4 cursor-grab active:cursor-grabbing [&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:bg-accent [&_[role=slider]]:border-accent [&_[role=slider]]:shadow-[0_0_20px_-2px_var(--accent)] [&_.relative]:bg-muted [&_.relative>div]:bg-accent"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground/60 mt-2 font-medium">
-                  <span>100 cm</span>
-                  <span className="text-lg text-foreground font-bold">
-                    {d.heightCm} cm
-                  </span>
-                  <span>250 cm</span>
-                </div>
-              </div>
+              ))}
             </div>
           )}
 
@@ -959,9 +968,9 @@ function Wheel({
     ref.current?.scrollTo({ top: i * ROW_PX, behavior: "smooth" });
 
   return (
-    <div className="relative flex-1">
+    <div className="relative mx-auto w-40">
       <div
-        className="pointer-events-none absolute inset-x-1 rounded-xl bg-accent shadow-[0_6px_20px_-6px_var(--accent)]"
+        className="pointer-events-none absolute inset-x-0 rounded-full bg-accent"
         style={{ top: ROW_PX * 2, height: ROW_PX }}
       />
       <div
@@ -996,7 +1005,7 @@ function Wheel({
               onClick={() => go(i)}
               className={`flex snap-center cursor-pointer items-center justify-center text-sm transition-colors ${
                 far === 0
-                  ? "font-bold text-accent-foreground"
+                  ? "text-base font-bold text-accent-foreground"
                   : far === 1
                     ? "font-medium text-foreground"
                     : "text-muted-foreground/40"
@@ -1033,7 +1042,9 @@ function BirthYearPicker({ onAge }: { onAge: (age: number) => void }) {
 
   return (
     <div className="space-y-3">
-      <Label className="text-foreground/80">What year were you born?</Label>
+      <Label className="text-base text-foreground/80">
+        What year were you born?
+      </Label>
       <Wheel
         label="Birth year"
         items={years.map(String)}
