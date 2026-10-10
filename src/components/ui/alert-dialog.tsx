@@ -3,8 +3,11 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { useBackClosingRoot } from "@/hooks/use-back-close";
 
-const AlertDialog = AlertDialogPrimitive.Root;
+const AlertDialog = (
+  props: React.ComponentProps<typeof AlertDialogPrimitive.Root>,
+) => <AlertDialogPrimitive.Root {...props} {...useBackClosingRoot(props)} />;
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 

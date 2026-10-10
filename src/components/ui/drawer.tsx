@@ -2,6 +2,7 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
+import { useBackClosingRoot } from "@/hooks/use-back-close";
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -10,6 +11,7 @@ const Drawer = ({
   <DrawerPrimitive.Root
     shouldScaleBackground={shouldScaleBackground}
     {...props}
+    {...useBackClosingRoot(props)}
   />
 );
 Drawer.displayName = "Drawer";
