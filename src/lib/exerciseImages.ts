@@ -206,7 +206,6 @@ export const EXERCISE_ALIASES: Record<string, string> = {
   "seated machine calf raise": "seated calf raise",
   "hip thrust": "barbell hip thrust",
   "hip thrusts": "barbell hip thrust",
-  "glute bridge": "barbell hip thrust",
   "box jumps": "box jump",
   "plyo box jump": "box jump",
   "prowler push": "sled push",
