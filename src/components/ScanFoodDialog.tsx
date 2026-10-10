@@ -21,7 +21,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { lookupBarcode, parseBarcodeProduct } from "@/lib/barcodeFood";
+import {
+  BarcodeLookupError,
+  lookupBarcode,
+  parseBarcodeProduct,
+} from "@/lib/barcodeFood";
 import type { IFCTItem } from "@/lib/foodDb";
 export { parseBarcodeProduct };
 
@@ -50,9 +54,23 @@ export function ScanFoodDialog({
       onFound(item);
       setValue("");
       onOpenChange(false);
-    } catch {
-      // Without this the button span forever on a dropped connection.
-      toast.error("Lookup failed — check your connection.");
+    } catch (e) {
+      const reason = e instanceof BarcodeLookupError ? e.reason : null;
+      if (reason === "empty") {
+        // A data gap, not a failure: name the product and point to search.
+        toast.warning(
+          `Found ${(e as BarcodeLookupError).productName || "this product"}, but it has no nutrition info — search it by name instead.`,
+        );
+        return;
+      }
+      console.error("Barcode lookup failed", e);
+      toast.error(
+        reason === "busy"
+          ? "Food database is busy — try again in a few seconds."
+          : reason === "timeout"
+            ? "Taking too long — try again."
+            : "Lookup failed — check your connection.",
+      );
     } finally {
       setLookingUp(false);
     }

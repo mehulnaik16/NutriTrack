@@ -83,6 +83,9 @@ export function BarcodeScanner({
   const [error, setError] = useState<string | null>(null);
   const [torchOn, setTorchOn] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
+  /** Webcam unmounted while the app is in the background; remounting asks
+   *  for a fresh stream. */
+  const [paused, setPaused] = useState(false);
 
   /** Stop everything. Safe to call repeatedly and from any exit path. */
   const teardown = useCallback(() => {
@@ -206,7 +209,14 @@ export function BarcodeScanner({
   // MediaStream keeps the phone's camera light on and drains the battery.
   useEffect(() => {
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") teardown();
+      // A stopped stream never comes back by itself, which left a frozen
+      // preview on return. Restart unless a code was already read.
+      if (doneRef.current) return;
+      if (document.visibilityState !== "hidden") return setPaused(false);
+      teardown();
+      setReady(false);
+      setTorchOn(false);
+      setPaused(true);
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
@@ -279,20 +289,22 @@ export function BarcodeScanner({
 
   return (
     <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl border-2 border-border bg-black">
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        className="h-full w-full object-cover"
-        // A 640x480 frame cropped to the cut-out often lacks the resolution to
-        // resolve the narrow bars; ask for 1280x720 and let the device downscale.
-        videoConstraints={{
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        }}
-        onUserMedia={handleUserMedia}
-        onUserMediaError={handleUserMediaError}
-      />
+      {!paused && (
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          className="h-full w-full object-cover"
+          // A 640x480 frame cropped to the cut-out often lacks the resolution to
+          // resolve the narrow bars; ask for 1280x720 and let the device downscale.
+          videoConstraints={{
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          }}
+          onUserMedia={handleUserMedia}
+          onUserMediaError={handleUserMediaError}
+        />
+      )}
 
       {/* Scrim: four panels around the cut-out, so the window itself stays
           fully clear. pointer-events-none throughout — nothing here is a
