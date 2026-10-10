@@ -92,6 +92,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { HEARD_ABOUT, isIndianMobile, phoneDigits } from "@/lib/signupRules";
 import { useAuth } from "@/lib/auth";
 import { applyTheme, getLocalTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/client";
@@ -346,6 +347,8 @@ function Profile() {
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [name, setName] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [heardInput, setHeardInput] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [goal, setGoal] = useState("");
@@ -427,6 +430,8 @@ function Profile() {
       if (data?.weight_kg) setWeight(String(data.weight_kg));
       if (data?.height_cm) setHeight(String(data.height_cm));
       if (data?.full_name) setName(data.full_name);
+      setPhoneInput(phoneDigits(data.phone ?? ""));
+      setHeardInput(data.heard_about ?? "");
       if (data?.age) setAge(String(data.age));
       if (data?.gender) setGender(data.gender);
       if (data?.goal) {
@@ -487,6 +492,15 @@ function Profile() {
       return;
     }
     if (!weightCheck.ok || !heightCheck.ok || !ageCheck.ok) return;
+    // Empty is allowed only while none is saved: /dashboard asks for it again.
+    if (phoneInput ? !isIndianMobile(phoneInput) : profile.phone) {
+      toast.error("Enter a 10-digit mobile number.");
+      return;
+    }
+    const contact = {
+      phone: phoneInput ? `+91${phoneInput}` : null,
+      heard_about: heardInput || null,
+    };
     const w = weightCheck.value;
     const h = heightCheck.value;
     const a = Math.round(ageCheck.value);
@@ -519,6 +533,7 @@ function Profile() {
         carbs_target_g: m.carbs,
         fat_target_g: m.fat,
         fiber_target_g: m.fiber,
+        ...contact,
       })
       .eq("id", user.id);
     setSaving(false);
@@ -544,6 +559,7 @@ function Profile() {
       carbs_target_g: m.carbs,
       fat_target_g: m.fat,
       fiber_target_g: m.fiber,
+      ...contact,
     });
     setIsEditing(false);
   };
@@ -808,6 +824,65 @@ function Profile() {
                 <InfoRow label="Name" value={profile.full_name} />
               )}
               <InfoRow label="Email" value={user.email ?? ""} />
+              {isEditing ? (
+                <div className="p-4 grid gap-4">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Phone number
+                    </Label>
+                    <div className="flex h-9 items-center rounded-md border border-input">
+                      <span className="pl-3 pr-2 text-sm text-muted-foreground">
+                        +91
+                      </span>
+                      <Input
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        value={phoneInput}
+                        onChange={(e) =>
+                          setPhoneInput(phoneDigits(e.target.value))
+                        }
+                        className="h-full border-0 px-0 shadow-none focus-visible:ring-0"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs text-muted-foreground">
+                      How did you hear about us?
+                    </Label>
+                    <Select value={heardInput} onValueChange={setHeardInput}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select one" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {HEARD_ABOUT.map(([key, label]) => (
+                          <SelectItem key={key} value={key}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <InfoRow
+                    label="Phone number"
+                    value={
+                      profile.phone
+                        ? `+91 ${phoneDigits(profile.phone).replace(/(\d{5})(\d{5})/, "$1 $2")}`
+                        : ""
+                    }
+                  />
+                  <InfoRow
+                    label="How did you hear about us?"
+                    value={
+                      HEARD_ABOUT.find(([k]) => k === profile.heard_about)?.[1] ??
+                      ""
+                    }
+                  />
+                </>
+              )}
               <InfoRow label="User ID" value={user.id} mono />
               <InfoRow label="Plan" value={profile.selected_plan ?? "—"} />
               <InfoRow
