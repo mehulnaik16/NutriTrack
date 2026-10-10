@@ -21,7 +21,6 @@ import { useAuth } from "@/lib/auth";
 import { authErrorMessage, isAlreadyRegistered } from "@/lib/authErrors";
 import { loadQuizDraft } from "@/lib/quizDraft";
 import { saveQuizProfile } from "@/lib/quizProfile";
-import { useForceLightTheme } from "@/lib/theme";
 import { ACCOUNT_PAGE, SignupProgress } from "@/components/SignupProgress";
 
 export const Route = createFileRoute("/signup")({ component: Signup });
@@ -40,7 +39,6 @@ const nameOf = (u: User) =>
  * answers are written to it, then the user goes on to the commitment.
  */
 function Signup() {
-  useForceLightTheme();
   const { user, loading, hasProfile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();

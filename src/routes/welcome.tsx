@@ -22,7 +22,6 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { useForceLightTheme } from "@/lib/theme";
 import { INTRO_PAGE, SignupProgress } from "@/components/SignupProgress";
 import { supabase } from "@/integrations/client";
 
@@ -111,8 +110,6 @@ const FEATURES = [
 ];
 
 function Welcome() {
-  // Part of the sign-up flow, which is always light.
-  useForceLightTheme();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();

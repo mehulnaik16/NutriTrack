@@ -16,9 +16,9 @@ export const THEMES = [
 export function getLocalTheme(): string {
   try {
     const t = localStorage.getItem("theme");
-    return t && THEMES.includes(t) ? t : "light";
+    return t && THEMES.includes(t) ? t : "dark";
   } catch {
-    return "light";
+    return "dark";
   }
 }
 
@@ -64,11 +64,10 @@ export function syncFavicon(theme: string) {
 }
 
 /**
- * Pages that always render light, whatever theme the user picked: the landing
- * page, sign-up, and pricing. Keep in sync with the boot script in routes/__root.tsx.
+ * The landing page always renders light, whatever theme the user picked.
+ * Keep in sync with the boot script in routes/__root.tsx.
  */
-export const isLightOnlyPath = (path: string) =>
-  /^\/(quiz|welcome|signup|signup-details|commit|plans)?$/.test(path);
+export const isLightOnlyPath = (path: string) => path === "/";
 
 /**
  * Hold the light theme while the calling page is mounted. __root.tsx skips the

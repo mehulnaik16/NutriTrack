@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForceLightTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/client";
 import { toast } from "sonner";
@@ -26,7 +25,6 @@ export const Route = createFileRoute("/signup-details")({
  * number here until they answer, so it is asked once of every user.
  */
 function SignupDetails() {
-  useForceLightTheme();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [heard, setHeard] = useState<string>();

@@ -9,14 +9,12 @@ import { supabase } from "@/integrations/client";
 import { useAuth } from "@/lib/auth";
 import { mountCommitHold } from "@/lib/commitHold";
 import { commitCopy } from "@/lib/signupRules";
-import { useForceLightTheme } from "@/lib/theme";
 import { COMMIT_PAGE, SignupProgress } from "@/components/SignupProgress";
 
 export const Route = createFileRoute("/commit")({ component: Commit });
 
 /** Hold-to-commit, between "Create an account" and pricing. */
 function Commit() {
-  useForceLightTheme();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();

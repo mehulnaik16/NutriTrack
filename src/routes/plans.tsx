@@ -5,7 +5,6 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { useForceLightTheme } from "@/lib/theme";
 import { getBillingSummary, type BillingSummary } from "@/lib/billing";
 import { PricingPlans } from "@/components/PricingPlans";
 import { PRICING_PAGE, SignupProgress } from "@/components/SignupProgress";
@@ -13,8 +12,6 @@ import { PRICING_PAGE, SignupProgress } from "@/components/SignupProgress";
 export const Route = createFileRoute("/plans")({ component: Plans });
 
 function Plans() {
-  // Part of sign-up, and pricing reads best in the landing page's light look.
-  useForceLightTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();
