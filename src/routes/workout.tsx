@@ -2349,7 +2349,10 @@ function WorkoutPage() {
             )}
           </DialogHeader>
 
-          <Tabs defaultValue="log" className="w-full mt-2 max-w-full">
+          <Tabs
+            defaultValue="log"
+            className="w-full mt-2 max-w-full flex flex-1 flex-col"
+          >
             <TabsList className="w-full flex overflow-x-auto no-scrollbar">
               <TabsTrigger
                 value="log"
@@ -2377,7 +2380,10 @@ function WorkoutPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="log" className="space-y-6 pt-4">
+            <TabsContent
+              value="log"
+              className="space-y-6 pt-4 flex flex-1 flex-col"
+            >
               {needsTitle && (
                 <Input
                   value={holdTitle}
@@ -2722,8 +2728,12 @@ function WorkoutPage() {
                 </Button>
               </div>
 
-              {/* ── Sticky Bottom Footer: ONLY Log Workout ── */}
-              <div className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 border-t border-border/50 bg-background p-3.5 sm:p-4 pb-safe shadow-[0_-12px_30px_-5px_rgba(0,0,0,0.6)]">
+              {/* ── Sticky Bottom Footer: ONLY Log Workout ──
+                  mt-auto: on a tall screen the log tab is shorter than the
+                  dialog, and sticky alone left the bar floating mid-screen.
+                  The negative bottom cancels the dialog's padding, which
+                  sticky otherwise stops at, leaving a strip under the bar. */}
+              <div className="sticky -bottom-4 sm:-bottom-6 mt-auto z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 border-t border-border/50 bg-background p-3.5 sm:p-4 pb-safe shadow-[0_-12px_30px_-5px_rgba(0,0,0,0.6)]">
                 <Button
                   onClick={handleLog}
                   className="w-full font-bold h-12 sm:h-13 text-sm rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5 active:scale-[0.99]"
