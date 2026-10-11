@@ -563,6 +563,95 @@ export const serverVoiceParse = createServerFn({ method: "POST" })
     return { result: (await voiceChain(ctx.data.prompt)).text };
   });
 
+// ── Speech to text (voice food logging) ─────────────────────────────────────
+
+// 30 s of compressed speech is a few hundred KB; this allows ~1 MB decoded.
+const MAX_AUDIO_BASE64_CHARS = 1_400_000;
+
+const AudioInput = z.object({
+  base64: z
+    .string()
+    .min(1)
+    .max(MAX_AUDIO_BASE64_CHARS)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/, "Invalid base64 audio data"),
+  // What MediaRecorder produces: WebM/Opus on Android and desktop
+  // Chrome, MP4/AAC on iPhone.
+  mimeType: z.enum([
+    "audio/webm",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/aac",
+    "audio/mpeg",
+    "audio/wav",
+  ]),
+});
+
+/** A recorded clip in, its words out (Sarvam Saaras, see server/sarvam.ts). */
+export const serverVoiceTranscribe = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(AudioInput)
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    const { sarvamTranscribe } = await import("@/server/sarvam");
+    const { base64, mimeType } = ctx.data;
+    const audio = new Blob([Buffer.from(base64, "base64")], { type: mimeType });
+    return {
+      transcript: await sarvamTranscribe(
+        audio,
+        `speech.${mimeType.split("/")[1]}`,
+      ),
+    };
+  });
+
+/**
+ * A recorded clip in, its words and foods out in one call: Gemini hears the
+ * audio itself (Voice B). A whole-day Power Log takes one of the day's two
+ * turns first and gives it back if the model fails.
+ */
+export const serverVoiceGeminiParse = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(
+    AudioInput.extend({
+      /** The user's meal names, so the model can only pick among them. */
+      meals: z.array(z.string().trim().min(1).max(30)).max(8),
+      power: z.boolean(),
+      /** The user's local date, for the per-day Power Log limit. */
+      day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    }),
+  )
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    const [
+      { voiceAudioChain },
+      { buildVoiceAudioPrompt, POWER_LOG_LIMIT_MESSAGE },
+    ] = await Promise.all([
+      import("@/server/aiRoutes"),
+      import("@/lib/voiceShort"),
+    ]);
+    const { base64, mimeType, meals, power, day } = ctx.data;
+    let turn: string | null = null;
+    if (power) {
+      const { data, error } = await ctx.context.supabase.rpc(
+        "claim_power_log",
+        { p_day: day },
+      );
+      if (error)
+        throw new Error("Couldn't start your Power Log. Please try again.");
+      if (!data) throw new Error(POWER_LOG_LIMIT_MESSAGE);
+      turn = data;
+    }
+    try {
+      const prompt = buildVoiceAudioPrompt(meals, power);
+      return { result: (await voiceAudioChain(prompt, base64, mimeType)).text };
+    } catch (e) {
+      if (turn) {
+        const { supabaseAdmin } = await import("@/integrations/client.server");
+        await supabaseAdmin.rpc("release_power_log", { p_id: turn });
+      }
+      throw e;
+    }
+  });
+
 // ── AI Vision (food photo recognition) ───────────────────────────────────────
 
 // ~8 MB decoded — base64 inflates by 4/3, and the whole string is buffered in

@@ -141,12 +141,47 @@ export function visionChain(
   });
 }
 
+// ~50 tokens per parsed food: 400 truncated a full day's meal (~14 foods)
+// mid-JSON. 1500 fits a 30 s recording's worth.
+const VOICE_MAX_TOKENS = 1500;
+
+/**
+ * Voice by audio: the clip goes straight to Gemini, which returns the words
+ * and the foods together. Lite first (cheapest; audio in costs the same as
+ * text), 3.6 Flash when it is busy. 1000 tokens out: a measured 45 s
+ * whole-day clip with 21 foods used 399 in the compact format.
+ */
+export function voiceAudioChain(
+  prompt: string,
+  base64: string,
+  mimeType: string,
+) {
+  const g = (model: string): Step => ({
+    provider: "gemini",
+    model,
+    run: (signal) =>
+      geminiVision({
+        model,
+        prompt,
+        base64,
+        mimeType,
+        max_tokens: 1000,
+        signal,
+      }),
+  });
+  return runChainWithRetry([g(LITE), g(FLASH_36)], {
+    budgetMs: VISION_BUDGET_MS,
+    attemptMs: 9000,
+    label: "voice-audio",
+  });
+}
+
 export function voiceChain(prompt: string) {
   return runChainWithRetry(
     [
-      geminiTextStep(FLASH_37, prompt, 400, 0.1),
-      geminiTextStep(FLASH_37, prompt, 400, 0.1, true),
-      geminiTextStep(LITE, prompt, 400, 0.1),
+      geminiTextStep(FLASH_37, prompt, VOICE_MAX_TOKENS, 0.1),
+      geminiTextStep(FLASH_37, prompt, VOICE_MAX_TOKENS, 0.1, true),
+      geminiTextStep(LITE, prompt, VOICE_MAX_TOKENS, 0.1),
       {
         provider: "groq",
         model: GROQ_TEXT,
@@ -154,12 +189,13 @@ export function voiceChain(prompt: string) {
           groqChat({
             model: GROQ_TEXT,
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 400,
+            max_tokens: VOICE_MAX_TOKENS,
             temperature: 0.1,
+            reasoning_effort: "low",
             signal,
           }),
       },
-      geminiTextStep(FLASH_36, prompt, 400, 0.1),
+      geminiTextStep(FLASH_36, prompt, VOICE_MAX_TOKENS, 0.1),
     ],
     {
       budgetMs: VOICE_BUDGET_MS,

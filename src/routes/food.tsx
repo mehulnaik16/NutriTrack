@@ -607,6 +607,7 @@ function FoodPage() {
                 meals={userMeals}
                 dailyTarget={profile?.daily_calorie_target}
                 currentDayCalories={currentDayCalories}
+                browserVoiceTest
               />
 
               <div className="mt-5 space-y-5">

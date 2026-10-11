@@ -115,6 +115,8 @@ Write "heard", "name" and "lang" BEFORE any number, every time. Decide what the 
 4. CONFIDENCE AND ALTERNATIVES
 - "high": you know exactly which food this is. "medium": you know the food but not the variant. "low": several genuinely different foods fit.
 - If your best item is not "high", return 2 or 3 candidates, best first, each a genuinely different food. Never pad a "high" answer with filler.
+- A generic name gets the plain, most common version FIRST: "salad" -> a mixed vegetable salad, not Russian salad; "juice" -> a plain fruit juice. Specific variants may follow as alternatives.
+- A specific name is kept exactly: "masala dosa" is Masala dosa, never plain Dosa; never add a variant, brand or style the query did not say.
 - kind stays "single" for alternatives. They are choices for ONE food.
 
 5. SINGLE VS MEAL

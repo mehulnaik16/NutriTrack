@@ -1292,6 +1292,9 @@ export type Database = {
       claim_ai_plan: { Args: never; Returns: string | null }
       claim_photo_download: { Args: never; Returns: boolean }
       release_ai_plan: { Args: { p_id: string }; Returns: undefined }
+      power_logs_left: { Args: { p_day: string }; Returns: number }
+      claim_power_log: { Args: { p_day: string }; Returns: string | null }
+      release_power_log: { Args: { p_id: string }; Returns: undefined }
       get_friend_requests: {
         Args: never
         Returns: {

@@ -39,7 +39,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { serverVoiceParse, serverAiFoodSearchInline } from "@/lib/ai";
+import {
+  serverVoiceParse,
+  serverAiFoodSearchInline,
+  serverVoiceTranscribe,
+  serverVoiceGeminiParse,
+} from "@/lib/ai";
 import { isAiBusy, toastAiError } from "@/lib/aiErrors";
 import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
@@ -47,24 +52,31 @@ import { kcalOf, type IFCTItem } from "@/lib/foodDb";
 import { catalogFood } from "@/lib/foodFuzzy";
 import { toGrams, pieceGrams, type UnitFood } from "@/lib/foodUnits";
 import type { MealPicker } from "@/components/PhotoFoodDialog";
+import { supabase } from "@/integrations/client";
+import { toLocalISO } from "@/lib/dates";
+import {
+  POWER_LOG,
+  POWER_LOG_LABEL,
+  POWER_LOG_LIMIT_MESSAGE,
+  readShortVoice,
+} from "@/lib/voiceShort";
 
-/**
- * The slice of the Web Speech API used here. TypeScript ships no lib types for
- * it, and it is still vendor-prefixed in most browsers.
- */
-interface SpeechRecognitionLike {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onstart: () => void;
-  onresult: (e: {
-    results: ArrayLike<ArrayLike<{ transcript: string }>>;
-  }) => void;
-  onerror: (e: { error: string }) => void;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
+/** A recording's bytes as plain base64, for the transcribe request. */
+const blobToBase64 = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1] ?? "");
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+
+/** WebM/Opus where the browser can record it (Android, desktop), else MP4 (iPhone). */
+const RECORDING_TYPES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+];
 
 /** Macros here are absolute for `quantity_g`, not per 100 g. */
 export interface VoiceFoodItem {
@@ -87,8 +99,13 @@ export interface VoiceFoodItem {
 
 // ── Voice food logging ──────────────────────────────────────────────────────
 
-/** Longest anyone may speak in one go; recording stops and parses at this. */
-const MAX_SPEECH_MS = 60_000;
+/**
+ * Longest anyone may speak in one go; recording stops and parses at this.
+ * 30 s is the most Sarvam's speech-to-text takes in one request.
+ */
+const MAX_SPEECH_MS = 30_000;
+/** A whole-day Power Log may run longer: a measured full day took 44 s. */
+const MAX_POWER_SPEECH_MS = 45_000;
 /** A press shorter than this is a tap, not a hold. */
 const HOLD_MS = 350;
 /** A second tap within this of the first makes a double tap. */
@@ -257,8 +274,7 @@ Parse every food item mentioned and return ONLY a JSON array, no markdown:
     "food_name": "string",
     "quantity_g": number,
     "unit": "string (e.g. 'pieces', 'bowls', 'g')",
-    "unit_quantity": number,
-    "meal_type": "${mealType}"
+    "unit_quantity": number
   }
 ]
 Rules:
@@ -270,16 +286,37 @@ Rules:
 - Return empty array [] if no food is mentioned`;
 
   const { result: raw } = await serverVoiceParse({ data: { prompt } });
+  return resolveParsedVoice(raw, mealType);
+}
+
+/**
+ * A parse model's JSON answer to priced foods. Shared by the two-step path
+ * (words, then parseVoiceFoodLog) and the one-step Gemini-audio path.
+ */
+export async function resolveParsedVoice(
+  raw: string,
+  mealType: string,
+): Promise<VoiceFoodItem[]> {
   const clean = raw.replace(/```json|```/g, "").trim();
   const parsed: unknown = JSON.parse(clean);
   // Both models are asked for a bare array and usually give one, but a
   // JSON-mode model is free to wrap it in an object — which used to reach the
   // review list as a non-array and throw on .map().
-  const items: ParsedVoiceItem[] = Array.isArray(parsed)
-    ? (parsed as ParsedVoiceItem[])
-    : ((Object.values(parsed ?? {}).find(Array.isArray) ??
-        []) as ParsedVoiceItem[]);
+  const items: ParsedVoiceItem[] = (
+    Array.isArray(parsed)
+      ? (parsed as ParsedVoiceItem[])
+      : ((Object.values(parsed ?? {}).find(Array.isArray) ??
+          []) as ParsedVoiceItem[])
+  ).map((it) => ({ ...it, meal_type: mealType }));
+  // The meal is the user's pick, never the model's: asked for one, it filed
+  // whey under an invented "Post-workout" no page section shows.
+  return resolveVoiceItems(items);
+}
 
+/** Parsed foods to priced ones; the ones nothing resolves are named in a toast. */
+export async function resolveVoiceItems(
+  items: ParsedVoiceItem[],
+): Promise<VoiceFoodItem[]> {
   // Each parsed name goes through the same path a typed search takes: the
   // bundled catalog, then the user's correction and the verified cache (both
   // inside serverAiFoodSearchInline), and only then a paid call. This is what
@@ -310,6 +347,7 @@ export function VoiceFoodDialog({
   typedQuery,
   onResearch,
   onTypedQueryChange,
+  engine = "sarvam",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -335,12 +373,33 @@ export function VoiceFoodDialog({
   onResearch?: (text: string) => Promise<boolean>;
   /** The sentence after a row edit swapped the words for one food. */
   onTypedQueryChange?: (text: string) => void;
+  /**
+   * Who hears the clip. "sarvam": Sarvam transcribes, then a text model
+   * parses. "gemini": Gemini Lite hears the audio and returns the words and
+   * the foods in one call (Food page A/B test).
+   */
+  engine?: "sarvam" | "gemini";
 }) {
-  const recogRef = useRef<SpeechRecognitionLike | null>(null);
+  /** The open microphone and what it has recorded so far. */
+  const recRef = useRef<{
+    rec: MediaRecorder;
+    stream: MediaStream;
+    chunks: Blob[];
+  } | null>(null);
+  /** Whole-day Power Log (Voice B only): foods sorted into meals by what was said. */
+  const [powerOn, setPower] = useState(false);
+  // Sarvam's Voice shares this dialog; Power Log is Voice B's alone.
+  const power = powerOn && engine === "gemini";
+  const maxMs = power ? MAX_POWER_SPEECH_MS : MAX_SPEECH_MS;
+  // Read by the recording timer, which must not restart if this changes.
+  const maxMsRef = useRef(maxMs);
+  maxMsRef.current = maxMs;
+  /** Which engine heard the words and how long after release, for the A/B test. */
+  const [heardBy, setHeardBy] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
-  // What the recogniser has heard, readable from timers and pointer handlers
-  // without waiting for a render.
+  // What was heard, readable from timers and pointer handlers without
+  // waiting for a render.
   const transcriptRef = useRef("");
   const [mode, setMode] = useState<MicMode>("idle");
   const modeRef = useRef<MicMode>("idle");
@@ -412,6 +471,11 @@ export function VoiceFoodDialog({
   };
   const [elapsed, setElapsed] = useState(0);
   const [items, setItems] = useState<VoiceFoodItem[]>(initialItems ?? []);
+  const [transcribing, setTranscribing] = useState(false);
+  const hearWait = useWaitLabel(transcribing, "Listening back…", [
+    "Catching every word…",
+    "Almost there…",
+  ]);
   const [parsing, setParsing] = useState(false);
   const parseWait = useWaitLabel(parsing, "Parsing food items…", [
     "Understanding what you said…",
@@ -430,12 +494,13 @@ export function VoiceFoodDialog({
     setConfirmRemove(null);
   }, [initialItems]);
 
-  // Navigating away mid-recording used to leave the microphone live —
-  // nothing stopped the recogniser except the button.
+  // Navigating away mid-recording must not leave the microphone live.
   useEffect(
     () => () => {
-      recogRef.current?.abort?.();
-      recogRef.current = null;
+      const cur = recRef.current;
+      recRef.current = null;
+      if (cur && cur.rec.state !== "inactive") cur.rec.stop();
+      cur?.stream.getTracks().forEach((t) => t.stop());
       clearTimeout(tapTimer.current);
     },
     [],
@@ -447,11 +512,25 @@ export function VoiceFoodDialog({
     return () => clearTimeout(t);
   }, [hint]);
 
-  /** Stop the recogniser and nothing else. */
-  const stopRecogniser = () => {
-    recogRef.current?.stop?.();
-    recogRef.current = null;
+  /** Stop the microphone; resolves with what was recorded, null if nothing. */
+  const stopRecorder = (): Promise<Blob | null> => {
+    const cur = recRef.current;
+    recRef.current = null;
     setRecording(false);
+    if (!cur) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const done = () => {
+        cur.stream.getTracks().forEach((t) => t.stop());
+        resolve(
+          cur.chunks.length
+            ? new Blob(cur.chunks, { type: cur.rec.mimeType })
+            : null,
+        );
+      };
+      if (cur.rec.state === "inactive") return done();
+      cur.rec.onstop = done;
+      cur.rec.stop();
+    });
   };
 
   const parse = async (text: string) => {
@@ -472,8 +551,71 @@ export function VoiceFoodDialog({
   const finish = async () => {
     clearTimeout(tapTimer.current);
     setMicMode("idle");
-    stopRecogniser();
-    await parse(transcriptRef.current);
+    const released = performance.now();
+    const secs = () => ((performance.now() - released) / 1000).toFixed(1);
+    const clip = await stopRecorder();
+    if (!clip) return;
+    const audio = {
+      base64: await blobToBase64(clip),
+      mimeType: clip.type.split(";")[0] as "audio/webm",
+    };
+    if (engine === "gemini") {
+      setParsing(true);
+      try {
+        const meals = meal?.options ?? [];
+        const { result: raw } = await serverVoiceGeminiParse({
+          data: { ...audio, meals, power, day: toLocalISO(new Date()) },
+        });
+        const heard = readShortVoice(raw, {
+          meals,
+          picked: meal?.value ?? "Snack",
+          power,
+        });
+        setTranscript(heard.transcript);
+        transcriptRef.current = heard.transcript;
+        const parsed = await resolveVoiceItems(heard.items);
+        // Grouped by meal, in the user's meal order, for the review list.
+        if (power)
+          parsed.sort(
+            (a, b) => meals.indexOf(a.meal_type) - meals.indexOf(b.meal_type),
+          );
+        setItems(parsed);
+        setHeardBy(`Gemini · foods ready ${secs()} s after you let go`);
+        if (parsed.length === 0)
+          toast.info("No food items detected. Try again.");
+      } catch (e) {
+        if ((e as Error)?.message?.includes(POWER_LOG_LIMIT_MESSAGE)) {
+          toast(POWER_LOG_LIMIT_MESSAGE);
+          setPower(false);
+        } else toastAiError(e, "voice parse");
+      } finally {
+        setParsing(false);
+      }
+      return;
+    }
+    setTranscribing(true);
+    let text: string;
+    try {
+      text = (await serverVoiceTranscribe({ data: audio })).transcript;
+    } catch (e) {
+      toastAiError(e, "voice transcribe");
+      return;
+    } finally {
+      setTranscribing(false);
+    }
+    if (!text) {
+      toast.info("We couldn't hear any words", {
+        description: "Hold the button and speak a little closer.",
+      });
+      return;
+    }
+    const wordsIn = secs();
+    setTranscript(text);
+    transcriptRef.current = text;
+    await parse(text);
+    setHeardBy(
+      `Sarvam · words in ${wordsIn} s, foods ready ${secs()} s after you let go`,
+    );
   };
   // The 60 s timer reads this, so it always calls the current render's finish.
   const finishRef = useRef(finish);
@@ -481,9 +623,7 @@ export function VoiceFoodDialog({
 
   /** A lone quick tap: nothing was meant to be said, so nothing is parsed. */
   const discard = () => {
-    recogRef.current?.abort?.();
-    recogRef.current = null;
-    setRecording(false);
+    void stopRecorder();
     setMicMode("idle");
     setTranscript("");
     transcriptRef.current = "";
@@ -500,7 +640,7 @@ export function VoiceFoodDialog({
     const iv = setInterval(() => {
       const ms = Date.now() - started;
       setElapsed(ms);
-      if (ms >= MAX_SPEECH_MS) {
+      if (ms >= maxMsRef.current) {
         clearInterval(iv);
         void finishRef.current();
       }
@@ -509,7 +649,7 @@ export function VoiceFoodDialog({
   }, [active]);
 
   const onPressStart = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (parsing || e.button !== 0) return;
+    if (parsing || transcribing || e.button !== 0) return;
     // Keeps the release on this button even if a finger slides off it.
     e.currentTarget.setPointerCapture(e.pointerId);
     const m = modeRef.current;
@@ -547,7 +687,13 @@ export function VoiceFoodDialog({
 
   /** Keyboard has no hold: Enter or Space starts hands-free, again stops. */
   const onMicKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-    if ((e.key !== "Enter" && e.key !== " ") || e.repeat || parsing) return;
+    if (
+      (e.key !== "Enter" && e.key !== " ") ||
+      e.repeat ||
+      parsing ||
+      transcribing
+    )
+      return;
     e.preventDefault();
     if (modeRef.current === "idle") {
       setHint(false);
@@ -556,86 +702,68 @@ export function VoiceFoodDialog({
     } else void finish();
   };
 
-  /** Starts the recogniser; false when it could not. */
+  /**
+   * Opens the microphone and starts recording; false when this browser can't.
+   * The clip is sent for transcription on release (see finish).
+   */
   const startRecording = (): boolean => {
-    const w = window as unknown as {
-      SpeechRecognition?: new () => SpeechRecognitionLike;
-      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-    };
-    const Recogniser = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-
-    if (!Recogniser) {
+    setHeardBy(null);
+    if (
+      typeof MediaRecorder === "undefined" ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
       toast.error("Voice logging isn't available in this browser", {
         description: "Type what you ate in the search bar instead.",
       });
       return false;
     }
-
-    try {
-      const recognition = new Recogniser();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-
-      recognition.onstart = () => {
+    setTranscript("");
+    transcriptRef.current = "";
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        // Released before the microphone answered: a quick tap or a closed
+        // dialog. Nothing to record.
+        if (modeRef.current === "idle") {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        const type = RECORDING_TYPES.find((t) =>
+          MediaRecorder.isTypeSupported(t),
+        );
+        const rec = new MediaRecorder(
+          stream,
+          type ? { mimeType: type } : undefined,
+        );
+        const chunks: Blob[] = [];
+        rec.ondataavailable = (e) => {
+          if (e.data.size) chunks.push(e.data);
+        };
+        rec.start();
+        recRef.current = { rec, stream, chunks };
         setRecording(true);
-        setTranscript("");
-        transcriptRef.current = "";
-      };
-
-      recognition.onresult = (event) => {
-        let currentTranscript = "";
-        for (let i = 0; i < event.results.length; ++i) {
-          currentTranscript += event.results[i][0].transcript;
-        }
-        setTranscript(currentTranscript);
-        transcriptRef.current = currentTranscript;
-      };
-
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error", event.error);
-        // "aborted" is our own abort(): a discarded quick tap or a closed
-        // dialog, neither of which is a problem to report.
-        if (event.error === "aborted") return;
-        if (event.error !== "no-speech") {
-          if (
-            event.error === "not-allowed" ||
-            event.error === "service-not-allowed"
-          )
-            toast.error("Microphone access is off", {
-              description:
-                "Allow microphone access for this app, then try again.",
-            });
-          else
-            toast.error("Couldn't hear that clearly", {
-              description: "Check your microphone and try again.",
-            });
-          setRecording(false);
-          clearTimeout(tapTimer.current);
-          setMicMode("idle");
-        }
-      };
-
-      // ponytail: no onend handler — Chrome auto-ends on silence and `recording`
-      // goes stale, but the stop button still parses what was captured. Adding
-      // onend without also decoupling onstart's setTranscript("") would wipe the
-      // transcript the moment the user tapped again.
-      recognition.start();
-      recogRef.current = recognition;
-      return true;
-    } catch (e) {
-      console.error("Microphone start failed", e);
-      toast.error("Couldn't start the microphone", {
-        description: "Allow microphone access for this app, then try again.",
+      })
+      .catch((e) => {
+        console.error("Microphone start failed", e);
+        toast.error("Microphone access is off", {
+          description: "Allow microphone access for this app, then try again.",
+        });
+        clearTimeout(tapTimer.current);
+        setMicMode("idle");
       });
-      return false;
-    }
+    return true;
   };
 
   const confirm = async () => {
     setBusy(true);
     try {
-      await onConfirm(items);
+      // Outside a Power Log every food goes to the meal shown now, even if the
+      // picker changed after speaking.
+      await onConfirm(
+        power || !meal
+          ? items
+          : items.map((it) => ({ ...it, meal_type: meal.value })),
+      );
     } finally {
       setBusy(false);
     }
@@ -646,10 +774,9 @@ export function VoiceFoodDialog({
       open={open}
       onOpenChange={(o) => {
         if (!o) {
-          // abort, not stop: dismissing discards, and stop() would fire one last
-          // onresult into a torn-down dialog.
-          recogRef.current?.abort?.();
-          recogRef.current = null;
+          // Dismissing discards: the clip is closed but never sent.
+          void stopRecorder();
+          setHeardBy(null);
           clearTimeout(tapTimer.current);
           setMicMode("idle");
           setHint(false);
@@ -681,7 +808,24 @@ export function VoiceFoodDialog({
           {meal && (
             <div className="space-y-1">
               <Label>Meal type</Label>
-              <Select value={meal.value} onValueChange={meal.onChange}>
+              <Select
+                value={power ? POWER_LOG : meal.value}
+                onValueChange={(v) => {
+                  if (v !== POWER_LOG) {
+                    setPower(false);
+                    meal.onChange(v);
+                    return;
+                  }
+                  // Say so before they speak for 45 s, not after.
+                  void supabase
+                    .rpc("power_logs_left", { p_day: toLocalISO(new Date()) })
+                    .then(({ data }) => {
+                      if (data === 0) toast(POWER_LOG_LIMIT_MESSAGE);
+                      else setPower(true);
+                    });
+                }}
+                disabled={active || parsing}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -691,8 +835,17 @@ export function VoiceFoodDialog({
                       {m}
                     </SelectItem>
                   ))}
+                  {engine === "gemini" && (
+                    <SelectItem value={POWER_LOG}>{POWER_LOG_LABEL}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              {power && (
+                <p className="text-xs text-muted-foreground">
+                  Say your whole day. Foods go into each meal for you. 2 per
+                  day.
+                </p>
+              )}
             </div>
           )}
           {typedQuery ? (
@@ -772,11 +925,15 @@ export function VoiceFoodDialog({
             <>
               <p className="text-sm text-muted-foreground">
                 Say what you ate naturally — e.g.{" "}
-                <em>"I had 2 rotis, a bowl of dal, and a banana"</em>
+                <em>
+                  {power
+                    ? '"Breakfast 2 idlis, lunch rice and dal, dinner chicken fried rice"'
+                    : '"I had 2 rotis, a bowl of dal, and a banana"'}
+                </em>
               </p>
 
               {/* Record button: hold to talk, or double-tap to talk hands-free.
-              The ring fills over the 60 seconds a recording may last. */}
+              The ring fills over the 30 (Power Log: 45) seconds a recording may last. */}
               <div className="flex flex-col items-center gap-2">
                 <div className="relative h-24 w-24">
                   <svg
@@ -801,10 +958,10 @@ export function VoiceFoodDialog({
                       strokeLinecap="round"
                       strokeDasharray={RING}
                       strokeDashoffset={
-                        RING * (1 - Math.min(1, elapsed / MAX_SPEECH_MS))
+                        RING * (1 - Math.min(1, elapsed / maxMs))
                       }
                       className={`transition-[stroke-dashoffset] duration-200 ease-linear motion-reduce:transition-none ${
-                        elapsed > MAX_SPEECH_MS - 10_000
+                        elapsed > maxMs - 10_000
                           ? "stroke-destructive"
                           : "stroke-accent"
                       }`}
@@ -817,7 +974,7 @@ export function VoiceFoodDialog({
                     onPointerCancel={onPressEnd}
                     onKeyDown={onMicKey}
                     onContextMenu={(e) => e.preventDefault()}
-                    disabled={parsing}
+                    disabled={parsing || transcribing}
                     aria-label={
                       mode === "locked"
                         ? "Stop recording"
@@ -856,12 +1013,12 @@ export function VoiceFoodDialog({
                   {active && (
                     <span
                       className={`tabular-nums ${
-                        elapsed > MAX_SPEECH_MS - 10_000
+                        elapsed > maxMs - 10_000
                           ? "text-destructive"
                           : "text-foreground"
                       }`}
                     >
-                      {`0:${String(Math.min(59, Math.floor(elapsed / 1000))).padStart(2, "0")} / 1:00`}
+                      {`0:${String(Math.min(maxMs / 1000, Math.floor(elapsed / 1000))).padStart(2, "0")} / 0:${maxMs / 1000}`}
                     </span>
                   )}
                 </p>
@@ -869,9 +1026,10 @@ export function VoiceFoodDialog({
             </>
           )}
 
-          {parsing && (
+          {(transcribing || parsing) && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> {parseWait.label}
+              <Loader2 className="h-4 w-4 animate-spin" />{" "}
+              {transcribing ? hearWait.label : parseWait.label}
             </div>
           )}
 
@@ -894,6 +1052,9 @@ export function VoiceFoodDialog({
                   </Button>
                 )}
               </div>
+              {heardBy && (
+                <p className="text-[11px] text-muted-foreground">{heardBy}</p>
+              )}
               <Textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
@@ -911,136 +1072,168 @@ export function VoiceFoodDialog({
               </p>
               <div className="space-y-1">
                 {items.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
-                  >
-                    <div className="flex-1 mr-4 min-w-0">
-                      {rowEdit?.i === i ? (
-                        <div className="mb-1 flex items-center gap-1">
-                          <Input
-                            value={rowEdit.text}
-                            onChange={(e) =>
-                              setRowEdit({ i, text: e.target.value })
+                  <div key={i} className="space-y-1">
+                    {power && item.meal_type !== items[i - 1]?.meal_type && (
+                      <p className="pt-2 text-xs font-bold uppercase tracking-wider text-accent">
+                        {item.meal_type}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+                      <div className="flex-1 mr-4 min-w-0">
+                        {rowEdit?.i === i ? (
+                          <div className="mb-1 flex items-center gap-1">
+                            <Input
+                              value={rowEdit.text}
+                              onChange={(e) =>
+                                setRowEdit({ i, text: e.target.value })
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  void researchRow();
+                                }
+                                if (e.key === "Escape") {
+                                  e.stopPropagation();
+                                  setRowEdit(null);
+                                }
+                              }}
+                              autoFocus
+                              disabled={rowBusy}
+                              aria-label={`Food name for ${item.food_name}`}
+                              className="h-8 min-w-0 flex-1 border-accent bg-background text-sm"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Search this food again"
+                              title="Research"
+                              onClick={() => void researchRow()}
+                              disabled={
+                                rowBusy || rowEdit.text.trim().length < 2
+                              }
+                              className="h-8 w-8 shrink-0 text-accent hover:bg-accent/10"
+                            >
+                              {rowBusy ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Search className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Cancel editing"
+                              title="Cancel"
+                              onClick={() => setRowEdit(null)}
+                              disabled={rowBusy}
+                              className="h-8 w-8 shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="font-medium block text-base mb-1">
+                            {item.food_name}
+                          </span>
+                        )}
+                        {power && meal && (
+                          <Select
+                            value={item.meal_type}
+                            onValueChange={(v) =>
+                              setItems((prev) =>
+                                prev.map((it, k) =>
+                                  k === i ? { ...it, meal_type: v } : it,
+                                ),
+                              )
                             }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                void researchRow();
-                              }
-                              if (e.key === "Escape") {
-                                e.stopPropagation();
-                                setRowEdit(null);
-                              }
+                          >
+                            <SelectTrigger
+                              aria-label={`Meal for ${item.food_name}`}
+                              className="mb-1 h-7 w-auto gap-1 px-2 text-xs"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {meal.options.map((m) => (
+                                <SelectItem key={m} value={m}>
+                                  {m}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={item.unit_quantity ?? item.quantity_g}
+                            onChange={(e) => {
+                              const newQty = parseInt(e.target.value) || 0;
+                              if (newQty < 0) return;
+                              const oldQty =
+                                (item.unit_quantity ?? item.quantity_g) || 1;
+                              const ratio = newQty / oldQty;
+
+                              const newItems = [...items];
+                              newItems[i] = {
+                                ...item,
+                                ...(item.unit_quantity !== undefined
+                                  ? { unit_quantity: newQty }
+                                  : {}),
+                                quantity_g: item.quantity_g * ratio,
+                                calories: item.calories * ratio,
+                                protein_g: item.protein_g * ratio,
+                                fat_g: item.fat_g * ratio,
+                                carbs_g: item.carbs_g * ratio,
+                                fiber_g: item.fiber_g * ratio,
+                              };
+                              setItems(newItems);
                             }}
-                            autoFocus
-                            disabled={rowBusy}
-                            aria-label={`Food name for ${item.food_name}`}
-                            className="h-8 min-w-0 flex-1 border-accent bg-background text-sm"
+                            className="w-20 h-8 text-sm bg-background"
                           />
+                          <span className="text-xs text-muted-foreground">
+                            {item.unit && item.unit !== "g" ? item.unit : "g"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-3">
+                          {rowEdit?.i !== i && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Edit ${item.food_name}`}
+                              title="Edit"
+                              className="h-6 w-6"
+                              disabled={rowBusy}
+                              onClick={() =>
+                                setRowEdit({
+                                  i,
+                                  text: item.heard ?? item.food_name,
+                                })
+                              }
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {/* The bin sits beside the pencil, where a thumb can
+                            land on the wrong one: removing asks first. */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Search this food again"
-                            title="Research"
-                            onClick={() => void researchRow()}
-                            disabled={rowBusy || rowEdit.text.trim().length < 2}
-                            className="h-8 w-8 shrink-0 text-accent hover:bg-accent/10"
-                          >
-                            {rowBusy ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Search className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Cancel editing"
-                            title="Cancel"
-                            onClick={() => setRowEdit(null)}
+                            aria-label={`Remove ${item.food_name}`}
+                            className="h-6 w-6 text-destructive hover:bg-destructive/10"
                             disabled={rowBusy}
-                            className="h-8 w-8 shrink-0"
+                            onClick={() => setConfirmRemove(i)}
                           >
-                            <X className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
-                      ) : (
-                        <span className="font-medium block text-base mb-1">
-                          {item.food_name}
-                        </span>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          value={item.unit_quantity ?? item.quantity_g}
-                          onChange={(e) => {
-                            const newQty = parseInt(e.target.value) || 0;
-                            if (newQty < 0) return;
-                            const oldQty =
-                              (item.unit_quantity ?? item.quantity_g) || 1;
-                            const ratio = newQty / oldQty;
-
-                            const newItems = [...items];
-                            newItems[i] = {
-                              ...item,
-                              ...(item.unit_quantity !== undefined
-                                ? { unit_quantity: newQty }
-                                : {}),
-                              quantity_g: item.quantity_g * ratio,
-                              calories: item.calories * ratio,
-                              protein_g: item.protein_g * ratio,
-                              fat_g: item.fat_g * ratio,
-                              carbs_g: item.carbs_g * ratio,
-                              fiber_g: item.fiber_g * ratio,
-                            };
-                            setItems(newItems);
-                          }}
-                          className="w-20 h-8 text-sm bg-background"
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {item.unit && item.unit !== "g" ? item.unit : "g"}
+                        <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
+                          {Math.round(item.calories)} kcal · P
+                          {item.protein_g.toFixed(0)} · F
+                          {(item.fiber_g || 0).toFixed(0)}
                         </span>
                       </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-3">
-                        {rowEdit?.i !== i && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Edit ${item.food_name}`}
-                            title="Edit"
-                            className="h-6 w-6"
-                            disabled={rowBusy}
-                            onClick={() =>
-                              setRowEdit({
-                                i,
-                                text: item.heard ?? item.food_name,
-                              })
-                            }
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {/* The bin sits beside the pencil, where a thumb can
-                            land on the wrong one: removing asks first. */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Remove ${item.food_name}`}
-                          className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                          disabled={rowBusy}
-                          onClick={() => setConfirmRemove(i)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
-                        {Math.round(item.calories)} kcal · P
-                        {item.protein_g.toFixed(0)} · F
-                        {(item.fiber_g || 0).toFixed(0)}
-                      </span>
                     </div>
                   </div>
                 ))}
