@@ -15,6 +15,8 @@ import { getProfileRow } from "@/lib/historyCache";
 
 export const DEFAULT_WATER_GOAL_ML = 2500;
 export const DEFAULT_WATER_CUP_ML = 250;
+/** Highest daily goal the settings accept. */
+export const MAX_WATER_GOAL_ML = 6000;
 
 export interface WaterPrefs {
   goalMl: number;

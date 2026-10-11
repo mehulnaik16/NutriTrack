@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/client";
 import { todayLocal } from "@/lib/dates";
-import { loadWaterPrefs, saveWaterPrefs } from "@/lib/water";
+import { loadWaterPrefs, MAX_WATER_GOAL_ML, saveWaterPrefs } from "@/lib/water";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +66,8 @@ export function WaterStreak({ userId, streak }: Props) {
       setGoalError("Daily goal must be a positive number.");
     } else if (num < 1500) {
       setGoalError("Daily goal must be at least 1500 ml.");
+    } else if (num > MAX_WATER_GOAL_ML) {
+      setGoalError(`Daily goal can be at most ${MAX_WATER_GOAL_ML} ml.`);
     } else {
       setGoalError("");
     }
@@ -105,6 +107,9 @@ export function WaterStreak({ userId, streak }: Props) {
         hasError = true;
       } else if (gNum < 1500) {
         setGoalError("Daily goal must be at least 1500 ml.");
+        hasError = true;
+      } else if (gNum > MAX_WATER_GOAL_ML) {
+        setGoalError(`Daily goal can be at most ${MAX_WATER_GOAL_ML} ml.`);
         hasError = true;
       } else {
         setGoalError("");
