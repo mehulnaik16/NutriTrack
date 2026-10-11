@@ -17,41 +17,48 @@ if (typeof window !== "undefined") {
   });
 }
 
-// While an overlay is open it owns one history entry, so the phone/browser
-// back gesture closes just the overlay instead of leaving the page.
+/**
+ * Give an open overlay its own history entry, so the phone/browser back
+ * gesture calls `close` instead of leaving the page. Returns the cleanup to
+ * run when the overlay closes. Outside the hook only for the regression test.
+ */
+export function holdOverlayEntry(close: () => void): () => void {
+  const id = Math.random().toString(36).slice(2);
+  let pushed = false;
+  let cancelled = false;
+  const push = () => {
+    if (cancelled) return;
+    if (ownBacks) return void afterOwnBacks.push(push);
+    window.history.pushState({ ...window.history.state, __overlay: id }, "");
+    pushed = true;
+  };
+  // Deferred so React StrictMode's mount/unmount/mount doesn't leave a stray entry.
+  const timer = setTimeout(push, 0);
+  const onPop = (e: Event) => {
+    if (e === ownPop) return;
+    if (window.history.state?.__overlay !== id) close();
+  };
+  window.addEventListener("popstate", onPop);
+  return () => {
+    cancelled = true;
+    clearTimeout(timer);
+    window.removeEventListener("popstate", onPop);
+    // Closed from the UI while our entry is still on top: drop it.
+    if (pushed && window.history.state?.__overlay === id) {
+      ownBacks++;
+      window.history.back();
+    }
+  };
+}
+
 function useBackClose(open: boolean, close: () => void) {
   const closeRef = useRef(close);
   closeRef.current = close;
 
-  useEffect(() => {
-    if (!open) return;
-    const id = Math.random().toString(36).slice(2);
-    let pushed = false;
-    let cancelled = false;
-    const push = () => {
-      if (cancelled) return;
-      if (ownBacks) return void afterOwnBacks.push(push);
-      window.history.pushState({ ...window.history.state, __overlay: id }, "");
-      pushed = true;
-    };
-    // Deferred so React StrictMode's mount/unmount/mount doesn't leave a stray entry.
-    const timer = setTimeout(push, 0);
-    const onPop = (e: PopStateEvent) => {
-      if (e === ownPop) return;
-      if (window.history.state?.__overlay !== id) closeRef.current();
-    };
-    window.addEventListener("popstate", onPop);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      window.removeEventListener("popstate", onPop);
-      // Closed from the UI while our entry is still on top: drop it.
-      if (pushed && window.history.state?.__overlay === id) {
-        ownBacks++;
-        window.history.back();
-      }
-    };
-  }, [open]);
+  useEffect(
+    () => (open ? holdOverlayEntry(() => closeRef.current()) : undefined),
+    [open],
+  );
 }
 
 // Drop-in props for a Radix/vaul Root: works controlled or uncontrolled.
