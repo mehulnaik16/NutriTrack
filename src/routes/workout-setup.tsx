@@ -4,7 +4,8 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { historyIndex, leaveSteps } from "@/lib/tabHistory";
 import {
   ArrowLeft,
   ArrowRight,
@@ -160,6 +161,20 @@ function WorkoutSetup() {
   // Each step is a real history entry: forward pushes, back pops.
   const setStep = (n: number) =>
     routeNavigate({ search: (prev) => ({ ...prev, step: n }) });
+  // Where setup's first entry sits. Finishing drops every step from history,
+  // so back from the plan never lands on the filled-in form again.
+  const startIdx = useRef(0);
+  useEffect(() => {
+    startIdx.current = historyIndex();
+  }, []);
+  const leave = (to: "/workout" | "/workout-library" | "/custom-plan") =>
+    leaveSteps(
+      startIdx.current,
+      "/workout-setup",
+      to,
+      (replace) => navigate({ to, replace }),
+      true,
+    );
   const [busy, setBusy] = useState(false);
 
   // Answers
@@ -263,16 +278,16 @@ function WorkoutSetup() {
       if (planChoice === "ai_generated") {
         await generateAiPlan(user.id, prefs);
         toast.success("Your personalized plan is ready! 💪");
-        navigate({ to: "/workout" });
+        leave("/workout");
       } else if (planChoice === "library") {
         toast.success("Preferences saved — browse the library!");
-        navigate({ to: "/workout-library" });
+        leave("/workout-library");
       } else if (planChoice === "skip" || planChoice === "none") {
         toast.success("Preferences saved!");
-        navigate({ to: "/workout" });
+        leave("/workout");
       } else {
         toast.success("Preferences saved — build your weekly plan!");
-        navigate({ to: "/custom-plan" });
+        leave("/custom-plan");
       }
     } catch (e) {
       if (e instanceof AiPlanLimitError) toast(e.message);
@@ -301,7 +316,9 @@ function WorkoutSetup() {
             className="h-9 w-9 rounded-full"
             disabled={busy}
             onClick={() =>
-              step > 1 ? router.history.back() : navigate({ to: "/workout" })
+              step > 1 || historyIndex() > 0
+                ? router.history.back()
+                : navigate({ to: "/workout", replace: true })
             }
             aria-label="Back"
           >
