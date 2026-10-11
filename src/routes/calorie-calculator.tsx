@@ -9,7 +9,11 @@
  * Two formulas, chosen by whether a heart rate was entered. Both live in
  * calorieEngine.ts alongside the cardio paths; this file only collects inputs.
  */
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { WorkoutGate } from "@/components/WorkoutGate";
 import { useAuth } from "@/lib/auth";
@@ -52,9 +56,11 @@ import { convWeight, round1, weightToKg, type WeightUnit } from "@/lib/units";
 import { toast } from "sonner";
 import { todayLocal } from "@/lib/dates";
 import { recordWorkoutLog } from "@/lib/notificationPrimer";
+import { historyIndex, leaveSteps } from "@/lib/tabHistory";
 import type { LoggedSet } from "@/lib/workoutSets";
 
 export interface CalorieCalcSearch {
+  muscle?: string;
   exercise?: string;
   source?: string;
 }
@@ -62,6 +68,7 @@ export interface CalorieCalcSearch {
 export const Route = createFileRoute("/calorie-calculator")({
   component: GatedCalculator,
   validateSearch: (s: Record<string, unknown>): CalorieCalcSearch => ({
+    muscle: typeof s.muscle === "string" ? s.muscle : undefined,
     exercise: typeof s.exercise === "string" ? s.exercise : undefined,
     source: typeof s.source === "string" ? s.source : undefined,
   }),
@@ -154,6 +161,29 @@ function CalorieCalculator() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const isFromWorkout = search?.source === "workout";
+  const routeNavigate = Route.useNavigate();
+  const router = useRouter();
+
+  // Muscle and exercise live in the URL: each pick is a history step on top
+  // of the calculator's first entry, so back steps out one level at a time
+  // instead of leaving the calculator (or the app) from inside an exercise.
+  const startIdx = useRef(0);
+  useEffect(() => {
+    startIdx.current = historyIndex();
+  }, []);
+  const openMuscle = search.muscle ?? null;
+  const exercise = search.exercise ?? null;
+  const pick = (s: { muscle?: string; exercise?: string }) =>
+    routeNavigate({ search: (prev) => ({ source: prev.source, ...s }) });
+  // Back one level if this page pushed it, else rewrite the URL in place.
+  const stepBack = (fallback: CalorieCalcSearch) =>
+    historyIndex() > startIdx.current
+      ? router.history.back()
+      : routeNavigate({ search: fallback, replace: true });
+  const leave = () =>
+    leaveSteps(startIdx.current, "/calorie-calculator", "/workout", (replace) =>
+      navigate({ to: "/workout", replace }),
+    );
 
   // WorkoutGate has already loaded these; reading them here avoids a second fetch.
   const prefs = useGatedWorkoutPrefs();
@@ -164,8 +194,6 @@ function CalorieCalculator() {
   const [userGender, setUserGender] = useState("Male");
   const unit: WeightUnit = (prefs?.weightUnit as WeightUnit) ?? "kg";
 
-  const [exercise, setExercise] = useState<string | null>(null);
-  const [openMuscle, setOpenMuscle] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const hrSectionRef = useRef<HTMLElement>(null);
 
@@ -207,10 +235,13 @@ function CalorieCalculator() {
         const raw = sessionStorage.getItem("dombelz_calc_prefill");
         if (raw) {
           const prefill = JSON.parse(raw);
-          if (prefill.exercise) {
-            setExercise(prefill.exercise);
-          }
-          if (Array.isArray(prefill.sets) && prefill.sets.length > 0) {
+          // The sets belong to the exercise the workout sent; another pick
+          // made here must not inherit them.
+          if (
+            prefill.exercise === search.exercise &&
+            Array.isArray(prefill.sets) &&
+            prefill.sets.length > 0
+          ) {
             setRows(
               prefill.sets.map(
                 (s: {
@@ -230,8 +261,6 @@ function CalorieCalculator() {
               ),
             );
           }
-        } else if (search.exercise) {
-          setExercise(search.exercise);
         }
       } catch (err) {
         console.warn("Failed to load prefill from sessionStorage", err);
@@ -294,8 +323,14 @@ function CalorieCalculator() {
   const activeMin = Math.max(0, durationMin - restMin);
 
   const clearAll = () => {
-    setExercise(null);
-    setOpenMuscle(null);
+    // Back to the calculator's first entry, then empty its URL.
+    const reset = () =>
+      routeNavigate({ search: { source: search.source }, replace: true });
+    const n = historyIndex() - startIdx.current;
+    if (n > 0) {
+      window.addEventListener("popstate", reset, { once: true });
+      window.history.go(-n);
+    } else reset();
     setQuery("");
     setRows([
       { reps: "10", weight: "", hold: "" },
@@ -394,7 +429,7 @@ function CalorieCalculator() {
       } catch {
         /* ignore */
       }
-      navigate({ to: "/workout" });
+      leave();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Error logging workout: ${msg}`, { id: t });
@@ -413,7 +448,7 @@ function CalorieCalculator() {
       <header className="sticky top-0 z-30 border-b border-border/50 bg-background/95 pt-safe backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center gap-2 px-4 py-3">
           <button
-            onClick={() => navigate({ to: "/workout" })}
+            onClick={leave}
             aria-label="Back to workout"
             className="-ml-2 rounded-full p-2 transition-transform active:scale-90"
           >
@@ -468,10 +503,7 @@ function CalorieCalculator() {
                     </p>
                   </div>
                   <button
-                    onClick={() => {
-                      setExercise(null);
-                      setOpenMuscle(null);
-                    }}
+                    onClick={() => stepBack({ source: search.source })}
                     className="shrink-0 rounded-full px-3 py-1.5 text-xs font-bold text-accent"
                   >
                     Change
@@ -509,7 +541,7 @@ function CalorieCalculator() {
                         <button
                           key={n}
                           onClick={() => {
-                            setExercise(n);
+                            pick({ muscle: search.muscle, exercise: n });
                             setQuery("");
                           }}
                           className="w-full rounded-xl border border-border/50 bg-muted/10 px-4 py-3 text-left text-sm font-medium active:scale-[0.98]"
@@ -521,7 +553,7 @@ function CalorieCalculator() {
                   ) : openMuscle ? (
                     <div className="space-y-1.5">
                       <button
-                        onClick={() => setOpenMuscle(null)}
+                        onClick={() => stepBack({ source: search.source })}
                         className="flex items-center gap-1 py-1 text-xs font-bold uppercase tracking-wide text-muted-foreground"
                       >
                         <ChevronLeft className="h-3 w-3" /> All muscles
@@ -529,7 +561,9 @@ function CalorieCalculator() {
                       {namesForMuscle(openMuscle).map((n) => (
                         <button
                           key={n}
-                          onClick={() => setExercise(n)}
+                          onClick={() =>
+                            pick({ muscle: openMuscle, exercise: n })
+                          }
                           className="w-full rounded-xl border border-border/50 bg-muted/10 px-4 py-3 text-left text-sm font-medium active:scale-[0.98]"
                         >
                           {n}
@@ -541,7 +575,7 @@ function CalorieCalculator() {
                       {MUSCLES.map((m) => (
                         <button
                           key={m.id}
-                          onClick={() => setOpenMuscle(m.id)}
+                          onClick={() => pick({ muscle: m.id })}
                           className="flex flex-col overflow-hidden rounded-2xl transition-transform duration-150 active:scale-95"
                         >
                           <img
@@ -863,7 +897,7 @@ function CalorieCalculator() {
                     {justSaved ? "Saved" : "Save to history"}
                   </Button>
                   <Button
-                    onClick={() => navigate({ to: "/workout" })}
+                    onClick={leave}
                     className="h-10 rounded-xl text-xs font-bold"
                   >
                     Done
