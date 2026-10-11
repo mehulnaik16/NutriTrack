@@ -2733,7 +2733,7 @@ function WorkoutPage() {
                   dialog, and sticky alone left the bar floating mid-screen.
                   The negative bottom cancels the dialog's padding, which
                   sticky otherwise stops at, leaving a strip under the bar. */}
-              <div className="sticky -bottom-4 sm:-bottom-6 mt-auto z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 border-t border-border/50 bg-background p-3.5 sm:p-4 pb-safe shadow-[0_-12px_30px_-5px_rgba(0,0,0,0.6)]">
+              <div className="sticky -bottom-4 sm:-bottom-6 mt-auto z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 border-t border-border/50 bg-background px-3.5 pt-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-6 shadow-[0_-12px_30px_-5px_rgba(0,0,0,0.6)]">
                 <Button
                   onClick={handleLog}
                   className="w-full font-bold h-12 sm:h-13 text-sm rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5 active:scale-[0.99]"

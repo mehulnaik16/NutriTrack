@@ -20,7 +20,6 @@
  * do, and it is far faster than the JS path) and falls back to ZXing elsewhere.
  */
 
-import { LogoLoader } from "@/components/LogoLoader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { BrowserMultiFormatReader } from "@zxing/browser";
@@ -363,12 +362,6 @@ export function BarcodeScanner({
           </p>
         )}
       </div>
-
-      {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/70">
-          <LogoLoader className="h-8 w-8 text-accent" />
-        </div>
-      )}
 
       {torchAvailable && (
         <button

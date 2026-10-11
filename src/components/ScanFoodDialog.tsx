@@ -84,7 +84,12 @@ export function ScanFoodDialog({
         onOpenChange(o);
       }}
     >
-      <DialogContent className="max-w-sm">
+      {/* No auto-focus: it landed on the manual field and raised the
+          keyboard over the camera before the user chose to type. */}
+      <DialogContent
+        className="max-w-sm"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ScanLine className="h-4 w-4" /> Barcode Lookup
