@@ -153,21 +153,16 @@ const VOICE_MAX_TOKENS = 1500;
  */
 export function voiceAudioChain(
   prompt: string,
-  base64: string,
-  mimeType: string,
+  /** Absent on a Power Log Re-parse: the words are already in the prompt. */
+  audio?: { base64: string; mimeType: string },
 ) {
   const g = (model: string): Step => ({
     provider: "gemini",
     model,
     run: (signal) =>
-      geminiVision({
-        model,
-        prompt,
-        base64,
-        mimeType,
-        max_tokens: 1000,
-        signal,
-      }),
+      audio
+        ? geminiVision({ model, prompt, ...audio, max_tokens: 1000, signal })
+        : geminiText({ model, prompt, max_tokens: 1000, signal }),
   });
   return runChainWithRetry([g(LITE), g(FLASH_36)], {
     budgetMs: VISION_BUDGET_MS,

@@ -586,38 +586,28 @@ const AudioInput = z.object({
   ]),
 });
 
-/** A recorded clip in, its words out (Sarvam Saaras, see server/sarvam.ts). */
-export const serverVoiceTranscribe = createServerFn({ method: "POST" })
-  .middleware([requireAccess])
-  .inputValidator(AudioInput)
-  .handler(async (ctx) => {
-    checkRateLimit(ctx.context.userId);
-    const { sarvamTranscribe } = await import("@/server/sarvam");
-    const { base64, mimeType } = ctx.data;
-    const audio = new Blob([Buffer.from(base64, "base64")], { type: mimeType });
-    return {
-      transcript: await sarvamTranscribe(
-        audio,
-        `speech.${mimeType.split("/")[1]}`,
-      ),
-    };
-  });
-
 /**
  * A recorded clip in, its words and foods out in one call: Gemini hears the
- * audio itself (Voice B). A whole-day Power Log takes one of the day's two
+ * audio itself. A whole-day Power Log takes one of the day's two
  * turns first and gives it back if the model fails.
  */
 export const serverVoiceGeminiParse = createServerFn({ method: "POST" })
   .middleware([requireAccess])
   .inputValidator(
-    AudioInput.extend({
-      /** The user's meal names, so the model can only pick among them. */
-      meals: z.array(z.string().trim().min(1).max(30)).max(8),
-      power: z.boolean(),
-      /** The user's local date, for the per-day Power Log limit. */
-      day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    }),
+    AudioInput.partial()
+      .extend({
+        /** The user's meal names, so the model can only pick among them. */
+        meals: z.array(z.string().trim().min(1).max(30)).max(8),
+        power: z.boolean(),
+        /** The user's local date, for the per-day Power Log limit. */
+        day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        /** A Power Log Re-parse: the edited words instead of the clip. */
+        text: z.string().trim().min(1).max(2000).optional(),
+      })
+      .refine(
+        (d) => (d.text ? d.power && !d.base64 : !!d.base64 && !!d.mimeType),
+        "Send a recording, or words for a Power Log re-parse",
+      ),
   )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
@@ -628,9 +618,18 @@ export const serverVoiceGeminiParse = createServerFn({ method: "POST" })
       import("@/server/aiRoutes"),
       import("@/lib/voiceShort"),
     ]);
-    const { base64, mimeType, meals, power, day } = ctx.data;
+    const { base64, mimeType, meals, power, day, text } = ctx.data;
     let turn: string | null = null;
-    if (power) {
+    if (text) {
+      // A re-parse re-reads a Power Log already counted today; it takes no
+      // new turn, but needs one spent, so it is not a free Power Log.
+      const { data: left, error } = await ctx.context.supabase.rpc(
+        "power_logs_left",
+        { p_day: day },
+      );
+      if (error || left === 2)
+        throw new Error("Record your Whole Day log first, then re-parse.");
+    } else if (power) {
       const { data, error } = await ctx.context.supabase.rpc(
         "claim_power_log",
         { p_day: day },
@@ -641,8 +640,9 @@ export const serverVoiceGeminiParse = createServerFn({ method: "POST" })
       turn = data;
     }
     try {
-      const prompt = buildVoiceAudioPrompt(meals, power);
-      return { result: (await voiceAudioChain(prompt, base64, mimeType)).text };
+      const prompt = buildVoiceAudioPrompt(meals, power, text);
+      const audio = base64 && mimeType ? { base64, mimeType } : undefined;
+      return { result: (await voiceAudioChain(prompt, audio)).text };
     } catch (e) {
       if (turn) {
         const { supabaseAdmin } = await import("@/integrations/client.server");
