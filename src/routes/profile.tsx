@@ -98,7 +98,7 @@ import { applyTheme, getLocalTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/client";
 import { getHistory, getProfileRow } from "@/lib/historyCache";
 import { loadMealNames, saveMealNames } from "@/lib/meals";
-import { loadWaterPrefs, saveWaterPrefs } from "@/lib/water";
+import { loadWaterPrefs, MAX_WATER_GOAL_ML, saveWaterPrefs } from "@/lib/water";
 import { serverDeleteAccount } from "@/lib/delete-account";
 import {
   cancelSubscription,
@@ -2256,6 +2256,10 @@ function SettingsPage({
     const cup = parseInt(cupSize, 10);
     if (!Number.isFinite(goal) || goal < 1500) {
       toast.error("Daily goal must be at least 1500 ml");
+      return;
+    }
+    if (goal > MAX_WATER_GOAL_ML) {
+      toast.error(`Daily goal can be at most ${MAX_WATER_GOAL_ML} ml`);
       return;
     }
     if (!Number.isFinite(cup) || cup < 25) {

@@ -60,7 +60,7 @@ const TABS = ["/dashboard", "/food", "/workout", "/hub", "/weight"] as const;
 
 export function BottomNav() {
   const { user } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const router = useRouter();
   const navigate = useNavigate();
 
@@ -121,6 +121,9 @@ export function BottomNav() {
   // tab route already redirects a profile-less user back to /quiz itself.
   if (!user) return null;
   if (HIDDEN_ON.has(pathname)) return null;
+  // Inside a muscle group's exercise list the page owns the whole screen.
+  if (pathname === "/workout" && (search as { muscle?: string }).muscle)
+    return null;
 
   const navItems = [
     { to: "/dashboard", icon: Activity, label: "Home" },

@@ -2732,8 +2732,11 @@ function WorkoutPage() {
                   mt-auto: on a tall screen the log tab is shorter than the
                   dialog, and sticky alone left the bar floating mid-screen.
                   The negative bottom cancels the dialog's padding, which
-                  sticky otherwise stops at, leaving a strip under the bar. */}
-              <div className="sticky -bottom-4 sm:-bottom-6 mt-auto z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 border-t border-border/50 bg-background px-3.5 pt-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-6 shadow-[0_-12px_30px_-5px_rgba(0,0,0,0.6)]">
+                  sticky otherwise stops at, leaving a strip under the bar.
+                  No border or shadow: it fades into the dialog's own
+                  background (/98), so content dissolves under it instead of
+                  meeting a line in a slightly different colour. */}
+              <div className="sticky -bottom-4 sm:-bottom-6 mt-auto z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 bg-gradient-to-t from-background/98 from-70% to-transparent px-3.5 pt-6 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-4 sm:pt-8 sm:pb-6">
                 <Button
                   onClick={handleLog}
                   className="w-full font-bold h-12 sm:h-13 text-sm rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all hover:-translate-y-0.5 active:scale-[0.99]"
@@ -3228,7 +3231,10 @@ function WorkoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-nav selection:bg-accent/20">
+    // No BottomNav inside a muscle list (see BottomNav), so no room kept for it.
+    <div
+      className={`min-h-screen bg-background selection:bg-accent/20 ${selectedMuscle ? "pb-safe" : "pb-nav"}`}
+    >
       <Header />
       <main className="mx-auto max-w-md p-5 pt-8 space-y-3">
         {/* Custom Tabs */}
