@@ -107,6 +107,7 @@ Write "heard", "name" and "lang" BEFORE any number, every time. Decide what the 
   name | regional names | E <kJ> | P <g> | F <g> | C <g> | Fib <g> [| 1 pc = <n> g] [| serving <n> g]
   All values are per 100 g.
 - If a reference row IS the queried food - including when the query is one of the regional names on that row - copy its five numbers EXACTLY, digit for digit, and use its English name. Do not round or improve them. Confidence "high".
+- A row IS the food only if it names nothing the query did not say. A row that adds a variant, form or style ("Instant coffee" for "coffee", "Rice, parboiled, milled" for "rice", "Russian salad" for "salad") is a relative, not the food: answer the plain, everyday version as eaten (coffee with milk, cooked white rice, mixed vegetable salad) under a plain name.
 - A larger or smaller version of a reference food has the SAME numbers per 100 g. Only piece_g and serving_g change. A thatte idli is ordinary idli batter on a bigger plate: copy idli's per-100 g row and set piece_g to about 100.
 - A close relative starts from the reference row's numbers and moves only as far as the difference justifies.
 - Invent numbers only when no reference row is the food or a near relative.
