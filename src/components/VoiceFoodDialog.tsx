@@ -42,7 +42,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   serverVoiceParse,
   serverAiFoodSearchInline,
-  serverVoiceTranscribe,
   serverVoiceGeminiParse,
 } from "@/lib/ai";
 import { isAiBusy, toastAiError } from "@/lib/aiErrors";
@@ -101,7 +100,7 @@ export interface VoiceFoodItem {
 
 /**
  * Longest anyone may speak in one go; recording stops and parses at this.
- * 30 s is the most Sarvam's speech-to-text takes in one request.
+ * 30 s keeps a single meal's clip small; a whole-day Power Log gets 45 s.
  */
 const MAX_SPEECH_MS = 30_000;
 /** A whole-day Power Log may run longer: a measured full day took 44 s. */
@@ -321,10 +320,27 @@ export async function resolveVoiceItems(
   // bundled catalog, then the user's correction and the verified cache (both
   // inside serverAiFoodSearchInline), and only then a paid call. This is what
   // puts voice and photo logs on the cache instead of beside it.
-  const resolved = await Promise.all(items.map((it) => resolveVoiceItem(it)));
+  const busy: string[] = [];
+  let busyError: unknown;
+  const resolved = await Promise.all(
+    items.map((it) =>
+      resolveVoiceItem(it).catch((e) => {
+        if (!isAiBusy(e)) throw e;
+        busy.push(it.food_name);
+        busyError = e;
+        return null;
+      }),
+    ),
+  );
+  // Nothing priced at all: the caller's "AI is busy" toast says it best.
+  if (busy.length && busy.length === items.length) throw busyError;
+  if (busy.length)
+    toast.warning(`Couldn't look up ${busy.join(", ")} right now`, {
+      description: "Tap Re-parse in a moment, or add it by search.",
+    });
 
   const unresolved = items
-    .filter((_, i) => resolved[i] === null)
+    .filter((it, i) => resolved[i] === null && !busy.includes(it.food_name))
     .map((it) => it.food_name);
   if (unresolved.length) {
     toast.warning(
@@ -347,7 +363,6 @@ export function VoiceFoodDialog({
   typedQuery,
   onResearch,
   onTypedQueryChange,
-  engine = "sarvam",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -373,12 +388,6 @@ export function VoiceFoodDialog({
   onResearch?: (text: string) => Promise<boolean>;
   /** The sentence after a row edit swapped the words for one food. */
   onTypedQueryChange?: (text: string) => void;
-  /**
-   * Who hears the clip. "sarvam": Sarvam transcribes, then a text model
-   * parses. "gemini": Gemini Lite hears the audio and returns the words and
-   * the foods in one call (Food page A/B test).
-   */
-  engine?: "sarvam" | "gemini";
 }) {
   /** The open microphone and what it has recorded so far. */
   const recRef = useRef<{
@@ -386,16 +395,12 @@ export function VoiceFoodDialog({
     stream: MediaStream;
     chunks: Blob[];
   } | null>(null);
-  /** Whole-day Power Log (Voice B only): foods sorted into meals by what was said. */
-  const [powerOn, setPower] = useState(false);
-  // Sarvam's Voice shares this dialog; Power Log is Voice B's alone.
-  const power = powerOn && engine === "gemini";
+  /** Whole-day Power Log: foods sorted into meals by what was said. */
+  const [power, setPower] = useState(false);
   const maxMs = power ? MAX_POWER_SPEECH_MS : MAX_SPEECH_MS;
   // Read by the recording timer, which must not restart if this changes.
   const maxMsRef = useRef(maxMs);
   maxMsRef.current = maxMs;
-  /** Which engine heard the words and how long after release, for the A/B test. */
-  const [heardBy, setHeardBy] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   // What was heard, readable from timers and pointer handlers without
@@ -471,11 +476,6 @@ export function VoiceFoodDialog({
   };
   const [elapsed, setElapsed] = useState(0);
   const [items, setItems] = useState<VoiceFoodItem[]>(initialItems ?? []);
-  const [transcribing, setTranscribing] = useState(false);
-  const hearWait = useWaitLabel(transcribing, "Listening back…", [
-    "Catching every word…",
-    "Almost there…",
-  ]);
   const [parsing, setParsing] = useState(false);
   const parseWait = useWaitLabel(parsing, "Parsing food items…", [
     "Understanding what you said…",
@@ -533,11 +533,37 @@ export function VoiceFoodDialog({
     });
   };
 
+  /** Grouped by meal, in the user's meal order, for the review list. */
+  const byMeal = (list: VoiceFoodItem[]) => {
+    const order = meal?.options ?? [];
+    return list.sort(
+      (a, b) => order.indexOf(a.meal_type) - order.indexOf(b.meal_type),
+    );
+  };
+
   const parse = async (text: string) => {
     if (!text.trim()) return;
     setParsing(true);
     try {
-      const parsed = await parseVoiceFoodLog(text, meal?.value ?? "Snack");
+      // A Power Log re-reads the words with its meal rules; the plain parse
+      // would put every food in the picked meal.
+      const parsed = power
+        ? await (async () => {
+            const meals = meal?.options ?? [];
+            const { result: raw } = await serverVoiceGeminiParse({
+              data: { text, meals, power, day: toLocalISO(new Date()) },
+            });
+            return byMeal(
+              await resolveVoiceItems(
+                readShortVoice(raw, {
+                  meals,
+                  picked: meal?.value ?? "Snack",
+                  power,
+                }).items,
+              ),
+            );
+          })()
+        : await parseVoiceFoodLog(text, meal?.value ?? "Snack");
       setItems(parsed);
       if (parsed.length === 0) toast.info("No food items detected. Try again.");
     } catch (e) {
@@ -551,71 +577,37 @@ export function VoiceFoodDialog({
   const finish = async () => {
     clearTimeout(tapTimer.current);
     setMicMode("idle");
-    const released = performance.now();
-    const secs = () => ((performance.now() - released) / 1000).toFixed(1);
     const clip = await stopRecorder();
     if (!clip) return;
     const audio = {
       base64: await blobToBase64(clip),
       mimeType: clip.type.split(";")[0] as "audio/webm",
     };
-    if (engine === "gemini") {
-      setParsing(true);
-      try {
-        const meals = meal?.options ?? [];
-        const { result: raw } = await serverVoiceGeminiParse({
-          data: { ...audio, meals, power, day: toLocalISO(new Date()) },
-        });
-        const heard = readShortVoice(raw, {
-          meals,
-          picked: meal?.value ?? "Snack",
-          power,
-        });
-        setTranscript(heard.transcript);
-        transcriptRef.current = heard.transcript;
-        const parsed = await resolveVoiceItems(heard.items);
-        // Grouped by meal, in the user's meal order, for the review list.
-        if (power)
-          parsed.sort(
-            (a, b) => meals.indexOf(a.meal_type) - meals.indexOf(b.meal_type),
-          );
-        setItems(parsed);
-        setHeardBy(`Gemini · foods ready ${secs()} s after you let go`);
-        if (parsed.length === 0)
-          toast.info("No food items detected. Try again.");
-      } catch (e) {
-        if ((e as Error)?.message?.includes(POWER_LOG_LIMIT_MESSAGE)) {
-          toast(POWER_LOG_LIMIT_MESSAGE);
-          setPower(false);
-        } else toastAiError(e, "voice parse");
-      } finally {
-        setParsing(false);
-      }
-      return;
-    }
-    setTranscribing(true);
-    let text: string;
+    setParsing(true);
     try {
-      text = (await serverVoiceTranscribe({ data: audio })).transcript;
-    } catch (e) {
-      toastAiError(e, "voice transcribe");
-      return;
-    } finally {
-      setTranscribing(false);
-    }
-    if (!text) {
-      toast.info("We couldn't hear any words", {
-        description: "Hold the button and speak a little closer.",
+      const meals = meal?.options ?? [];
+      const { result: raw } = await serverVoiceGeminiParse({
+        data: { ...audio, meals, power, day: toLocalISO(new Date()) },
       });
-      return;
+      const heard = readShortVoice(raw, {
+        meals,
+        picked: meal?.value ?? "Snack",
+        power,
+      });
+      setTranscript(heard.transcript);
+      transcriptRef.current = heard.transcript;
+      const found = await resolveVoiceItems(heard.items);
+      const parsed = power ? byMeal(found) : found;
+      setItems(parsed);
+      if (parsed.length === 0) toast.info("No food items detected. Try again.");
+    } catch (e) {
+      if ((e as Error)?.message?.includes(POWER_LOG_LIMIT_MESSAGE)) {
+        toast(POWER_LOG_LIMIT_MESSAGE);
+        setPower(false);
+      } else toastAiError(e, "voice parse");
+    } finally {
+      setParsing(false);
     }
-    const wordsIn = secs();
-    setTranscript(text);
-    transcriptRef.current = text;
-    await parse(text);
-    setHeardBy(
-      `Sarvam · words in ${wordsIn} s, foods ready ${secs()} s after you let go`,
-    );
   };
   // The 60 s timer reads this, so it always calls the current render's finish.
   const finishRef = useRef(finish);
@@ -649,7 +641,7 @@ export function VoiceFoodDialog({
   }, [active]);
 
   const onPressStart = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (parsing || transcribing || e.button !== 0) return;
+    if (parsing || e.button !== 0) return;
     // Keeps the release on this button even if a finger slides off it.
     e.currentTarget.setPointerCapture(e.pointerId);
     const m = modeRef.current;
@@ -687,13 +679,7 @@ export function VoiceFoodDialog({
 
   /** Keyboard has no hold: Enter or Space starts hands-free, again stops. */
   const onMicKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (
-      (e.key !== "Enter" && e.key !== " ") ||
-      e.repeat ||
-      parsing ||
-      transcribing
-    )
-      return;
+    if ((e.key !== "Enter" && e.key !== " ") || e.repeat || parsing) return;
     e.preventDefault();
     if (modeRef.current === "idle") {
       setHint(false);
@@ -707,7 +693,6 @@ export function VoiceFoodDialog({
    * The clip is sent for transcription on release (see finish).
    */
   const startRecording = (): boolean => {
-    setHeardBy(null);
     if (
       typeof MediaRecorder === "undefined" ||
       !navigator.mediaDevices?.getUserMedia
@@ -754,6 +739,22 @@ export function VoiceFoodDialog({
     return true;
   };
 
+  // Every close clears the dialog: a dismissal, and the parent closing it
+  // after Log, which never calls onOpenChange. A dismissed clip is never sent.
+  useEffect(() => {
+    if (open) return;
+    void stopRecorder();
+    clearTimeout(tapTimer.current);
+    setMicMode("idle");
+    setHint(false);
+    setDraft(null);
+    setRowEdit(null);
+    setRecording(false);
+    setTranscript("");
+    transcriptRef.current = "";
+    setItems([]);
+  }, [open]);
+
   const confirm = async () => {
     setBusy(true);
     try {
@@ -770,26 +771,7 @@ export function VoiceFoodDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) {
-          // Dismissing discards: the clip is closed but never sent.
-          void stopRecorder();
-          setHeardBy(null);
-          clearTimeout(tapTimer.current);
-          setMicMode("idle");
-          setHint(false);
-          setDraft(null);
-          setRowEdit(null);
-          setRecording(false);
-          setTranscript("");
-          transcriptRef.current = "";
-          setItems([]);
-        }
-        onOpenChange(o);
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -835,17 +817,9 @@ export function VoiceFoodDialog({
                       {m}
                     </SelectItem>
                   ))}
-                  {engine === "gemini" && (
-                    <SelectItem value={POWER_LOG}>{POWER_LOG_LABEL}</SelectItem>
-                  )}
+                  <SelectItem value={POWER_LOG}>{POWER_LOG_LABEL}</SelectItem>
                 </SelectContent>
               </Select>
-              {power && (
-                <p className="text-xs text-muted-foreground">
-                  Say your whole day. Foods go into each meal for you. 2 per
-                  day.
-                </p>
-              )}
             </div>
           )}
           {typedQuery ? (
@@ -923,14 +897,32 @@ export function VoiceFoodDialog({
             )
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">
-                Say what you ate naturally — e.g.{" "}
-                <em>
-                  {power
-                    ? '"Breakfast 2 idlis, lunch rice and dal, dinner chicken fried rice"'
-                    : '"I had 2 rotis, a bowl of dal, and a banana"'}
-                </em>
-              </p>
+              {power ? (
+                // Only before anything is said; closing the dialog clears both.
+                !transcript &&
+                !parsing &&
+                items.length === 0 && (
+                  <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                    <p className="font-medium">
+                      Name each meal, then what you ate in it.
+                    </p>
+                    <p className="italic text-muted-foreground">
+                      "Breakfast, 2 idlis and filter coffee. Lunch, rice, sambar
+                      and curd. Evening, 1 samosa and tea. Dinner, 3 chapatis
+                      and paneer curry."
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Up to 45 seconds, in any language. Anything without a meal
+                      goes to Snack. 2 whole-day logs a day.
+                    </p>
+                  </div>
+                )
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Say what you ate naturally — e.g.{" "}
+                  <em>"I had 2 rotis, a bowl of dal, and a banana"</em>
+                </p>
+              )}
 
               {/* Record button: hold to talk, or double-tap to talk hands-free.
               The ring fills over the 30 (Power Log: 45) seconds a recording may last. */}
@@ -974,7 +966,7 @@ export function VoiceFoodDialog({
                     onPointerCancel={onPressEnd}
                     onKeyDown={onMicKey}
                     onContextMenu={(e) => e.preventDefault()}
-                    disabled={parsing || transcribing}
+                    disabled={parsing}
                     aria-label={
                       mode === "locked"
                         ? "Stop recording"
@@ -1026,10 +1018,9 @@ export function VoiceFoodDialog({
             </>
           )}
 
-          {(transcribing || parsing) && (
+          {parsing && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />{" "}
-              {transcribing ? hearWait.label : parseWait.label}
+              <Loader2 className="h-4 w-4 animate-spin" /> {parseWait.label}
             </div>
           )}
 
@@ -1052,9 +1043,6 @@ export function VoiceFoodDialog({
                   </Button>
                 )}
               </div>
-              {heardBy && (
-                <p className="text-[11px] text-muted-foreground">{heardBy}</p>
-              )}
               <Textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}

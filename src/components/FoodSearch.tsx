@@ -137,11 +137,6 @@ export const FoodSearch = forwardRef<
     meals?: string[];
     dailyTarget?: number | null;
     currentDayCalories?: number;
-    /**
-     * shortcut: A/B test only (Food page). Adds "Voice B", Gemini Lite hearing
-     * the audio directly, beside Sarvam's Voice; remove once one is chosen.
-     */
-    browserVoiceTest?: boolean;
   }
 >((props, ref) => {
   const {
@@ -332,7 +327,6 @@ export const FoodSearch = forwardRef<
   const [cameraOpen, setCameraOpen] = useState(false);
   const [barcodeMode, setBarcodeMode] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [voiceEngine, setVoiceEngine] = useState<"sarvam" | "gemini">("sarvam");
   /** Foods parsed from a typed sentence, handed to the voice review list. */
   const [voiceItems, setVoiceItems] = useState<VoiceFoodItem[] | undefined>();
   /** What was typed when those items came from the search box. */
@@ -905,9 +899,7 @@ export const FoodSearch = forwardRef<
 
       {/* ── Action buttons: Camera → Mic → Barcode → Favourites ── */}
       {/* Four equal columns: squares shrink on narrow phones, 64px max. */}
-      <div
-        className={`mx-auto grid gap-2 min-[360px]:gap-3 ${props.browserVoiceTest ? "max-w-[360px] grid-cols-5" : "max-w-[292px] grid-cols-4"}`}
-      >
+      <div className="mx-auto grid max-w-[292px] grid-cols-4 gap-2 min-[360px]:gap-3">
         <Button
           variant="outline"
           onClick={() => setCameraOpen(true)}
@@ -922,10 +914,7 @@ export const FoodSearch = forwardRef<
         </Button>
         <Button
           variant="outline"
-          onClick={() => {
-            setVoiceEngine("sarvam");
-            setVoiceOpen(true);
-          }}
+          onClick={() => setVoiceOpen(true)}
           title="Log food by voice"
           data-tour="food-voice"
           className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0"
@@ -935,22 +924,6 @@ export const FoodSearch = forwardRef<
             Voice
           </span>
         </Button>
-        {props.browserVoiceTest && (
-          <Button
-            variant="outline"
-            onClick={() => {
-              setVoiceEngine("gemini");
-              setVoiceOpen(true);
-            }}
-            title="Log food by voice (Gemini Lite hears the audio)"
-            className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0"
-          >
-            <Mic style={{ width: 22, height: 22 }} />
-            <span className="text-[8px] font-medium text-muted-foreground">
-              Voice B
-            </span>
-          </Button>
-        )}
         <Button
           variant="outline"
           onClick={() => setBarcodeMode(true)}
@@ -1542,7 +1515,6 @@ export const FoodSearch = forwardRef<
         }}
         meal={mealPicker}
         onConfirm={logVoiceItems}
-        engine={voiceEngine}
         initialItems={voiceItems}
         typedQuery={voiceItems ? voiceQuery : undefined}
         onResearch={handleAiFallback}
