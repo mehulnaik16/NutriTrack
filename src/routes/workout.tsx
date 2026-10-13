@@ -304,6 +304,7 @@ function WorkoutPage() {
 
   // DB States
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [cardioUnfavs, setCardioUnfavs] = useState<string[]>([]);
   const [recentExercises, setRecentExercises] = useState<string[]>([]);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -367,6 +368,9 @@ function WorkoutPage() {
     if (!user) return;
     const favs = JSON.parse(localStorage.getItem("workout_favorites") || "[]");
     setFavorites(favs);
+    setCardioUnfavs(
+      JSON.parse(localStorage.getItem("cardio_unfavorites") || "[]"),
+    );
 
     // All three in parallel, each applied as it lands — the plan used to wait
     // behind the other two. Plan and profile come from the validated cache
@@ -493,6 +497,25 @@ function WorkoutPage() {
     }
     setFavorites(newFavs);
     localStorage.setItem("workout_favorites", JSON.stringify(newFavs));
+  };
+
+  // Questionnaire picks are favourites by default; cardioUnfavs records the
+  // ones the user un-hearted, so a later questionnaire change still applies.
+  const isCardioFav = (name: string) =>
+    favorites.includes(name) ||
+    (isRecommendedCardio(name, prefs) && !cardioUnfavs.includes(name));
+
+  const toggleCardioFavorite = (name: string) => {
+    const fav = isCardioFav(name);
+    const newFavs = fav
+      ? favorites.filter((f) => f !== name)
+      : [...favorites, name];
+    const newUnfavs = cardioUnfavs.filter((f) => f !== name);
+    if (fav && isRecommendedCardio(name, prefs)) newUnfavs.push(name);
+    setFavorites(newFavs);
+    setCardioUnfavs(newUnfavs);
+    localStorage.setItem("workout_favorites", JSON.stringify(newFavs));
+    localStorage.setItem("cardio_unfavorites", JSON.stringify(newUnfavs));
   };
 
   // --- UI Components ---
@@ -1083,53 +1106,59 @@ function WorkoutPage() {
   };
 
   const renderCardioList = () => {
-    const groups = groupedCatalog();
+    const catalog = groupedCatalog();
+    const favNames = catalog
+      .flatMap((g) => g.activities.map((a) => a.name))
+      .filter(isCardioFav);
+    // Favourites on top; each activity appears once, so drop them below.
+    const groups = [
+      ...(favNames.length
+        ? [{ category: "favourites", label: "Favourites", names: favNames }]
+        : []),
+      ...catalog.map((g) => ({
+        category: g.category,
+        label: g.label,
+        names: g.activities.map((a) => a.name).filter((n) => !isCardioFav(n)),
+      })),
+    ].filter((g) => g.names.length > 0);
     return (
       <div className="space-y-6">
-        {groups.map((group) => {
-          // Within each group, recommended activities float to top
-          const sorted = [...group.activities].sort((a, b) => {
-            const ra = isRecommendedCardio(a.name, prefs) ? 0 : 1;
-            const rb = isRecommendedCardio(b.name, prefs) ? 0 : 1;
-            return ra - rb;
-          });
-          return (
-            <div key={group.category}>
-              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                {group.label}
-              </p>
-              <div className="space-y-2">
-                {sorted.map(({ name }) => {
-                  const recommended = isRecommendedCardio(name, prefs);
-                  return (
-                    <button
-                      key={name}
-                      onClick={() => setSelectedCardio(name)}
-                      className={`w-full flex items-center justify-between p-4 rounded-xl bg-card border shadow-sm transition-colors ${
-                        recommended
-                          ? "border-accent/50 bg-accent/5 hover:border-accent"
-                          : "border-border hover:border-accent/50"
-                      }`}
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <Activity
-                          className={`h-5 w-5 shrink-0 ${recommended ? "text-accent" : "text-muted-foreground"}`}
-                        />
-                        <span className="truncate font-semibold">{name}</span>
-                        {recommended && (
-                          <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-foreground">
-                            Recommended
-                          </span>
-                        )}
-                      </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </button>
-                  );
-                })}
-              </div>
+        {groups.map((group) => (
+          <div key={group.category}>
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              {group.label}
+            </p>
+            <div className="space-y-2">
+              {group.names.map((name) => {
+                const fav = isCardioFav(name);
+                return (
+                  <button
+                    key={name}
+                    onClick={() => setSelectedCardio(name)}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl bg-card border shadow-sm transition-colors ${
+                      fav
+                        ? "border-accent/50 bg-accent/5 hover:border-accent"
+                        : "border-border hover:border-accent/50"
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Activity
+                        className={`h-5 w-5 shrink-0 ${fav ? "text-accent" : "text-muted-foreground"}`}
+                      />
+                      <span className="truncate font-semibold">{name}</span>
+                      {fav && (
+                        <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-foreground">
+                          Favourite
+                        </span>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     );
   };
@@ -1522,7 +1551,17 @@ function WorkoutPage() {
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase text-center tracking-widest text-accent flex items-center justify-center gap-2">
               <span>{selectedCardio}</span>
-              <Heart className="h-5 w-5 text-red-500 fill-current" />
+              <button
+                type="button"
+                aria-label="Favourite"
+                aria-pressed={isCardioFav(selectedCardio ?? "")}
+                onClick={() => selectedCardio && toggleCardioFavorite(selectedCardio)}
+                className="p-1 transition-transform hover:scale-110 active:scale-90"
+              >
+                <Heart
+                  className={`h-5 w-5 ${isCardioFav(selectedCardio ?? "") ? "fill-red-500 text-red-500" : "text-muted-foreground hover:text-red-400"}`}
+                />
+              </button>
             </DialogTitle>
             {history.length > 0 && (
               <p className="text-xs text-center text-muted-foreground font-semibold mt-1">
