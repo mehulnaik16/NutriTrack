@@ -1,5 +1,6 @@
 import assert from "node:assert";
 import { getExerciseThumbnail, hasExerciseThumbnail, normalizeExerciseKey } from "./exerciseImages.ts";
+import { EXERCISES_DB } from "./exercises.ts";
 
 // Test 1: Normalization
 assert.strictEqual(normalizeExerciseKey("Barbell Bench Press"), "barbell bench press");
@@ -55,7 +56,7 @@ assert.strictEqual(getExerciseThumbnail("TRX Pistol Squat"), "/exercises/trx_pis
 
 // Test 3: Common aliases resolve to correct approved asset
 assert.strictEqual(getExerciseThumbnail("T-Bar Row"), "/exercises/t_bar_row.jpg");
-assert.strictEqual(getExerciseThumbnail("Landmine Row"), "/exercises/t_bar_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Landmine Row"), "/exercises/landmine_row.jpg");
 assert.strictEqual(getExerciseThumbnail("Hip Thrust"), "/exercises/barbell_hip_thrust.jpg");
 assert.strictEqual(getExerciseThumbnail("Box Jumps"), "/exercises/box_jump.jpg");
 assert.strictEqual(getExerciseThumbnail("Prowler Push"), "/exercises/sled_push.jpg");
@@ -293,6 +294,82 @@ assert.strictEqual(getExerciseThumbnail("Reverse Barbell Curl"), "/exercises/rev
 assert.strictEqual(getExerciseThumbnail("Barbell Reverse Curl"), "/exercises/reverse_barbell_curl.jpg");
 assert.strictEqual(getExerciseThumbnail("TRX Bicep Curl"), "/exercises/trx_bicep_curl.jpg");
 assert.strictEqual(getExerciseThumbnail("TRX Curl"), "/exercises/trx_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline EZ Bar Curl"), "/exercises/incline_ez_bar_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Zottman Curl"), "/exercises/zottman_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Zottman Preacher Curl"), "/exercises/zottman_preacher_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Assisted Pull up"), "/exercises/assisted_pull_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Assisted Pull-Up"), "/exercises/assisted_pull_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Assisted Wide Grip Pull Up"), "/exercises/assisted_wide_grip_pull_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Lat Pulldown Neutral Grip"), "/exercises/lat_pulldown_neutral_grip.jpg");
+assert.strictEqual(getExerciseThumbnail("Reverse Grip Pulldown"), "/exercises/reverse_grip_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("V Bar Pulldown"), "/exercises/v_bar_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("Assisted Neutral Grip Pull Up"), "/exercises/assisted_neutral_grip_pull_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Crossover Lat Pulldown"), "/exercises/cable_crossover_lat_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Row Wide Grip"), "/exercises/cable_row_wide_grip.jpg");
+assert.strictEqual(getExerciseThumbnail("Chest Supported T Row Neutral Grip"), "/exercises/chest_supported_t_row_neutral_grip.jpg");
+assert.strictEqual(getExerciseThumbnail("Chest Supported T Row Wide Grip"), "/exercises/chest_supported_t_row_wide_grip.jpg");
+assert.strictEqual(getExerciseThumbnail("Close Grip Pulldown"), "/exercises/close_grip_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("Cross-Body Lat Pull-Around"), "/exercises/cross_body_lat_pull_around.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Dumbbell Row"), "/exercises/incline_dumbbell_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Inverted Row Reverse Grip"), "/exercises/inverted_row_reverse_grip.jpg");
+assert.strictEqual(getExerciseThumbnail("Kettlebell Alternating Row"), "/exercises/kettlebell_alternating_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Kettlebell Row"), "/exercises/kettlebell_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Landmine Row"), "/exercises/landmine_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Chin Up"), "/exercises/loop_band_chin_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Pull Up"), "/exercises/loop_band_pull_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Machine Lat Pulldown"), "/exercises/machine_lat_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("Machine Row"), "/exercises/machine_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Meadows Row"), "/exercises/meadows_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Neutral Grip Pull Ups"), "/exercises/neutral_grip_pull_ups.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate-Loaded Chest Supported Row"), "/exercises/plate_loaded_chest_supported_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate-Loaded Chest Supported Row Closed Grip"), "/exercises/plate_loaded_chest_supported_row_closed_grip.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate-Loaded Low Row"), "/exercises/plate_loaded_low_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate-Loaded Pullover"), "/exercises/plate_loaded_pullover.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate Loaded Pullover"), "/exercises/plate_loaded_pullover.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate-Loaded Single Arm High Row"), "/exercises/plate_loaded_single_arm_high_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Rope Straight Arm Pulldown"), "/exercises/rope_straight_arm_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("Single Arm Cable Row"), "/exercises/single_arm_cable_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Single Arm Low Cable Row"), "/exercises/single_arm_low_cable_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Straight Arm Pulldown"), "/exercises/straight_arm_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Bent Over Row"), "/exercises/loop_band_bent_over_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Single Arm Chest Supported Cable Row"), "/exercises/single_arm_chest_supported_cable_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Single Arm High Lat Row"), "/exercises/single_arm_high_lat_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Single Arm Lat Pulldown"), "/exercises/single_arm_lat_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Lat Pulldown"), "/exercises/loop_band_lat_pulldown.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Standing Single Arm Row"), "/exercises/loop_band_standing_single_arm_row.jpg");
+assert.strictEqual(getExerciseThumbnail("TRX Inverted Row"), "/exercises/trx_inverted_row.jpg");
+assert.strictEqual(getExerciseThumbnail("TRX Row"), "/exercises/trx_inverted_row.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate-Loaded Horizontal Bench Press"), "/exercises/plate_loaded_horizontal_bench_press.jpg");
+
+// Test Batch 14: Chest Completion & Seated Barbell Shoulder Press (20 items)
+assert.strictEqual(getExerciseThumbnail("Smith Machine Decline Bench Press"), "/exercises/smith_machine_decline_bench_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Low Cable Chest Fly"), "/exercises/low_cable_chest_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Machine Bent Arm Chest Fly"), "/exercises/machine_bent_arm_chest_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Mid Cable Crossover Fly"), "/exercises/mid_cable_crossover_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Dumbbell Incline Fly"), "/exercises/dumbbell_incline_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Dumbbell Fly"), "/exercises/incline_dumbbell_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Crossover Flat Bench Fly"), "/exercises/cable_crossover_flat_bench_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Cable Crossover Incline Bench Fly"), "/exercises/cable_crossover_incline_bench_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Seated Cable Fly"), "/exercises/seated_cable_fly.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Cable Chest Press"), "/exercises/incline_cable_chest_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Bottom Push Up Hold"), "/exercises/bottom_push_up_hold.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Dumbbell Squeeze Press"), "/exercises/incline_dumbbell_squeeze_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Incline Svend Press"), "/exercises/incline_svend_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Svend Press"), "/exercises/incline_svend_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Push Up"), "/exercises/loop_band_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Standing Chest Press"), "/exercises/loop_band_standing_chest_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Hand Release Push Up"), "/exercises/hand_release_push_up.jpg");
+assert.strictEqual(getExerciseThumbnail("Push Up on Knees"), "/exercises/push_up_on_knees.jpg");
+assert.strictEqual(getExerciseThumbnail("Knee Push Up"), "/exercises/push_up_on_knees.jpg");
+assert.strictEqual(getExerciseThumbnail("Plyometric Push-ups"), "/exercises/plyometric_push_ups.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Standing Incline Chest Press"), "/exercises/loop_band_standing_incline_chest_press.jpg");
+assert.strictEqual(getExerciseThumbnail("TRX Chest Press"), "/exercises/trx_chest_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Seated Barbell Shoulder Press"), "/exercises/seated_barbell_shoulder_press.jpg");
+
+// 100% Coverage Verification for EXERCISES_DB.chest
+for (const exercise of EXERCISES_DB.chest) {
+  assert.notStrictEqual(getExerciseThumbnail(exercise), null, `Chest exercise missing thumbnail: ${exercise}`);
+}
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);
