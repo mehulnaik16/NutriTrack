@@ -274,6 +274,25 @@ assert.strictEqual(getExerciseThumbnail("Dumbbell Drag Curl"), "/exercises/dumbb
 assert.strictEqual(getExerciseThumbnail("Drag Curl"), "/exercises/dumbbell_drag_curl.jpg");
 assert.strictEqual(getExerciseThumbnail("High Cable Bicep Curl"), "/exercises/high_cable_bicep_curl.jpg");
 assert.strictEqual(getExerciseThumbnail("High Cable Curl"), "/exercises/high_cable_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Machine Bicep Curl"), "/exercises/machine_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Machine Curl"), "/exercises/machine_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Machine Preacher Curl"), "/exercises/machine_preacher_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate-Loaded Preacher Curl"), "/exercises/plate_loaded_preacher_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Plate Loaded Preacher Curl"), "/exercises/plate_loaded_preacher_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Single Arm Cable Bicep Curl"), "/exercises/single_arm_cable_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("One Arm Cable Bicep Curl"), "/exercises/single_arm_cable_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Waiter Curls"), "/exercises/waiter_curls.jpg");
+assert.strictEqual(getExerciseThumbnail("Waiter Curl"), "/exercises/waiter_curls.jpg");
+assert.strictEqual(getExerciseThumbnail("Bicep Curl to Shoulder Press"), "/exercises/bicep_curl_to_shoulder_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Curl to Shoulder Press"), "/exercises/bicep_curl_to_shoulder_press.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Bicep Curl"), "/exercises/loop_band_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Band Bicep Curl"), "/exercises/loop_band_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Loop Band Hammer Curl"), "/exercises/loop_band_hammer_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Band Hammer Curl"), "/exercises/loop_band_hammer_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Reverse Barbell Curl"), "/exercises/reverse_barbell_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("Barbell Reverse Curl"), "/exercises/reverse_barbell_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("TRX Bicep Curl"), "/exercises/trx_bicep_curl.jpg");
+assert.strictEqual(getExerciseThumbnail("TRX Curl"), "/exercises/trx_bicep_curl.jpg");
 
 // Test 4: hasExerciseThumbnail helper
 assert.strictEqual(hasExerciseThumbnail("Barbell Bench Press"), true);
