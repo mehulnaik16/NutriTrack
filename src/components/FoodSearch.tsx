@@ -905,10 +905,10 @@ export const FoodSearch = forwardRef<
           onClick={() => setCameraOpen(true)}
           title="Log food by photo"
           data-tour="food-photo"
-          className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0"
+          className="flex aspect-square h-auto w-full flex-col rounded-2xl items-center justify-center gap-1 p-0"
         >
-          <Camera style={{ width: 22, height: 22 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">
+          <Camera style={{ width: 24, height: 24 }} />
+          <span className="text-[9px] font-medium text-muted-foreground">
             Photo
           </span>
         </Button>
@@ -917,10 +917,10 @@ export const FoodSearch = forwardRef<
           onClick={() => setVoiceOpen(true)}
           title="Log food by voice"
           data-tour="food-voice"
-          className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0"
+          className="flex aspect-square h-auto w-full flex-col rounded-2xl items-center justify-center gap-1 p-0"
         >
-          <Mic style={{ width: 22, height: 22 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">
+          <Mic style={{ width: 24, height: 24 }} />
+          <span className="text-[9px] font-medium text-muted-foreground">
             Voice
           </span>
         </Button>
@@ -929,10 +929,10 @@ export const FoodSearch = forwardRef<
           onClick={() => setBarcodeMode(true)}
           title="Barcode lookup"
           data-tour="food-scan"
-          className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0"
+          className="flex aspect-square h-auto w-full flex-col rounded-2xl items-center justify-center gap-1 p-0"
         >
-          <Barcode style={{ width: 22, height: 22 }} />
-          <span className="text-[8px] font-medium text-muted-foreground">
+          <Barcode style={{ width: 24, height: 24 }} />
+          <span className="text-[9px] font-medium text-muted-foreground">
             Scan
           </span>
         </Button>
@@ -944,10 +944,10 @@ export const FoodSearch = forwardRef<
           }}
           title="View Favourites"
           data-tour="food-favourites"
-          className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
+          className="flex aspect-square h-auto w-full flex-col rounded-2xl items-center justify-center gap-1 p-0 border-red-500/30 hover:border-red-500/60"
         >
-          <Heart style={{ width: 22, height: 22 }} className="text-red-500" />
-          <span className="text-[8px] font-medium text-red-500">
+          <Heart style={{ width: 24, height: 24 }} className="text-red-500" />
+          <span className="text-[9px] font-medium text-red-500">
             Favourites
           </span>
         </Button>

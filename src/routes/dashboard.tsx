@@ -8,7 +8,7 @@ import {
   Trash2,
   UtensilsCrossed,
   Scale,
-  Activity,
+  ChartLine,
   Plus,
   TrendingDown,
   TrendingUp,
@@ -1434,7 +1434,7 @@ function Dashboard() {
         <section className="space-y-6 pt-8 mt-8 border-t border-border/50">
           <div className="flex items-center gap-2">
             <div className="rounded-lg bg-accent/20 p-1.5">
-              <Activity className="h-5 w-5 text-accent" />
+              <ChartLine className="h-5 w-5 text-accent" />
             </div>
             <h2 className="text-xl font-bold tracking-tight">
               Trends & History
