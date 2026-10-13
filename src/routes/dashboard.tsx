@@ -994,7 +994,7 @@ function Dashboard() {
                 className={
                   legacyMacros
                     ? "flex-1 w-full space-y-5"
-                    : "grid w-full flex-1 grid-cols-2 gap-2"
+                    : "w-full flex-1 divide-y divide-border/60"
                 }
               >
                 <MacroProgress
@@ -1723,6 +1723,8 @@ function MacroProgress({
   variant: "bar" | "tile";
 }) {
   const pct = target ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  const over = target > 0 && Math.round(current) > Math.round(target);
+  const diff = Math.abs(Math.round(target) - Math.round(current));
   // ISRO and Cyberware HUD themes keep the original full-width bars.
   if (variant === "bar")
     return (
@@ -1747,28 +1749,33 @@ function MacroProgress({
       </div>
     );
   return (
-    <div className="w-full min-w-0 space-y-1.5 rounded-xl bg-muted/60 px-3 py-2.5">
-      {/* Label gets its own row so long names (PROTEIN) never truncate on phones. */}
-      <div className="flex min-w-0 items-center gap-1.5">
-        <span
-          className="h-2 w-2 shrink-0 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-        <span className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          {label}
+    // Nutrition-label row: name + left/over, eaten / goal, full-width bar.
+    <div className="space-y-2 py-3 first:pt-0 last:pb-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="truncate text-sm font-semibold">{label}</span>
+          <span
+            className={`shrink-0 text-xs font-medium ${over ? "text-destructive" : "text-muted-foreground"}`}
+          >
+            {over ? `${diff}g over` : `${diff}g left`}
+          </span>
+        </div>
+        <span className="shrink-0 font-display text-sm font-bold tabular-nums">
+          {Math.round(current)}
+          <span className="font-medium text-muted-foreground">
+            {" "}
+            / {Math.round(target)}g
+          </span>
         </span>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-background/60">
-          <div
-            className="h-full rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${pct}%`, backgroundColor: color }}
-          />
-        </div>
-        <span className="shrink-0 text-xs font-bold">
-          {Math.round(current)}
-          <span className="text-muted-foreground">/{Math.round(target)}g</span>
-        </span>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ease-out ${over ? "bg-destructive" : ""}`}
+          style={{
+            width: `${pct}%`,
+            backgroundColor: over ? undefined : color,
+          }}
+        />
       </div>
     </div>
   );
