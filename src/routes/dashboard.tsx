@@ -1221,9 +1221,9 @@ function Dashboard() {
           <div className="lg:col-span-5 min-w-0 space-y-6 flex flex-col">
             {/* Workout Plan */}
             <Card className="border-accent/10 shadow-sm overflow-hidden">
-              <div className="flex flex-col gap-3 border-b border-accent/10 bg-accent/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center justify-between gap-3 border-b border-accent/10 bg-accent/5 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
-                  <div className="bg-accent/20 p-2 rounded-lg">
+                  <div className="bg-accent/20 p-1.5 rounded-lg">
                     <Dumbbell className="h-5 w-5 text-accent" />
                   </div>
                   <div className="min-w-0">
@@ -1235,7 +1235,7 @@ function Dashboard() {
                     </p>
                   </div>
                 </div>
-                <Link to="/workout">
+                <Link to="/workout" className="shrink-0">
                   <Button
                     size="sm"
                     className="h-8 rounded-full text-xs font-bold px-4 bg-accent text-accent-foreground shadow-sm"
@@ -1244,43 +1244,31 @@ function Dashboard() {
                   </Button>
                 </Link>
               </div>
-              <CardContent className="p-5">
+              <CardContent className="px-4 py-3">
                 {workoutPlan ? (
-                  <div className="space-y-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="truncate font-display text-lg font-bold">
-                          {todaysDay?.name}
-                        </div>
-                        <div className="truncate text-sm text-muted-foreground">
-                          {todaysDay?.focus}
-                        </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate font-display text-base font-bold">
+                        {todaysDay?.name}
                       </div>
-                      <div className="text-right">
-                        <div className="font-display text-2xl font-bold text-accent">
-                          {todaysDay?.exercises?.length ||
-                            todaysDay?.muscles?.filter((m) => m !== "Rest Day")
-                              .length ||
-                            0}
-                        </div>
-                        <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                          {todaysDay?.exercises?.length
-                            ? "Exercises"
-                            : todaysDay?.muscles?.length
-                              ? "Muscle groups"
-                              : "Exercises"}
-                        </div>
-                      </div>
+                      {todaysDay?.focus &&
+                        todaysDay.focus !== todaysDay.name && (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {todaysDay.focus}
+                          </div>
+                        )}
                     </div>
-                    <div className="flex gap-1.5 pt-2">
-                      {workoutPlan.days.slice(0, 7).map((d, i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 h-2 rounded-full ${i === planDayIdx ? "bg-accent glow-accent-sm" : "bg-muted"}`}
-                          title={d.name}
-                        />
-                      ))}
-                    </div>
+                    <span className="shrink-0 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent">
+                      {todaysDay?.exercises?.length ||
+                        todaysDay?.muscles?.filter((m) => m !== "Rest Day")
+                          .length ||
+                        0}{" "}
+                      {todaysDay?.exercises?.length
+                        ? "exercises"
+                        : todaysDay?.muscles?.length
+                          ? "muscle groups"
+                          : "exercises"}
+                    </span>
                   </div>
                 ) : (
                   <div className="text-center py-6">
