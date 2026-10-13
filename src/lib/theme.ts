@@ -11,6 +11,7 @@ export const THEMES = [
   "theme-cyber",
   "theme-cyberdeck",
   "theme-isro",
+  "theme-mono",
 ];
 
 export function getLocalTheme(): string {
@@ -31,6 +32,7 @@ const ICON_FILL: Record<string, string> = {
   "theme-cyber": "oklch(1 0 0)",
   "theme-cyberdeck": "oklch(0.85 0.19 210)",
   "theme-isro": "oklch(0.68 0.22 42)",
+  "theme-mono": "oklch(0.98 0 0)",
 };
 
 let iconSvg: Promise<string> | undefined;

@@ -5,7 +5,7 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { Activity, Dumbbell, Scale, Utensils } from "lucide-react";
+import { Dumbbell, House, Scale, Utensils } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { HOME, tabStep } from "@/lib/tabHistory";
 
@@ -126,7 +126,7 @@ export function BottomNav() {
     return null;
 
   const navItems = [
-    { to: "/dashboard", icon: Activity, label: "Home" },
+    { to: "/dashboard", icon: House, label: "Home" },
     { to: "/food", icon: Utensils, label: "Food" },
     { to: "/workout", icon: Dumbbell, label: "Workout" },
     { to: "/hub", icon: HubIcon, label: "Hub" },

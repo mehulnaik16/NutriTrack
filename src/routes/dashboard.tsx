@@ -8,7 +8,7 @@ import {
   Trash2,
   UtensilsCrossed,
   Scale,
-  Activity,
+  ChartLine,
   Plus,
   TrendingDown,
   TrendingUp,
@@ -20,6 +20,7 @@ import {
   CalendarDays,
   X,
   Droplets,
+  ChevronDown,
   RotateCcw,
   Heart,
   Sparkles,
@@ -57,6 +58,11 @@ import {
 } from "@/components/ui/select";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -342,6 +348,8 @@ function Dashboard() {
   const [savingWeight, setSavingWeight] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  // Dashboard-only: logged food sits behind a "My Plate" toggle to keep the card short.
+  const [plateOpen, setPlateOpen] = useState(false);
   const [isIsroTheme, setIsIsroTheme] = useState(false);
   const [isCyberdeckTheme, setIsCyberdeckTheme] = useState(false);
 
@@ -986,7 +994,7 @@ function Dashboard() {
                 className={
                   legacyMacros
                     ? "flex-1 w-full space-y-5"
-                    : "grid w-full flex-1 grid-cols-2 gap-2"
+                    : "w-full flex-1 divide-y divide-border/60"
                 }
               >
                 <MacroProgress
@@ -1032,7 +1040,7 @@ function Dashboard() {
             <InteractionShield
               active={!isEditableDate(selectedDate)}
               onBlocked={() => toast(VIEW_ONLY_MESSAGE, { id: "view-only" })}
-              allow="[data-delete-allowed]"
+              allow="[data-delete-allowed],[data-plate-toggle]"
             >
               <Card className="border-accent/10 shadow-sm flex-1">
                 <CardHeader className="pb-3 border-b bg-muted/5">
@@ -1051,149 +1059,180 @@ function Dashboard() {
                     currentDayCalories={totals.calories}
                   />
 
-                  <div className="mt-6 space-y-5">
-                    {meals.map((m) => {
-                      const items = todayLogs.filter((l) => l.meal_type === m);
-                      if (items.length === 0) return null;
+                  {todayLogs.length > 0 && (
+                    <Collapsible open={plateOpen} onOpenChange={setPlateOpen}>
+                      <CollapsibleTrigger
+                        data-plate-toggle
+                        className="mt-5 flex w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+                      >
+                        <span className="flex items-center gap-2 text-sm font-bold">
+                          <UtensilsCrossed className="h-4 w-4 text-accent" />
+                          My Plate
+                        </span>
+                        <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {todayLogs.length}{" "}
+                          {todayLogs.length === 1 ? "item" : "items"} ·{" "}
+                          {Math.round(totals.calories)} kcal
+                          <ChevronDown
+                            className={`h-4 w-4 transition-transform ${plateOpen ? "rotate-180" : ""}`}
+                          />
+                        </span>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="mt-4 space-y-5">
+                          {meals.map((m) => {
+                            const items = todayLogs.filter(
+                              (l) => l.meal_type === m,
+                            );
+                            if (items.length === 0) return null;
 
-                      const sub = items.reduce(
-                        (a, x) => ({
-                          cal: a.cal + x.calories,
-                          p: a.p + x.protein_g,
-                          fib: a.fib + (x.fiber_g || 0),
-                        }),
-                        { cal: 0, p: 0, fib: 0 },
-                      );
+                            const sub = items.reduce(
+                              (a, x) => ({
+                                cal: a.cal + x.calories,
+                                p: a.p + x.protein_g,
+                                fib: a.fib + (x.fiber_g || 0),
+                              }),
+                              { cal: 0, p: 0, fib: 0 },
+                            );
 
-                      return (
-                        <div key={m} className="space-y-2.5">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                {m}
-                              </h3>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
-                                onClick={() =>
-                                  searchRef.current?.openForMeal(m)
-                                }
-                              >
-                                <Plus className="h-3 w-3 mr-1" /> Add
-                              </Button>
-                              {items.length > 0 && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20"
-                                  onClick={() => saveMealAsFavorite(m, items)}
-                                >
-                                  <Flame className="h-3 w-3 mr-1" /> Save as
-                                  Favorite
-                                </Button>
-                              )}
-                            </div>
-                            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                              {Math.round(sub.cal)} kcal
-                            </span>
-                          </div>
-
-                          <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
-                            {items.map((l) => {
-                              const isFav = favoriteNames.has(l.food_name);
-                              return (
-                                <div
-                                  key={l.id}
-                                  className="p-3 hover:bg-muted/20 transition-colors group"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-semibold truncate">
-                                        {l.food_name}
-                                      </div>
-                                      <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                        <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
-                                          {formatQty(
-                                            l.quantity_g,
-                                            l.unit,
-                                            l.unit_quantity,
-                                          )}
-                                        </span>
-                                        <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
-                                          {Math.round(l.calories)} kcal
-                                        </span>
-                                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                                          P{Math.round(l.protein_g)}
-                                        </span>
-                                        <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
-                                          C{Math.round(l.carbs_g)}
-                                        </span>
-                                        <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                                          F{Math.round(l.fat_g)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-0.5">
+                            return (
+                              <div key={m} className="space-y-2.5">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                      {m}
+                                    </h3>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 text-[10px] uppercase font-bold text-accent px-2 ml-1 hover:bg-accent/10"
+                                      onClick={() =>
+                                        searchRef.current?.openForMeal(m)
+                                      }
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" /> Add
+                                    </Button>
+                                    {items.length > 0 && (
                                       <Button
                                         variant="ghost"
-                                        size="icon"
-                                        className={`h-9 w-9 transition-all ${
-                                          isFav
-                                            ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                                            : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                        }`}
-                                        title={
-                                          isFav
-                                            ? "Remove from Favorites"
-                                            : "Save to Favorites"
-                                        }
-                                        onClick={() => saveFoodAsFavorite(l)}
-                                      >
-                                        <Heart
-                                          className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
-                                        />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
-                                        title="Log again"
-                                        onClick={() => relogFood(l)}
-                                      >
-                                        <RotateCcw className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                        title="Modify"
+                                        size="sm"
+                                        className="h-8 text-[10px] px-2 text-accent bg-accent/10 hover:bg-accent/20"
                                         onClick={() =>
-                                          searchRef.current?.editLog(l)
+                                          saveMealAsFavorite(m, items)
                                         }
                                       >
-                                        <PenTool className="h-3 w-3" />
+                                        <Flame className="h-3 w-3 mr-1" /> Save
+                                        as Favorite
                                       </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                        title="Delete"
-                                        data-delete-allowed
-                                        onClick={() => deleteLog(l.id)}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
+                                    )}
                                   </div>
+                                  <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                                    {Math.round(sub.cal)} kcal
+                                  </span>
                                 </div>
-                              );
-                            })}
-                          </div>
+
+                                <div className="divide-y rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
+                                  {items.map((l) => {
+                                    const isFav = favoriteNames.has(
+                                      l.food_name,
+                                    );
+                                    return (
+                                      <div
+                                        key={l.id}
+                                        className="p-3 hover:bg-muted/20 transition-colors group"
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-semibold truncate">
+                                              {l.food_name}
+                                            </div>
+                                            <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                              <span className="text-[10px] font-medium bg-muted/60 px-1.5 py-0.5 rounded">
+                                                {formatQty(
+                                                  l.quantity_g,
+                                                  l.unit,
+                                                  l.unit_quantity,
+                                                )}
+                                              </span>
+                                              <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                                {Math.round(l.calories)} kcal
+                                              </span>
+                                              <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                                P{Math.round(l.protein_g)}
+                                              </span>
+                                              <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                                C{Math.round(l.carbs_g)}
+                                              </span>
+                                              <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                                F{Math.round(l.fat_g)}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-0.5">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className={`h-9 w-9 transition-all ${
+                                                isFav
+                                                  ? "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                                  : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                              }`}
+                                              title={
+                                                isFav
+                                                  ? "Remove from Favorites"
+                                                  : "Save to Favorites"
+                                              }
+                                              onClick={() =>
+                                                saveFoodAsFavorite(l)
+                                              }
+                                            >
+                                              <Heart
+                                                className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`}
+                                              />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                              title="Log again"
+                                              onClick={() => relogFood(l)}
+                                            >
+                                              <RotateCcw className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-9 w-9 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                              title="Modify"
+                                              onClick={() =>
+                                                searchRef.current?.editLog(l)
+                                              }
+                                            >
+                                              <PenTool className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                              title="Delete"
+                                              data-delete-allowed
+                                              onClick={() => deleteLog(l.id)}
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
 
                   {todayLogs.length === 0 && (
                     <div className="mt-8 py-10 text-center border-2 border-dashed border-border/50 rounded-2xl bg-muted/5">
@@ -1221,9 +1260,9 @@ function Dashboard() {
           <div className="lg:col-span-5 min-w-0 space-y-6 flex flex-col">
             {/* Workout Plan */}
             <Card className="border-accent/10 shadow-sm overflow-hidden">
-              <div className="flex flex-col gap-3 border-b border-accent/10 bg-accent/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center justify-between gap-3 border-b border-accent/10 bg-accent/5 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
-                  <div className="bg-accent/20 p-2 rounded-lg">
+                  <div className="bg-accent/20 p-1.5 rounded-lg">
                     <Dumbbell className="h-5 w-5 text-accent" />
                   </div>
                   <div className="min-w-0">
@@ -1235,7 +1274,7 @@ function Dashboard() {
                     </p>
                   </div>
                 </div>
-                <Link to="/workout">
+                <Link to="/workout" className="shrink-0">
                   <Button
                     size="sm"
                     className="h-8 rounded-full text-xs font-bold px-4 bg-accent text-accent-foreground shadow-sm"
@@ -1244,43 +1283,31 @@ function Dashboard() {
                   </Button>
                 </Link>
               </div>
-              <CardContent className="p-5">
+              <CardContent className="px-4 py-3">
                 {workoutPlan ? (
-                  <div className="space-y-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="truncate font-display text-lg font-bold">
-                          {todaysDay?.name}
-                        </div>
-                        <div className="truncate text-sm text-muted-foreground">
-                          {todaysDay?.focus}
-                        </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate font-display text-base font-bold">
+                        {todaysDay?.name}
                       </div>
-                      <div className="text-right">
-                        <div className="font-display text-2xl font-bold text-accent">
-                          {todaysDay?.exercises?.length ||
-                            todaysDay?.muscles?.filter((m) => m !== "Rest Day")
-                              .length ||
-                            0}
-                        </div>
-                        <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                          {todaysDay?.exercises?.length
-                            ? "Exercises"
-                            : todaysDay?.muscles?.length
-                              ? "Muscle groups"
-                              : "Exercises"}
-                        </div>
-                      </div>
+                      {todaysDay?.focus &&
+                        todaysDay.focus !== todaysDay.name && (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {todaysDay.focus}
+                          </div>
+                        )}
                     </div>
-                    <div className="flex gap-1.5 pt-2">
-                      {workoutPlan.days.slice(0, 7).map((d, i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 h-2 rounded-full ${i === planDayIdx ? "bg-accent glow-accent-sm" : "bg-muted"}`}
-                          title={d.name}
-                        />
-                      ))}
-                    </div>
+                    <span className="shrink-0 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent">
+                      {todaysDay?.exercises?.length ||
+                        todaysDay?.muscles?.filter((m) => m !== "Rest Day")
+                          .length ||
+                        0}{" "}
+                      {todaysDay?.exercises?.length
+                        ? "exercises"
+                        : todaysDay?.muscles?.length
+                          ? "muscle groups"
+                          : "exercises"}
+                    </span>
                   </div>
                 ) : (
                   <div className="text-center py-6">
@@ -1307,54 +1334,49 @@ function Dashboard() {
 
             {/* Quick Weight Log */}
             <Card className="border-border shadow-sm">
-              <CardHeader className="pb-3 pt-5">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-muted-foreground" />{" "}
-                  {getTelemetryLabel("Weight")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-5 p-4 rounded-xl bg-muted/20 border">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                      Current
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black">
-                        {lastWeight || profile.weight_kg || "--"}
-                      </span>
-                      <span className="text-sm text-muted-foreground font-medium">
-                        kg
-                      </span>
-                    </div>
+              <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
+                <div className="flex min-w-0 items-center gap-2 text-base font-semibold">
+                  <div className="shrink-0 rounded-lg bg-accent/20 p-1.5">
+                    <Scale className="h-5 w-5 text-accent" />
+                  </div>
+                  <span className="truncate">
+                    {getTelemetryLabel("Weight")}
+                  </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-black">
+                      {lastWeight || profile.weight_kg || "--"}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      kg
+                    </span>
                   </div>
                   {weightDiff !== null && (
-                    <div
-                      className={`text-right ${{ good: "text-energy", bad: "text-destructive", neutral: "text-muted-foreground" }[changeTone(weightDiff, wantedDirection(prevWeight!, profile.goal_weight_kg, profile.goal))]}`}
+                    <span
+                      className={`flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-xs font-bold ${{ good: "text-energy", bad: "text-destructive", neutral: "text-muted-foreground" }[changeTone(weightDiff, wantedDirection(prevWeight!, profile.goal_weight_kg, profile.goal))]}`}
                     >
-                      <p className="text-[10px] uppercase font-bold">Trend</p>
-                      <div className="flex items-center justify-end gap-0.5 font-bold">
-                        {weightDiff > 0 ? (
-                          <TrendingUp className="h-4 w-4" />
-                        ) : weightDiff < 0 ? (
-                          <TrendingDown className="h-4 w-4" />
-                        ) : (
-                          <TrendFlat className="h-4 w-4" />
-                        )}
-                        {Math.abs(weightDiff).toFixed(1)}
-                      </div>
-                    </div>
+                      {weightDiff > 0 ? (
+                        <TrendingUp className="h-3.5 w-3.5" />
+                      ) : weightDiff < 0 ? (
+                        <TrendingDown className="h-3.5 w-3.5" />
+                      ) : (
+                        <TrendFlat className="h-3.5 w-3.5" />
+                      )}
+                      {Math.abs(weightDiff).toFixed(1)}
+                    </span>
                   )}
                 </div>
-
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <div className="relative flex-1">
+              </div>
+              <CardContent className="px-4 pb-4 pt-0">
+                <div className="flex items-center gap-2">
+                  <div className="relative min-w-0 flex-1">
                     <Input
                       type="number"
-                      placeholder="Enter today's weight"
+                      placeholder="Today's weight"
                       value={newWeight}
                       onChange={(e) => setNewWeight(e.target.value)}
-                      className="pr-8 bg-background"
+                      className="h-10 pr-8 bg-background"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
                       kg
@@ -1364,7 +1386,8 @@ function Dashboard() {
                     <Button
                       size="icon"
                       variant="outline"
-                      className={`shrink-0 ${photoFile ? "border-energy text-energy bg-energy/5" : ""}`}
+                      aria-label="Add progress photo"
+                      className={`h-10 w-10 shrink-0 ${photoFile ? "border-energy text-energy bg-energy/5" : ""}`}
                     >
                       <Camera className="h-4 w-4" />
                     </Button>
@@ -1372,7 +1395,7 @@ function Dashboard() {
                   <Button
                     onClick={saveWeight}
                     disabled={savingWeight || !newWeight}
-                    className="shrink-0 bg-foreground text-background hover:bg-foreground/90"
+                    className="h-10 shrink-0 px-4 font-bold bg-accent text-accent-foreground hover:bg-accent/90"
                   >
                     {savingWeight ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1382,7 +1405,7 @@ function Dashboard() {
                   </Button>
                 </div>
                 {photoPreview && (
-                  <div className="mt-3 relative h-24 w-24 rounded-xl overflow-hidden border-2 border-border shadow-sm">
+                  <div className="mt-2 relative h-16 w-16 rounded-xl overflow-hidden border-2 border-border shadow-sm">
                     <img
                       src={photoPreview}
                       alt="weight preview"
@@ -1410,7 +1433,9 @@ function Dashboard() {
         {/* ── REPORTS & TRENDS (BOTTOM) ── */}
         <section className="space-y-6 pt-8 mt-8 border-t border-border/50">
           <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-muted-foreground" />
+            <div className="rounded-lg bg-accent/20 p-1.5">
+              <ChartLine className="h-5 w-5 text-accent" />
+            </div>
             <h2 className="text-xl font-bold tracking-tight">
               Trends & History
             </h2>
@@ -1698,6 +1723,8 @@ function MacroProgress({
   variant: "bar" | "tile";
 }) {
   const pct = target ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  const over = target > 0 && Math.round(current) > Math.round(target);
+  const diff = Math.abs(Math.round(target) - Math.round(current));
   // ISRO and Cyberware HUD themes keep the original full-width bars.
   if (variant === "bar")
     return (
@@ -1722,28 +1749,33 @@ function MacroProgress({
       </div>
     );
   return (
-    <div className="w-full min-w-0 space-y-1.5 rounded-xl bg-muted/60 px-3 py-2.5">
-      {/* Label gets its own row so long names (PROTEIN) never truncate on phones. */}
-      <div className="flex min-w-0 items-center gap-1.5">
-        <span
-          className="h-2 w-2 shrink-0 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-        <span className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          {label}
+    // Nutrition-label row: name + left/over, eaten / goal, full-width bar.
+    <div className="space-y-2 py-3 first:pt-0 last:pb-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="truncate text-sm font-semibold">{label}</span>
+          <span
+            className={`shrink-0 text-xs font-medium ${over ? "text-destructive" : "text-muted-foreground"}`}
+          >
+            {over ? `${diff}g over` : `${diff}g left`}
+          </span>
+        </div>
+        <span className="shrink-0 font-display text-sm font-bold tabular-nums">
+          {Math.round(current)}
+          <span className="font-medium text-muted-foreground">
+            {" "}
+            / {Math.round(target)}g
+          </span>
         </span>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-background/60">
-          <div
-            className="h-full rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${pct}%`, backgroundColor: color }}
-          />
-        </div>
-        <span className="shrink-0 text-xs font-bold">
-          {Math.round(current)}
-          <span className="text-muted-foreground">/{Math.round(target)}g</span>
-        </span>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ease-out ${over ? "bg-destructive" : ""}`}
+          style={{
+            width: `${pct}%`,
+            backgroundColor: over ? undefined : color,
+          }}
+        />
       </div>
     </div>
   );

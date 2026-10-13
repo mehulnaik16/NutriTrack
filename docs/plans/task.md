@@ -66,13 +66,14 @@ Full plan: [docs/plans/2026-09-29-exercise-thumbnail-icons.md](2026-09-29-exerci
 | :--- | :--- | :--- | :--- |
 | task-1 | **Prototype sample icons with black weights & create plan** | done | Generated Bench Press & Squat with solid black iron plates; 475-exercise plan created |
 | task-2 | **User approval of corrected black plate style & full plan** | done | Approved by user; solid black iron weights with neon orange #FF6A00 active highlights |
-| task-3 | **Generate Phase 1 Batch 1 (Chest & Upper Back)** | in_progress | 23/24 deployed (T-Bar Row deployed; Chin-Up pending 2nd account handoff) |
+| task-3 | **Generate Phase 1 Batch 1 (Chest & Upper Back)** | done | All 24 approved & integrated (Chin-Up completed, Batch 1 100% complete) |
 | task-4 | **Generate Phase 1 Batch 2 (Legs & Lower Body)** | done | All 20 approved, compressed (6-9 KB), registered, and committed (100% complete) |
-| task-5 | **Generate Phase 1 Batch 3 (Shoulders & Arms)** | pending | 25 exercises - handed off to 2nd AGY account due to image quota limit |
-| task-6 | **Generate Phase 1 Batch 4 (Core & Athletic)** | pending | 19 exercises - handed off to 2nd AGY account |
-| task-7 | **Integrate approved thumbnails into workout screens** | done | 42 images deployed in `public/exercises/`, registered in `exerciseImages.ts`, 100% test pass |
-| task-8 | **Phase 2: Full Catalog Expansion (Batches 5–12)** | pending | Remaining 387 exercises across 8 batches |
+| task-5 | **Generate Phase 1 Batch 3 (Shoulders & Arms)** | done | 25/25 approved & deployed (Alternating Battle Rope deployed to complete Batch 3 100%) |
+| task-6 | **Generate Phase 1 Batch 4 (Core & Athletic)** | done | All 19 approved, compressed (5-8 KB), registered, and committed (100% complete) |
+| task-7 | **Integrate approved thumbnails into workout screens** | done | 225 images integrated in `public/exercises/`, registered in `exerciseImages.ts`, 100% test pass |
+| task-8 | **Phase 2: Full Catalog Expansion (Batches 5–12)** | done | Phase 2 active: 225/475 complete across catalog (47.4% coverage); Batch 13 Back & Chest machine updates applied |
 | task-9 | **Verify build, responsive rendering & small-pixel compression** | done | HighQualityBicubic 200x200 px <10 KB, zero UI layout shift, `npm run build` clean (code 0) |
+| task-10 | **Batch 14: Chest Completion & Seated Barbell Shoulder Press (20 items)** | done | 20 images cropped & registered (245/475, 51.6% catalog coverage; Chest 100% complete at 48/48 exercises) |
 
 | id | task | status | notes |
 | :--- | :--- | :--- | :--- |
@@ -86,7 +87,12 @@ Full plan: [docs/plans/2026-09-29-exercise-thumbnail-icons.md](2026-09-29-exerci
 | :--- | :--- | :--- | :--- |
 | task-1 | **Unwrap Recharts Line Components & Update Domain** (`src/routes/workout.tsx`) | done | Removed React.Fragment, set `domain={[0, "auto"]}`, added unit to title |
 | task-2 | **Verification, Linter & Build Check** | done | 30 engine tests, 166 compendium tests, 16 modal tests pass, build exit 0 |
+# Task Tracker - Monochrome Theme Implementation
 
-
-
-
+| id | task | status | notes |
+| :--- | :--- | :--- | :--- |
+| task-1 | **Add :root.theme-mono CSS variables** (`src/styles.css`) | done | Added OLED black, stark white, and grayscale tokens |
+| task-2 | **Register theme in theme.ts and __root.tsx** | done | Whitelist, favicon color, SSR boot script updated |
+| task-3 | **Add Monochrome to Theme selector** (`src/routes/profile.tsx`) | done | Contrast icon, UI radio option added |
+| task-4 | **Create Supabase DB migration** | done | `20261013190000_theme_mono.sql` created |
+| task-5 | **Verification: Typecheck and build** | done | `tsc` and `npm run build` pass (exit code 0) |

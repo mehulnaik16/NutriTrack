@@ -55,6 +55,7 @@ import {
   Rocket,
   Heart,
   Droplet,
+  Contrast,
 } from "lucide-react";
 import {
   Dialog,
@@ -734,6 +735,13 @@ function Profile() {
                 id: "theme-isro",
                 label: "ISRO Mission Operations",
                 icon: <Rocket className="h-5 w-5 text-[#FF671F]" />,
+              },
+              {
+                id: "theme-mono",
+                label: "Monochrome (B&W)",
+                icon: (
+                  <Contrast className="h-5 w-5 text-white [:root:not(.dark):not([class*=theme-])_&]:text-black" />
+                ),
               },
             ].map((t) => (
               <button
