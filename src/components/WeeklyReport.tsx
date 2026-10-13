@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { getHistory } from "@/lib/historyCache";
 import { toLocalISO } from "@/lib/dates";
 
+const REPORTS_PER_MONTH = 5;
+// shortcut: static placeholder, wire to real monthly usage (from sign-up anniversary) when the limit is built
+const REPORTS_LEFT: number = 5;
+
 interface Props {
   userId: string;
   profile: {
@@ -141,8 +145,8 @@ export function WeeklyReport({ userId, profile }: Props) {
   }, [isSunday, generate]);
 
   return (
-    <Card className="border-[var(--navy)]/20">
-      <CardHeader className="pb-2">
+    <Card className="border-border shadow-sm">
+      <CardHeader className="py-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex min-w-0 items-center gap-2 text-base">
             <Sparkles className="h-4 w-4 shrink-0 text-[var(--warn)]" />
@@ -154,6 +158,12 @@ export function WeeklyReport({ userId, profile }: Props) {
             )}
           </CardTitle>
           <div className="flex shrink-0 items-center gap-2">
+            <span
+              title="AI reports left this month"
+              className={`rounded-full border bg-muted px-2 py-0.5 text-[11px] font-bold tabular-nums ${REPORTS_LEFT === 0 ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground"}`}
+            >
+              {REPORTS_LEFT}/{REPORTS_PER_MONTH}
+            </span>
             <Button
               variant="ghost"
               size="sm"
