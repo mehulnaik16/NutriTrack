@@ -994,28 +994,30 @@ function Dashboard() {
                   label={getTelemetryLabel("Protein")}
                   current={totals.protein}
                   target={profile.protein_target_g ?? 0}
-                  color="var(--energy)"
+                  color={
+                    legacyMacros ? "var(--energy)" : "var(--macro-protein)"
+                  }
                 />
                 <MacroProgress
                   variant={legacyMacros ? "bar" : "tile"}
                   label={getTelemetryLabel("Carbs")}
                   current={totals.carbs}
                   target={profile.carbs_target_g ?? 0}
-                  color="var(--warn)"
+                  color={legacyMacros ? "var(--warn)" : "var(--macro-carbs)"}
                 />
                 <MacroProgress
                   variant={legacyMacros ? "bar" : "tile"}
                   label={getTelemetryLabel("Fat")}
                   current={totals.fat}
                   target={profile.fat_target_g ?? 0}
-                  color="var(--fat)"
+                  color={legacyMacros ? "var(--fat)" : "var(--macro-fat)"}
                 />
                 <MacroProgress
                   variant={legacyMacros ? "bar" : "tile"}
                   label={getTelemetryLabel("Fiber")}
                   current={totals.fiber}
                   target={fiberTarget}
-                  color="var(--accent)"
+                  color={legacyMacros ? "var(--accent)" : "var(--macro-fiber)"}
                 />
               </div>
             </div>
@@ -1720,24 +1722,28 @@ function MacroProgress({
       </div>
     );
   return (
-    <div className="w-full min-w-0 space-y-2 rounded-xl bg-muted/60 px-3 py-2.5">
-      <div className="flex items-center justify-between gap-2">
+    <div className="w-full min-w-0 space-y-1.5 rounded-xl bg-muted/60 px-3 py-2.5">
+      {/* Label gets its own row so long names (PROTEIN) never truncate on phones. */}
+      <div className="flex min-w-0 items-center gap-1.5">
         <span
-          className="truncate text-[10px] font-bold uppercase tracking-wider"
-          style={{ color }}
-        >
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <span className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-background/60">
+          <div
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${pct}%`, backgroundColor: color }}
+          />
+        </div>
         <span className="shrink-0 text-xs font-bold">
           {Math.round(current)}
           <span className="text-muted-foreground">/{Math.round(target)}g</span>
         </span>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-background/60">
-        <div
-          className="h-full rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
       </div>
     </div>
   );
