@@ -661,6 +661,62 @@ html.theme-isro body::before {
     animation: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
+  /* Water card: drifting waves, rising bubbles, splash on each add. */
+  @keyframes water-wave {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .water-wave {
+    animation: water-wave 6s linear infinite;
+  }
+  .water-wave-slow {
+    animation: water-wave 10s linear infinite reverse;
+  }
+  @keyframes water-bubble {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    20% {
+      opacity: 0.6;
+    }
+    100% {
+      transform: translateY(-120px);
+      opacity: 0;
+    }
+  }
+  .water-bubble {
+    animation: water-bubble 4s ease-in infinite;
+  }
+  @keyframes water-splash {
+    0%,
+    100% {
+      transform: scaleY(1);
+    }
+    30% {
+      transform: scaleY(1.08);
+    }
+    60% {
+      transform: scaleY(0.97);
+    }
+  }
+  .water-splash {
+    transform-origin: bottom;
+    animation: water-splash 0.6s ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .water-wave,
+    .water-wave-slow,
+    .water-bubble,
+    .water-splash {
+      animation: none;
+    }
+  }
+
   /* Barcode scanner: the line sweeping the cut-out window. */
   @keyframes scan-sweep {
     0% {

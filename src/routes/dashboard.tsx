@@ -1212,7 +1212,7 @@ function Dashboard() {
             </InteractionShield>
 
             {/* Water Tracker */}
-            <WaterStreak userId={user.id} streak={streak} />
+            <WaterStreak userId={user.id} />
           </div>
 
           {/* Right/Bottom Column: Workout & Weight */}
