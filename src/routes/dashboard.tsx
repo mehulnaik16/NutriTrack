@@ -3,7 +3,6 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   Flame,
-  Target,
   Utensils,
   Dumbbell,
   Trash2,
@@ -18,9 +17,9 @@ import {
   Loader2,
   ChevronRight,
   ChevronLeft,
+  CalendarDays,
   X,
   Droplets,
-  ChevronDown,
   RotateCcw,
   Heart,
   Sparkles,
@@ -242,20 +241,19 @@ const parseLocalDate = (iso: string) => {
   return new Date(y, m - 1, date);
 };
 
+// "Tue 13 Oct"; year added only outside the current year.
 const formatDateDisplay = (dateStr: string) => {
-  if (dateStr === today()) return "Today";
-  if (dateStr === shiftDate(today(), -1)) return "Yesterday";
-
   const d = parseLocalDate(dateStr);
-  const now = new Date();
-  if (d.getFullYear() === now.getFullYear()) {
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  }
-  return d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return d
+    .toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      ...(d.getFullYear() !== new Date().getFullYear() && {
+        year: "numeric",
+      }),
+    })
+    .replace(",", "");
 };
 
 function computeStreak(data: { date: string | null }[]): number {
@@ -345,10 +343,13 @@ function Dashboard() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isIsroTheme, setIsIsroTheme] = useState(false);
+  const [isCyberdeckTheme, setIsCyberdeckTheme] = useState(false);
 
   useEffect(() => {
     const checkTheme = () => {
-      setIsIsroTheme(document.documentElement.classList.contains("theme-isro"));
+      const cl = document.documentElement.classList;
+      setIsIsroTheme(cl.contains("theme-isro"));
+      setIsCyberdeckTheme(cl.contains("theme-cyberdeck"));
     };
     checkTheme();
     const observer = new MutationObserver(checkTheme);
@@ -742,6 +743,7 @@ function Dashboard() {
     );
   }
 
+  const legacyMacros = isIsroTheme || isCyberdeckTheme;
   const firstName = profile.full_name?.split(" ")[0] || "there";
   const meals = userMeals;
 
@@ -848,13 +850,13 @@ function Dashboard() {
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
         {/* ── HERO: DAILY SUMMARY ── */}
         <Card className="border-accent/20 bg-card shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-            <Target className="h-32 w-32" />
-          </div>
           <CardContent className="p-6 sm:p-8">
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight">
+            <div className="mb-6 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                {/* Orbitron in Cyberware is wide; smaller size keeps the calendar button inside the card. */}
+                <h2
+                  className={`font-bold tracking-tight break-words ${isCyberdeckTheme ? "text-lg sm:text-2xl" : "text-2xl"}`}
+                >
                   {getTelemetryLabel("Today's Overview")}
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -863,32 +865,23 @@ function Dashboard() {
               </div>
               <div
                 data-premium-open
-                className="relative z-10 flex w-full items-center justify-between gap-1.5 rounded-md bg-muted/50 p-1 sm:w-auto sm:justify-start"
+                className="relative z-10 flex shrink-0 flex-col items-center gap-1"
               >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  disabled={selectedDate <= joinDate}
-                  onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                      size="icon"
+                      aria-label="Pick date"
+                      className="h-11 w-11 rounded-xl border border-accent/60 bg-accent/10 text-accent hover:bg-accent/20 hover:text-accent"
                     >
-                      {formatDateDisplay(selectedDate)}
-                      <ChevronDown className="h-3 w-3 opacity-50" />
+                      <CalendarDays className="h-5 w-5" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
                     data-premium-open
                     className="w-auto p-3"
-                    align="center"
+                    align="end"
                   >
                     <div className="flex gap-2 mb-3">
                       <Button
@@ -939,15 +932,9 @@ function Dashboard() {
                     />
                   </PopoverContent>
                 </Popover>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  disabled={selectedDate >= today()}
-                  onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                <span className="text-[10px] font-semibold text-muted-foreground">
+                  {formatDateDisplay(selectedDate)}
+                </span>
               </div>
             </div>
 
@@ -995,30 +982,42 @@ function Dashboard() {
               )}
 
               {/* Macros Breakdown */}
-              <div className="flex-1 w-full space-y-5">
+              <div
+                className={
+                  legacyMacros
+                    ? "flex-1 w-full space-y-5"
+                    : "grid w-full flex-1 grid-cols-2 gap-2"
+                }
+              >
                 <MacroProgress
+                  variant={legacyMacros ? "bar" : "tile"}
                   label={getTelemetryLabel("Protein")}
                   current={totals.protein}
                   target={profile.protein_target_g ?? 0}
-                  color="bg-[var(--energy)]"
+                  color={
+                    legacyMacros ? "var(--energy)" : "var(--macro-protein)"
+                  }
                 />
                 <MacroProgress
+                  variant={legacyMacros ? "bar" : "tile"}
                   label={getTelemetryLabel("Carbs")}
                   current={totals.carbs}
                   target={profile.carbs_target_g ?? 0}
-                  color="bg-[var(--warn)]"
+                  color={legacyMacros ? "var(--warn)" : "var(--macro-carbs)"}
                 />
                 <MacroProgress
+                  variant={legacyMacros ? "bar" : "tile"}
                   label={getTelemetryLabel("Fat")}
                   current={totals.fat}
                   target={profile.fat_target_g ?? 0}
-                  color="bg-[var(--fat)]"
+                  color={legacyMacros ? "var(--fat)" : "var(--macro-fat)"}
                 />
                 <MacroProgress
+                  variant={legacyMacros ? "bar" : "tile"}
                   label={getTelemetryLabel("Fiber")}
                   current={totals.fiber}
                   target={fiberTarget}
-                  color="bg-[var(--accent)]"
+                  color={legacyMacros ? "var(--accent)" : "var(--macro-fiber)"}
                 />
               </div>
             </div>
@@ -1215,7 +1214,7 @@ function Dashboard() {
             </InteractionShield>
 
             {/* Water Tracker */}
-            <WaterStreak userId={user.id} streak={streak} />
+            <WaterStreak userId={user.id} />
           </div>
 
           {/* Right/Bottom Column: Workout & Weight */}
@@ -1690,31 +1689,61 @@ function MacroProgress({
   current,
   target,
   color,
+  variant,
 }: {
   label: string;
   current: number;
   target: number;
   color: string;
+  variant: "bar" | "tile";
 }) {
   const pct = target ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  // ISRO and Cyberware HUD themes keep the original full-width bars.
+  if (variant === "bar")
+    return (
+      <div className="space-y-1.5 w-full">
+        <div className="flex justify-between items-end">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            {label}
+          </span>
+          <span className="text-sm font-medium">
+            {Math.round(current)}{" "}
+            <span className="text-[10px] text-muted-foreground">
+              / {Math.round(target)}g
+            </span>
+          </span>
+        </div>
+        <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full transition-all duration-500 ease-out"
+            style={{ width: `${pct}%`, backgroundColor: color }}
+          />
+        </div>
+      </div>
+    );
   return (
-    <div className="space-y-1.5 w-full">
-      <div className="flex justify-between items-end">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+    <div className="w-full min-w-0 space-y-1.5 rounded-xl bg-muted/60 px-3 py-2.5">
+      {/* Label gets its own row so long names (PROTEIN) never truncate on phones. */}
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <span className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
-        <span className="text-sm font-medium">
-          {Math.round(current)}{" "}
-          <span className="text-[10px] text-muted-foreground">
-            / {Math.round(target)}g
-          </span>
-        </span>
       </div>
-      <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full ${color} transition-all duration-500 ease-out`}
-          style={{ width: `${pct}%` }}
-        />
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-background/60">
+          <div
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${pct}%`, backgroundColor: color }}
+          />
+        </div>
+        <span className="shrink-0 text-xs font-bold">
+          {Math.round(current)}
+          <span className="text-muted-foreground">/{Math.round(target)}g</span>
+        </span>
       </div>
     </div>
   );

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Droplets, Flame, Plus, Minus, Settings2 } from "lucide-react";
+import { Droplets, Plus, Minus, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/client";
 import { todayLocal } from "@/lib/dates";
 import { loadWaterPrefs, MAX_WATER_GOAL_ML, saveWaterPrefs } from "@/lib/water";
@@ -19,12 +18,16 @@ import { Label } from "@/components/ui/label";
 
 interface Props {
   userId: string;
-  streak: number;
 }
 
-export function WaterStreak({ userId, streak }: Props) {
+// Wave tile: two identical periods, so sliding it -50% loops seamlessly.
+const WAVE_PATH = "M0 12 Q50 0 100 12 T200 12 T300 12 T400 12 V24 H0Z";
+
+export function WaterStreak({ userId }: Props) {
   const [water, setWater] = useState(0);
   const [loading, setLoading] = useState(false);
+  // Bumped on every add to replay the splash animation.
+  const [splash, setSplash] = useState(0);
 
   // ── Settings state (local-first; DB-backed via src/lib/water.ts) ──────────
   const [dailyGoalMl, setDailyGoalMl] = useState(2500);
@@ -183,6 +186,7 @@ export function WaterStreak({ userId, streak }: Props) {
       return;
     }
     setWater(next);
+    if (delta > 0) setSplash((n) => n + 1);
     if (delta > 0 && next >= dailyGoalMl && water < dailyGoalMl) {
       toast.success("💧 Daily water goal hit! Great work.");
     }
@@ -192,29 +196,57 @@ export function WaterStreak({ userId, streak }: Props) {
     dailyGoalMl > 0
       ? Math.min(100, Math.round((water / dailyGoalMl) * 100))
       : 0;
-  const glasses = stepMl > 0 ? Math.floor(water / stepMl) : 0;
-
-  const streakEmoji =
-    streak >= 30 ? "🔥" : streak >= 14 ? "⚡" : streak >= 7 ? "✨" : "🌱";
-  const streakMsg =
-    streak === 0
-      ? "Start your streak today!"
-      : streak === 1
-        ? "Day 1 — keep going!"
-        : streak < 7
-          ? `${streak} days — building the habit`
-          : streak < 14
-            ? `${streak} days — one week strong!`
-            : streak < 30
-              ? `${streak} days — you're on fire!`
-              : `${streak} days — absolute legend`;
-
   return (
     <div className="grid gap-4 sm:grid-cols-1">
       {/* Water card */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center justify-between text-base">
+      <Card className="relative min-h-[230px] overflow-hidden">
+        {/* Water: fills to today's %, waves drift, splash replays on each add. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 transition-[height] duration-700 ease-out"
+          style={{ height: `${Math.max(pct, 6)}%` }}
+        >
+          <div
+            key={splash}
+            className={`relative h-full ${splash ? "water-splash" : ""}`}
+          >
+            <svg
+              viewBox="0 0 400 24"
+              preserveAspectRatio="none"
+              className="water-wave-slow absolute -top-4 left-0 h-6 w-[200%] fill-blue-500/40"
+            >
+              <path d={WAVE_PATH} />
+            </svg>
+            <svg
+              viewBox="0 0 400 24"
+              preserveAspectRatio="none"
+              className="water-wave absolute -top-3 left-0 h-6 w-[200%] fill-blue-400"
+            >
+              <path d={WAVE_PATH} />
+            </svg>
+            <div className="absolute inset-0 top-2 bg-gradient-to-b from-blue-400 to-blue-800" />
+            {[
+              ["12%", "0s", 10],
+              ["30%", "1.4s", 6],
+              ["68%", "2.2s", 8],
+              ["85%", "0.7s", 5],
+            ].map(([left, delay, size]) => (
+              <span
+                key={left}
+                className="water-bubble absolute bottom-2 rounded-full bg-white/25"
+                style={{
+                  left: left as string,
+                  animationDelay: delay as string,
+                  width: size as number,
+                  height: size as number,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="relative z-10 flex min-h-[230px] flex-col gap-3 p-5">
+          <div className="flex items-center justify-between text-base font-semibold">
             <div className="flex items-center gap-2">
               <Droplets className="h-4 w-4 text-blue-500" />
               Water intake
@@ -303,54 +335,48 @@ export function WaterStreak({ userId, streak }: Props) {
                 </div>
               </DialogContent>
             </Dialog>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Amount display */}
-          <div className="flex items-end justify-between gap-2">
+          </div>
+
+          <div className="flex items-baseline justify-between gap-2 drop-shadow-sm">
             <div className="min-w-0">
-              <span className="text-3xl font-bold">{water}</span>
-              <span className="ml-1 text-sm text-muted-foreground">
-                / {dailyGoalMl} ml
+              <span className="font-display text-4xl font-bold tracking-tight">
+                {water.toLocaleString()}
+              </span>
+              <span className="ml-1.5 text-sm text-muted-foreground">
+                / {dailyGoalMl.toLocaleString()} ml
               </span>
             </div>
-            <span className="shrink-0 text-sm text-muted-foreground">
-              {glasses} glasses
-            </span>
+            <span className="shrink-0 text-sm font-bold">{pct}%</span>
           </div>
 
-          {/* Progress bar */}
-          <Progress value={pct} className="h-2.5" />
-
-          {/* Controls: minus | large + button showing amount */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => update(-stepMl)}
-              disabled={loading || water === 0}
-              className="h-9 w-9 shrink-0"
-              aria-label="Remove water"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={() => update(stepMl)}
-              disabled={loading}
-              className="flex-1 bg-blue-500 text-white hover:bg-blue-600 gap-2"
-              aria-label={`Add ${stepMl} ml of water`}
-            >
-              <Plus className="h-4 w-4" />
-              {`${stepMl} ml`}
-            </Button>
+          <div className="mt-auto space-y-2">
+            {pct >= 100 && (
+              <p className="text-center text-xs font-semibold text-white">
+                💧 Goal complete!
+              </p>
+            )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => update(-stepMl)}
+                disabled={loading || water === 0}
+                className="h-11 w-12 shrink-0 rounded-xl bg-white/15 text-white backdrop-blur hover:bg-white/25 hover:text-white"
+                aria-label="Remove water"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={() => update(stepMl)}
+                disabled={loading}
+                className="h-11 flex-1 gap-2 rounded-xl bg-white font-bold text-blue-900 hover:bg-white/90"
+                aria-label={`Add ${stepMl} ml of water`}
+              >
+                <Plus className="h-4 w-4" />
+                {`${stepMl} ml`}
+              </Button>
+            </div>
           </div>
-
-          {pct >= 100 && (
-            <p className="text-center text-xs font-medium text-blue-500">
-              💧 Goal complete!
-            </p>
-          )}
-        </CardContent>
+        </div>
       </Card>
     </div>
   );

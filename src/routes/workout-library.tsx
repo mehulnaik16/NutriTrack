@@ -225,7 +225,7 @@ function PreviewView({ plan }: { plan: LibraryPlan }) {
                       <img
                         src={thumb}
                         alt={ex.name}
-                        className="h-9 w-9 shrink-0 rounded-full border border-border/80 object-cover bg-white shadow-xs"
+                        className="h-[54px] w-[54px] shrink-0 rounded-full border border-border/80 object-cover bg-white shadow-xs"
                         loading="lazy"
                       />
                     ) : (
