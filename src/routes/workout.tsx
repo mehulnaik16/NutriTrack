@@ -767,7 +767,7 @@ function WorkoutPage() {
                           <img
                             src={exerciseThumbnailUrl(ex.name)!}
                             alt={ex.name}
-                            className="h-9 w-9 rounded-full border border-border/80 object-cover bg-white shadow-xs"
+                            className="h-[54px] w-[54px] rounded-full border border-border/80 object-cover bg-white shadow-xs"
                             loading="lazy"
                           />
                           {isLogged && (
@@ -1056,7 +1056,7 @@ function WorkoutPage() {
                     <img
                       src={thumb}
                       alt={ex.name}
-                      className="h-9 w-9 shrink-0 rounded-full border border-border/80 object-cover bg-white shadow-xs"
+                      className="h-[54px] w-[54px] shrink-0 rounded-full border border-border/80 object-cover bg-white shadow-xs"
                       loading="lazy"
                     />
                   )}
@@ -2329,7 +2329,7 @@ function WorkoutPage() {
                 <img
                   src={exerciseThumbnailUrl(selectedExercise ?? "")!}
                   alt={selectedExercise ?? ""}
-                  className="h-16 w-16 rounded-full border-2 border-border/80 object-cover bg-white shadow-sm"
+                  className="h-24 w-24 rounded-full border-2 border-border/80 object-cover bg-white shadow-sm"
                 />
               </div>
             )}
