@@ -482,6 +482,75 @@ export const serverGroqChat = createServerFn({ method: "POST" })
     return { result: raw };
   });
 
+// ── Weekly check-in (Claude Haiku) ───────────────────────────────────────────
+// The client sends numbers only; the prompt and the WEEK_DATA line are built
+// here, so this endpoint can't be used as an open LLM proxy.
+const day = z.string().max(12);
+const WeeklyReportInput = z.object({
+  name: z.string().max(60),
+  goal: z.enum(["lose", "maintain", "gain"]),
+  weightKg: z.number().nullable(),
+  kcalTarget: z.number().positive(),
+  proteinTarget: z.number().positive().nullable(),
+  daysLogged: z.number().int().min(0).max(7),
+  missedDays: z.array(day).max(7),
+  avgKcal: z.number(),
+  avgProtein: z.number(),
+  closestDay: day.nullable(),
+  closestKcal: z.number().nullable(),
+  furthestDay: day.nullable(),
+  furthestKcal: z.number().nullable(),
+  workouts: z.number().int().min(0).max(7),
+  weightChange: z.number().nullable(),
+});
+
+export const serverWeeklyReport = createServerFn({ method: "POST" })
+  .middleware([requireAccess])
+  .inputValidator(WeeklyReportInput)
+  .handler(async (ctx) => {
+    checkRateLimit(ctx.context.userId);
+    const { claudeWeeklyReport, WEEKLY_SYSTEM } =
+      await import("@/server/anthropic");
+    const d = ctx.data;
+    const na = "not tracked";
+    const line = [
+      `name ${d.name.replace(/[;\n]/g, " ")}`,
+      `goal ${d.goal}`,
+      `weight_kg ${d.weightKg ?? na}`,
+      `kcal_target ${d.kcalTarget}`,
+      `protein_target_g ${d.proteinTarget ?? na}`,
+      `days_logged ${d.daysLogged}`,
+      `missed_days ${d.missedDays.join(", ") || "none"}`,
+      `avg_kcal ${d.avgKcal}`,
+      `avg_protein_g ${d.avgProtein}`,
+      // Precomputed: the model gets percentages wrong (it called 115 of 120 g "115%").
+      `kcal_pct ${d.daysLogged ? Math.round((d.avgKcal / d.kcalTarget) * 100) : na}`,
+      `protein_pct ${d.daysLogged && d.proteinTarget ? Math.round((d.avgProtein / d.proteinTarget) * 100) : na}`,
+      `closest_day ${d.closestDay ? `${d.closestDay} ${d.closestKcal}` : "none"}`,
+      `furthest_day ${d.furthestDay ? `${d.furthestDay} ${d.furthestKcal}` : "none"}`,
+      `workouts ${d.workouts}`,
+      `weight_change_kg ${d.weightChange === null ? na : `${d.weightChange > 0 ? "+" : ""}${d.weightChange}`}`,
+    ].join("; ");
+    if (process.env.ANTHROPIC_API_KEY)
+      return { result: await claudeWeeklyReport(line) };
+
+    // shortcut: Groq writes the report until the Claude key is bought; drop
+    // this branch once ANTHROPIC_API_KEY is set everywhere.
+    const { groqChat } = await import("@/server/groq");
+    const result = await groqChat({
+      model: "openai/gpt-oss-120b",
+      max_tokens: 300,
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: WEEKLY_SYSTEM },
+        { role: "user", content: `WEEK_DATA: ${line}` },
+      ],
+    });
+    // Reasoning can use up the 300 tokens and leave no text.
+    if (!result) throw new Error("Weekly report came back empty.");
+    return { result };
+  });
+
 // ── Workout plan ─────────────────────────────────────────────────────────────
 // The coach prompt and catalog live server-side (lib/workoutPrompt.ts) and go
 // out as a fixed system message, so Groq's prefix cache can reuse them; the

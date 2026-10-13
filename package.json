@@ -21,6 +21,7 @@
     "mobile:ios": "npx cap open ios"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@capacitor/app": "^7.1.2",
     "@capacitor/app-launcher": "^7.0.4",
     "@capacitor/browser": "^7.0.5",

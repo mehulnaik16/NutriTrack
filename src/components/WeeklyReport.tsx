@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { serverGroqChat } from "@/lib/ai";
+import { serverWeeklyReport } from "@/lib/ai";
+import { toastAiError } from "@/lib/aiErrors";
 import { Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ interface Props {
   profile: {
     full_name: string | null;
     daily_calorie_target: number | null;
+    protein_target_g: number | null;
     goal: string | null;
     weight_kg: number | null;
   };
@@ -18,56 +20,73 @@ interface Props {
 
 interface WeekStats {
   avgCalories: number;
+  avgProtein: number;
   targetCalories: number;
   daysLogged: number;
-  bestDay: string;
-  worstDay: string;
+  missedDays: string[];
+  closest: { day: string; kcal: number } | null;
+  furthest: { day: string; kcal: number } | null;
   workoutDays: number;
   weightChange: number | null;
 }
+
+const weekday = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long" });
+};
 
 async function buildWeekStats(
   userId: string,
   calorieTarget: number,
 ): Promise<WeekStats> {
   const today = new Date();
-  const weekAgo = new Date(today);
-  weekAgo.setDate(today.getDate() - 6);
-  const from = toLocalISO(weekAgo);
-  const to = toLocalISO(today);
+  const days: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    days.push(toLocalISO(d));
+  }
+  const from = days[0];
+  const to = days[6];
 
   const inWeek = <R extends { date: string | null }>(rows: R[]) =>
     rows.filter((r) => r.date && r.date >= from && r.date <= to);
   const [foodLogs, workoutLogs, weightEntries] = await Promise.all([
-    getHistory(userId, "food_logs").then(inWeek).catch(() => []),
-    getHistory(userId, "workout_logs").then(inWeek).catch(() => []),
+    getHistory(userId, "food_logs")
+      .then(inWeek)
+      .catch(() => []),
+    getHistory(userId, "workout_logs")
+      .then(inWeek)
+      .catch(() => []),
     // Oldest first, as getHistory returns.
-    getHistory(userId, "weight_entries").then(inWeek).catch(() => []),
+    getHistory(userId, "weight_entries")
+      .then(inWeek)
+      .catch(() => []),
   ]);
 
-  // Aggregate calories by day
-  const dayMap: Record<string, number> = {};
+  // Calories and protein by day. Null values add nothing rather than NaN.
+  const dayMap: Record<string, { kcal: number; protein: number }> = {};
   for (const log of foodLogs ?? []) {
-    // food_logs.date is nullable (it defaults to today, but nothing forbids
-    // NULL); an undated row has no day to be counted towards.
     if (!log.date) continue;
-    // calories is nullable too; a row without one adds nothing, rather than
-    // turning the whole day's total into NaN.
-    dayMap[log.date] = (dayMap[log.date] ?? 0) + (log.calories ?? 0);
+    const t = (dayMap[log.date] ??= { kcal: 0, protein: 0 });
+    t.kcal += log.calories ?? 0;
+    t.protein += log.protein_g ?? 0;
   }
 
-  const days = Object.entries(dayMap);
-  const daysLogged = days.length;
-  const avgCalories =
+  const logged = Object.entries(dayMap);
+  const daysLogged = logged.length;
+  const avg = (pick: (t: { kcal: number; protein: number }) => number) =>
     daysLogged > 0
-      ? Math.round(days.reduce((s, [, c]) => s + c, 0) / daysLogged)
+      ? Math.round(logged.reduce((s, [, t]) => s + pick(t), 0) / daysLogged)
       : 0;
 
-  const sorted = [...days].sort((a, b) => b[1] - a[1]);
-  const bestDay = sorted[sorted.length - 1]?.[0] ?? "—";
-  const worstDay = sorted[0]?.[0] ?? "—";
-
-  const workoutDays = new Set((workoutLogs ?? []).map((w) => w.date)).size;
+  // Closest / furthest from the calorie target, not simply lowest / highest.
+  const byGap = [...logged].sort(
+    (a, b) =>
+      Math.abs(a[1].kcal - calorieTarget) - Math.abs(b[1].kcal - calorieTarget),
+  );
+  const pick = (e: (typeof logged)[number] | undefined) =>
+    e ? { day: weekday(e[0]), kcal: Math.round(e[1].kcal) } : null;
 
   let weightChange: number | null = null;
   if ((weightEntries ?? []).length >= 2) {
@@ -77,12 +96,14 @@ async function buildWeekStats(
   }
 
   return {
-    avgCalories,
+    avgCalories: avg((t) => t.kcal),
+    avgProtein: avg((t) => t.protein),
     targetCalories: calorieTarget,
     daysLogged,
-    bestDay,
-    worstDay,
-    workoutDays,
+    missedDays: days.filter((d) => !dayMap[d]).map(weekday),
+    closest: pick(byGap[0]),
+    furthest: byGap.length > 1 ? pick(byGap[byGap.length - 1]) : null,
+    workoutDays: new Set((workoutLogs ?? []).map((w) => w.date)).size,
     weightChange,
   };
 }
@@ -91,24 +112,29 @@ async function getWeeklyReport(
   profile: Props["profile"],
   stats: WeekStats,
 ): Promise<string> {
-  const prompt = `You are a friendly, data-driven fitness coach writing a weekly summary.
-User: ${profile.full_name?.split(" ")[0] ?? "there"}, goal: ${profile.goal}, current weight: ${profile.weight_kg}kg.
-This week's data:
-- Days food logged: ${stats.daysLogged}/7
-- Avg daily calories: ${stats.avgCalories} kcal (target: ${stats.targetCalories} kcal)
-- Best adherence day: ${stats.bestDay}
-- Least adherence day: ${stats.worstDay}
-- Workouts completed: ${stats.workoutDays}
-- Weight change this week: ${stats.weightChange !== null ? `${stats.weightChange > 0 ? "+" : ""}${stats.weightChange} kg` : "not tracked"}
-
-Write a 3-4 sentence weekly summary. Be specific, warm, and actionable. Give one concrete tip for next week based on the data. No hashtags.`;
-
-  const { result } = await serverGroqChat({
+  const g = profile.goal ?? "";
+  const goal = g.startsWith("lose")
+    ? "lose"
+    : g.startsWith("gain")
+      ? "gain"
+      : "maintain";
+  const { result } = await serverWeeklyReport({
     data: {
-      prompt,
-      model: "openai/gpt-oss-120b",
-      max_tokens: 200,
-      temperature: 0.7,
+      name: profile.full_name?.split(" ")[0] || "there",
+      goal,
+      weightKg: profile.weight_kg,
+      kcalTarget: stats.targetCalories,
+      proteinTarget: profile.protein_target_g || null,
+      daysLogged: stats.daysLogged,
+      missedDays: stats.missedDays,
+      avgKcal: stats.avgCalories,
+      avgProtein: stats.avgProtein,
+      closestDay: stats.closest?.day ?? null,
+      closestKcal: stats.closest?.kcal ?? null,
+      furthestDay: stats.furthest?.day ?? null,
+      furthestKcal: stats.furthest?.kcal ?? null,
+      workouts: Math.min(stats.workoutDays, 7),
+      weightChange: stats.weightChange,
     },
   });
   return result;
@@ -124,15 +150,19 @@ export function WeeklyReport({ userId, profile }: Props) {
 
   const generate = useCallback(async () => {
     setLoading(true);
-    const s = await buildWeekStats(
-      userId,
-      profile.daily_calorie_target ?? 2000,
-    );
-    setStats(s);
-    const r = await getWeeklyReport(profile, s);
-    setReport(r);
-    setExpanded(true);
-    setLoading(false);
+    try {
+      const s = await buildWeekStats(
+        userId,
+        profile.daily_calorie_target || 2000,
+      );
+      setStats(s);
+      setReport(await getWeeklyReport(profile, s));
+      setExpanded(true);
+    } catch (e) {
+      toastAiError(e, "weekly report");
+    } finally {
+      setLoading(false);
+    }
   }, [userId, profile]);
 
   // Auto-load on Sundays
