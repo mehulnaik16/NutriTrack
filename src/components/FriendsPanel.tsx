@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import Webcam from "react-webcam";
+import { BarcodeScanner } from "./BarcodeScanner";
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { renderSVG } from "uqr";
 import {
   Users,
@@ -14,7 +15,6 @@ import {
   X,
   Flame,
   Hand,
-  Loader2,
   Clock,
   Gift,
   Share2,
@@ -271,7 +271,10 @@ export function FriendsPanel({
   const handleCode = async (raw: string) => {
     const code = raw.startsWith(QR_PREFIX) ? raw.slice(QR_PREFIX.length) : raw;
     const { data, error } = await supabase.rpc("resolve_friend_code", { code });
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error("Couldn't check that code. Try again in a moment.");
+      return false;
+    }
     const res = data?.[0];
     const who = res?.full_name ?? "them";
     const msg: Record<string, string> = {
@@ -288,39 +291,19 @@ export function FriendsPanel({
       setScanOpen(false);
       toast.success(msg[kind]);
       load();
-    } else {
-      toast.error(msg[kind] ?? "Could not read that code");
+      return true;
     }
+    toast.error(msg[kind] ?? "Could not read that code");
+    return false;
   };
 
-  // ── QR scanning: same Webcam + zxing decode already used for barcodes ─────
-  const camRef = useRef<Webcam>(null);
-  useEffect(() => {
-    if (!scanOpen) return;
-    const reader = new BrowserMultiFormatReader();
-    let stopped = false;
-    const tick = async () => {
-      if (stopped) return;
-      const shot = camRef.current?.getScreenshot();
-      if (shot) {
-        try {
-          const res = await reader.decodeFromImageUrl(shot);
-          const text = res?.getText();
-          if (text && !stopped) {
-            stopped = true;
-            await handleCode(text);
-          }
-        } catch {
-          /* no code in this frame — expected most of the time */
-        }
-      }
-    };
-    const id = setInterval(tick, 700);
-    return () => {
-      stopped = true;
-      clearInterval(id);
-    };
-  }, [scanOpen]);
+  // A rejected code stops the scanner; remounting it starts a fresh one.
+  const [scanKey, setScanKey] = useState(0);
+  const onScan = async (text: string) => {
+    // Pause first, or the same bad code is re-read and re-toasted every frame.
+    if (!(await handleCode(text)))
+      setTimeout(() => setScanKey((k) => k + 1), 2000);
+  };
 
   /** The friend-code QR as a PNG picture, with the username under it. */
   const qrPicture = async (): Promise<File | null> => {
@@ -468,7 +451,13 @@ export function FriendsPanel({
     if (!file) return;
     const url = URL.createObjectURL(file);
     try {
-      const res = await new BrowserMultiFormatReader().decodeFromImageUrl(url);
+      // QR only, searched hard: a shared picture is often small or recompressed.
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+      const res = await new BrowserMultiFormatReader(hints).decodeFromImageUrl(
+        url,
+      );
       await handleCode(res.getText());
     } catch {
       toast.error("No QR code found in that picture. Try a clearer one.");
@@ -935,23 +924,7 @@ export function FriendsPanel({
               request
             </DialogDescription>
           </DialogHeader>
-          <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-black">
-            <Webcam
-              audio={false}
-              ref={camRef}
-              screenshotFormat="image/jpeg"
-              videoConstraints={{ facingMode: "environment" }}
-              onUserMediaError={() =>
-                // Keep the dialog open: uploading a picture still works.
-                toast.error("Camera unavailable. Upload a QR picture instead.")
-              }
-              className="h-full w-full object-cover"
-            />
-            <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-accent/70" />
-            <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-2 text-xs text-white/80">
-              <Loader2 className="h-3 w-3 animate-spin" /> Looking for a code…
-            </div>
-          </div>
+          <BarcodeScanner key={scanKey} mode="qr" onDetected={onScan} />
           <input
             ref={uploadRef}
             type="file"

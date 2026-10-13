@@ -33,6 +33,8 @@ import { Flashlight, Keyboard } from "lucide-react";
  * driven by one definition and cannot drift apart.
  */
 export const ROI = { x: 0.08, y: 0.34, w: 0.84, h: 0.26 } as const;
+/** Square window for QR codes: 76% of the 3:4 box's width, centred. */
+const QR_ROI = { x: 0.12, y: 0.215, w: 0.76, h: 0.57 } as const;
 
 /** Retail food only. Fewer formats means faster decodes and fewer misreads. */
 const FORMATS = [
@@ -46,6 +48,31 @@ const FORMATS = [
 /** Decode at most this often. rAF fires 60x/sec; decoding that fast just
  *  pins the CPU and makes the preview stutter, which makes aiming harder. */
 const DECODE_INTERVAL_MS = 140;
+
+/** Per-mode settings. QR carries its own error correction, so one read is
+ *  trusted; 1D barcodes need two agreeing reads (see streakRef). */
+const MODES = {
+  barcode: {
+    roi: ROI,
+    zxing: FORMATS,
+    native: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"],
+    reads: 2,
+    fallback: "type the number below",
+    aim: "Point at the barcode",
+    stuck:
+      "Still nothing? Move closer, then further — or type the number below.",
+  },
+  qr: {
+    roi: QR_ROI,
+    zxing: [BarcodeFormat.QR_CODE],
+    native: ["qr_code"],
+    reads: 1,
+    fallback: "upload a QR picture below",
+    aim: "Point at the QR code",
+    stuck:
+      "Still nothing? Move closer, then further — or upload a picture below.",
+  },
+} as const;
 /** Show the "type it instead" hint after this long without a read. */
 const STRUGGLE_AFTER_MS = 8000;
 
@@ -56,10 +83,17 @@ interface NativeDetector {
 export function BarcodeScanner({
   onDetected,
   onTypeInstead,
+  mode = "barcode",
 }: {
   onDetected: (code: string) => void;
   onTypeInstead?: () => void;
+  mode?: keyof typeof MODES;
 }) {
+  const cfg = MODES[mode];
+  const roi = cfg.roi;
+  // Latest callback without restarting the decode loop on every parent render.
+  const onDetectedRef = useRef(onDetected);
+  onDetectedRef.current = onDetected;
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
@@ -77,7 +111,6 @@ export function BarcodeScanner({
   const doneRef = useRef(false);
 
   const [ready, setReady] = useState(false);
-  const [reading, setReading] = useState(false);
   const [struggling, setStruggling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [torchOn, setTorchOn] = useState(false);
@@ -104,7 +137,7 @@ export function BarcodeScanner({
     // Built once. Constructing a reader per frame is the difference between a
     // smooth preview and a slideshow.
     const hints = new Map();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, FORMATS);
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, cfg.zxing);
     hints.set(DecodeHintType.TRY_HARDER, true);
     readerRef.current = new BrowserMultiFormatReader(hints);
 
@@ -116,7 +149,7 @@ export function BarcodeScanner({
     if (Native) {
       try {
         nativeRef.current = new Native({
-          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"],
+          formats: [...cfg.native],
         });
       } catch {
         nativeRef.current = null;
@@ -131,12 +164,12 @@ export function BarcodeScanner({
       const streak = streakRef.current;
       streak.count = streak.code === code ? streak.count + 1 : 1;
       streak.code = code;
-      if (streak.count < 2) return;
+      if (streak.count < cfg.reads) return;
 
       doneRef.current = true;
       teardown();
       navigator.vibrate?.(40);
-      onDetected(code);
+      onDetectedRef.current(code);
     };
 
     const tick = async () => {
@@ -160,10 +193,10 @@ export function BarcodeScanner({
       // and look exactly like a broken ROI.
       const vw = video.videoWidth;
       const vh = video.videoHeight;
-      const sx = Math.round(ROI.x * vw);
-      const sy = Math.round(ROI.y * vh);
-      const sw = Math.round(ROI.w * vw);
-      const sh = Math.round(ROI.h * vh);
+      const sx = Math.round(cfg.roi.x * vw);
+      const sy = Math.round(cfg.roi.y * vh);
+      const sw = Math.round(cfg.roi.w * vw);
+      const sh = Math.round(cfg.roi.h * vh);
 
       let canvas = canvasRef.current;
       if (!canvas) {
@@ -178,7 +211,6 @@ export function BarcodeScanner({
       if (!ctx) return;
       ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
 
-      setReading(true);
       try {
         if (nativeRef.current) {
           const found = await nativeRef.current.detect(canvas);
@@ -192,8 +224,6 @@ export function BarcodeScanner({
       } catch {
         // A frame with no barcode throws NotFoundException. That is the normal
         // case on most frames, not an error worth surfacing.
-      } finally {
-        setReading(false);
       }
     };
 
@@ -202,7 +232,7 @@ export function BarcodeScanner({
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [ready, error, struggling, onDetected, teardown]);
+  }, [ready, error, struggling, cfg, teardown]);
 
   // Stop the camera when the tab is backgrounded, and on unmount. A leaked
   // MediaStream keeps the phone's camera light on and drains the battery.
@@ -230,8 +260,7 @@ export function BarcodeScanner({
     const track = stream?.getVideoTracks()[0];
     if (!track) return;
     const caps = track.getCapabilities?.() as
-      | (MediaTrackCapabilities & { torch?: boolean })
-      | undefined;
+      (MediaTrackCapabilities & { torch?: boolean }) | undefined;
     if (caps?.torch) setTorchAvailable(true);
     // Continuous autofocus where supported. Wrapped, because an unsupported
     // advanced constraint rejects and must not take the stream down with it.
@@ -242,16 +271,19 @@ export function BarcodeScanner({
       .catch(() => {});
   }, []);
 
-  const handleUserMediaError = useCallback((e: string | DOMException) => {
-    const name = typeof e === "string" ? e : e.name;
-    setError(
-      name === "NotAllowedError"
-        ? "Camera access is off. Turn it on in your browser settings, or type the number below."
-        : name === "NotFoundError"
-          ? "No camera found on this device. Type the number below instead."
-          : "Could not start the camera. Type the number below instead.",
-    );
-  }, []);
+  const handleUserMediaError = useCallback(
+    (e: string | DOMException) => {
+      const name = typeof e === "string" ? e : e.name;
+      setError(
+        name === "NotAllowedError"
+          ? `Camera access is off. Turn it on in your browser settings, or ${cfg.fallback}.`
+          : name === "NotFoundError"
+            ? `No camera found on this device. ${cfg.fallback[0].toUpperCase()}${cfg.fallback.slice(1)} instead.`
+            : `Could not start the camera. ${cfg.fallback[0].toUpperCase()}${cfg.fallback.slice(1)} instead.`,
+      );
+    },
+    [cfg],
+  );
 
   const toggleTorch = useCallback(async () => {
     const stream = webcamRef.current?.video?.srcObject as MediaStream | null;
@@ -311,22 +343,22 @@ export function BarcodeScanner({
       <div className="pointer-events-none absolute inset-0">
         <div
           className="absolute inset-x-0 top-0 bg-black/60"
-          style={{ height: pct(ROI.y) }}
+          style={{ height: pct(roi.y) }}
         />
         <div
           className="absolute inset-x-0 bottom-0 bg-black/60"
-          style={{ height: pct(1 - ROI.y - ROI.h) }}
+          style={{ height: pct(1 - roi.y - roi.h) }}
         />
         <div
           className="absolute left-0 bg-black/60"
-          style={{ top: pct(ROI.y), height: pct(ROI.h), width: pct(ROI.x) }}
+          style={{ top: pct(roi.y), height: pct(roi.h), width: pct(roi.x) }}
         />
         <div
           className="absolute right-0 bg-black/60"
           style={{
-            top: pct(ROI.y),
-            height: pct(ROI.h),
-            width: pct(1 - ROI.x - ROI.w),
+            top: pct(roi.y),
+            height: pct(roi.h),
+            width: pct(1 - roi.x - roi.w),
           }}
         />
 
@@ -334,10 +366,10 @@ export function BarcodeScanner({
         <div
           className="absolute"
           style={{
-            left: pct(ROI.x),
-            top: pct(ROI.y),
-            width: pct(ROI.w),
-            height: pct(ROI.h),
+            left: pct(roi.x),
+            top: pct(roi.y),
+            width: pct(roi.w),
+            height: pct(roi.h),
           }}
         >
           <span className="absolute -left-px -top-px h-6 w-6 rounded-tl-lg border-l-4 border-t-4 border-accent" />
@@ -349,16 +381,17 @@ export function BarcodeScanner({
 
         <p
           className="absolute inset-x-0 text-center text-sm font-semibold text-white drop-shadow"
-          style={{ top: `calc(${pct(ROI.y + ROI.h)} + 1rem)` }}
+          style={{ top: `calc(${pct(roi.y + roi.h)} + 1rem)` }}
         >
-          {reading ? "Reading…" : "Point at the barcode"}
+          {/* Fixed text: a per-frame "Reading…" toggle flickered 7x a second. */}
+          {cfg.aim}
         </p>
         {struggling && (
           <p
             className="absolute inset-x-0 px-6 text-center text-xs text-white/70"
-            style={{ top: `calc(${pct(ROI.y + ROI.h)} + 2.6rem)` }}
+            style={{ top: `calc(${pct(roi.y + roi.h)} + 2.6rem)` }}
           >
-            Still nothing? Move closer, then further — or type the number below.
+            {cfg.stuck}
           </p>
         )}
       </div>
