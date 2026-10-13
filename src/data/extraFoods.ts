@@ -400,4 +400,19 @@ export const EXTRA_FOODS: ExtraFoodItem[] = [
   f("E187", "Brandy (40% ABV)", "Alcoholic Beverages", 221, 0, 0, 0.1, 0, 31.6, 30, "1 peg = 30 mL"),
   f("E188", "Red Wine (13% ABV)", "Alcoholic Beverages", 85, 0.1, 0, 2.6, 0, 10.3, 150, "1 glass = 150 mL"),
   f("E189", "White Wine (12% ABV)", "Alcoholic Beverages", 82, 0.1, 0, 2.6, 0, 9.5, 150, "1 glass = 150 mL"),
+
+  // ── Dosa & idli variants (FatSecret figures, sourced 2026-10-12; piece
+  // weights estimated, see PIECE_G) ─────────────────────────────
+  f("E190", "Set Dosa", "Breakfast", 234, 4.2, 10.1, 31.6, 1.8),
+  f("E191", "Egg Dosa", "Breakfast", 207, 10.2, 8.2, 23.6, 5.8),
+  f("E192", "Mysore Masala Dosa", "Breakfast", 170, 3.5, 6.5, 24.9, 2.5),
+  f("E193", "Wheat Dosa", "Breakfast", 214, 6.8, 2.3, 41.2, 3),
+  f("E194", "Ragi Dosa", "Breakfast", 274, 7.9, 6.4, 47.9, 6.6),
+  f("E195", "Benne Dosa", "Breakfast", 243, 3.7, 10.8, 33, 2.3),
+  f("E196", "Cheese Masala Dosa", "Breakfast", 168, 3.6, 10.4, 16.1, 2.1),
+  f("E197", "Neer Dosa", "Breakfast", 190, 3.4, 0.8, 40.8, 0),
+  f("E198", "Oats Dosa", "Breakfast", 203, 6.3, 2.7, 38.1, 0),
+  f("E199", "Dosa Batter", "Breakfast", 144, 4.6, 0.4, 30.2, 0),
+  f("E200", "Fried Idli", "Breakfast", 133, 4.8, 4.1, 19.2, 3.8),
+  f("E201", "Idli Podi", "Snacks", 418, 20.1, 17.6, 49.7, 23.9),
 ];

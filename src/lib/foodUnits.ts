@@ -81,6 +81,16 @@ export const PIECE_G: Record<string, number> = {
   XE106: 9, // Pani Puri / Gol Gappa
   XE007: 50, // Whole Egg
   XE170: 120, // Banana
+  XE190: 50, // Set Dosa (estimated)
+  XE191: 90, // Egg Dosa (estimated)
+  XE192: 110, // Mysore Masala Dosa (estimated)
+  XE193: 50, // Wheat Dosa (estimated)
+  XE194: 50, // Ragi Dosa (estimated)
+  XE195: 60, // Benne Dosa (estimated)
+  XE196: 110, // Cheese Masala Dosa (estimated)
+  XE197: 40, // Neer Dosa (estimated)
+  XE198: 35, // Oats Dosa (estimated)
+  XE200: 40, // Fried Idli (estimated, same as Idli)
 };
 
 /**
