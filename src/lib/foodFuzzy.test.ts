@@ -18,8 +18,9 @@ import {
   similarity,
   altNames,
   catalogFood,
+  CATALOG_ALIASES,
 } from "./foodFuzzy.ts";
-import { searchFoods } from "./foodDb.ts";
+import { searchFoods, ITEMS } from "./foodDb.ts";
 
 const top = (q: string) => strongFoods(q, 3)[0]?.name ?? "";
 const hits = (q: string) => strongFoods(q, 3).length;
@@ -211,6 +212,13 @@ for (const [q, code] of [
   ["dahi", "XE160"],
 ])
   assert.equal(catalogFood(q)?.code, code, `${q} -> ${code}`);
+// Every alias points at a real row, and the common name now resolves to it.
+for (const [q, code] of Object.entries(CATALOG_ALIASES)) {
+  assert.ok(ITEMS.some((it) => it.code === code), `${q}: no row ${code}`);
+  assert.ok(catalogFood(q), `${q} must resolve`);
+}
+assert.equal(catalogFood("rava dosa")?.code, "ASC147");
+assert.equal(catalogFood("Mutton Biryani")?.code, "ASC122");
 // Bare-name rows: whichever row is plainly this food, by its own name.
 for (const q of ["banana", "dosa"])
   assert.equal(catalogFood(q)?.name.split(" (")[0].toLowerCase(), q, q);

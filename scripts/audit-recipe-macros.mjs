@@ -41,7 +41,12 @@ export function auditRow(row) {
   if (!RECIPE_GROUPS.has(row.grup) || EXEMPT_CODES.has(row.code)) return out;
   const { name } = row;
   if (row.fatce > 45 && !FAT_EXEMPT.test(name)) out.flags.push("fat_oil");
-  if (FRIED.test(name) && (kcal < 180 || kcal > 480))
+  // A kofta curry is a gravy: its fried koftas sit in a low-kcal sauce.
+  if (
+    FRIED.test(name) &&
+    !/curry|gravy/i.test(name) &&
+    (kcal < 180 || kcal > 480)
+  )
     out.flags.push("fried_range");
   if (
     PROTEIN_DISH.test(name) &&

@@ -266,8 +266,69 @@ export function catalogFood(name: string): IFCTItem | undefined {
   const hits = strongFoods(name, 40).filter((it) =>
     wholeNames(it).includes(term),
   );
-  return hits.sort((a, b) => curatedFirst(a) - curatedFirst(b))[0];
+  const best = hits.sort((a, b) => curatedFirst(a) - curatedFirst(b))[0];
+  if (best) return best;
+  const code = CATALOG_ALIASES[term];
+  return code ? ITEMS.find((it) => it.code === code) : undefined;
 }
+
+/**
+ * Common names that a catalog row holds only under a longer one: "rava dosa"
+ * is "Semolina dosa (Suji/Rava dosa)", so the whole-name check above misses it
+ * and the photo or voice log pays for a model call. Hand-picked, one row each.
+ *
+ * Rows whose numbers are implausible for the dish were left out on purpose
+ * rather than aliased (the IFCT recipe rows for dahi vada at 657 kcal/100 g,
+ * aloo bonda 622, bread pakora 700, boiled egg 45, shrikhand 108, rabri 103):
+ * an alias would make those wrong numbers the automatic pick. Generic words
+ * with no single right row (tea, chai, lassi, dal, biryani, halwa) stay out
+ * too, for the reason the tests give.
+ */
+export const CATALOG_ALIASES: Record<string, string> = {
+  "rava dosa": "ASC147",
+  pesarattu: "OSR103",
+  "rava upma": "BFP039",
+  "sabudana khichdi": "OSR099",
+  thepla: "OSR104",
+  handvo: "OSR146",
+  "rava idli": "BFP579",
+  paratha: "ASC097",
+  "plain paratha": "ASC097",
+  "mutton biryani": "ASC122",
+  "fried rice": "XE048",
+  rasam: "BFP176",
+  rajma: "XE063",
+  "chana dal": "OSR142",
+  "dal fry": "XE060",
+  "matar paneer": "ASC191",
+  "aloo matar": "ASC190",
+  "boiled egg": "XE007",
+  "egg bhurji": "ASC059",
+  "prawn curry": "BFP230",
+  "chicken shawarma": "XE125",
+  pakora: "XE103",
+  momos: "XE107",
+  frankie: "XE124",
+  "kathi roll": "XE124",
+  maggi: "XE108",
+  chowmein: "ASC134",
+  "veg chowmein": "ASC134",
+  "kaju katli": "ASC339",
+  barfi: "ASC335",
+  burfi: "ASC335",
+  "rava ladoo": "BFP407",
+  "gajar halwa": "ASC295",
+  "sooji halwa": "ASC293",
+  "suji halwa": "ASC293",
+  kheer: "XE132",
+  "rice kheer": "XE132",
+  makhana: "XE109",
+  sprouts: "XE088",
+  "moong sprouts": "XE088",
+  raita: "ASC273",
+  "coconut chutney": "ASC386",
+  "oats porridge": "XE018",
+};
 
 /**
  * The connectors that turn one query into several foods.
