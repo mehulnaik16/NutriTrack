@@ -328,6 +328,13 @@ export const CATALOG_ALIASES: Record<string, string> = {
   raita: "ASC273",
   "coconut chutney": "ASC386",
   "oats porridge": "XE018",
+  "kanda poha": "XE010",
+  "semiya upma": "XE012",
+  "sugarcane juice": "I002",
+  "onion pakoda": "ASC352",
+  "hyderabadi biryani": "XR028",
+  namkeen: "XR108",
+  mixture: "XR108",
 };
 
 /**
