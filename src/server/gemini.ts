@@ -12,7 +12,10 @@
 import { AiHttpError } from "./aiChain";
 import { sendAlert } from "./telegram";
 
-const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+// Vertex AI express mode: the key is a Vertex key (AQ. prefix), which the AI
+// Studio endpoint (generativelanguage.googleapis.com) rejects with a 403.
+const GEMINI_BASE =
+  "https://aiplatform.googleapis.com/v1/publishers/google/models";
 
 /**
  * Hardcoded for the reason ops-agent.ts gives for pinning its own id: a stale
@@ -70,6 +73,7 @@ async function generate(opts: {
   signal?: AbortSignal;
 }): Promise<string> {
   const key = (process.env.GEMINI_API_KEY ?? "").trim();
+  const t0 = Date.now();
   // A missing key is a dead key: the chain skips Gemini and moves to Groq.
   if (!key)
     throw new AiHttpError(
@@ -93,7 +97,7 @@ async function generate(opts: {
       headers: { "Content-Type": "application/json" },
       signal: opts.signal,
       body: JSON.stringify({
-        contents: [{ parts }],
+        contents: [{ role: "user", parts }],
         generationConfig: {
           temperature: opts.temperature ?? 0.2,
           maxOutputTokens: opts.max_tokens ?? 800,
@@ -132,6 +136,11 @@ async function generate(opts: {
   }
 
   const data = await res.json();
+  // One line per call so cost (tokens) and latency show up in the Vercel logs.
+  const u = data?.usageMetadata ?? {};
+  console.info(
+    `[gemini] ${opts.model} ${Date.now() - t0} ms in=${u.promptTokenCount ?? "?"} cached=${u.cachedContentTokenCount ?? 0} out=${u.candidatesTokenCount ?? "?"} think=${u.thoughtsTokenCount ?? 0}${opts.image ? " image" : ""}`,
+  );
 
   // A blocked prompt returns 200 with no candidate at all, and a truncated one
   // returns a candidate with no text. Both would otherwise surface as
