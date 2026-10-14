@@ -123,7 +123,7 @@ export function suggest(row, rows) {
       method: "scale_dilution",
       ...m,
       kcal: manual.kcal,
-      assumed: `AI estimate ${manual.kcal} kcal, scale x${k.toFixed(2)}`,
+      assumed: `AI estimate ${manual.kcal} kcal, scale x${k.toFixed(4)}`,
     };
   }
   const t = targetFat(row.name);
@@ -135,7 +135,7 @@ export function suggest(row, rows) {
   return {
     method: "remove_excess_oil",
     ...fix,
-    assumed: `fat ${t} g/100 g, removed ${fix.oil_removed_g.toFixed(0)} g oil${crisp}`,
+    assumed: `fat ${t} g/100 g, removed ${fix.oil_removed_g.toFixed(2)} g oil, scale x${(100 / (100 - fix.oil_removed_g)).toFixed(4)}, orig fibre ${(row.fibtg ?? 0).toFixed(3)}; kcal = 4P + 4C + 9F + 2 fibre${crisp}`,
   };
 }
 

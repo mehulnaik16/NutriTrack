@@ -69,9 +69,9 @@ function main() {
         r.name,
         r.grup,
         a.kcal,
-        r.protcnt?.toFixed(1),
-        r.fatce?.toFixed(1),
-        r.choavldf?.toFixed(1),
+        r.protcnt?.toFixed(3),
+        r.fatce?.toFixed(3),
+        r.choavldf?.toFixed(3),
         a.flags.join("|"),
         "",
       ]
