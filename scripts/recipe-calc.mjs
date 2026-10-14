@@ -58,6 +58,13 @@ export function calcRecipe(recipe) {
   }
   const s = 100 / recipe.yield;
   const out = { p: t.p * s, f: t.f * s, c: t.c * s, fib: t.fib * s };
+  // A cooked weight below the dry matter going in is physically impossible
+  // and inflates every macro; 2 g is left for moisture and minerals.
+  const dry = out.p + out.f + out.c + out.fib;
+  if (dry > 98)
+    throw new Error(
+      `dry matter ${dry.toFixed(1)} g per 100 g: cooked weight ${recipe.yield} g is too low`,
+    );
   return { ...out, kcal: 4 * out.p + 4 * out.c + 9 * out.f + 2 * out.fib };
 }
 

@@ -24,4 +24,11 @@ assert.throws(
 );
 assert.throws(() => calcRecipe({ ing: { NOPE: 10 }, yield: 100 }), /unknown/);
 
+// Mass balance: 105 g of near-dry ingredients cannot cook down to 100 g.
+assert.throws(
+  () => calcRecipe({ ing: { B001: 25, T013: 30, SUGAR: 50 }, yield: 100 }),
+  /dry matter/,
+);
+assert.doesNotThrow(() => calcRecipe({ ing: { B001: 25, T013: 30, SUGAR: 50 }, yield: 105 }));
+
 console.log("recipe-calc: all checks passed");
