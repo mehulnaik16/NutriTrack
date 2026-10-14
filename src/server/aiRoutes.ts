@@ -1,12 +1,13 @@
 /**
- * The model order for each AI feature, as the user set it on 2026-09-24.
+ * The model order for each AI feature, as the user set it on 2026-09-24;
+ * search moved to Lite first on 2026-10-14.
  *
  * Search rotates by attempt: each tap of "Search AI" after a failure is the
  * next attempt, with a fresh 15 s. Only the Flash models' answers enter the
  * shared cache (CACHEABLE_SEARCH_MODELS), never Lite's and never Groq's.
  *
  * Photo rotates the same way, on Proceed: 1) Lite, 3.6, 3.7, each with ~5 s
- * and an instant switch on a 503; 2) 3.6, then Groq's Qwen; then back to 1.
+ * and an instant switch on a 503; 2) Lite, 3.6, then Groq's Qwen; then back to 1.
  *
  * Budgets: a search 15 s; photo 15 s to read the image + an 8 s lookup that
  * prices it = 23 s (the user accepted a longer photo wait: people expect
@@ -94,9 +95,11 @@ export function searchChain(
       }),
   };
   const orders: Record<SearchAttempt, Step[]> = {
-    1: [g(FLASH_37), g(FLASH_36), g(LITE)],
-    2: [g(FLASH_36), g(LITE), groq],
-    3: [g(FLASH_37), g(FLASH_36), g(LITE), g(FLASH_36), groq],
+    // Lite first (2026-10-14): ~55% cheaper and 1.1-1.6 s, where 3.7 timed
+    // out at 4 s on 11 of 20 test searches. Flash stays as the fallback.
+    1: [g(LITE), g(FLASH_36), g(FLASH_37)],
+    2: [g(LITE), g(FLASH_36), groq],
+    3: [g(LITE), g(FLASH_37), g(FLASH_36), groq],
   };
   return runChainWithRetry(orders[attempt], {
     budgetMs,
@@ -132,7 +135,8 @@ export function visionChain(
   };
   const orders: Record<PhotoAttempt, Step[]> = {
     1: [g(LITE), g(FLASH_36), g(FLASH_37)],
-    2: [g(FLASH_36), qwen],
+    // Lite first on the retry too (2026-10-14), 3.6 behind it.
+    2: [g(LITE), g(FLASH_36), qwen],
   };
   return runChainWithRetry(orders[attempt], {
     budgetMs: VISION_BUDGET_MS,
