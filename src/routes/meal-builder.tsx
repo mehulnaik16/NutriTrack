@@ -43,7 +43,6 @@ import {
 } from "@/lib/foodDb";
 import { strongFoods } from "@/lib/foodFuzzy";
 import { serverAiFoodSearchInline } from "@/lib/ai";
-import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { toastAiError } from "@/lib/aiErrors";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { type Unit, defaultUnitFor, toGrams, unitsFor } from "@/lib/foodUnits";
@@ -200,12 +199,10 @@ function MealBuilderPage() {
     setAiSearching(true);
     try {
       const { items } = await serverAiFoodSearchInline({
-        data: { query, attempt: searchAttempt() },
+        data: { query },
       });
-      recordSearchOutcome(true);
       setAiSuggestions((items ?? []) as IFCTItem[]);
     } catch (e) {
-      recordSearchOutcome(false);
       toastAiError(e, "meal-builder AI search");
     } finally {
       setAiSearching(false);

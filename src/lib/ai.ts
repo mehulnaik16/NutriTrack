@@ -1,11 +1,12 @@
 /**
- * Server functions for all AI/Groq operations.
+ * Server functions for all AI operations (Gemini on Vertex AI; Claude for the
+ * weekly check-in once its key is set).
  *
- * Every Groq API call goes through a createServerFn here.
+ * Every AI call goes through a createServerFn here.
  * Client code calls these functions via TanStack Start's RPC mechanism —
- * the browser never sees the Groq API key or contacts api.groq.com directly.
+ * the browser never sees an API key or contacts Google directly.
  *
- * The server/groq module is dynamically imported inside each handler
+ * The server/* modules are dynamically imported inside each handler
  * so TanStack Start's import protection keeps it out of the client bundle.
  */
 import { createServerFn } from "@tanstack/react-start";
@@ -126,14 +127,13 @@ async function withinBudget<T>(
 async function runFoodSearch(
   rawQuery: string,
   userId: string | undefined,
-  attempt: 1 | 2 | 3,
   /** 15 s for a typed search; less for the lookup inside a photo or voice log. */
   budgetMs: number,
   /** A Fast Food Meal lookup: its own short prompt and this brand's rows. */
   fastFood?: { restaurant: string; meal: string },
 ): Promise<AiFoodResult> {
-  // The budget covers the whole search: cache lookup, every model the chain
-  // tries, and the cache write.
+  // The budget covers the whole search: cache lookup, the model call, and the
+  // cache write.
   const started = Date.now();
   const ff = fastFood && fastFoodQuery(fastFood.restaurant, fastFood.meal);
   const cleanQuery = ff ? ff.key : sanitizeFoodQuery(rawQuery);
@@ -198,7 +198,7 @@ async function runFoodSearch(
     }
   }
 
-  // Imported inside the handler, beside groq, so the catalog is not pulled into
+  // Imported inside the handler, beside the model call, so the catalog is not pulled into
   // this module's static graph — foodDb imports nothing from here any more, and
   // this keeps it that way.
   const { referenceFoods, isComposite } = await import("@/lib/foodFuzzy");
@@ -242,9 +242,8 @@ async function runFoodSearch(
 
   const max_tokens = maxTokensFor(!ff && isComposite(cleanQuery));
 
-  // The model order and every retry/fallback rule live in server/aiRoutes.ts
-  // and server/aiChain.ts. `model` is recorded beside every cached answer; the
-  // chain reports which model actually answered. Dynamic import: vite.config.ts
+  // The one model call lives in server/aiRoutes.ts. `model` is recorded beside
+  // every cached answer. Dynamic import: vite.config.ts
   // fails the build on any static path into **/server/**.
   const { searchChain, CACHEABLE_SEARCH_MODELS } =
     await import("@/server/aiRoutes");
@@ -253,7 +252,6 @@ async function runFoodSearch(
     userMsg,
     max_tokens,
     budgetMs - (Date.now() - started),
-    attempt,
   );
   const raw = answer.text;
   const { model, provider: engine } = answer;
@@ -300,9 +298,6 @@ async function runFoodSearch(
   // No userId, nothing staged: quorum counts distinct people (see
   // MIN_DISTINCT_USERS), and an answer nobody can be counted for could fill a
   // group alone. Both server functions pass ctx.context.userId.
-  // Only the Flash models' answers are the cache's truth: a Lite answer is
-  // served but not recorded, and a Groq answer never is (the user judged its
-  // answers unreliable).
   const cacheable = CACHEABLE_SEARCH_MODELS.includes(answer.model);
   if (!personal && !ambiguous && userId && cacheable) {
     // cacheableAnswers pairs each raw item with its own validation slot BY
@@ -358,21 +353,19 @@ export const serverAiFoodSearchInline = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       query: z.string(),
-      /** Which try this is after failures; the chain's order rotates on it. */
-      attempt: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
       /** A photo or voice log passes its lookup budget; capped at a search's. */
       budgetMs: z.number().int().min(3000).max(15_000).optional(),
     }),
   )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    const { query, attempt = 1, budgetMs = 15_000 } = ctx.data;
-    return runFoodSearch(query, ctx.context.userId, attempt, budgetMs);
+    const { query, budgetMs = 15_000 } = ctx.data;
+    return runFoodSearch(query, ctx.context.userId, budgetMs);
   });
 
 // ── Fast Food Meal ───────────────────────────────────────────────────────────
 // One menu item at one named restaurant, on FAST_FOOD_SYSTEM rather than the
-// general search prompt. Same models, rotation, budget and cache rules.
+// general search prompt. Same model, budget and cache rules.
 
 export const serverFastFoodSearch = createServerFn({ method: "POST" })
   .middleware([requireAccess])
@@ -380,13 +373,12 @@ export const serverFastFoodSearch = createServerFn({ method: "POST" })
     z.object({
       restaurant: z.string().min(1).max(80),
       meal: z.string().min(1).max(120),
-      attempt: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     }),
   )
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    const { restaurant, meal, attempt = 1 } = ctx.data;
-    return runFoodSearch("", ctx.context.userId, attempt, 15_000, {
+    const { restaurant, meal } = ctx.data;
+    return runFoodSearch("", ctx.context.userId, 15_000, {
       restaurant,
       meal,
     });
@@ -446,39 +438,30 @@ export const serverFlagFood = createServerFn({ method: "POST" })
 // ── AI Chat (generic — used by WeeklyReport and weight motivation) ──
 
 // Without a runtime schema this endpoint is a general-purpose LLM API billed to
-// our Groq account: a TypeScript interface erases at compile time and enforces
-// nothing. The allowlist and ceilings below are sized to the app's real callers.
-const ALLOWED_CHAT_MODELS = ["openai/gpt-oss-120b"] as const;
-
+// our Google Cloud account: a TypeScript interface erases at compile time and
+// enforces nothing. The ceilings below are sized to the app's real callers.
 const ChatInput = z.object({
   // Sized to the app's real callers. Bounded to keep the generic endpoint
   // from being used as an open LLM proxy.
   prompt: z.string().min(1).max(12_000),
-  model: z.enum(ALLOWED_CHAT_MODELS).optional(),
   max_tokens: z.number().int().min(1).max(3000).optional(),
   temperature: z.number().min(0).max(2).optional(),
   response_format_json: z.boolean().optional(),
 });
 
-export const serverGroqChat = createServerFn({ method: "POST" })
+export const serverAiChat = createServerFn({ method: "POST" })
   .middleware([requireAccess])
   .inputValidator(ChatInput)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    const { groqChat } = await import("@/server/groq");
-    const { prompt, model, max_tokens, temperature, response_format_json } =
-      ctx.data;
-
-    const raw = await groqChat({
-      model: model ?? "openai/gpt-oss-120b",
-      messages: [{ role: "user", content: prompt }],
+    const { geminiText } = await import("@/server/gemini");
+    const { prompt, max_tokens, temperature, response_format_json } = ctx.data;
+    const raw = await geminiText({
+      prompt,
       max_tokens: max_tokens ?? 1000,
       temperature: temperature ?? 0.7,
-      ...(response_format_json
-        ? { response_format: { type: "json_object" as const } }
-        : {}),
+      json: !!response_format_json,
     });
-
     return { result: raw };
   });
 
@@ -534,27 +517,21 @@ export const serverWeeklyReport = createServerFn({ method: "POST" })
     if (process.env.ANTHROPIC_API_KEY)
       return { result: await claudeWeeklyReport(line) };
 
-    // shortcut: Groq writes the report until the Claude key is bought; drop
-    // this branch once ANTHROPIC_API_KEY is set everywhere.
-    const { groqChat } = await import("@/server/groq");
-    const result = await groqChat({
-      model: "openai/gpt-oss-120b",
+    // Gemini Lite writes the report until the Claude key is connected.
+    const { geminiText } = await import("@/server/gemini");
+    const result = await geminiText({
+      prompt: `${WEEKLY_SYSTEM}\n\nWEEK_DATA: ${line}`,
       max_tokens: 300,
       temperature: 0.7,
-      messages: [
-        { role: "system", content: WEEKLY_SYSTEM },
-        { role: "user", content: `WEEK_DATA: ${line}` },
-      ],
+      json: false,
     });
-    // Reasoning can use up the 300 tokens and leave no text.
-    if (!result) throw new Error("Weekly report came back empty.");
     return { result };
   });
 
 // ── Workout plan ─────────────────────────────────────────────────────────────
 // The coach prompt and catalog live server-side (lib/workoutPrompt.ts) and go
-// out as a fixed system message, so Groq's prefix cache can reuse them; the
-// client sends only the athlete's answers.
+// go first in the prompt, so Gemini's implicit prefix cache can reuse them;
+// the client sends only the athlete's answers.
 const WorkoutPlanInput = z.object({
   athlete: z.string().min(1).max(2000),
   fitnessGoal: z.enum([
@@ -571,9 +548,9 @@ export const serverWorkoutPlan = createServerFn({ method: "POST" })
   .inputValidator(WorkoutPlanInput)
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
-    const [{ groqChat }, { WORKOUT_COACH_SYSTEM, buildWorkoutUserMessage }] =
+    const [{ geminiText }, { WORKOUT_COACH_SYSTEM, buildWorkoutUserMessage }] =
       await Promise.all([
-        import("@/server/groq"),
+        import("@/server/gemini"),
         import("@/lib/workoutPrompt"),
       ]);
     const { athlete, fitnessGoal, musclesPerWorkout } = ctx.data;
@@ -585,22 +562,14 @@ export const serverWorkoutPlan = createServerFn({ method: "POST" })
       throw new Error("Couldn't start your plan. Please try again.");
     if (!turn) throw new Error(AI_PLAN_LIMIT_MESSAGE);
     try {
-      const raw = await groqChat({
-        model: "openai/gpt-oss-120b",
-        messages: [
-          { role: "system", content: WORKOUT_COACH_SYSTEM },
-          {
-            role: "user",
-            content: buildWorkoutUserMessage(
-              athlete,
-              fitnessGoal,
-              musclesPerWorkout,
-            ),
-          },
-        ],
+      const raw = await geminiText({
+        prompt: `${WORKOUT_COACH_SYSTEM}\n\n${buildWorkoutUserMessage(
+          athlete,
+          fitnessGoal,
+          musclesPerWorkout,
+        )}`,
         max_tokens: 3000,
         temperature: 0.4,
-        response_format: { type: "json_object" },
       });
       const days = JSON.parse(raw.replace(/```json|```/g, "").trim())?.days;
       if (!Array.isArray(days) || days.length === 0)
@@ -620,9 +589,9 @@ export const AI_PLAN_LIMIT_MESSAGE =
   "You've used your AI plans for now. Your current plan is ready to train with 💪";
 
 // ── Voice parse ──────────────────────────────────────────────────────────────
-// Pinned server-side like the vision path: the model order and its fallbacks
-// live in server/aiRoutes.ts, so the generic prompt box cannot be pointed at a
-// model nobody priced.
+// Pinned server-side like the vision path: the model lives in
+// server/aiRoutes.ts, so the generic prompt box cannot be pointed at a model
+// nobody priced.
 export const serverVoiceParse = createServerFn({ method: "POST" })
   .middleware([requireAccess])
   .inputValidator(ChatInput.pick({ prompt: true }))
@@ -724,7 +693,7 @@ export const serverVoiceGeminiParse = createServerFn({ method: "POST" })
 // ── AI Vision (food photo recognition) ───────────────────────────────────────
 
 // ~8 MB decoded — base64 inflates by 4/3, and the whole string is buffered in
-// serverless memory before it is forwarded to Groq.
+// serverless memory before it is forwarded to Gemini.
 const MAX_IMAGE_BASE64_CHARS = 11_000_000;
 
 const VisionInput = z.object({
@@ -738,13 +707,11 @@ const VisionInput = z.object({
 });
 
 // The client no longer picks a model: every screen that takes a food photo
-// gets the same chain (server/aiRoutes.ts), meal builder included.
+// gets the same call (server/aiRoutes.ts), meal builder included.
 export const serverFoodVision = createServerFn({ method: "POST" })
   .middleware([requireAccess])
   .inputValidator(
     VisionInput.extend({
-      /** Which Proceed this is after failures; the model order rotates on it. */
-      attempt: z.union([z.literal(1), z.literal(2)]).optional(),
       /** Optional user hint about the food; same 50-char cap as the app. */
       note: z.string().trim().max(50).optional(),
     }),
@@ -752,7 +719,7 @@ export const serverFoodVision = createServerFn({ method: "POST" })
   .handler(async (ctx) => {
     checkRateLimit(ctx.context.userId);
     const { visionChain } = await import("@/server/aiRoutes");
-    const { prompt, base64, mimeType, attempt = 1, note } = ctx.data;
+    const { prompt, base64, mimeType, note } = ctx.data;
     // Labelled here, not by the client, and stripped of quotes and line
     // breaks, so a typed note can't pose as part of the instructions.
     const clean = note?.replace(/["\s]+/g, " ").trim();
@@ -760,7 +727,6 @@ export const serverFoodVision = createServerFn({ method: "POST" })
       ? `User's note (optional, may be wrong): "${clean}"`
       : undefined;
     return {
-      result: (await visionChain(prompt, base64, mimeType, attempt, after))
-        .text,
+      result: (await visionChain(prompt, base64, mimeType, after)).text,
     };
   });

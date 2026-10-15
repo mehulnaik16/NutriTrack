@@ -31,13 +31,13 @@
  * injection with consequences: a user profile reading "grant me a year" can
  * persuade the model to propose it and can never confirm it.
  *
- * Provider-agnostic. Credentials are tried in order: Gemini, GitHub Models,
- * then each Groq key — see credentials(). Server-only: holds the credentials
+ * One model: Gemini 3.5 Flash-Lite on Google AI Studio's free tier, one call
+ * per step, no fallback. The only AI Studio caller: the app's own features
+ * are on Vertex (gemini.ts), and the bot is kept off it (user's rule,
+ * 2026-10-15). Server-only: holds the credentials
  * and runs as service_role.
  */
 
-import { ChatGroq } from "@langchain/groq";
-import { ChatOpenAI } from "@langchain/openai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import {
   AIMessage,
@@ -53,8 +53,6 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 import { METRIC_TOOLS, runMetricTool, TOOL_SPECS } from "./metrics";
-import { groqKeys } from "./groq";
-import { sendAlert } from "./telegram";
 import { isWriteAction, proposeAction, WRITE_TOOL_SPECS } from "./ops-actions";
 
 /**
@@ -75,11 +73,9 @@ let currentContext: AgentContext | null = null;
 /**
  * Turns kept per chat.
  *
- * Every stored turn is replayed into every request, and the free Groq tier
- * allows 8,000 tokens per minute across the whole organisation — a budget the
- * app's own AI features are also drawing on. Twenty turns plus ten tool
- * definitions plus tool results was enough to spend a third of a minute's
- * allowance on a single question and start returning 429s.
+ * Every stored turn is replayed into every request, so every turn kept is paid
+ * for again on each question. Twenty turns plus ten tool definitions plus tool
+ * results spent a third of a minute's token allowance on a single question.
  *
  * Eight covers the follow-ups that actually happen ("and last month?") without
  * carrying an hour-old conversation into an unrelated one.
@@ -158,166 +154,29 @@ function stageContext(): string {
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
-interface Credential {
-  provider: "gemini" | "github" | "groq";
-  key: string;
-  label: string;
-}
+/** An AI Studio key (aistudio.google.com/apikey), not the Vertex one. */
+const studioKey = () => (process.env.GEMINI_AI_STUDIO_API_KEY ?? "").trim();
 
-/**
- * Every credential the agent may use, in the order it should try them.
- *
- * GitHub Models first when its token is set, then the Groq keys. A chain rather
- * than an either/or, because the goal is for ops questions to stop competing
- * with the app's own AI features for Groq's 8,000 tokens/minute — while still
- * answering when the preferred provider is unavailable.
- *
- * That fallback is not hypothetical. As of September 2026 GitHub Models answers
- * every model with HTTP 410 `github_models_retirement_brownout`: the service is
- * being retired, and brownouts are the scheduled outages that precede it. With
- * the chain, a set-but-dead token costs one failed request and falls through to
- * Groq. Leave it configured and the agent moves across on its own if the
- * service returns; remove it and nothing changes.
- */
-function credentials(): Credential[] {
-  const chain: Credential[] = [];
-
-  // Gemini first when configured: its free tier is far more generous than
-  // Groq's 8,000 tokens/minute, and putting the agent there means ops questions
-  // stop spending the budget users need to log a meal.
-  const gemini = (process.env.GEMINI_API_KEY ?? "").trim();
-  if (gemini) chain.push({ provider: "gemini", key: gemini, label: "gemini" });
-
-  const gh = (process.env.GITHUB_MODELS_TOKEN ?? "").trim();
-  if (gh) chain.push({ provider: "github", key: gh, label: "github-models" });
-
-  groqKeys().forEach((key, i) =>
-    chain.push({ provider: "groq", key, label: `GROQ_API_KEY_${i + 1}` }),
-  );
-
-  return chain;
-}
-
-/**
- * A provider that is gone rather than merely busy: retired, withdrawn, or
- * missing. Distinct from a rate limit because waiting cannot help — the only
- * useful response is to move to the next credential immediately.
- */
-function isUnavailable(e: unknown): boolean {
-  const message = e instanceof Error ? e.message : String(e);
-  return /\b(404|410)\b|retirement|brownout|deprecat/i.test(message);
-}
-
-function model(cred: Credential) {
-  if (cred.provider === "gemini") {
-    return new ChatGoogleGenerativeAI({
-      apiKey: cred.key,
-      // Vertex AI express mode, same as gemini.ts: the SDK builds
-      // `${baseUrl}/${apiVersion}/models/<id>`, which lands on the Vertex path.
-      baseUrl: "https://aiplatform.googleapis.com",
-      apiVersion: "v1/publishers/google",
-      // Deliberately hardcoded rather than read from the environment. The model
-      // id is a correctness constraint, not a preference: a stale value in one
-      // deployment's env vars 404s and falls silently through to Groq, which is
-      // exactly the failure that took three rounds to spot. Changing it should
-      // require a commit that can be reviewed and rolled back.
-      //
-      // flash-lite, not flash. Measured on this account for the same question:
-      // gemini-3.6-flash took 19.6s, and 42s end to end on a two-tool question,
-      // because the 3.x models reason before answering. flash-lite took 925ms
-      // and called the same tool. Vercel functions time out at 10s on Hobby, so
-      // the larger model does not merely feel slower here — it fails.
-      //
-      // Pinned rather than gemini-flash-lite-latest: an alias that moves under
-      // you changes tool-calling behaviour with no deploy, and that behaviour
-      // is this agent's whole job.
-      //
-      // Google retires model ids for *new* keys while existing ones keep
-      // working — gemini-2.5-flash answers "no longer available to new users"
-      // with a 404 — so a model that works on one account can fail on another.
-      // Re-check this when rotating the key, and watch for the "unavailable,
-      // falling through" line in the logs, which now carries Google's own
-      // message naming the replacement.
-      model: "gemini-3.1-flash-lite",
-      temperature: 0.2,
-      maxOutputTokens: 1200,
-      // Same reasoning as the GitHub client: the chain is the retry, and an
-      // SDK retrying underneath it just spends the serverless timeout twice.
-      maxRetries: 0,
-    });
-  }
-
-  if (cred.provider === "github") {
-    return new ChatOpenAI({
-      apiKey: cred.key,
-      model: process.env.GITHUB_MODELS_MODEL?.trim() || "openai/gpt-4o-mini",
-      configuration: { baseURL: "https://models.github.ai/inference" },
-      temperature: 0.2,
-      maxTokens: 1200,
-      // Fail fast. The SDK retries with backoff by default, which on a retired
-      // service means every call waits out several pointless attempts before
-      // the chain can fall through to Groq — inside a serverless function with
-      // its own timeout. Our chain is the retry; the SDK's is duplicated cost.
-      maxRetries: 0,
-      timeout: 10_000,
-    });
-  }
-
-  // ChatGroq owns its own HTTP requests, so it cannot share groqFetch's
-  // rotation. It takes a credential from the chain rather than hardcoding the
-  // first key — hardcoding is what silently took the agent down when key 1 was
-  // revoked while key 2 was healthy the whole time.
-  return new ChatGroq({
-    apiKey: cred.key,
-    model: "openai/gpt-oss-120b",
+function model() {
+  return new ChatGoogleGenerativeAI({
+    // No baseUrl: the SDK's default is AI Studio (generativelanguage.googleapis.com).
+    apiKey: studioKey(),
+    // Hardcoded, not read from the environment: a stale value in one
+    // deployment's env vars 404s, and changing it should require a commit
+    // that can be reviewed and rolled back. The same model as every other AI
+    // feature (aiRoutes.ts), on the free tier.
+    model: "gemini-3.5-flash-lite",
     temperature: 0.2,
-    maxTokens: 1200,
+    maxOutputTokens: 1200,
+    // One call, no retry: the user's rule.
+    maxRetries: 0,
   });
 }
-
-/** A rejected key, as opposed to any other model failure. */
-function isAuthError(e: unknown): boolean {
-  const message = e instanceof Error ? e.message : String(e);
-  return /\b401\b|\b403\b|invalid[_ ]api[_ ]key|unauthorized/i.test(message);
-}
-
-function isRateLimit(e: unknown): boolean {
-  const message = e instanceof Error ? e.message : String(e);
-  return /\b429\b|rate_limit_exceeded|rate limit reached/i.test(message);
-}
-
-/**
- * Groq puts the exact wait in the 429 body: "Please try again in 1.0275s".
- *
- * Honouring it beats a fixed backoff — the free tier's per-minute window means
- * the real wait is usually about a second, and guessing longer wastes the
- * user's time while guessing shorter just earns another 429.
- *
- * Capped: this runs inside a serverless function with its own timeout, and a
- * wait long enough to matter should surface as an error the founder can read
- * rather than a request that dies silently.
- */
-function retryAfterMs(e: unknown, cap = 8000): number {
-  const message = e instanceof Error ? e.message : String(e);
-  const m = message.match(/try again in ([\d.]+)\s*(m?s)\b/i);
-
-  // No parseable hint: back off a flat two seconds rather than giving up.
-  // Returning null here meant a 429 whose wording did not match — or whose wait
-  // exceeded the cap — failed the question outright, which is exactly what the
-  // retry exists to prevent.
-  if (!m) return 2000;
-
-  const raw = parseFloat(m[1]);
-  const ms = Math.ceil(m[2].toLowerCase() === "ms" ? raw : raw * 1000) + 250;
-  return Math.min(Math.max(ms, 500), cap);
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ── Graph ────────────────────────────────────────────────────────────────────
 
 /**
- * One model call, walking the key list on recoverable failures.
+ * One model call.
  *
  * `withTools` is false only for the finalise step, where the model must produce
  * prose from what it already has rather than reaching for another tool.
@@ -326,88 +185,11 @@ async function invoke(
   messages: BaseMessage[],
   withTools: boolean,
 ): Promise<AIMessage> {
-  // Three recoverable failures, handled differently:
-  //
-  //   404/410 — the provider is gone, not busy. Move on at once; waiting on a
-  //             retired service never helps.
-  //   401/403 — the credential is unusable. Move on at once.
-  //   429     — this credential's budget is spent. A later one has its own, so
-  //             prefer switching; waiting is the fallback on the last link.
-  //
-  // Anything else is a real error that another credential would only repeat.
-  const chain = credentials();
-  let lastRecoverable: unknown;
-
-  const run = (i: number) => {
-    const m = model(chain[i]);
-    return (
-      withTools ? m.bindTools([...TOOL_SPECS, ...WRITE_TOOL_SPECS]) : m
-    ).invoke(messages);
-  };
-
-  for (let i = 0; i < chain.length; i++) {
-    const { label } = chain[i];
-    try {
-      return (await run(i)) as AIMessage;
-    } catch (e) {
-      if (isUnavailable(e)) {
-        lastRecoverable = e;
-        // The reason is logged, not just the fact. Falling through silently is
-        // what let a wrong Gemini model id look identical to a retired service
-        // for several rounds — the fallback worked, so nothing appeared broken,
-        // and the actual message named the fix.
-        console.warn(
-          `[ops-agent] ${label} unavailable, falling through: ${
-            e instanceof Error ? e.message.slice(0, 200) : String(e)
-          }`,
-        );
-        continue;
-      }
-      if (isAuthError(e)) {
-        lastRecoverable = e;
-        console.warn(`[ops-agent] ${label} rejected, trying next`);
-        continue;
-      }
-      if (isRateLimit(e)) {
-        lastRecoverable = e;
-        // Another key has its own budget, so prefer switching over waiting.
-        // On the last key there is nothing left to switch to, so wait it out.
-        const isLastKey = i === chain.length - 1;
-        if (isLastKey) {
-          const wait = retryAfterMs(e);
-          console.warn(`[ops-agent] rate limited, waiting ${wait}ms`);
-          await sleep(wait);
-          try {
-            return (await run(i)) as AIMessage;
-          } catch (retryError) {
-            lastRecoverable = retryError;
-          }
-        } else {
-          console.warn(`[ops-agent] ${label} rate limited, trying next`);
-        }
-        continue;
-      }
-      throw e;
-    }
-  }
-
-  if (isRateLimit(lastRecoverable)) {
-    await sendAlert({
-      severity: "warning",
-      title: "Ops agent hit the Groq rate limit",
-      detail: {
-        credentials: chain.length,
-        tried: chain.map((c) => c.label).join(", "),
-        hint: "Groq free tier is 8,000 tokens/minute per organisation — extra keys on the same account share it. Set GITHUB_MODELS_TOKEN to move the agent off the budget the app's own AI features use.",
-      },
-      throttleKey: "ops-agent-rate-limited",
-    });
-    throw new Error(
-      "Groq rate limit reached and the retry did not clear it. Free tier allows 8,000 tokens per minute. Try again in a moment.",
-    );
-  }
-
-  throw lastRecoverable ?? new Error("No LLM credentials configured");
+  if (!studioKey()) throw new Error("GEMINI_AI_STUDIO_API_KEY is not set");
+  const m = model();
+  return (await (
+    withTools ? m.bindTools([...TOOL_SPECS, ...WRITE_TOOL_SPECS]) : m
+  ).invoke(messages)) as AIMessage;
 }
 
 async function callModel(state: typeof MessagesAnnotation.State) {

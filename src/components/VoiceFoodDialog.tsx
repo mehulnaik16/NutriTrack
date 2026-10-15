@@ -45,7 +45,6 @@ import {
   serverVoiceGeminiParse,
 } from "@/lib/ai";
 import { isAiBusy, toastAiError } from "@/lib/aiErrors";
-import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { kcalOf, type IFCTItem } from "@/lib/foodDb";
 import { catalogFood } from "@/lib/foodFuzzy";
@@ -167,18 +166,14 @@ export function gramsFor(it: ParsedVoiceItem, food: UnitFood): number {
  * An overloaded AI is not a miss: that error is rethrown so the caller shows
  * "AI is busy" instead of "no nutrition data".
  */
-export async function resolveFood(
-  name: string,
-  /** A photo's attempt picks the lookup's order: 2 includes Groq. */
-  attempt: 1 | 2 = 1,
-): Promise<IFCTItem | null> {
+export async function resolveFood(name: string): Promise<IFCTItem | null> {
   const local = catalogFood(name);
   if (local) return local;
   try {
     // Inside a photo or voice log: after reading the photo (15 s) or the
     // sentence (7 s), this lookup gets 8 s (server/aiRoutes.ts).
     const { items: found } = await serverAiFoodSearchInline({
-      data: { query: name, budgetMs: 8000, attempt },
+      data: { query: name, budgetMs: 8000 },
     });
     return found[0] ?? null;
   } catch (e) {
@@ -236,16 +231,8 @@ function priceItem(it: ParsedVoiceItem, food: IFCTItem): VoiceFoodItem {
 async function searchOneFood(name: string): Promise<IFCTItem | null> {
   const local = catalogFood(name);
   if (local) return local;
-  try {
-    const { items } = await serverAiFoodSearchInline({
-      data: { query: name, attempt: searchAttempt() },
-    });
-    recordSearchOutcome(true);
-    return (items[0] as IFCTItem | undefined) ?? null;
-  } catch (e) {
-    recordSearchOutcome(false);
-    throw e;
-  }
+  const { items } = await serverAiFoodSearchInline({ data: { query: name } });
+  return (items[0] as IFCTItem | undefined) ?? null;
 }
 
 /**
@@ -467,8 +454,8 @@ export function VoiceFoodDialog({
     if (!draft || draft.trim().length < 2 || !onResearch) return;
     setResearching(true);
     try {
-      // A failed Research keeps the edit open, so pressing it again is the
-      // next attempt rather than retyping.
+      // A failed Research keeps the edit open, so pressing it again retries
+      // rather than retyping.
       if (await onResearch(draft)) setDraft(null);
     } finally {
       setResearching(false);

@@ -30,7 +30,7 @@
  *      command. Any future tool returning user-entered text must do the same.
  *
  * `TOOL_SPECS` is shaped as OpenAI-style function definitions, which is what
- * Groq's tool calling accepts and what LangChain's `bindTools` consumes — so
+ * Gemini (through LangChain) accepts and what LangChain's `bindTools` consumes — so
  * the same catalog serves a hand-rolled loop and a LangGraph agent unchanged.
  *
  * Server-only: blocked from client bundles by the importProtection in
@@ -219,7 +219,7 @@ const BY_NAME = new Map(METRIC_TOOLS.map((t) => [t.name, t]));
 
 // ── Model-facing definitions ─────────────────────────────────────────────────
 
-/** OpenAI/Groq-style function definitions. Also accepted by LangChain bindTools. */
+/** OpenAI-style function definitions. Also accepted by LangChain bindTools. */
 export const TOOL_SPECS = METRIC_TOOLS.map((t) => ({
   type: "function" as const,
   function: {

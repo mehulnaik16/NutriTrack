@@ -39,7 +39,7 @@ const SHARING: [string, string, string][] = [
     "In-app purchases, renewals and refunds",
   ],
   [
-    "Google (Gemini) and Groq",
+    "Google Cloud (Gemini)",
     "Food text, meal photos, voice, weekly stats, workout preferences",
     "AI features",
   ],
@@ -199,9 +199,9 @@ const SECTIONS: LegalSection[] = [
         <p>
           Food search, meal photos, voice clips, your weekly statistics (for the
           weekly report) and workout preferences (for AI plans) are sent to AI
-          providers — currently Google Gemini, and OpenAI GPT-OSS and other open
-          models run on Groq — only to produce the result you asked for. We send
-          the minimum needed and do not use your data to train models.
+          providers — currently Google Gemini on Google Cloud — only to produce
+          the result you asked for. We send the minimum needed and do not use
+          your data to train models.
         </p>
         <p>
           When AI identifies a food that is not in our database, we save the
@@ -316,8 +316,7 @@ const SECTIONS: LegalSection[] = [
           <li>
             <strong>Erase</strong> — delete entries, or delete your account and
             all its data from Profile → Settings → Danger zone. Without the app,
-            email{" "}
-            <a {...emailLink(LEGAL.supportEmail)}>{LEGAL.supportEmail}</a>{" "}
+            email <a {...emailLink(LEGAL.supportEmail)}>{LEGAL.supportEmail}</a>{" "}
             from your account email asking us to delete your account.
           </li>
           <li>

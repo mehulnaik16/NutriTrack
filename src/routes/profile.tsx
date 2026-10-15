@@ -2829,7 +2829,7 @@ function AboutPage({ onBack }: { onBack: () => void }) {
               label="Nutrition data"
               value="IFCT 2017 + Open Food Facts"
             />
-            <InfoRow label="AI engine" value="Groq · GPT-OSS 120B" />
+            <InfoRow label="AI engine" value="Google Gemini 3.5 Flash-Lite" />
           </div>
         </section>
 

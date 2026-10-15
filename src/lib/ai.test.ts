@@ -2,7 +2,7 @@
  * Acceptance tests for the AI food-search input path and validators.
  *
  * Plain node:assert script, same convention as foodUnits.test.ts. Everything
- * here is a pure function — no network, no API key, no Groq call.
+ * here is a pure function — no network, no API key, no AI call.
  * Run:  node src/lib/ai.test.ts
  *
  * These cover the two halves the model itself cannot be trusted with: what we

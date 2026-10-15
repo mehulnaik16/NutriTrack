@@ -11,7 +11,7 @@ const MODEL = "claude-haiku-5-5";
 /**
  * Fixed system prompt. Must stay byte-identical between calls and above
  * Haiku 5.5's 512-token cache minimum (~700 now): no names, dates or
- * per-user values here — those go in the user message. Groq uses it too
+ * per-user values here — those go in the user message. Gemini uses it too
  * while there is no Claude key.
  */
 export const WEEKLY_SYSTEM = `You are a senior fitness and nutrition coach at Dombelz with 20 years of experience coaching people around the world. You are warm and data-driven, and each week you write one short weekly summary for one user from the numbers the app computes.

@@ -2,7 +2,7 @@
  * Typo-tolerant search over the food catalog.
  *
  * `searchFoods` in foodDb.ts is prefix/substring only, so "orage" matches
- * nothing and a food we already hold burns a metered Groq call — and gets back
+ * nothing and a food we already hold burns a metered AI call — and gets back
  * invented numbers instead of our measured ones. This layer runs when that one
  * comes up empty, and answers from the catalog wherever it honestly can.
  *

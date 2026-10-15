@@ -3,7 +3,7 @@
  *
  * This is an ops channel, not a product feature. It exists so that the things
  * you would otherwise only discover by reading Vercel logs — a webhook that
- * stopped applying, every Groq key exhausted, a refund — arrive somewhere a
+ * stopped applying, a rejected Gemini key, a refund — arrive somewhere a
  * person actually looks.
  *
  * Same contract as the Python transport in the ReelsMaker repo

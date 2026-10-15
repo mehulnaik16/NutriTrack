@@ -1,6 +1,6 @@
 import { LogoLoader } from "@/components/LogoLoader";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { serverGroqChat } from "@/lib/ai";
+import { serverAiChat } from "@/lib/ai";
 import { useCallback, useEffect, useState } from "react";
 import {
   Scale,
@@ -139,7 +139,7 @@ interface Profile {
   height_cm: number | null;
 }
 
-async function getGroqMotivation(
+async function getAiMotivation(
   name: string,
   currentWeight: number,
   startWeight: number,
@@ -151,10 +151,9 @@ async function getGroqMotivation(
 User: ${name}, goal: ${goal}, current weight: ${currentWeight}kg, starting weight: ${startWeight}kg, goal weight: ${goalWeight ?? "not set"}kg, logging streak: ${streak} days.
 Be specific to their numbers. Be warm and real — not generic or cheesy. No hashtags.`;
 
-  const { result } = await serverGroqChat({
+  const { result } = await serverAiChat({
     data: {
       prompt,
-      model: "openai/gpt-oss-120b",
       max_tokens: 300,
       temperature: 0.8,
     },
@@ -234,7 +233,7 @@ function WeightPage() {
     const streak = entries.length;
     const startW = entries[0].weight_kg;
     const currentW = entries[entries.length - 1].weight_kg;
-    const msg = await getGroqMotivation(
+    const msg = await getAiMotivation(
       profile.full_name?.split(" ")[0] ?? "champ",
       currentW,
       startW,

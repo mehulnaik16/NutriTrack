@@ -31,7 +31,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { serverFastFoodSearch } from "@/lib/ai";
 import { toastAiError } from "@/lib/aiErrors";
-import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { kcalOf, type IFCTItem } from "@/lib/foodDb";
 import {
@@ -179,10 +178,8 @@ export function FastFoodDialog({
         data: {
           restaurant: (brand ?? restaurant).trim(),
           meal: meal.trim(),
-          attempt: searchAttempt(),
         },
       });
-      recordSearchOutcome(true);
       const food = items[0] as IFCTItem | undefined;
       if (!food) {
         toast.warning(
@@ -193,7 +190,6 @@ export function FastFoodDialog({
       }
       onPick(food);
     } catch (e) {
-      recordSearchOutcome(false);
       toastAiError(e, "fast food search");
     } finally {
       setSearching(false);

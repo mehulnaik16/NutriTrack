@@ -1,7 +1,7 @@
 /**
  * All database access for the AI food cache.
  *
- * Server-only, like gemini.ts and groq.ts: the three cache tables grant to
+ * Server-only, like gemini.ts: the three cache tables grant to
  * service_role alone, so nothing here can run in a browser even by accident.
  *
  * Every function in this file swallows its own errors. A cache outage must

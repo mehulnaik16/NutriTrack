@@ -73,7 +73,6 @@ import {
 import { isIsroTheme } from "@/lib/telemetry";
 import type { PhotoFoodResult } from "@/components/PhotoFoodDialog";
 import { toastAiError } from "@/lib/aiErrors";
-import { recordSearchOutcome, searchAttempt } from "@/lib/searchAttempt";
 import { useWaitLabel } from "@/hooks/useWaitLabel";
 import { recordFoodLog } from "@/lib/notificationPrimer";
 
@@ -444,9 +443,8 @@ export const FoodSearch = forwardRef<
     setSearching(true);
     try {
       const { kind, items } = await serverAiFoodSearchInline({
-        data: { query: typed, attempt: searchAttempt() },
+        data: { query: typed },
       });
-      recordSearchOutcome(true);
       if (kind === "meal" && items.length > 1) {
         // Several foods in one sentence. The pick-one list cannot express that,
         // but the voice review list already can — per-item quantities, edits
@@ -468,7 +466,6 @@ export const FoodSearch = forwardRef<
       );
       return true;
     } catch (e) {
-      recordSearchOutcome(false);
       toastAiError(e, "AI food search");
       return false;
     } finally {
@@ -822,7 +819,7 @@ export const FoodSearch = forwardRef<
             // Only reach for the AI when the local database came up empty
             // or with typo guesses only —
             // Enter is a typing habit, and firing it over a list of local
-            // matches spends a metered Groq call on an answered query.
+            // matches spends a metered AI call on an answered query.
             if (e.key === "Enter" && (guessed || suggestions.length === 0))
               handleAiFallback();
           }}

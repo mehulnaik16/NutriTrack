@@ -5,7 +5,7 @@
  * This file lives under src/server/ and is blocked from client bundles by the
  * TanStack Start importProtection in vite.config.ts. Nothing here may ever be
  * imported from a component; src/lib/billing.ts dynamic-imports it inside
- * server function handlers, the same shape src/lib/ai.ts uses for groq.
+ * server function handlers, the same shape src/lib/ai.ts uses for gemini.
  *
  * No SDK. The two endpoints this app needs are one authenticated POST each, so
  * a dependency would be more surface area than code.

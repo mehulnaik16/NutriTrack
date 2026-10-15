@@ -1,63 +1,88 @@
 /**
- * Server-only Gemini client for the food search, photo and voice calls.
+ * Server-only Gemini client, on Google Cloud Vertex AI only, for every AI
+ * call in the app.
  *
- * Lives beside groq.ts and is blocked from client bundles by the same
- * importProtection rule in vite.config.ts.
- *
- * One call, one model. Falling back between models is aiChain.ts's job (the
- * orders are in aiRoutes.ts); this file only reports each failure as an
- * AiHttpError so the chain can tell a 503 from a 429 from a dead key.
+ * Blocked from client bundles by the importProtection rule in vite.config.ts.
+ * Reports each failure as an AiHttpError so aiChain.ts can tell a 503 from a
+ * 429 from a dead key.
  */
 
+import { GoogleAuth } from "google-auth-library";
 import { AiHttpError } from "./aiChain";
 import { sendAlert } from "./telegram";
 
-const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-
 /**
- * Hardcoded for the reason ops-agent.ts gives for pinning its own id: a stale
- * value in one deployment's env vars 404s at runtime, and changing it should
- * need a reviewable commit.
- *
- * This was asked for as gemini-2.5-flash. That id is listed by the models
- * endpoint on this key but *rejected* by generateContent — "no longer
- * available to new users" — which is exactly the split ops-agent.ts:203 warns
- * about. gemini-2.5-flash-lite fails the same way. This is the replacement
- * Google's own 404 body names, and it was verified against this key.
+ * Vertex AI instead of AI Studio when GOOGLE_VERTEX_PROJECT is set. Auth comes
+ * from Application Default Credentials: the gcloud login file locally.
+ * shortcut: no Vercel OIDC client yet, so Vertex only works where ADC exists
+ * (local dev); add the Workload Identity ExternalAccountClient before setting
+ * GOOGLE_VERTEX_PROJECT on Vercel.
  */
-const VISION_MODEL = "gemini-3.6-flash";
+const VERTEX_PROJECT = (process.env.GOOGLE_VERTEX_PROJECT ?? "").trim();
+const VERTEX_LOCATION =
+  (process.env.GOOGLE_VERTEX_LOCATION ?? "").trim() || "global";
+const vertexAuth = VERTEX_PROJECT
+  ? new GoogleAuth({ scopes: "https://www.googleapis.com/auth/cloud-platform" })
+  : null;
+
+/** URL and auth header for one call. Vertex only: there is no AI Studio path. */
+async function endpoint(
+  model: string,
+): Promise<{ url: string; headers: Record<string, string> }> {
+  // Vertex API key (express mode): works on Vercel with no login setup.
+  // Key-mode URLs carry no project or region; the key is tied to the project.
+  // GEMINI_API_KEY is read too because the deployed key (AQ. prefix) is a
+  // Vertex key stored under that name.
+  const vertexKey = (
+    process.env.GOOGLE_VERTEX_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    ""
+  ).trim();
+  if (vertexKey)
+    return {
+      url: `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent`,
+      headers: { "x-goog-api-key": vertexKey },
+    };
+  if (vertexAuth) {
+    // The global endpoint has no region prefix on its host.
+    const host =
+      VERTEX_LOCATION === "global"
+        ? "aiplatform.googleapis.com"
+        : `${VERTEX_LOCATION}-aiplatform.googleapis.com`;
+    let token: string | null | undefined;
+    try {
+      token = await vertexAuth.getAccessToken();
+    } catch (e) {
+      // No ADC on this machine: report it like a dead key.
+      throw new AiHttpError(401, "gemini", null, `Vertex auth failed: ${e}`);
+    }
+    return {
+      url: `https://${host}/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models/${model}:generateContent`,
+      headers: { Authorization: `Bearer ${token}` },
+    };
+  }
+  throw new AiHttpError(
+    401,
+    "gemini",
+    null,
+    "No Vertex credentials: set GOOGLE_VERTEX_API_KEY or GOOGLE_VERTEX_PROJECT.",
+  );
+}
 
 /**
- * The cheap model the food page runs: its second camera tile, its text search
- * and its voice parse. Verified against this key for both text and image
- * prompts before being wired in.
+ * The one model every AI feature runs (user's rule, 2026-10-15). Hardcoded,
+ * not read from the environment: a stale value in one deployment's env vars
+ * 404s at runtime, and changing it should need a reviewable commit.
  */
 const LITE_MODEL = "gemini-3.5-flash-lite";
-
-/** Answers the "Search AI" food lookup on every screen. */
-const SEARCH_MODEL = "gemini-3.7-flash";
-
-/** What the model is called in the UI and in errors, so a comparison is labelled. */
-export const GEMINI_VISION_MODEL = VISION_MODEL;
 export const GEMINI_LITE_MODEL = LITE_MODEL;
-export const GEMINI_SEARCH_MODEL = SEARCH_MODEL;
 
 /**
- * Thinking budget per model, because the floor is not the same on both.
- *
- * The 3.x models reason before answering and bill it against maxOutputTokens —
- * the same trap as gpt-oss in groq.ts — and a photo the user is waiting on
- * cannot spend a 10s Vercel Hobby budget thinking. gemini-3.6-flash takes 0 for
- * that. gemini-3.5-flash-lite answers 0 with a bare 400 INVALID_ARGUMENT and
- * accepts 128, which it then leaves unspent (no thoughtsTokenCount) on the
- * short, shaped prompts this app sends. Both values were checked against the
- * live API, not inferred from the docs.
+ * Lite answers a thinking budget of 0 with a bare 400 INVALID_ARGUMENT and
+ * accepts 128, which it leaves unspent on the short, shaped prompts this app
+ * sends. Checked against the live API.
  */
-const THINKING_BUDGET: Record<string, number> = {
-  [VISION_MODEL]: 0,
-  [LITE_MODEL]: 128,
-  [SEARCH_MODEL]: 0,
-};
+const THINKING_BUDGET = 128;
 
 async function generate(opts: {
   model: string;
@@ -67,17 +92,11 @@ async function generate(opts: {
   after?: string;
   max_tokens?: number;
   temperature?: number;
+  /** False for prose (weekly check-in, motivation); every other caller wants JSON. */
+  json?: boolean;
   signal?: AbortSignal;
 }): Promise<string> {
-  const key = (process.env.GEMINI_API_KEY ?? "").trim();
-  // A missing key is a dead key: the chain skips Gemini and moves to Groq.
-  if (!key)
-    throw new AiHttpError(
-      401,
-      "gemini",
-      null,
-      "GEMINI_API_KEY is not configured.",
-    );
+  const { url, headers } = await endpoint(opts.model);
 
   const parts: Record<string, unknown>[] = [{ text: opts.prompt }];
   if (opts.image)
@@ -86,26 +105,26 @@ async function generate(opts: {
     });
   if (opts.after) parts.push({ text: opts.after });
 
-  const res = await fetch(
-    `${GEMINI_BASE}/${opts.model}:generateContent?key=${encodeURIComponent(key)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: opts.signal,
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          temperature: opts.temperature ?? 0.2,
-          maxOutputTokens: opts.max_tokens ?? 800,
-          // Ask for JSON directly rather than fishing it out of prose. Every
-          // caller here wants JSON, and the caller still runs its own parse,
-          // because this only constrains the shape, not the field names.
-          responseMimeType: "application/json",
-          thinkingConfig: { thinkingBudget: THINKING_BUDGET[opts.model] ?? 0 },
-        },
-      }),
-    },
-  );
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    signal: opts.signal,
+    body: JSON.stringify({
+      // Vertex rejects contents without a role.
+      contents: [{ role: "user", parts }],
+      generationConfig: {
+        temperature: opts.temperature ?? 0.2,
+        maxOutputTokens: opts.max_tokens ?? 800,
+        // Ask for JSON directly rather than fishing it out of prose. The
+        // caller still runs its own parse, because this only constrains
+        // the shape, not the field names.
+        ...(opts.json === false
+          ? {}
+          : { responseMimeType: "application/json" }),
+        thinkingConfig: { thinkingBudget: THINKING_BUDGET },
+      },
+    }),
+  });
 
   if (!res.ok) {
     const err = await res.text().catch(() => "");
@@ -165,7 +184,7 @@ export async function geminiVision(opts: {
   signal?: AbortSignal;
 }): Promise<string> {
   return generate({
-    model: opts.model ?? VISION_MODEL,
+    model: opts.model ?? LITE_MODEL,
     prompt: opts.prompt,
     image: { base64: opts.base64, mimeType: opts.mimeType },
     after: opts.after,
@@ -174,11 +193,12 @@ export async function geminiVision(opts: {
   });
 }
 
-/** Text-only. Defaults to the cheap model; the chains pass their own. */
+/** Text-only, on the Lite model unless told otherwise. */
 export async function geminiText(opts: {
   prompt: string;
   max_tokens?: number;
   temperature?: number;
+  json?: boolean;
   model?: string;
   signal?: AbortSignal;
 }): Promise<string> {
