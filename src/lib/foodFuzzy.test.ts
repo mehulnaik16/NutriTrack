@@ -18,8 +18,9 @@ import {
   similarity,
   altNames,
   catalogFood,
+  CATALOG_ALIASES,
 } from "./foodFuzzy.ts";
-import { searchFoods } from "./foodDb.ts";
+import { searchFoods, ITEMS } from "./foodDb.ts";
 
 const top = (q: string) => strongFoods(q, 3)[0]?.name ?? "";
 const hits = (q: string) => strongFoods(q, 3).length;
@@ -209,6 +210,31 @@ for (const [q, code] of [
   ["paneer", "XE083"],
   ["curd", "XE160"],
   ["dahi", "XE160"],
+])
+  assert.equal(catalogFood(q)?.code, code, `${q} -> ${code}`);
+// Every alias points at a real row, and the common name now resolves to it.
+for (const [q, code] of Object.entries(CATALOG_ALIASES)) {
+  assert.ok(
+    ITEMS.some((it) => it.code === code),
+    `${q}: no row ${code}`,
+  );
+  assert.ok(catalogFood(q), `${q} must resolve`);
+}
+assert.equal(catalogFood("rava dosa")?.code, "ASC147");
+assert.equal(catalogFood("Mutton Biryani")?.code, "ASC122");
+// Recipe-calculated dishes (scripts/recipe-calc.mjs) answer to their names.
+for (const [q, code] of [
+  ["mysore pak", "XR086"],
+  ["pongal", "XR009"],
+  ["ven pongal", "XR009"],
+  ["malabar parotta", "XR021"],
+  ["toor dal", "XR038"],
+  ["papad", "XR107"],
+  ["hyderabadi biryani", "XR028"],
+  ["namkeen", "XR108"],
+  ["kanda poha", "XE010"],
+  ["sugarcane juice", "I002"],
+  ["onion pakoda", "ASC352"],
 ])
   assert.equal(catalogFood(q)?.code, code, `${q} -> ${code}`);
 // Bare-name rows: whichever row is plainly this food, by its own name.

@@ -212,6 +212,10 @@ function model(cred: Credential) {
   if (cred.provider === "gemini") {
     return new ChatGoogleGenerativeAI({
       apiKey: cred.key,
+      // Vertex AI express mode, same as gemini.ts: the SDK builds
+      // `${baseUrl}/${apiVersion}/models/<id>`, which lands on the Vertex path.
+      baseUrl: "https://aiplatform.googleapis.com",
+      apiVersion: "v1/publishers/google",
       // Deliberately hardcoded rather than read from the environment. The model
       // id is a correctness constraint, not a preference: a stale value in one
       // deployment's env vars 404s and falls silently through to Groq, which is
