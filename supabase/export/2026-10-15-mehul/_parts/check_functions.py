@@ -1,0 +1,84 @@
+"""Checks 02_functions.sql against md5(pg_get_functiondef()) read from the live
+project on 2026-10-15, so a hand-copying slip in any function shows up."""
+import hashlib, pathlib, re, sys
+
+LIVE = """
+ai_plan_status 0d1889b20fcf1a7caf4ae2b08b5a44d4
+ai_verified_similar 8779ef94c796d5d4e61cad770f30c1c9
+award_achievement 034dc1d0e807118f83139c7f97e794cd
+bump_history_version b4a607b774d0c88ab2a2e6fcd655281d
+bump_plan_version 87868cd7ad62378e279824dcc7d904e1
+bump_profile_version ffd6f26f383da0679e284f73931036bc
+check_food_log_daily_limit 895ad1d91bfb2238aabb4b888b166321
+check_workout_set_daily_limit 66f2801593786531961d48c45559a631
+claim_ai_plan c08d4d06b5240b45bd66c3034e062849
+claim_photo_download d1e8efe7dfc46bd4e94a65f9dd769942
+claim_power_log c9a456f41cdd01f68c281c1aaeceb339
+claim_referral 00a9c06974e680c697151b90690da4ed
+data_export_status 2cb4695c3d7f1b791347df56b6a61bce
+enforce_log_edit_window b2fd7ec0e998ddd168cf865d19367de6
+enforce_reminder_cap afd30482b8f4b972fc82cd9c7e7e6aa6
+generate_referral_code 57103dd6bbe409b50c3348ac6c82359c
+get_billing_summary 94d61995ac920fee58cb616eca7bfc4a
+get_friend_requests af0e1728fc9395bded9e4ecc427ea12d
+get_friends 5c1edb8f4032985677e18c5118a1aaab
+get_leaderboard_stats b6251faf4f5504e3b1b21f19d841f1ca
+get_referral_summary 2359070bc31d7cc0c4d4ca545e240317
+get_referrer_name 7cb9003d51cc3a3ab21ca9b546fd668b
+gift_grants 654dc02552b7d14b4e235e26ae9d5c34
+handle_razorpay_event 0ab3f9c32d26ec8a629a4a815d108b3a
+join_gym 7c20cd0a23d5f83f688532056ad51e43
+leave_gym 314a95dd383492e0bade8b4c1002581f
+link_gym cece2a1defd81216acb23a6775540cac
+log_body_measurements 827622ef8964ffc688b891cb408d1acb
+measurements_valid 18238651e5bb34bf8563fc26cd053abe
+ops_audit_recent e6870601f1cf4466d1227b1d41ba89b4
+ops_diagnose_access 7a74dab3139968e611ff46eda1f61746
+ops_engagement 1ef185bb8b87c75f70920b47871ab675
+ops_funnel ed4de1da03ae7a725fb6a74a895d754e
+ops_grant_access 84dc91abdde8e0889392d7d37774d17d
+ops_growth_daily 79efdc3e030769b7d7e7b600a7560714
+ops_list_users 1510911b8b67b94968f96ca83c2f4a1a
+ops_notifications 832866e05ea56ff141b68203101498bb
+ops_recent_activity e5aff9badc91b591cd455960a117a950
+ops_reset_notifications 69c3a82f95d4eba2f4b4bf6c6553ffbf
+ops_resolve_user 06d00524f10517152336b5575109d8a6
+ops_revenue 8f5805ef59b4a444348cacb35c642ed4
+ops_revoke_grant 12f1ecebe1e1b9bf731915f7fd9cd915
+ops_search_users ce73d830602a9310c2b2b99a2b81083e
+ops_system_health 0725393ac4d32a14dfa7b245e0658178
+ops_user_detail fe55cf0f8d93d5345757a4fe1aea1004
+ops_users_overview be214032c6f5df6853036eb599732513
+power_logs_left db4edd5b49ad6822aebc0a9787a54ed5
+premium_grants e081950c65fbd6fc9f81480a4fc8c67a
+qualify_referral e4a05f65fd1d9a9ca51a03ba168ad289
+recompute_access 0bdc78fcd8ae612848c6c9c5c2d6c356
+recompute_bonus_trial_days 4e176ef74766812044440a88c802bcae
+record_data_export 3b7c84ebc7adde39ddb403b7588b1451
+referral_code_prefix 331bd01223d035a62d9084a1c89fc933
+register_subscription 07f7e1886e6843ad3061300337c1b5c4
+release_ai_plan 9320a5a92eb3c7a0065b4e39c99beaad
+release_power_log 82ed9416d0b14b2638c78e25e4bd2161
+request_refund 11637cb3692e570f4b57feaa8f944f8f
+require_access_for_write 6c6d69d41003aa1f4056d5737b9da0c1
+resolve_friend_code 8972c6d210eb252e0cf70c59d74e5324
+search_users b2981bd522c8b4a74307f37abee86e4c
+set_referral_code 9b45adda5360fb603df1dcb861c5c270
+spend_gym_gift 560a10e096d1966abdfaed36a70c1026
+start_trial 2eaa987f266037b3c6de81ca980a746f
+sync_achievements d3f240dcef7a476f72c9dffb96fa3932
+unlink_gym e476846d432ecb8c5657fed78780c147
+user_achievement_metrics 4d8838c9b31aeaab1608f5b9354cf184
+"""
+live = dict(l.split() for l in LIVE.strip().splitlines())
+src = pathlib.Path(__file__).resolve().parent.parent.joinpath("02_functions.sql").read_text(encoding="utf-8").replace("\r", "")
+blocks = re.findall(r"(CREATE OR REPLACE FUNCTION public\.(\w+)\(.*?\$function\$\n);", src, re.S)
+bad = 0
+for body, name in blocks:
+    # The body ends at the closing $function$; a nested "$function$" would mis-split, so check the count too.
+    got = hashlib.md5(body.encode()).hexdigest()
+    if live.get(name) != got:
+        bad += 1
+        print("MISMATCH", name)
+print(f"{len(blocks)} blocks, {len(live)} live, {bad} mismatches")
+sys.exit(1 if bad or len(blocks) != len(live) else 0)
